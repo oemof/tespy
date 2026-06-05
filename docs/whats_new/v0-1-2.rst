@@ -4,10 +4,10 @@ v0.1.2 (August, 6, 2019)
 New Features
 ############
 - The water electrolyzer is available as new component of TESPy (`PR #73 <https://github.com/oemof/tespy/pull/73>`_).
-- The components :py:class:`combustion chamber <tespy.components.components.base>` and :py:class:`cogeneration unit <tespy.components.components.cogeneration_unit>`
+- The components :code:`combustion chamber <tespy.components.components.base>` and :code:`cogeneration unit <tespy.components.components.cogeneration_unit>`
   now work with fuel mixtures, too. Specification of the component's fuel is not required anymore, the software automatically detects,
   which fuels are connected to the component's inlets. Available fuels are: methane, ethane, propane, butane and hydrogen (`PR #79 <https://github.com/oemof/tespy/pull/79>`_).
-- Add busses to the :py:meth:`network's result printout <tespy.networks.network.print_results>`.
+- Add busses to the :code:`network's result printout <tespy.networks.network.print_results>`.
 
 Documentation
 #############

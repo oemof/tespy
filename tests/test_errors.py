@@ -9,8 +9,10 @@ tests/test_errors.py
 
 SPDX-License-Identifier: MIT
 """
+import logging
 import os
 import shutil
+import warnings
 
 from pytest import raises
 
@@ -24,9 +26,7 @@ from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.components import Turbine
-from tespy.components import WaterElectrolyzer
 from tespy.components.component import Component
-from tespy.connections import Bus
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
@@ -35,13 +35,13 @@ from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_custom_char
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import DataContainer
-from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
 from tespy.tools.helpers import extend_basic_path
+from tespy.tools.logger import FutureWarningHandler
 
 ##############################################################################
 # test errors of set_attr and get_attr methods
@@ -72,24 +72,22 @@ def set_attr_ValueError(instance, **kwargs):
         instance.set_attr(**kwargs)
 
 
+def set_attr_AttributeError(instance, **kwargs):
+    with raises(AttributeError):
+        instance.set_attr(**kwargs)
+
+
 def test_set_attr_errors():
     """Test errors of set_attr methods."""
     nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
-    mybus = Bus('mybus')
 
     # ValueErrors
     set_attr_ValueError(comb, offdesign=['Q'])
 
     set_attr_ValueError(conn, offdesign=['f'])
-
-    set_attr_ValueError(nw, m_unit='kg')
-    set_attr_ValueError(nw, h_unit='kg')
-    set_attr_ValueError(nw, p_unit='kg')
-    set_attr_ValueError(nw, T_unit='kg')
-    set_attr_ValueError(nw, v_unit='kg')
 
     # TypeErrors
     set_attr_TypeError(comb, P=[5])
@@ -114,17 +112,14 @@ def test_set_attr_errors():
     set_attr_TypeError(nw, p_range=5)
     set_attr_TypeError(nw, h_range=5)
     set_attr_TypeError(nw, iterinfo=5)
-    set_attr_TypeError(mybus, P='some value')
-    set_attr_TypeError(mybus, printout=5)
 
     # KeyErrors
-    set_attr_KeyError(dc_cc(), x=7)
+    set_attr_AttributeError(dc_cc(), x=7)
     set_attr_KeyError(comb, wow=5)
     set_attr_KeyError(conn, jey=5)
-    set_attr_KeyError(mybus, power_output=100000)
 
     # NotImplementedError
-    set_attr_NotImplementedError(conn, Td_bp=Ref(conn, 1, 0))
+    set_attr_NotImplementedError(conn, td_bubble=Ref(conn, 1, 0))
     set_attr_NotImplementedError(conn, x=Ref(conn, 1, 0))
 
 
@@ -134,15 +129,11 @@ def test_get_attr_errors():
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
-    mybus = Bus('mybus')
-    sub = Subsystem('MySub')
 
     get_attr_KeyError(comb, 'wow')
     get_attr_KeyError(conn, 'key')
-    get_attr_KeyError(mybus, 'components')
     get_attr_KeyError(nw, 'missing')
     get_attr_KeyError(Ref(conn, 1, 0), 'comp')
-    get_attr_KeyError(sub, 'test')
     get_attr_KeyError(CharLine(), 'test')
     get_attr_KeyError(DataContainer(), 'somekey')
     get_attr_KeyError(CharMap(), 'Stuff')
@@ -153,10 +144,8 @@ def test_get_attr_errors():
 
 def test_cmp_instanciation_ValueError():
     """Test bad label specification for component."""
-    labels = [5, 'Label,', 'Labe;l', 'Label.']
-    for label in labels:
-        with raises(ValueError):
-            CombustionEngine(label)
+    with raises(ValueError):
+        CombustionEngine(5)
 
 ##############################################################################
 # test errors in connection classes
@@ -211,31 +200,6 @@ def test_ref_creation_error():
     create_ref_TypeError([comb, 1, 0])
 
 ##############################################################################
-# bus
-
-
-def bus_add_comps_TypeError(b, c):
-    with raises(TypeError):
-        b.add_comps(c)
-
-
-def test_Bus_add_comps_errors():
-    """Test errors adding components to busses."""
-    mybus = Bus('mybus')
-    comb = CombustionEngine('combustion engine')
-    pipeline = Pipe('pipeline')
-    conn = Connection(comb, 'out1', pipeline, 'in1')
-    bus_add_comps_TypeError(mybus, {'comp': conn})
-    bus_add_comps_TypeError(mybus, {'f': comb})
-    bus_add_comps_TypeError(mybus, {'comp': comb, 'char': 'Hi'})
-    bus_add_comps_TypeError(mybus, {'comp': comb, 'param': 5})
-    bus_add_comps_TypeError(mybus, {'comp': comb, 'P_ref': 'what'})
-    bus_add_comps_TypeError(mybus, comb)
-
-    with raises(ValueError):
-        mybus.add_comps({'comp': comb, 'base': 5})
-
-##############################################################################
 # test errors of UserDefinedEquation
 
 
@@ -246,10 +210,6 @@ def udf_dummy():
 def test_UserDefinedEquation_errors():
     with raises(TypeError):
         UserDefinedEquation(7, udf_dummy, udf_dummy, [])
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, 'connections')
-    with raises(TypeError):
-        UserDefinedEquation('label', udf_dummy, udf_dummy, [], params=[])
 
 ##############################################################################
 # test errors of component classes
@@ -282,33 +242,6 @@ def test_CombustionChamber_missing_oxygen():
         nw.solve('design', init_only=True)
 
 ##############################################################################
-# combustion_engine
-
-
-class TestCombustionEngineBusErrors:
-
-    def setup_method(self):
-        self.nw = Network()
-        self.instance = CombustionEngine('combustion engine')
-        self.bus = Bus('power')
-        self.bus.add_comps({'comp': self.instance, 'param': 'Param'})
-
-    def test_missing_Bus_param_func(self):
-        """Test wrong/missing bus parameter in bus function."""
-        with raises(ValueError):
-            self.instance.bus_func(self.bus.comps.loc[self.instance])
-
-    def test_missing_Bus_param_deriv(self):
-        """Test wrong/missing bus parameter in bus derivatives."""
-        # both values do not matter, but are required for the test
-        self.instance.num_nw_vars = 1
-        self.instance.num_vars = 1
-        self.instance.inl = ["foo", "bar", "baz", "foo"]
-        self.instance.outl = ["bar", "baz", "foo"]
-        with raises(ValueError):
-            self.instance.bus_deriv(self.bus)
-
-##############################################################################
 # compressor
 
 
@@ -337,9 +270,9 @@ def test_subsys_label_str():
         Subsystem(5)
 
 
-def test_subsys_label_forbidden():
-    with raises(ValueError):
-        Subsystem('label;')
+def test_subsys_no_create_network():
+    with raises(NotImplementedError):
+        Subsystem("bare subsystem")
 
 ##############################################################################
 # turbine
@@ -360,34 +293,6 @@ def test_Turbine_missing_char_parameter():
     nw.solve('design', init_only=True)
     with raises(ValueError):
         instance.eta_s_char_func()
-
-
-def test_wrong_Bus_param_func():
-    """Test missing/wrong bus parameter specification in equations."""
-    # this test does not need setup, since the function is called without
-    # network initialisation
-    instance = WaterElectrolyzer('electrolyzer')
-    some_bus = Bus('some_bus')
-    param = 'G'
-    some_bus.add_comps({'comp': instance, 'param': param})
-    with raises(ValueError):
-        instance.bus_func(some_bus.comps.loc[instance])
-
-
-def test_wrong_Bus_param_deriv():
-    """Test missing/wrong bus parameter specification in derivatives."""
-    # this test does not need setup, since the function is called without
-    # network initialisation
-    instance = WaterElectrolyzer('electrolyzer')
-    # required for calling bus_deriv method without network initialisation
-    instance.num_vars = 1
-    instance.num_nw_fluids = 1
-    instance.num_nw_vars = 1
-    some_bus = Bus('some_bus')
-    param = 'G'
-    some_bus.add_comps({'comp': instance, 'param': param})
-    with raises(ValueError):
-        instance.bus_deriv(some_bus)
 
 
 ##############################################################################
@@ -432,7 +337,7 @@ class TestNetworkErrors:
         b = Connection(source, 'out1', sink2, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_Connection_error_target(self):
         source1 = Source('source1')
@@ -442,7 +347,7 @@ class TestNetworkErrors:
         b = Connection(source2, 'out1', sink, 'in1')
         self.nw.add_conns(a, b)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_inlets(self):
         merge = Merge('merge')
@@ -450,7 +355,7 @@ class TestNetworkErrors:
         a = Connection(merge, 'out1', sink, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_consistency_outlets(self):
         source = Source('source')
@@ -458,7 +363,7 @@ class TestNetworkErrors:
         a = Connection(source, 'out1', splitter, 'in1')
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
-            self.nw.check_network()
+            self.nw.check_topology()
 
     def test_component_label_duplicates(self):
         source = Source('label')
@@ -499,24 +404,6 @@ class TestNetworkErrors:
         self.nw.add_conns(a)
         with raises(TESPyNetworkError):
             self.nw.solve('design')
-
-    def test_add_Bus_TypeError(self):
-        source = Source('label')
-        sink = Sink('label')
-        a = Connection(source, 'out1', sink, 'in1')
-        with raises(TypeError):
-            self.nw.add_busses(a)
-
-    def test_Bus_duplicate(self):
-        with raises(TESPyNetworkError):
-            b = Bus('mybus')
-            self.nw.add_busses(b, b)
-
-    def test_buslabel_duplicate(self):
-        with raises(TESPyNetworkError):
-            a = Bus('mybus')
-            b = Bus('mybus')
-            self.nw.add_busses(a, b)
 
 ##############################################################################
 # test errors of characteristics classes
@@ -593,6 +480,20 @@ def test_h_mix_pQ_on_mixtures():
     c = Connection(Source("test"), "out1", Sink("test2"), "in1")
     c.set_attr(fluid={"O2": 0.24, "N2": 0.76})
     c._create_fluid_wrapper()
-    c.build_fluid_data()
     with raises(ValueError):
         h_mix_pQ(1e5, 0.5, c.fluid_data, c.mixing_rule)
+
+
+def test_warning_logged_with_correct_category(caplog):
+    logger_name = "TESPyLogger"
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.WARNING)
+
+    with caplog.at_level(logging.WARNING, logger=logger_name):
+        warnings.showwarning = FutureWarningHandler(logger)
+        warnings.warn("Custom test message", category=UserWarning)
+
+        assert any([
+            "UserWarning: Custom test message" in msg
+            for msg in caplog.messages
+        ])

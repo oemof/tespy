@@ -1,10 +1,13 @@
 Thermal Engineering Systems in Python
 =====================================
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
-powerful simulation toolkit for thermal engineering plants such as power
-plants, district heating systems or heat pumps. It is an external extension
-module within the Open Energy Modelling Framework `oemof <https://oemof.org/>`_
-and can be used as a standalone package.
+powerful simulation toolkit for thermal engineering plants such as various
+types of power plants (including organic rankine cycles), heat pumps or
+refrigeration machines. Due to its flexibility it is actually possible to
+model any kind of thermal energy conversion process, this also includes energy
+balancing of industrial processes, district heating or HVAC systems. It is
+part of the Open Energy Modelling Framework `oemof <https://oemof.org/>`_ and
+can be used as a standalone package.
 
 .. figure:: https://raw.githubusercontent.com/oemof/tespy/9915f013c40fe418947a6e4c1fd0cd0eba45893c/docs/api/_images/logo_tespy_big.svg
     :align: center
@@ -26,12 +29,12 @@ https://guides.github.com/activities/hello-world/
 
 Key Features
 ============
-* **Open** Source
-* **Generic** thermal engineering applications
-* **Automatic** model documentation in LaTeX for high transparency and
-  reproducibility
-* **Extendable** framework for the implementation of custom components and
-  component groups
+* **Free** and **Open** Source Software
+* **Flexible** models of thermal engineering applications due to component
+  based architecture
+* **Extendable** framework for the implementation of custom components, fluid
+  property formulations and equations
+* **Integration** of optimization capabilities through an API to pymoo
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 .. start-badges
@@ -99,20 +102,26 @@ Documentation
 You can find the full documentation at
 `readthedocs <http://tespy.readthedocs.org>`_. Use the
 `project site <http://readthedocs.org/projects/tespy>`_ of readthedocs to
-choose the version of the documentation. Go to the
-`download page <http://readthedocs.org/projects/tespy/downloads/>`_ to
-download different versions and formats (pdf, html, epub) of the documentation.
+choose the version of the documentation.
 
 To get the latest news visit and follow our `website <https://www.oemof.org>`_.
 
 Installing TESPy
 ================
-If you have a working Python3 environment, use pypi to install the latest
-tespy version:
+The recommended way to install TESPy is with
+`uv <https://docs.astral.sh/uv/>`_:
+
+.. code:: bash
+
+  uv add tespy
+
+Alternatively, use pip or conda:
 
 .. code:: bash
 
   pip install tespy
+  # or
+  conda install -c conda-forge tespy
 
 If you want to use the latest features, you might want to install the
 **developer version**. See section
@@ -123,17 +132,16 @@ use.
 Get in touch
 ============
 
-Online "Stammtisch"
--------------------
+Community meetings
+------------------
 
-We have decided to start a reoccurring "Stammtisch" meeting for all interested
-TESPy users and (potential) developers. You are invited to join us on every 3rd
-Monday of a month at 17:00 CE(S)T for a casual get together. The first meeting
-will be held at June, 20, 2022. The intent of this meeting is to establish a
-more active and well-connected network of TESPy users and developers.
+There are online QA meetings every month, please check the
+`oemof calendar <https://oemof.org/calendar/>`__ for date, time and meeting
+link. You are invited to join us with your questions, issues and suggestions!
 
-If you are interested, you can simply join the meeting at
-https://meet.jit.si/tespy_user_meeting. We are looking forward to seeing you!
+Furthermore, there are in-person community meetings. These are held once or
+twice a year. To learn about upcoming meetings, follow the blog over at
+`<https://oemof.org/>`__ for the announcements.
 
 User forum
 ----------

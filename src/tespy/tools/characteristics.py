@@ -20,7 +20,6 @@ import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.helpers import extend_basic_path
 
 
 class CharLine:
@@ -46,9 +45,9 @@ class CharLine:
     This class generates a lookup table from the given input data x and y,
     then performs linear interpolation. The x and y values may be specified by
     the user. There are some default characteristic lines for different
-    components, see the :py:mod:`tespy.data` module. If you neither specify the
-    method to use from the defaults nor specify x and y values, the
-    characteristic line generated will be
+    components, see the :ref:`tespy.data <data_label>` module. If you
+    neither specify the method to use from the defaults nor specify x and y
+    values, the characteristic line generated will be
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
@@ -110,6 +109,10 @@ class CharLine:
         corresponding y-values. On extrapolation the two smallest or the two
         largest value pairs are used respectively.
         """
+        if np.isnan(x):
+            msg = "CharLine cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
             if self.extrapolate:
@@ -142,7 +145,7 @@ class CharLine:
             logger.warning(msg)
         elif x < self.x[0]:
             msg = (
-                "Operating point belpw characteristic line range: X="
+                "Operating point below characteristic line range: X="
                 f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
             )
             logger.warning(msg)
@@ -217,11 +220,12 @@ class CharMap:
     """
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z=np.ones((2, 2))):
+                 z=np.ones((2, 2)), extrapolate=False):
 
         self.x = x
         self.y = y
         self.z = z
+        self.extrapolate = extrapolate
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -270,17 +274,26 @@ class CharMap:
         zarr : ndarray
             Output array of CharMap calculated from first dimension input.
         """
+        if np.isnan(x):
+            msg = "CharMap cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x):
-            yarr = self.y[xpos - 1]
-            zarr = self.z[xpos - 1]
+            if self.extrapolate:
+                xpos = -1
+            else:
+                return self.y[-1], self.z[-1]
         elif xpos == 0:
-            yarr = self.y[0]
-            zarr = self.z[0]
-        else:
-            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-            zarr = self.z[xpos - 1] + yfrac * (self.z[xpos] - self.z[xpos - 1])
+            # extrapolate from elements 0 and 1 and not 0 and -1!
+            if self.extrapolate:
+                xpos = 1
+            else:
+                return self.y[0], self.z[0]
+
+        yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+        yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+        zarr = self.z[xpos - 1] + yfrac * (self.z[xpos] - self.z[xpos - 1])
 
         return yarr, zarr
 
@@ -300,15 +313,25 @@ class CharMap:
         zarr : ndarray
             Output array of CharMap calculated from first dimension input.
         """
+        if np.isnan(y):
+            msg = "CharMap cannot be evaluated at nan."
+            logger.error(msg)
+            raise ValueError(msg)
         ypos = np.searchsorted(yarr, y)
+
         if ypos == len(yarr):
-            return zarr[ypos - 1]
+            if self.extrapolate:
+                ypos = -1
+            else:
+                return zarr[ypos - 1]
         elif ypos == 0:
-            return zarr[0]
-        else:
-            zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
-            z = zarr[ypos - 1] + zfrac * (zarr[ypos] - zarr[ypos - 1])
-            return z
+            if self.extrapolate:
+                ypos = 1
+            else:
+                return zarr[0]
+
+        zfrac = (y - yarr[ypos - 1]) / (yarr[ypos] - yarr[ypos - 1])
+        return zarr[ypos - 1] + zfrac * (zarr[ypos] - zarr[ypos - 1])
 
     def evaluate(self, x, y):
         r"""
@@ -456,6 +479,7 @@ class CharMap:
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["z"] = self.z.tolist()
+        export["extrapolate"] = self.extrapolate
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -540,6 +564,7 @@ def load_custom_char(name, char_type):
     obj : object
         The characteristics (CharLine, CharMap) object.
     """
+    from tespy.tools.helpers import extend_basic_path
     path = extend_basic_path('data')
 
     if char_type == CharLine:

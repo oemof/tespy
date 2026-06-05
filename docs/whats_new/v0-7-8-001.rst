@@ -1,0 +1,10 @@
+v0.7.8.post1 - Newton's Nature (December, 06, 2024)
++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- Fixed a too low upper value boundary for the new :code:`dp` parameter.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

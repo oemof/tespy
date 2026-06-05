@@ -16,8 +16,11 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -25,69 +28,101 @@ class Valve(Component):
     r"""
     The Valve throttles a fluid without changing enthalpy.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.piping.valve.Valve.dp_char_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Valve.svg
+    .. image:: /api/_images/components/Valve.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Valve_darkmode.svg
+    .. image:: /api/_images/components/Valve_darkmode.svg
        :alt: flowsheet of the valve
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - equation for enthalpy equality: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`
-
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     dp_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for difference pressure to mass flow.
+        Inlet to outlet absolute pressure change as function of mass flow lookup
+        table.
+        Equation: :py:meth:`dp_char_func <tespy.components.piping.valve.Valve.dp_char_func>`.
+
+    Kv : float, dict
+        Flow coefficient in m3/h.
+        Equation: :py:meth:`Kv_func <tespy.components.piping.valve.Valve.Kv_func>`.
+
+    Kv_analytical : dict
+        Fitting parameters and method for the analytical Kv evaluation provided
+        in a dictionary with keys 'method' (callable) and 'params' (list).
+
+    Kv_char : tespy.tools.characteristics.CharLine, dict
+        Lookup-table data for flow coefficient as function of opening.
+
+    Kv_char_analytical_group : GroupedComponentProperties
+        Elements: :code:`Kv_analytical`, :code:`opening`.
+        Equation: :py:meth:`Kv_char_analytical_func <tespy.components.piping.valve.Valve.Kv_char_analytical_func>`.
+
+    Kv_char_group : GroupedComponentProperties
+        Equation for flow coefficient over opening. Elements: :code:`Kv_char`,
+        :code:`opening`.
+        Equation: :py:meth:`Kv_char_func <tespy.components.piping.valve.Valve.Kv_char_func>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    opening : float, dict, :code:`"var"`
+        Opening ratio of the valve. Quantity: :code:`ratio`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -98,68 +133,213 @@ class Valve(Component):
     >>> from tespy.components import Sink, Source, Valve
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> v = Valve('valve')
-    >>> v.component()
-    'valve'
     >>> so_v = Connection(so, 'out1', v, 'in1')
     >>> v_si = Connection(v, 'out1', si, 'in1')
     >>> nw.add_conns(so_v, v_si)
-    >>> v.set_attr(offdesign=['zeta'])
+    >>> v.set_attr(offdesign=['zeta_d4'])
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
     0.188
 
-    The simulation determined the area independent zeta value
-    :math:`\frac{\zeta}{D^4}`. This zeta remains constant if the cross
-    sectional area of the valve opening does not change. Using the zeta value
-    we can determine the pressure ratio at a different feed pressure.
+    The simulation determined the area independent zeta_d4 value
+    :math:`\frac{\zeta}{D^4}`. This value remains constant if the cross
+    sectional area of the valve opening does not change. Using zeta_d4 we can
+    determine the pressure ratio at a different feed pressure.
 
     >>> so_v.set_attr(p=70)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(so_v.m.val, 1)
     0.9
     >>> round(v_si.T.val, 1)
     30.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+
+    You can also specify the flow coefficient of the valve :code:`Kv` which is
+    used in context of liquids. For this there are several methods available:
+
+    - direct specification with :code:`Kv`
+    - lookup table specification :math:`Kv=f\left(opening\right)` with
+      :code:`Kv_char` and :code:`opening`
+    - arbitrary function specification :math:`Kv=f\left(opening, params\right)`
+      with :code:`Kv_analytical` and :code:`opening`
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
+    ... })
+    >>> so = Source('source')
+    >>> si = Sink('sink')
+    >>> v = Valve('valve')
+    >>> so_v = Connection(so, 'out1', v, 'in1')
+    >>> v_si = Connection(v, 'out1', si, 'in1')
+    >>> nw.add_conns(so_v, v_si)
+    >>> so_v.set_attr(fluid={'water': 1}, T=50, p=5)
+    >>> v_si.set_attr(p=4)
+
+    First we specify Kv:
+
+    >>> v.set_attr(Kv=10)
+    >>> nw.solve('design')
+    >>> round(so_v.v.val, 4)
+    0.0028
+
+    Then, for example an analytical function:
+
+    >>> def analytical(opening, *params):
+    ...     return params[0] * opening
+    >>> v.set_attr(
+    ...     Kv=None,
+    ...     opening=0.5,
+    ...     Kv_analytical={"method": analytical, "params": [10]}
+    ... )
+    >>> nw.solve("design")
+    >>> round(v.Kv.val_SI, 1)
+    5.0
+
+    Or, use the :code:`Kv_char`, which is a :code:`CharLine` instance:
+
+    >>> from tespy.tools import CharLine
+    >>> kv_data = np.array([
+    ...     0.09,0.63,1.1,2.1,3.1,4.2,5.2,6.2,7.2,8.2,9.2,10.3,11.3
+    ... ])
+    >>> opening_data = np.array([0,5,10,20,30,40,50,60,70,80,90,100,110]) / 100
+    >>> Kv_char = {
+    ...     "char_func": CharLine(x=opening_data, y=kv_data) , "is_set": True
+    ... }
+    >>> v.set_attr(Kv_char=Kv_char, Kv_analytical=None)
+    >>> nw.solve("design")
+    >>> round(v.Kv.val, 1)
+    5.2
     """
 
-    @staticmethod
-    def component():
-        return 'valve'
+    _parameter_aliases = {'zeta': 'zeta_d4'}
 
     def get_parameters(self):
         return {
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr'}, latex=self.pr_func_doc),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr'},
+                quantity="ratio",
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
+            ),
+            'dp': dc_cp(
+                min_val=0,
+                num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={"inconn": 0, "outconn": 0, "dp": "dp"},
+                quantity="pressure_difference",
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
+            ),
+            'zeta_d4': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.zeta_d4_func,
+                dependents=self.zeta_d4_dependents,
+                func_params={'zeta': 'zeta_d4'},
+                description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta'}, latex=self.zeta_func_doc),
+                min_val=0, max_val=1e15, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
+            ),
             'dp_char': dc_cc(
-                param='m', num_eq=1,
-                deriv=self.dp_char_deriv, func=self.dp_char_func,
-                char_params={'type': 'abs'}, latex=self.dp_char_func_doc)
+                param='m', num_eq_sets=1,
+                dependents=self.dp_char_dependents,
+                func=self.dp_char_func,
+                char_params={'type': 'abs'},
+                description="inlet to outlet absolute pressure change as function of mass flow lookup table"
+            ),
+            'Kv': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.Kv_func,
+                dependents=self.Kv_dependents,
+                description="flow coefficient in m3/h",
+                calc=self._calc_Kv
+            ),
+            'Kv_char': dc_cc(
+                description="lookup-table data for flow coefficient as function of opening"
+            ),
+            'opening': dc_cp(
+                # opening can be more than 100 % sometimes
+                min_val=0, max_val=1.1,
+                _allows_var=True,
+                description="opening ratio of the valve",
+                quantity="ratio"
+            ),
+            'Kv_char_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_char", "opening"],
+                func=self.Kv_char_func,
+                dependents=self.Kv_char_dependents,
+                description="equation for flow coefficient over opening"
+            ),
+            'Kv_analytical': dc_simple(
+                dtype="dict",
+                description=(
+                    "fitting parameters and method for the analytical Kv "
+                    "evaluation provided in a dictionary with keys 'method' "
+                    "(callable) and 'params' (list)"
+                )
+            ),
+            'Kv_char_analytical_group': dc_gcp(
+                num_eq_sets=1,
+                elements=["Kv_analytical", "opening"],
+                func=self.Kv_char_analytical_func,
+                dependents=self.Kv_char_analytical_dependents
+            ),
         }
 
     def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        constraints.update({
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': 1,
+                'func_params': {'variable': 'h'},
+                "description": "equation for enthalpy equality"
+            })
+        })
+        return constraints
+
+    def get_bypass_constraints(self):
         return {
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
         }
 
     @staticmethod
@@ -176,149 +356,153 @@ class Valve(Component):
 
         Returns
         -------
-        residual : ndarray
+        float
             Residual value of equation.
 
             .. math::
 
-                0=p_\mathrm{in}-p_\mathrm{out}-f\left( expr \right)
+                0=p_\text{in}-p_\text{out}-f\left( expr \right)
         """
         p = self.dp_char.param
         expr = self.get_char_expr(p, **self.dp_char.char_params)
         if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
+            msg = (
+                "Please choose a valid parameter for the usage of the "
+                f"'dp_char_func' of the component {self.label}."
+            )
             logger.error(msg)
             raise ValueError(msg)
 
         return (
-            self.inl[0].p.val_SI - self.outl[0].p.val_SI -
-            self.dp_char.char_func.evaluate(expr))
+            self.inl[0].p.val_SI - self.outl[0].p.val_SI
+            - self.dp_char.char_func.evaluate(expr)
+        )
 
-    def dp_char_func_doc(self, label):
-        r"""
-        Equation for characteristic line of difference pressure to mass flow.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        p = self.dp_char.param
-        expr = self.get_char_expr_doc(p, **self.dp_char.char_params)
-        if not expr:
-            msg = ('Please choose a valid parameter, you want to link the '
-                   'pressure drop to at component ' + self.label + '.')
-            logger.error(msg)
-            raise ValueError(msg)
-
-        latex = (
-            r'0=p_\mathrm{in}-p_\mathrm{out}-f\left(' + expr +
-            r'\right)')
-        return generate_latex_eq(self, latex, label)
-
-    def dp_char_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of difference pressure characteristic.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.dp_char_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
+    def dp_char_dependents(self):
+        dependents = [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.outl[0].p,
+        ]
         if self.dp_char.param == 'v':
-            if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = self.numeric_deriv(
-                    self.dp_char_func, 'p', i
-                )
-            if self.is_variable(i.h, increment_filter):
-                self.jacobian[k, i.h.J_col] = self.numeric_deriv(
-                    self.dp_char_func, 'h', i
-                )
-        else:
-            if self.is_variable(i.p, increment_filter):
-                self.jacobian[k, i.p.J_col] = 1
+            dependents += [self.inl[0].h]
+        return dependents
 
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -1
+    def _Kv_eq(self, Kv):
+        # 1000 * delta p (bar) is 1000 * delta p / 100000, simplified to
+        # delta p / 100
+        # (vol * m * 3600) ** 2 / vol simplified to
+        # (m * 3600) ** 2 * vol
+        return (
+            Kv ** 2 * (self.inl[0].p.val_SI - self.outl[0].p.val_SI) / 1e2
+            - self.inl[0].calc_vol() * (self.inl[0].m.val_SI * 3600) ** 2
+        )
 
-    def initialise_source(self, c, key):
+    def Kv_func(self):
         r"""
-        Return a starting value for pressure and enthalpy at outlet.
+        Equation for Kv value of a Valve
 
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
+        The equation is as follows:
 
-        key : str
-            Fluid property to retrieve.
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
 
         Returns
         -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
+        float
+            Residual value of equation.
 
             .. math::
 
-                val = \begin{cases}
-                4 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        if key == 'p':
-            return 4e5
-        elif key == 'h':
-            return 5e5
+        Kv = self.Kv.val_SI
+        return self._Kv_eq(Kv)
 
-    def initialise_target(self, c, key):
+    def Kv_dependents(self):
+        return [self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p]
+
+    def Kv_char_func(self):
         r"""
-        Return a starting value for pressure and enthalpy at inlet.
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
 
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
+        Kv is determined from the degree of opening with a lookup table, the
+        Kv equation is then applied:
 
-        key : str
-            Fluid property to retrieve.
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
 
         Returns
         -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
+        float
+            Residual value of equation.
 
             .. math::
 
-                val = \begin{cases}
-                5 \cdot 10^5 & \text{key = 'p'}\\
-                5 \cdot 10^5 & \text{key = 'h'}
-                \end{cases}
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        if key == 'p':
-            return 5e5
-        elif key == 'h':
-            return 5e5
+        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
+        return self._Kv_eq(Kv)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
+    def Kv_char_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
+    def Kv_char_analytical_func(self):
+        r"""
+        Equation for Kv characteristic of a Valve opening
+        :math:`K_v=f\left(opening\right)`
+
+        Kv is determined from the method supplied by the user in the
+        :code:`Kv_analytical` specification and the additional parameters next
+        to the opening. The method must accept parameters in the following way:
+        :code:`method(opening, *params)`
+
+        .. math::
+
+            K_v=\dot V \cdot \sqrt{\frac{\rho}{1000\cdot \Delta p}}
+
+        The residual is reformulated as below:
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+
+            .. math::
+
+                0=K_v ^ 2 \cdot \frac{\Delta p}{100}
+                -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
+        """
+        params = self.Kv_analytical.val["params"]
+        method = self.Kv_analytical.val["method"]
+        opening = self.opening.val_SI
+        Kv = method(opening, *params)
+        return self._Kv_eq(Kv)
+
+    def Kv_char_analytical_dependents(self):
+        return [
+            self.inl[0].m, self.inl[0].p, self.inl[0].h, self.outl[0].p,
+            self.opening
+        ]
+
+    def _calc_Kv(self):
         i = self.inl[0]
-        o = self.outl[0]
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = self.calc_zeta(i, o)
+        fluid = single_fluid(i.fluid_data)
+        if fluid is not None and self.dp.val_SI > 0 and i.calc_phase() == "l":
+            return i.v.val_SI * 3600 * (100 / (i.vol.val_SI * self.dp.val_SI)) ** 0.5
+        return np.nan
 
     def entropy_balance(self):
         r"""
@@ -326,75 +510,16 @@ class Valve(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (
             self.outl[0].s.val_SI - self.inl[0].s.val_SI
         )
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a valve.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        .. math::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \text{not defined (nan)} & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M}-
-            \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{in} > T_0 \geq T_\mathrm{out}\\
-            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases}
-        """
-        if self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI > T0:
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-        elif self.outl[0].T.val_SI <= T0 and self.inl[0].T.val_SI > T0:
-            self.E_P = self.outl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_therm + (
-                self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-            self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-            self.E_F = self.inl[0].Ex_mech - self.outl[0].Ex_mech
-        else:
-            msg = ('Exergy balance of a valve, where outlet temperature is '
-                   'larger than inlet temperature is not implmented.')
-            logger.warning(msg)
-            self.E_P = np.nan
-            self.E_F = np.nan
-
-        self.E_bus = {
-            "chemical": np.nan, "physical": np.nan, "massless": np.nan
-        }
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -412,9 +537,9 @@ class Valve(Component):
                 'isoline_property': 'h',
                 'isoline_value': self.inl[0].h.val,
                 'isoline_value_end': self.outl[0].h.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             }
         }

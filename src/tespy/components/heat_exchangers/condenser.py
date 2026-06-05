@@ -13,17 +13,11 @@ SPDX-License-Identifier: MIT
 
 import math
 
-import numpy as np
-
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
-from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
+from tespy.tools.fluid_properties import single_fluid
 
 
 @component_registry
@@ -34,121 +28,178 @@ class Condenser(HeatExchanger):
     The condensing fluid is cooled by the cold side fluid. The fluid on the hot
     side of the condenser must be pure. Subcooling is available.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
-    - condensate outlet state, function can be disabled by specifying
-      :code:`set_attr(subcooling=True)`
-      :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.subcooling_func`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_func`
-    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.kA_char_func`
-    - :py:meth:`tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-    - hot side :py:meth:`tespy.components.component.Component.pr_func`
-    - cold side :py:meth:`tespy.components.component.Component.pr_func`
-    - hot side :py:meth:`tespy.components.component.Component.zeta_func`
-    - cold side :py:meth:`tespy.components.component.Component.zeta_func`
-
-    Inlets/Outlets
-
-    - in1, in2 (index 1: hot side, index 2: cold side)
-    - out1, out2 (index 1: hot side, index 2: cold side)
-
-    Image
-
-    .. image:: /api/_images/Condenser.svg
+    .. image:: /api/_images/components/Condenser.svg
        :alt: flowsheet of the condenser
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Condenser_darkmode.svg
+    .. image:: /api/_images/components/Condenser_darkmode.svg
        :alt: flowsheet of the condenser
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - hot side to cold side heat transfer equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dp1 : float, dict
+        Hot side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    local_design : boolean
+    dp2 : float, dict
+        Cold side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    eff_cold : float, dict
+        Heat exchanger effectiveness for cold side. Quantity:
+        :code:`efficiency`.
+        Equation: :py:meth:`eff_cold_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func>`.
+
+    eff_hot : float, dict
+        Heat exchanger effectiveness for hot side. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eff_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func>`.
+
+    eff_max : float, dict
+        Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
+
+    kA : float, dict
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`.
+
+    kA_char : GroupedComponentCharacteristics
+        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
+        :code:`kA_char2`.
+
+    kA_char1 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char1` instead.
+
+    kA_char2 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char2` instead.
+
+    label : str
+        The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    pr1 : float, dict
+        Hot side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    pr2 : float, dict
+        Cold side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
         Include this component in the network's results printout.
 
     Q : float, dict
-        Heat transfer, :math:`Q/\text{W}`.
+        Heat transfer from hot side. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
-    pr1 : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
+    subcooling : bool
+        Allow subcooling in the condenser.
+        Equation: :py:meth:`subcooling_func <tespy.components.heat_exchangers.condenser.Condenser.subcooling_func>`.
 
-    pr2 : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
-
-    zeta1 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient at hot side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    zeta2 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient at cold side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
+    td_log : float, dict
+        Deprecated, use :code:`lmtd` instead. Quantity:
+        :code:`temperature_difference`.
 
     ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\mathrm{l}/\text{K}`.
+        Terminal temperature difference at hot side outlet to cold side inlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func>`.
+
+    ttd_min : float, dict
+        Minimum terminal temperature difference. Quantity:
+        :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_min_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func>`.
 
     ttd_u : float, dict
-        Upper terminal temperature difference (referring to saturation
-        temprature of condensing fluid) :math:`ttd_\mathrm{u}/\text{K}`.
+        Terminal temperature difference at hot side inlet to cold side outlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func>`.
 
-    kA : float, dict
-        Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+    UA : float, dict
+        Heat transfer coefficient considering terminal temperature differences.
+        Quantity: :code:`heat_transfer_coefficient`.
+        Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    kA_char : tespy.tools.data_containers.SimpleDataContainer
-        Area independent heat transfer coefficient characteristic.
+    UA_char : GroupedComponentCharacteristics
+        Equation for heat transfer based on UA and modification factor.
+        Elements: :code:`UA_char1`, :code:`UA_char2`.
+        Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.condenser.Condenser.UA_char_func>`.
 
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for hot side heat transfer coefficient.
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
+        Hot side UA modification lookup table for offdesign.
 
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for cold side heat transfer coefficient.
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
+        Cold side UA modification lookup table for offdesign.
 
-    subcooling : boolean
-        Enable/disable subcooling, default value: disabled.
+    zeta1 : float, dict
+        Deprecated, use :code:`zeta1_d4` instead.
 
-    Note
-    ----
-    The condenser has an additional equation for enthalpy at hot side outlet:
-    The fluid leaves the component in saturated liquid state. If subcooling
-    is activated, it possible to specify the enthalpy at the outgoing
-    connection manually.
+    zeta1_d4 : float, dict
+        Hot side geometry-independent friction coefficient zeta/D^4 for pressure
+        loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
-    It has different calculation method for given heat transfer coefficient and
-    upper terminal temperature dierence: These parameters refer to the
-    **condensing** temperature, even if the fluid on the hot side enters the
-    component in superheated state.
+    zeta2 : float, dict
+        Deprecated, use :code:`zeta2_d4` instead.
+
+    zeta2_d4 : float, dict
+        Cold side geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
+
+    Notes
+    -----
+
+    .. note::
+
+        The condenser has an additional equation for enthalpy at hot side outlet:
+        The fluid leaves the component in saturated liquid state. If subcooling
+        is activated, it is possible to specify the enthalpy at the outgoing
+        connection manually.
+
+        It has a different calculation method for given heat transfer coefficient and
+        upper terminal temperature difference: These parameters refer to the
+        **condensing** temperature, even if the fluid on the hot side enters the
+        component in superheated state.
 
     Example
     -------
@@ -159,16 +210,16 @@ class Condenser(HeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> from tespy.tools.fluid_properties import T_sat_p
-    >>> import shutil
-    >>> nw = Network(T_unit='C', p_unit='bar', h_unit='kJ / kg',
-    ... m_range=[0.01, 1000], iterinfo=False)
+    >>> nw = Network(m_range=[0.01, 1000], iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> amb_in = Source('ambient air inlet')
     >>> amb_out = Sink('air outlet')
     >>> waste_steam = Source('waste steam')
     >>> c = Sink('condensate sink')
     >>> cond = Condenser('condenser')
-    >>> cond.component()
-    'condenser'
     >>> amb_he = Connection(amb_in, 'out1', cond, 'in2')
     >>> he_amb = Connection(cond, 'out2', amb_out, 'in1')
     >>> ws_he = Connection(waste_steam, 'out1', cond, 'in1')
@@ -180,12 +231,12 @@ class Condenser(HeatExchanger):
     change, the outlet temperature of the air will change, too.
 
     >>> cond.set_attr(pr1=0.98, pr2=0.999, ttd_u=15, design=['pr2', 'ttd_u'],
-    ... offdesign=['zeta2', 'kA_char'])
+    ... offdesign=['zeta2_d4', 'UA_char'])
     >>> ws_he.set_attr(fluid={'water': 1}, h=2700, m=1)
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(amb_he.v.val, 2)
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)
@@ -194,7 +245,7 @@ class Condenser(HeatExchanger):
     15.0
     >>> ws_he.set_attr(m=0.7)
     >>> amb_he.set_attr(T=30)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
@@ -204,69 +255,31 @@ class Condenser(HeatExchanger):
     temperature is specified to 5 K.
 
     >>> cond.set_attr(subcooling=True)
-    >>> he_c.set_attr(Td_bp=-5)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> he_c.set_attr(td_bubble=5)
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(ws_he.T.val - he_amb.T.val, 1)
     62.5
     >>> round(ws_he.calc_T_sat() - 273.15 - he_amb.T.val, 1)
     13.4
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
     """
 
-    @staticmethod
-    def component():
-        return 'condenser'
-
     def get_parameters(self):
-        return {
-            'Q': dc_cp(
-                max_val=0, func=self.energy_balance_hot_func, num_eq=1,
-                deriv=self.energy_balance_hot_deriv,
-                latex=self.energy_balance_hot_func_doc),
-            'kA': dc_cp(
-                min_val=0, num_eq=1, func=self.kA_func, latex=self.kA_func_doc,
-                deriv=self.kA_deriv),
-            'td_log': dc_cp(min_val=0, is_result=True),
-            'ttd_u': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_u_func,
-                deriv=self.ttd_u_deriv, latex=self.ttd_u_func_doc),
-            'ttd_l': dc_cp(
-                min_val=0, num_eq=1, func=self.ttd_l_func,
-                deriv=self.ttd_l_deriv, latex=self.ttd_l_func_doc),
-            'pr1': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, deriv=self.pr_deriv,
-                latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr1'}),
-            'pr2': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1, latex=self.pr_func_doc,
-                deriv=self.pr_deriv, func=self.pr_func,
-                func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1}),
-            'zeta1': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta1'}),
-            'zeta2': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1, latex=self.zeta_func_doc,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                func_params={'zeta': 'zeta2', 'inconn': 1, 'outconn': 1}),
-            'kA_char': dc_gcc(
-                elements=['kA_char1', 'kA_char2'],
-                num_eq=1, latex=self.kA_char_func_doc, func=self.kA_char_func,
-                deriv=self.kA_char_deriv),
-            'kA_char1': dc_cc(param='m'),
-            'kA_char2': dc_cc(
-                param='m', char_params={
-                    'type': 'rel', 'inconn': 1, 'outconn': 1}),
+        params = super().get_parameters()
+        params.update({
             'subcooling': dc_simple(
-                val=False, num_eq=1, latex=self.subcooling_func_doc,
-                deriv=self.subcooling_deriv, func=self.subcooling_func)
-        }
+                _val=False, dtype="bool", num_eq_sets=1,
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+                description="allow subcooling in the condenser"
+            )
+        })
+        return params
 
-    def preprocess(self, num_nw_vars):
+    def _preprocess(self, row_idx):
 
         # if subcooling is True, outlet state method must not be calculated
         self.subcooling.is_set = not self.subcooling.val
-        super().preprocess(num_nw_vars)
+        super()._preprocess(row_idx)
 
     def subcooling_func(self):
         r"""
@@ -288,97 +301,28 @@ class Condenser(HeatExchanger):
         o = self.outl[0]
         return o.h.val_SI - h_mix_pQ(o.p.val_SI, 0, o.fluid_data)
 
-    def subcooling_func_doc(self, label):
-        r"""
-        Equation for hot side outlet state.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = r'0=h_\mathrm{out,1} -h\left(p_\mathrm{out,1}, x=0 \right)'
-        return generate_latex_eq(self, latex, label)
-
-    def subcooling_deriv(self, increment_filter, k):
-        """
-        Calculate partial derivates of subcooling function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        o = self.outl[0]
-        if self.is_variable(o.p):
-            self.jacobian[k, o.p.J_col] = -dh_mix_dpQ(o.p.val_SI, 0, o.fluid_data)
-        if self.is_variable(o.h):
-            self.jacobian[k, o.h.J_col] = 1
+    def subcooling_dependents(self):
+        return [
+            self.outl[0].p,
+            self.outl[0].h
+        ]
 
     def calculate_td_log(self):
-
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-
-        T_i1 = i1.calc_T_sat()
-        T_i2 = i2.calc_T()
-        T_o1 = o1.calc_T()
-        T_o2 = o2.calc_T()
-
-        if T_i1 <= T_o2 and not i1.T.is_set:
-            T_i1 = T_o2 + 0.5
-        if T_i1 <= T_o2 and not o2.T.is_set:
-            T_o2 = T_i1 - 0.5
-        if T_o1 <= T_i2 and not o1.T.is_set:
-            T_o1 = T_i2 + 1
-        if T_o1 <= T_i2 and not i2.T.is_set:
-            T_i2 = T_o1 - 1
+        T_i1 = self.inl[0].calc_T_sat()
+        T_i2 = self.inl[1].calc_T()
+        T_o1 = self.outl[0].calc_T()
+        T_o2 = self.outl[1].calc_T()
 
         ttd_u = T_i1 - T_o2
         ttd_l = T_o1 - T_i2
-        if ttd_u == ttd_l:
-            td_log = ttd_l
-        else:
-            td_log = (ttd_l - ttd_u) / math.log((ttd_l) / (ttd_u))
+        min_ttd = min(ttd_u, ttd_l)
+        if min_ttd <= 0:
+            return min_ttd
+        if round(ttd_u, 6) == round(ttd_l, 6):
+            return ttd_l
+        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
-        return td_log
-
-    def kA_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)+ kA \cdot \frac{T_\mathrm{out,1} - '
-            r'T_\mathrm{in,2} -T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'+ T_\mathrm{out,2}}'
-            r'{\ln{\frac{T_\mathrm{out,1} - T_\mathrm{in,2}}'
-            r'{T_\mathrm{sat}\left( p_\mathrm{in,1}\right) -'
-            r'T_\mathrm{out,2}}}}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def kA_char_func(self):
+    def UA_char_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
 
@@ -390,50 +334,20 @@ class Condenser(HeatExchanger):
             .. math::
 
                 0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
-                kA_{design} \cdot f_{kA} \cdot \frac{T_{out,1} -
+                UA_{design} \cdot f_{UA} \cdot \frac{T_{out,1} -
                 T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}
                 {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
 
-                f_{kA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
+                f_{UA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
                 \frac{1}{f_2 \left( expr_2\right)}}
 
         Note
         ----
         For standard functions f\ :subscript:`1` \ and f\ :subscript:`2` \ see
-        module :py:mod:`tespy.data`.
+        module :ref:`tespy.data <data_label>`.
         """
-        return super().kA_char_func()
-
-    def kA_char_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in,1} \cdot \left( h_\mathrm{out,1} - '
-            r'h_\mathrm{in,1}\right)\\' + '\n'
-            r'&+kA_\mathrm{design} \cdot '
-            r'f_\mathrm{kA} \cdot \frac{T_\mathrm{out,1} - T_\mathrm{in,2}'
-            r' - T_\mathrm{sat}\left( p_\mathrm{in,1}\right) +'
-            r'T_\mathrm{out,2}}{\ln{\frac{T_\mathrm{out,1}-'
-            r'T_\mathrm{in,2}}{T_\mathrm{sat}\left( p_\mathrm{in,1}\right)'
-            r'- T_\mathrm{out,2}}}}\\' + '\n'
-            r'f_\mathrm{kA}=&\frac{2}{\frac{1}{f\left(X_1\right)}+'
-            r'\frac{1}{f\left(X_2\right)}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
+        return super().UA_char_func()
 
     def ttd_u_func(self):
         r"""
@@ -457,54 +371,45 @@ class Condenser(HeatExchanger):
         o = self.outl[1]
         T_i1 = i.calc_T_sat()
         T_o2 = o.calc_T()
-        return self.ttd_u.val - T_i1 + T_o2
+        return self.ttd_u.val_SI - T_i1 + T_o2
 
-    def ttd_u_func_doc(self, label):
+    def ttd_u_dependents(self):
+        return [
+            self.inl[0].p,
+            self.outl[1].p,
+            self.outl[1].h,
+        ]
+
+    def _calc_ttd_u(self):
+        return self.inl[0].T_dew.val_SI - self.outl[1].T.val_SI
+
+    def convergence_check(self):
+        o = self.outl[0]
+        if o.p.is_var:
+            fluid = single_fluid(o.fluid_data)
+            p_crit = o.fluid.wrapper[fluid]._p_crit
+            if o.p.val_SI > p_crit:
+                o.p.set_reference_val_SI(p_crit * 0.9)
+
+    def initialise_source(self, c, key):
         r"""
-        Equation for upper terminal temperature difference.
+        Return a starting value for pressure and enthalpy at outlet.
 
         Parameters
         ----------
-        label : str
-            Label for equation.
+        c : tespy.connections.connection.Connection
+            Connection to perform initialisation on.
+
+        key : str
+            Fluid property to retrieve.
 
         Returns
         -------
-        latex : str
-            LaTeX code of equations applied.
+        val : float
+            Starting value for pressure/enthalpy in SI units.
         """
-        latex = (
-            r'0=ttd_\mathrm{u}-T_\mathrm{sat}\left(p_\mathrm{in,1}\right)'
-            r' + T_\mathrm{out,2}')
-        return generate_latex_eq(self, latex, label)
+        if c.source_id == 'out1':
+            if key == 'h':
+                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data, c.mixing_rule)
 
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        # component parameters
-        i1 = self.inl[0]
-        i2 = self.inl[1]
-        o1 = self.outl[0]
-        o2 = self.outl[1]
-        self.Q.val = i1.m.val_SI * (o1.h.val_SI - i1.h.val_SI)
-        self.ttd_u.val = i1.calc_T_sat() - o2.T.val_SI
-        self.ttd_l.val = o1.T.val_SI - i2.T.val_SI
-
-        # pr and zeta
-        for num, (i, o) in enumerate(zip(self.inl, self.outl)):
-            self.get_attr(f"pr{num + 1}").val = o.p.val_SI / i.p.val_SI
-            self.get_attr(f"zeta{num + 1}").val = (
-                (i.p.val_SI - o.p.val_SI) * math.pi ** 2
-                / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
-            )
-
-        # kA and logarithmic temperature difference
-        if self.ttd_u.val < 0 or self.ttd_l.val < 0:
-            self.td_log.val = np.nan
-        elif self.ttd_l.val == self.ttd_u.val:
-            self.td_log.val = self.ttd_l.val
-        else:
-            self.td_log.val = (
-                (self.ttd_l.val - self.ttd_u.val)
-                / math.log(self.ttd_l.val / self.ttd_u.val)
-            )
-        self.kA.val = -self.Q.val / self.td_log.val
+        return super().initialise_source(c, key)

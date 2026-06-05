@@ -15,7 +15,6 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.document_models import generate_latex_eq
 
 
 @component_registry
@@ -23,138 +22,162 @@ class ParabolicTrough(SimpleHeatExchanger):
     r"""
     The ParabolicTrough calculates heat output from irradiance.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_group_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/ParabolicTrough.svg
-       :alt: flowsheet of the parabolic trough
+    .. image:: /api/_images/components/ParabolicTrough.svg
+       :alt: flowsheet of the parabolictrough
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/ParabolicTrough_darkmode.svg
-       :alt: flowsheet of the parabolic trough
+    .. image:: /api/_images/components/ParabolicTrough_darkmode.svg
+       :alt: flowsheet of the parabolictrough
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: heat
+    - Power outlets: heat
+    - Heat inlets: heat
+    - Heat outlets: heat
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    A : float, dict, :code:`"var"`
+        Area of the parabolic trough. Quantity: :code:`area`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    aoi : float, dict
+        Angle of incidence. Quantity: :code:`angle`.
+
+    c_1 : float, dict
+        Thermal loss coefficient 1.
+
+    c_2 : float, dict
+        Thermal loss coefficient 2.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    D : float, dict, :code:`"var"`
+        Diameter of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    darcy_group : GroupedComponentProperties
+        Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
+        :code:`ks`, :code:`D`.
+        Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dissipative : bool
+        Description missing.
 
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
+    doc : float, dict
+        Degree of cleanliness. Quantity: :code:`ratio`.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    Q : float, dict, :code:`"var"`
-        Heat transfer, :math:`Q/\text{W}`.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`.
-
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    D : float, dict, :code:`"var"`
-        Diameter of the absorber tube, :math:`D/\text{m}`.
-
-    L : float, dict, :code:`"var"`
-        Length of the absorber tube, :math:`L/\text{m}`.
-
-    ks : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{m}`.
-
-    darcy_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using darcy weissbach equation.
-
-    ks_HW : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{1}`.
-
-    hw_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using hazen williams equation.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     E : float, dict, :code:`"var"`
-        Direct irradiance to tilted collector,
-        :math:`E/\frac{\text{W}}{\text{m}^2}`.
+        Solar irradiation to the parabolic trough. Quantity: :code:`heat`. Can
+        be set as a system variable by passing :code:`"var"` as its value.
 
-    aoi : float, dict, :code:`"var"`
-        Angle of incidience, :math:`aoi/^\circ`.
+    energy_group : GroupedComponentProperties
+        Energy balance equation of the parabolic trough. Elements: :code:`E`,
+        :code:`eta_opt`, :code:`aoi`, :code:`doc`, :code:`c_1`, :code:`c_2`,
+        :code:`iam_1`, :code:`iam_2`, :code:`A`, :code:`Tamb`.
+        Equation: :py:meth:`energy_group_func <tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough.energy_group_func>`.
 
-    doc : float, dict, :code:`"var"`
-        Degree of cleanliness (1: full absorption, 0: no absorption),
-        :math:`X`.
+    eta_opt : float, dict
+        Optical efficiency. Quantity: :code:`efficiency`.
 
-    eta_opt : float, dict, :code:`"var"`
-        (constant) optical losses due to surface reflection,
-        :math:`\eta_{opt}`.
+    hw_group : GroupedComponentProperties
+        Hazen-Williams equation for pressure loss. Elements: :code:`L`,
+        :code:`ks_HW`, :code:`D`.
+        Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
 
-    c_1 : float, dict, :code:`"var"`
-        Linear thermal loss key figure,
-        :math:`c_1/\frac{\text{W}}{\text{K} \cdot \text{m}^2}`.
+    iam_1 : float, dict
+        Incidence angle modifier 1.
 
-    c_2 : float, dict, :code:`"var"`
-        Quadratic thermal loss key figure,
-        :math:`c_2/\frac{\text{W}}{\text{K}^2 \cdot \text{m}^2}`.
+    iam_2 : float, dict
+        Incidence angle modifier 2.
 
-    iam_1 : float, dict, :code:`"var"`
-        Linear incidence angle modifier,
-        :math:`iam_1/\frac{1}{^\circ}`.
+    ks : float, dict, :code:`"var"`
+        Roughness of wall material. Quantity: :code:`length`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
 
-    iam_2 : float, dict, :code:`"var"`
-        Quadratic incidence angle modifier,
-        :math:`iam_2/\left(\frac{1}{^\circ}\right)^2`.
+    ks_HW : float, dict, :code:`"var"`
+        Hazen-Williams roughness. Can be set as a system variable by passing
+        :code:`"var"` as its value.
 
-    A : float, dict, :code:`"var"`
-        Collector aperture surface area :math:`A/\text{m}^2`.
+    L : float, dict, :code:`"var"`
+        Length of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    power_connector_location : str
+        Description missing.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat transfer. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
+
+    Q_loss : float, dict
+        Heat dissipation. Quantity: :code:`heat`.
 
     Tamb : float, dict
-        Ambient temperature, provide parameter in network's temperature unit.
+        Ambient temperature. Quantity: :code:`temperature`.
 
-    energy_group : str, dict
-        Parametergroup for energy balance of solarthermal collector.
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
     A parabolic trough is installed using S800 as thermo-fluid.
     First, the operation conditions from :cite:`Janotte2014` are reproduced.
-    Therefore, the direct normal irradiance :math:`\dot{E}_\mathrm{DNI}` is at
+    Therefore, the direct normal irradiance :math:`\dot{E}_\text{DNI}` is at
     1000 :math:`\frac{\text{W}}{\text{m}^2}` at an angle of incidence
     :math:`aoi` at 20 °. This means, the direct irradiance to the parabolic
     trough :math:`E` is at
@@ -164,14 +187,14 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
     >>> import math
-    >>> import shutil
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
     >>> pt = ParabolicTrough('parabolic trough collector')
-    >>> pt.component()
-    'parabolic trough'
     >>> inc = Connection(so, 'out1', pt, 'in1')
     >>> outg = Connection(pt, 'out1', si, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -183,10 +206,12 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     >>> aoi = 20
     >>> E = 1000 * math.cos(aoi / 180 * math.pi)
-    >>> pt.set_attr(pr=1, aoi=aoi, doc=1,
-    ... Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
-    ... iam_1=-1.59e-3, iam_2=9.77e-5)
-    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=2)
+    >>> pt.set_attr(
+    ...     pr=1, aoi=aoi, doc=1,
+    ...     Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
+    ...     iam_1=-1.59e-3, iam_2=9.77e-5
+    ... )
+    >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=10)
     >>> outg.set_attr(T=260)
     >>> nw.solve('design')
     >>> round(pt.Q.val, 0)
@@ -216,32 +241,54 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> round(outg.T.val, 0)
     244.0
     >>> round(pt.Q.val, 0)
-    3603027.0
+    3602817.0
     """
-
-    @staticmethod
-    def component():
-        return 'parabolic trough'
 
     def get_parameters(self):
         data = super().get_parameters()
-        for k in ["kA_group", "kA_char_group", "kA", "kA_char"]:
-            del data[k]
+        for k in ["UA_group", "UA_char_group", "UA", "UA_char",
+                   "kA_group", "kA_char_group", "kA", "kA_char", "lmtd"]:
+            data.pop(k, None)
 
         data.update({
-            'E': dc_cp(min_val=0), 'A': dc_cp(min_val=0),
-            'eta_opt': dc_cp(min_val=0, max_val=1),
-            'c_1': dc_cp(min_val=0), 'c_2': dc_cp(min_val=0),
-            'iam_1': dc_cp(), 'iam_2': dc_cp(),
-            'aoi': dc_cp(min_val=-90, max_val=90),
-            'doc': dc_cp(min_val=0, max_val=1),
-            'Tamb': dc_cp(),
-            'Q_loss': dc_cp(max_val=0, val=0),
+            'E': dc_cp(
+                min_val=0, quantity="heat", _allows_var=True,
+                description="solar irradiation to the parabolic trough"
+            ),
+            'A': dc_cp(
+                min_val=0, quantity="area", _allows_var=True,
+                description="area of the parabolic trough"
+            ),
+            'eta_opt': dc_cp(
+                min_val=0, max_val=1, quantity="efficiency",
+                description="optical efficiency"
+            ),
+            'c_1': dc_cp(min_val=0, description="thermal loss coefficient 1"),
+            'c_2': dc_cp(min_val=0, description="thermal loss coefficient 2"),
+            'iam_1': dc_cp(description="incidence angle modifier 1"),
+            'iam_2': dc_cp(description="incidence angle modifier 2"),
+            'aoi': dc_cp(
+                min_val=-90, max_val=90, quantity="angle",
+                description="angle of incidence"
+            ),
+            'doc': dc_cp(
+                min_val=0, max_val=1, quantity="ratio",
+                description="degree of cleanliness"
+            ),
+            'Q_loss': dc_cp(
+                max_val=0, _val=0, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Q_loss, calc_deps=['Q']
+            ),
             'energy_group': dc_gcp(
-                elements=['E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
-                          'iam_2', 'A', 'Tamb'], num_eq=1,
-                latex=self.energy_group_func_doc,
-                func=self.energy_group_func, deriv=self.energy_group_deriv
+                elements=[
+                    'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
+                    'iam_2', 'A', 'Tamb'
+                ],
+                num_eq_sets=1,
+                func=self.energy_group_func,
+                dependents=self.energy_group_dependents,
+                description="energy balance equation of the parabolic trough"
             )
         })
         return data
@@ -276,94 +323,34 @@ class ParabolicTrough(SimpleHeatExchanger):
         T_m = 0.5 * (i.calc_T() + o.calc_T())
 
         iam = (
-            1 - self.iam_1.val * abs(self.aoi.val)
-            - self.iam_2.val * self.aoi.val ** 2
+            1 - self.iam_1.val_SI * abs(self.aoi.val_SI)
+            - self.iam_2.val_SI * self.aoi.val_SI ** 2
         )
 
         return (
-            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val * (
-                self.E.val * self.eta_opt.val * self.doc.val ** 1.5 * iam
-                - (T_m - self.Tamb.val_SI) * self.c_1.val
-                - self.c_2.val * (T_m - self.Tamb.val_SI) ** 2
+            i.m.val_SI * (o.h.val_SI - i.h.val_SI) - self.A.val_SI * (
+                self.E.val_SI * self.eta_opt.val_SI * self.doc.val_SI ** 1.5 * iam
+                - self.c_1.val_SI * (T_m - self.Tamb.val_SI)
+                - self.c_2.val_SI * (T_m - self.Tamb.val_SI) ** 2
             )
         )
 
-    def energy_group_func_doc(self, label):
-        r"""
-        Equation for solar collector energy balance.
+    def energy_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.E, self.A]
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
+    def convergence_check(self):
+        pass
 
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = & \dot{m}_\mathrm{in} \cdot \left( h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)\\' + '\n'
-            r'& - A \cdot \left[E \cdot \eta_\mathrm{opt} \cdot doc^{1.5}'
-            r'\cdot iam \right. \\' + '\n'
-            r'&\left. -c_1\cdot\left(T_\mathrm{m}-T_\mathrm{amb}\right) -'
-            r'c_2 \cdot \left(T_\mathrm{m} - T_\mathrm{amb}\right)^2'
-            r'\vphantom{\eta_\mathrm{opt}\cdot doc^{1.5}}\right]\\' + '\n'
-            r'T_\mathrm{m}=&\frac{T_\mathrm{out}+T_\mathrm{in}}{2}\\' +
-            '\n'
-            r'iam = & 1 - iam_1 \cdot |aoi| - iam_2 \cdot aoi^2\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy group function.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.energy_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        # custom variables for the energy-group
-        for variable_name in self.energy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter == self.Tamb:
-                continue
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(f, variable_name, None)
-                )
+    def _calc_Q_loss(self):
+        return -self.E.val_SI * self.A.val_SI + self.Q.val_SI
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = self.calc_zeta(i, o)
-
-        if self.energy_group.is_set:
-            self.Q_loss.val = - self.E.val * self.A.val + self.Q.val
-            self.Q_loss.is_result = True
-        else:
-            self.Q_loss.is_result = False
+        super().calc_parameters()
+        self.Q_loss.is_result = self.energy_group.is_set

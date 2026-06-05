@@ -20,13 +20,15 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.document_models import generate_latex_eq
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
-from tespy.tools.helpers import convert_to_SI
+from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
@@ -40,107 +42,146 @@ class SimpleHeatExchanger(Component):
     - :py:class:`tespy.components.heat_exchangers.parabolic_trough.ParabolicTrough`
     - :py:class:`tespy.components.piping.pipe.Pipe`
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.component.Component.fluid_func`
-    - :py:meth:`tespy.components.component.Component.mass_flow_func`
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: heat
+    - Power outlets: heat
+    - Heat inlets: heat
+    - Heat outlets: heat
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - :py:meth:`tespy.components.component.Component.pr_func`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hw_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_group_func`
-    - :py:meth:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger.kA_char_group_func`
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
-    Inlets/Outlets
+    When a power or heat connector is attached:
 
-    - in1
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Pipe.svg
-       :alt: flowsheet of the simple heat exchanger
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/Pipe_darkmode.svg
-       :alt: flowsheet of the simple heat exchanger
-       :align: center
-       :class: only-dark
+    - energy_connector_balance: :py:meth:`energy_connector_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_connector_balance_func>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    D : float, dict, :code:`"var"`
+        Diameter of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    darcy_group : GroupedComponentProperties
+        Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
+        :code:`ks`, :code:`D`.
+        Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dissipative : bool
+        Description missing.
 
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    Q : float, dict, :code:`"var"`
-        Heat transfer, :math:`Q/\text{W}`.
-
-    pr : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio, :math:`pr/1`.
-
-    zeta : float, dict, :code:`"var"`
-        Geometry independent friction coefficient,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    D : float, dict, :code:`"var"`
-        Diameter of the pipes, :math:`D/\text{m}`.
-
-    L : float, dict, :code:`"var"`
-        Length of the pipes, :math:`L/\text{m}`.
-
-    ks : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{m}`.
-
-    darcy_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using darcy weissbach equation.
-
-    ks_HW : float, dict, :code:`"var"`
-        Pipe's roughness, :math:`ks/\text{1}`.
-
-    hw_group : str, dict
-        Parametergroup for pressure drop calculation based on pipes dimensions
-        using hazen williams equation.
+    hw_group : GroupedComponentProperties
+        Hazen-Williams equation for pressure loss. Elements: :code:`L`,
+        :code:`ks_HW`, :code:`D`.
+        Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
 
     kA : float, dict, :code:`"var"`
-        Area independent heat transfer coefficient,
-        :math:`kA/\frac{\text{W}}{\text{K}}`.
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
 
     kA_char : tespy.tools.characteristics.CharLine, dict
-        Characteristic line for heat transfer coefficient.
+        Deprecated, use :code:`UA_char` instead.
+
+    kA_char_group : GroupedComponentProperties
+        Deprecated, use :code:`UA_char_group` instead. Elements:
+        :code:`kA_char`, :code:`Tamb`.
+
+    kA_group : GroupedComponentProperties
+        Deprecated, use :code:`UA_group` instead. Elements: :code:`kA`,
+        :code:`Tamb`.
+
+    ks : float, dict, :code:`"var"`
+        Roughness of wall material. Quantity: :code:`length`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    ks_HW : float, dict, :code:`"var"`
+        Hazen-Williams roughness. Can be set as a system variable by passing
+        :code:`"var"` as its value.
+
+    L : float, dict, :code:`"var"`
+        Length of channel. Quantity: :code:`length`. Can be set as a system
+        variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        :code:`temperature_difference`.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    power_connector_location : str
+        Description missing.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat transfer. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
 
     Tamb : float, dict
-        Ambient temperature, provide parameter in network's temperature unit.
+        Ambient temperature. Quantity: :code:`temperature`.
 
-    kA_group : str, dict
-        Parametergroup for heat transfer calculation from ambient temperature
-        and area independent heat transfer coefficient kA.
+    UA : float, dict, :code:`"var"`
+        Heat transfer coefficient considering ambient temperature. Quantity:
+        :code:`heat_transfer_coefficient`. Can be set as a system variable by
+        passing :code:`"var"` as its value.
+
+    UA_char : tespy.tools.characteristics.CharLine, dict
+        Heat transfer coefficient lookup table for offdesign.
+
+    UA_char_group : GroupedComponentProperties
+        Heat transfer from design heat transfer coefficient, modifier lookup
+        table and ambient temperature. Elements: :code:`UA_char`, :code:`Tamb`.
+        Equation: :py:meth:`UA_char_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func>`.
+
+    UA_group : GroupedComponentProperties
+        Equation for heat transfer based on ambient temperature and heat
+        transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
+        Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
+
+    zeta : float, dict
+        Deprecated, use :code:`zeta_d4` instead.
+
+    zeta_d4 : float, dict
+        Geometry-independent friction coefficient zeta/D^4 for pressure loss
+        calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     Example
     -------
@@ -148,22 +189,22 @@ class SimpleHeatExchanger(Component):
     component does not simulate the secondary side of the heat exchanger. It
     is possible to calculate the pressure ratio with the Darcy-Weisbach
     equation or in case of liquid water use the Hazen-Williams equation.
-    Also, given ambient temperature and the heat transfer coeffiecient, it is
+    Also, given ambient temperature and the heat transfer coefficient, it is
     possible to predict heat transfer.
 
     >>> from tespy.components import Sink, Source, SimpleHeatExchanger
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> import shutil
-    >>> nw = Network()
-    >>> nw.set_attr(p_unit='bar', T_unit='C', h_unit='kJ / kg', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
+    ... })
     >>> so1 = Source('source 1')
     >>> si1 = Sink('sink 1')
     >>> heat_sink = SimpleHeatExchanger('heat sink')
-    >>> heat_sink.component()
-    'heat exchanger simple'
     >>> heat_sink.set_attr(Tamb=10, pr=0.95, design=['pr'],
-    ... offdesign=['zeta', 'kA_char'])
+    ... offdesign=['zeta_d4', 'UA_char'])
     >>> inc = Connection(so1, 'out1', heat_sink, 'in1')
     >>> outg = Connection(heat_sink, 'out1', si1, 'in1')
     >>> nw.add_conns(inc, outg)
@@ -178,68 +219,240 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> nw.save('tmp')
+    >>> design_state = nw.save(as_dict=True)
     >>> round(heat_sink.Q.val, 0)
     -52581.0
     >>> round(heat_sink.kA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(heat_sink.Q.val, 0)
     -56599.0
     >>> round(outg.T.val, 1)
     156.9
     >>> inc.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path='tmp')
+    >>> nw.solve('offdesign', design_path=design_state)
     >>> round(heat_sink.Q.val, 1)
     -47275.8
     >>> round(outg.T.val, 1)
     140.0
-    >>> shutil.rmtree('./tmp', ignore_errors=True)
+
+    Use of the HeatConnection
+    -------------------------
+
+    Single sided heat exchangers can also connect to a
+    :code:`HeatConnection`. The component auto-detects whether the connection
+    is on the inlet or outlet side - no prior declaration is needed.
+
+    >>> from tespy.connections import HeatConnection
+    >>> from tespy.components import HeatSink
+    >>> ambient = HeatSink('ambient heat dissipation')
+
+    Create and add the :code:`HeatConnection` as an outlet. We run a new
+    design calculation, because the old design case did not include the
+    :code:`HeatConnection`. The energy value will be identical to the heat
+    transfer of the component.
+
+    >>> h1 = HeatConnection(heat_sink, 'heat', ambient, 'heat', label='h1')
+    >>> nw.add_conns(h1)
+    >>> nw.solve('design')
+    >>> round(h1.E.val) == round(-heat_sink.Q.val)
+    True
     """
 
-    @staticmethod
-    def component():
-        return 'heat exchanger simple'
+    _parameter_aliases = {
+        'kA': 'UA',
+        'kA_char': 'UA_char',
+        'kA_group': 'UA_group',
+        'kA_char_group': 'UA_char_group',
+        'zeta': 'zeta_d4',
+    }
+
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
+            constraints["energy_connector_balance"] = dc_cmc(**{
+                "func": self.energy_connector_balance_func,
+                "dependents": self.energy_connector_dependents,
+                "num_eq_sets": 1
+            })
+
+        return constraints
+
+    def set_attr(self, **kwargs):
+        if 'power_connector_location' in kwargs:
+            warnings.warn(
+                "The parameter 'power_connector_location' is deprecated and has no "
+                "effect. Connect the component directly on either the inlet or outlet "
+                "side without prior declaration.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        super().set_attr(**kwargs)
+
+    def _calc_Q(self):
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
+    def _calc_UA(self):
+        if not self.Tamb.is_set:
+            return np.nan
+        ttd_1 = self.inl[0].T.val_SI - self.Tamb.val_SI
+        ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
+        if ttd_1 / ttd_2 < 0:
+            return np.nan
+        return abs(self.Q.val_SI / self._calculate_td_log())
+
+    def _calc_lmtd(self):
+        if self.UA.val_SI == 0:
+            return np.nan
+        return abs(self.Q.val_SI) / self.UA.val_SI
 
     def get_parameters(self):
         return {
+            'power_connector_location': dc_simple(dtype="str"),
             'Q': dc_cp(
-                deriv=self.energy_balance_deriv,
-                latex=self.energy_balance_func_doc, num_eq=1,
-                func=self.energy_balance_func),
+                num_eq_sets=1,
+                func=self.energy_balance_func,
+                dependents=self.energy_balance_dependents,
+                quantity="heat",
+                description="heat transfer",
+                calc=self._calc_Q
+            ),
             'pr': dc_cp(
-                min_val=1e-4, max_val=1, num_eq=1,
-                deriv=self.pr_deriv, latex=self.pr_func_doc,
-                func=self.pr_func, func_params={'pr': 'pr'}),
+                min_val=1e-4, max_val=1, num_eq_sets=1,
+                structure_matrix=self.pr_structure_matrix,
+                func_params={'pr': 'pr'},
+                quantity="ratio",
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
+            ),
+            'dp': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                structure_matrix=self.dp_structure_matrix,
+                func_params={'dp': 'dp'},
+                quantity="pressure_difference",
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
+            ),
+            'zeta_d4': dc_cp(
+                min_val=0, max_val=1e15, num_eq_sets=1,
+                func=self.zeta_d4_func,
+                dependents=self.zeta_d4_dependents,
+                func_params={'zeta': 'zeta_d4'},
+                description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
+                calc=self._calc_zeta_d4
+            ),
             'zeta': dc_cp(
-                min_val=0, max_val=1e15, num_eq=1,
-                deriv=self.zeta_deriv, func=self.zeta_func,
-                latex=self.zeta_func_doc,
-                func_params={'zeta': 'zeta'}),
-            'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4),
-            'L': dc_cp(min_val=1e-1, d=1e-3),
-            'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8),
-            'ks_HW': dc_cp(val=10, min_val=1e-1, max_val=1e3, d=1e-2),
-            'kA': dc_cp(min_val=0, d=1),
-            'kA_char': dc_cc(param='m'), 'Tamb': dc_cp(),
-            'dissipative': dc_simple(val=True),
+                min_val=0, max_val=1e15, is_result=True,
+                description="deprecated, use :code:`zeta_d4` instead",
+                calc=self._calc_zeta_d4
+            ),
+            'D': dc_cp(
+                min_val=1e-2, max_val=2, d=1e-5, quantity="length",
+                description="diameter of channel",
+                _allows_var=True
+            ),
+            'L': dc_cp(
+                min_val=1e-1, quantity="length",
+                description="length of channel",
+                _allows_var=True
+            ),
+            'ks': dc_cp(
+                _val=1e-4, min_val=1e-7, max_val=1e-3,
+                quantity="length", description="roughness of wall material",
+                _allows_var=True
+            ),
+            'ks_HW': dc_cp(
+                _val=10, min_val=1e-1, max_val=1e3,
+                description="Hazen-Williams roughness",
+                _allows_var=True
+            ),
+            'UA': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient",
+                description="heat transfer coefficient considering ambient temperature",
+                _allows_var=True,
+                calc=self._calc_UA, calc_deps=['Q']
+            ),
+            'kA': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient",
+                description="deprecated, use :code:`UA` instead",
+                _allows_var=True,
+                calc=self._calc_UA, calc_deps=['Q']
+            ),
+            'lmtd': dc_cp(
+                min_val=0, is_result=True, quantity="temperature_difference",
+                description="effective logarithmic mean temperature difference |Q|/UA",
+                calc=self._calc_lmtd, calc_deps=['Q', 'UA']
+            ),
+            'UA_char': dc_cc(
+                param='m',
+                description="heat transfer coefficient lookup table for offdesign",
+            ),
+            'kA_char': dc_cc(
+                param='m',
+                description="deprecated, use :code:`UA_char` instead"
+            ),
+            'Tamb': dc_cp(
+                quantity="temperature",
+                description="ambient temperature"
+            ),
+            'dissipative': dc_simple(_val=None, dtype="bool"),
             'darcy_group': dc_gcp(
-                elements=['L', 'ks', 'D'], num_eq=1,
-                latex=self.darcy_func_doc,
-                func=self.darcy_func, deriv=self.darcy_deriv),
+                elements=['L', 'ks', 'D'], num_eq_sets=1,
+                func=self.darcy_func,
+                dependents=self.darcy_dependents,
+                description="Darcy-Weißbach equation for pressure loss"
+            ),
             'hw_group': dc_gcp(
-                elements=['L', 'ks_HW', 'D'], num_eq=1,
-                latex=self.hazen_williams_func_doc,
-                func=self.hazen_williams_func, deriv=self.hazen_williams_deriv),
+                elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
+                func=self.hazen_williams_func,
+                dependents=self.hazen_williams_dependents,
+                description="Hazen-Williams equation for pressure loss"
+            ),
+            'UA_group': dc_gcp(
+                elements=['UA', 'Tamb'], num_eq_sets=1,
+                func=self.UA_group_func,
+                dependents=self.UA_group_dependents,
+                description="equation for heat transfer based on ambient temperature and heat transfer coefficient"
+            ),
             'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'], num_eq=1,
-                latex=self.kA_group_func_doc,
-                func=self.kA_group_func, deriv=self.kA_group_deriv),
+                elements=['kA', 'Tamb'],
+                description="deprecated, use :code:`UA_group` instead"
+            ),
+            'UA_char_group': dc_gcp(
+                elements=['UA_char', 'Tamb'], num_eq_sets=1,
+                func=self.UA_char_group_func,
+                dependents=self.UA_char_group_dependents,
+                description="heat transfer from design heat transfer coefficient, modifier lookup table and ambient temperature"
+            ),
             'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'], num_eq=1,
-                latex=self.kA_char_group_func_doc,
-                func=self.kA_char_group_func, deriv=self.kA_char_group_deriv)
+                elements=['kA_char', 'Tamb'],
+                description="deprecated, use :code:`UA_char_group` instead"
+            )
+        }
+
+    def get_bypass_constraints(self):
+        return {
+            'mass_flow_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'm'}
+            }),
+            'pressure_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'p'}
+            }),
+            'enthalpy_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'h'}
+            }),
+            'fluid_constraints': dc_cmc(**{
+                'structure_matrix': self.variable_equality_structure_matrix,
+                'num_eq_sets': self.num_i,
+                'func_params': {'variable': 'fluid'}
+            })
         }
 
     @staticmethod
@@ -250,10 +463,63 @@ class SimpleHeatExchanger(Component):
     def outlets():
         return ['out1']
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
+    @staticmethod
+    def powerinlets():
+        return ['heat']
 
-        self.Tamb.val_SI = convert_to_SI('T', self.Tamb.val, self.inl[0].T.unit)
+    @staticmethod
+    def poweroutlets():
+        return ['heat']
+
+    @staticmethod
+    def heatinlets():
+        return ['heat']
+
+    @staticmethod
+    def heatoutlets():
+        return ['heat']
+
+    def _validate_connections(self):
+        super()._validate_connections()
+        all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl
+        if len(all_energy) > 1:
+            msg = (
+                f"Component {self.label} has more than one energy connection. "
+                "Connect to exactly one side using one connection type."
+            )
+            raise TESPyNetworkError(msg)
+        if self.power_inl or self.power_outl:
+            warnings.warn(
+                f"Component {self.label} is connected via PowerConnection. "
+                "Please use HeatConnection instead. PowerConnection support for "
+                "SimpleHeatExchanger will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+    def _get_energy_connector_location(self):
+        """Return (connector, side, val_attr) for the active energy connection."""
+        if self.heat_inl:
+            return self.heat_inl[0], "inlet"
+        if self.heat_outl:
+            return self.heat_outl[0], "outlet"
+        if self.power_inl:
+            return self.power_inl[0], "inlet"
+        return self.power_outl[0], "outlet"
+
+    def energy_connector_balance_func(self):
+        connector, side = self._get_energy_connector_location()
+        energy_flow = (
+            -connector.E.val_SI if side == "inlet"
+            else connector.E.val_SI
+        )
+        return energy_flow + self.inl[0].m.val_SI * (
+            self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        )
+
+    def energy_connector_dependents(self):
+        connector, _ = self._get_energy_connector_location()
+        return [connector.E, self.inl[0].m, self.outl[0].h, self.inl[0].h]
 
     def energy_balance_func(self):
         r"""
@@ -268,53 +534,14 @@ class SimpleHeatExchanger(Component):
 
                 0 =\dot{m}_{in}\cdot\left( h_{out}-h_{in}\right) -\dot{Q}
         """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        ) - self.Q.val
+        return self._calc_Q() - self.Q.val_SI
 
-    def energy_balance_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right) -\dot{Q}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def energy_balance_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-        if i.m.is_var:
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if i.h.is_var:
-            self.jacobian[k, i.h.J_col] = -i.m.val_SI
-        if o.h.is_var:
-            self.jacobian[k, o.h.J_col] = i.m.val_SI
-        # custom variable Q
-        if self.Q.is_var:
-            self.jacobian[k, self.Q.J_col] = -1
+    def energy_balance_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].h,
+            self.outl[0].h
+        ]
 
     def darcy_func(self):
         r"""
@@ -347,74 +574,26 @@ class SimpleHeatExchanger(Component):
         visc_o = o.calc_viscosity(T0=o.T.val_SI)
         v_i = i.calc_vol(T0=i.T.val_SI)
         v_o = o.calc_vol(T0=o.T.val_SI)
-
-        Re = 4 * abs(i.m.val_SI) / (math.pi * self.D.val * (visc_i + visc_o) / 2)
+        Re = (
+            4 * abs(i.m.val_SI)
+            / (math.pi * self.D.val_SI * (visc_i + visc_o) / 2)
+        )
 
         return (
             (i.p.val_SI - o.p.val_SI)
             - 8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o)
-            / 2 * self.L.val * dff(Re, self.ks.val, self.D.val)
-            / (math.pi ** 2 * self.D.val ** 5)
+            / 2 * self.L.val_SI * dff(Re, self.ks.val_SI, self.D.val_SI)
+            / (math.pi ** 2 * self.D.val_SI ** 5)
         )
 
-    def darcy_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from darcy friction factor.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0 = &p_\mathrm{in}-p_\mathrm{out}-'
-            r'\frac{8\cdot|\dot{m}_\mathrm{in}| \cdot\dot{m}_\mathrm{in}'
-            r'\cdot \frac{v_\mathrm{in}+v_\mathrm{out}}{2} \cdot L \cdot'
-            r'\lambda\left(Re, ks, D\right)}{\pi^2 \cdot D^5}\\' + '\n'
-            r'Re =&\frac{4 \cdot |\dot{m}_\mathrm{in}|}{\pi \cdot D \cdot'
-            r'\frac{\eta_\mathrm{in}+\eta_\mathrm{out}}{2}}\\' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def darcy_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        func = self.darcy_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        # custom variables of hydro group
-        for variable_name in self.darcy_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
+    def darcy_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.darcy_group.elements]
 
     def hazen_williams_func(self):
         r"""
@@ -453,79 +632,33 @@ class SimpleHeatExchanger(Component):
         return (
             math.copysign(i.p.val_SI - o.p.val_SI, i.m.val_SI)
             - (
-                10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val /
-                (self.ks_HW.val ** 1.852 * self.D.val ** 4.871)
+                10.67 * abs(i.m.val_SI) ** 1.852 * self.L.val_SI /
+                (self.ks_HW.val_SI ** 1.852 * self.D.val_SI ** 4.871)
             ) * (9.81 * ((v_i + v_o) / 2) ** 0.852)
         )
 
-    def hazen_williams_func_doc(self, label):
-        r"""
-        Equation for pressure drop calculation from Hazen-Williams equation.
+    def hazen_williams_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ] + [self.get_attr(element) for element in self.hw_group.elements]
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
+    def _calculate_td_log(self):
+        r"""
+        Calculation of mean logarithmic temperature difference.
+
+        For numerical stability: If temperature differences have
+        different sign use mean difference to avoid negative logarithm.
 
         Returns
         -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'0 = \left(p_\mathrm{in} - p_\mathrm{out} \right) -'
-            r'\frac{10.67 \cdot |\dot{m}_\mathrm{in}| ^ {1.852}'
-            r'\cdot L}{ks^{1.852} \cdot D^{4.871}} \cdot g \cdot'
-            r'\left(\frac{v_\mathrm{in}+ v_\mathrm{out}}{2}\right)^{0.852}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def hazen_williams_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of hydro group (pressure drop).
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        func = self.hazen_williams_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(func, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(func, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(func, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(func, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(func, 'h', o)
-        # custom variables of hydro group
-        for variable_name in self.hw_group.elements:
-            parameter = self.get_attr(variable_name)
-            if parameter.is_var:
-                self.jacobian[k, parameter.J_col] = (
-                    self.numeric_deriv(func, variable_name, None)
-                )
-
-    def kA_group_func(self):
-        r"""
-        Calculate heat transfer from heat transfer coefficient.
-
-        Returns
-        -------
-        residual : float
-            Residual value of equation.
+        deltaT_log : float
+            Mean logarithmic temperature difference.
 
             .. math::
-
-                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA \cdot \Delta T_{log}
 
                 \Delta T_{log} = \begin{cases}
                 \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
@@ -546,78 +679,70 @@ class SimpleHeatExchanger(Component):
         # For numerical stability: If temperature differences have
         # different sign use mean difference to avoid negative logarithm.
         if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
+            if ttd_1 > 0:
+                if o.h.is_var and self.it < 10:
+                    h_out = h_mix_pT(
+                        o.p.val_SI,
+                        self.Tamb.val_SI + 0.0001,
+                        o.fluid_data,
+                        o.mixing_rule
+                    )
+                    o.h.set_reference_val_SI(h_out)
+                ttd_2 = 0.1
+            elif ttd_1 < 0:
+                if o.h.is_var and self.it < 10:
+                    h_out = h_mix_pT(
+                        o.p.val_SI,
+                        self.Tamb.val_SI - 0.0001,
+                        o.fluid_data,
+                        o.mixing_rule
+                    )
+                    o.h.set_reference_val_SI(h_out)
+                ttd_2 = -0.1
+
+        if round(ttd_1, 6) == round(ttd_2, 6):
+            td_log = ttd_2
         elif ttd_1 > ttd_2:
             td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
         else:
-            # both values are equal
-            td_log = ttd_2
+            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
 
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.val * td_log
+        return td_log
 
-    def kA_group_func_doc(self, label):
+    def UA_group_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient.
 
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
         Returns
         -------
-        latex : str
-            LaTeX code of equations applied.
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
+                UA \cdot \Delta T_{log}
         """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def kA_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA group.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_group_func
         i = self.inl[0]
         o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = o.h.val_SI - i.h.val_SI
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-        if self.kA.is_var:
-            self.jacobian[k, self.kA.J_col] = self.numeric_deriv(f, self.vars[self.kA])
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
+        ttd_1 = i.calc_T() - self.Tamb.val_SI
+        ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            return Q + self.UA.val_SI * ttd_2
+        return Q + self.UA.val_SI * self._calculate_td_log()
 
-    def kA_char_group_func(self):
+    def UA_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+            self.UA
+        ]
+
+    def UA_char_group_func(self):
         r"""
         Calculate heat transfer from heat transfer coefficient characteristic.
 
@@ -629,181 +754,57 @@ class SimpleHeatExchanger(Component):
             .. math::
 
                 0 = \dot{m}_{in} \cdot \left( h_{out} - h_{in}\right) +
-                kA_{design} \cdot f_{kA} \cdot \Delta T_{log}
-
-                \Delta T_{log} = \begin{cases}
-                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
-                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
-                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
-                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
-                0 & T_{in} = T_{out}
-                \end{cases}
-
-                f_{kA} = \frac{2}{1 + \frac{1}{f\left( expr\right)}}
-
-                T_{amb}: \text{ambient temperature}
-
-        Note
-        ----
-        For standard function of f\ :subscript:`kA` \ see module
-        :py:mod:`tespy.data`.
+                UA_{design} \cdot f_{UA} \cdot \Delta T_{log}
         """
-        p = self.kA_char.param
-        expr = self.get_char_expr(p, **self.kA_char.char_params)
         i = self.inl[0]
         o = self.outl[0]
+        p = self.UA_char.param
 
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
+        expr = self.get_char_expr(p, **self.UA_char.char_params)
+        fkA = 2 / (1 + 1 / self.UA_char.char_func.evaluate(expr))
 
+        Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         ttd_1 = i.calc_T() - self.Tamb.val_SI
         ttd_2 = o.calc_T() - self.Tamb.val_SI
+        if ttd_1 * ttd_2 <= 0:
+            return Q + self.UA.design * fkA * ttd_2
+        return Q + self.UA.design * fkA * self._calculate_td_log()
 
-        if (ttd_1 / ttd_2) < 0:
-            td_log = (ttd_2 + ttd_1) / 2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        elif ttd_1 < ttd_2:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-        else:
-            # both values are equal
-            td_log = ttd_2
+    def UA_char_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.outl[0].h,
+        ]
 
-        fkA = 2 / (1 + 1 / self.kA_char.char_func.evaluate(expr))
-
-        return i.m.val_SI * (o.h.val_SI - i.h.val_SI) + self.kA.design * fkA * td_log
-
-    def kA_char_group_func_doc(self, label):
-        r"""
-        Calculate heat transfer from heat transfer coefficient characteristic.
-
-        Parameters
-        ----------
-        label : str
-            Label for equation.
-
-        Returns
-        -------
-        latex : str
-            LaTeX code of equations applied.
-        """
-        latex = (
-            r'\begin{split}' + '\n'
-            r'0=&\dot{m}_\mathrm{in}\cdot\left(h_\mathrm{out}-'
-            r'h_\mathrm{in}\right)+kA_\mathrm{design} \cdot f_\mathrm{kA}'
-            r' \cdot \Delta T_\mathrm{log}\\' + '\n'
-            r'\Delta T_\mathrm{log} = &\begin{cases}' + '\n'
-            r'\frac{T_\mathrm{in}-T_\mathrm{out}}{\ln{\frac{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}{T_\mathrm{out}-T_\mathrm{amb}}}} &'
-            r' T_\mathrm{in} > T_\mathrm{out} \\' + '\n'
-            r'\frac{T_\mathrm{out}-T_\mathrm{in}}{\ln{\frac{'
-            r'T_\mathrm{out}-T_\mathrm{amb}}{T_\mathrm{in}-'
-            r'T_\mathrm{amb}}}} & T_\mathrm{in} < T_\mathrm{out}\\' + '\n'
-            r'0 & T_\mathrm{in} = T_\mathrm{out}' + '\n'
-            r'\end{cases}\\' + '\n'
-            r'f_{kA}=&\frac{2}{1 + \frac{1}{f\left(X\right)}}\\' + '\n'
-            r'T_\mathrm{amb} =& \text{ambient temperature}' + '\n'
-            r'\end{split}'
-        )
-        return generate_latex_eq(self, latex, label)
-
-    def kA_char_group_deriv(self, increment_filter, k):
-        r"""
-        Calculate partial derivatives of kA characteristics.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        f = self.kA_char_group_func
-        i = self.inl[0]
-        o = self.outl[0]
-        if self.is_variable(i.m, increment_filter):
-            self.jacobian[k, i.m.J_col] = self.numeric_deriv(f, 'm', i)
-        if self.is_variable(i.p, increment_filter):
-            self.jacobian[k, i.p.J_col] = self.numeric_deriv(f, 'p', i)
-        if self.is_variable(i.h, increment_filter):
-            self.jacobian[k, i.h.J_col] = self.numeric_deriv(f, 'h', i)
-        if self.is_variable(o.p, increment_filter):
-            self.jacobian[k, o.p.J_col] = self.numeric_deriv(f, 'p', o)
-        if self.is_variable(o.h, increment_filter):
-            self.jacobian[k, o.h.J_col] = self.numeric_deriv(f, 'h', o)
-
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        val : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \dot{m}_{in} \cdot \left( h_{out} - h_{in} \right)
-        """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-
-    def bus_func_doc(self, bus):
-        r"""
-        Return LaTeX string of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        latex : str
-            LaTeX string of bus function.
-        """
-        return (
-            r'\dot{m}_\mathrm{in} \cdot \left(h_\mathrm{out} - '
-            r'h_\mathrm{in} \right)')
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= self.numeric_deriv(f, 'm', self.inl[0], bus=bus)
-
-        if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.inl[0], bus=bus)
-
-        if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= self.numeric_deriv(f, 'h', self.outl[0], bus=bus)
+    def convergence_check(self):
+        if self.UA_group.is_set:
+            i = self.inl[0]
+            o = self.outl[0]
+            T_in = i.calc_T()
+            T_out = o.calc_T()
+            if T_in > self.Tamb.val_SI:
+                if T_out < self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI + 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
+            elif T_in < self.Tamb.val_SI:
+                if T_out > self.Tamb.val_SI:
+                    if o.h.is_var:
+                        h_out = h_mix_pT(
+                            o.p.val_SI,
+                            self.Tamb.val_SI - 0.0001,
+                            o.fluid_data,
+                            o.mixing_rule
+                        )
+                        o.h.set_reference_val_SI(h_out)
 
     def initialise_source(self, c, key):
         r"""
@@ -884,31 +885,12 @@ class SimpleHeatExchanger(Component):
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""
-        i = self.inl[0]
-        o = self.outl[0]
-
-        self.Q.val = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        self.pr.val = o.p.val_SI / i.p.val_SI
-        self.zeta.val = self.calc_zeta(i, o)
-
-        if self.Tamb.is_set:
-            ttd_1 = i.T.val_SI - self.Tamb.val_SI
-            ttd_2 = o.T.val_SI - self.Tamb.val_SI
-
-            if (ttd_1 / ttd_2) < 0:
-                td_log = np.nan
-            if ttd_1 > ttd_2:
-                td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-            elif ttd_1 < ttd_2:
-                td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-            else:
-                # both values are equal
-                td_log = ttd_1
-
-            self.kA.val = abs(self.Q.val / td_log)
-            self.kA.is_result = True
-        else:
-            self.kA.is_result = False
+        super().calc_parameters()
+        if "UA" not in self.parameters:
+            return
+        self.UA.is_result = self.Tamb.is_set
+        self.kA.is_result = self.Tamb.is_set
+        self.lmtd.is_result = self.Tamb.is_set
 
     def entropy_balance(self):
         r"""
@@ -919,31 +901,31 @@ class SimpleHeatExchanger(Component):
 
         .. math::
 
-            h_\mathrm{out} - h_\mathrm{in} = \int_\mathrm{out}^\mathrm{in}
-            v \cdot dp - \int_\mathrm{out}^\mathrm{in} T \cdot ds
+            h_\text{out} - h_\text{in} = \int_\text{out}^\text{in}
+            v \cdot dp - \int_\text{out}^\text{in} T \cdot ds
 
-        As solving :math:`\int_\mathrm{out}^\mathrm{in} v \cdot dp` for non
+        As solving :math:`\int_\text{out}^\text{in} v \cdot dp` for non
         isobaric processes would require perfect process knowledge (the path)
         on how specific volume and pressure change throught the component, the
-        heat transfer is splitted into three separate virtual processes:
+        heat transfer is split into three separate virtual processes:
 
         - in->in*: decrease pressure to
-          :math:`p_\mathrm{in*}=p_\mathrm{in}\cdot\sqrt{\frac{p_\mathrm{out}}{p_\mathrm{in}}}`
+          :math:`p_\text{in*}=p_\text{in}\cdot\sqrt{\frac{p_\text{out}}{p_\text{in}}}`
           without changing enthalpy.
         - in*->out* transfer heat without changing pressure.
-          :math:`h_\mathrm{out*}-h_\mathrm{in*}=h_\mathrm{out}-h_\mathrm{in}`
-        - out*->out decrease pressure to outlet pressure :math:`p_\mathrm{out}`
+          :math:`h_\text{out*}-h_\text{in*}=h_\text{out}-h_\text{in}`
+        - out*->out decrease pressure to outlet pressure :math:`p_\text{out}`
           without changing enthalpy.
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 
-            \text{S\_Q}=\dot{m} \cdot \left(s_\mathrm{out*}-s_\mathrm{in*}
+            \text{S\_Q}=\dot{m} \cdot \left(s_\text{out*}-s_\text{in*}
             \right)\\
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right) - \text{S\_Q}\\
             \text{T\_mQ}=\frac{\dot{Q}}{\text{S\_Q}}
         """
@@ -960,175 +942,6 @@ class SimpleHeatExchanger(Component):
         self.S_Q = i.m.val_SI * (s2_star - s1_star)
         self.S_irr = i.m.val_SI * (o.s.val_SI - i.s.val_SI) - self.S_Q
         self.T_mQ = (o.h.val_SI - i.h.val_SI) / (s2_star - s1_star)
-
-    def exergy_balance(self, T0):
-        r"""
-        Calculate exergy balance of a simple heat exchanger.
-
-        The exergy of heat is calculated by allocation of thermal and
-        mechanical share of exergy in the physical exergy. Depending on the
-        temperature levels at the inlet and outlet of the heat exchanger as
-        well as the direction of heat transfer (input or output) fuel and
-        product exergy are calculated as follows.
-
-        Parameters
-        ----------
-        T0 : float
-            Ambient temperature T0 / K.
-
-        Note
-        ----
-        If the fluid transfers heat to the ambient, you can specify
-        :code:`mysimpleheatexchanger.set_attr(dissipative=False)` if you do
-        NOT want the exergy production nan (only applicable in case
-        :math:`\dot{Q}<0`).
-
-        .. math ::
-
-            \dot{E}_\mathrm{P} =
-            \begin{cases}
-            \begin{cases}
-            \begin{cases}
-            \text{not defined (nan)} & \text{if dissipative}\\
-            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} &
-            \text{else}\\
-            \end{cases}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{PH} - \dot{E}_\mathrm{in}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{out}^\mathrm{T}
-            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
-            \dot{E}_\mathrm{in}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{T} +
-            \dot{E}_\mathrm{out}^\mathrm{M} - \dot{E}_\mathrm{in}^\mathrm{M} +
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} > 0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{F} =
-            \begin{cases}
-            \begin{cases}
-            \dot{E}_\mathrm{in}^\mathrm{PH} - \dot{E}_\mathrm{out}^\mathrm{PH}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} +
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T} +
-            \dot{E}_\mathrm{in}^\mathrm{M} - \dot{E}_\mathrm{out}^\mathrm{M} +
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-
-            \begin{cases}
-            \dot{E}_\mathrm{out}^\mathrm{T} - \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{in}, T_\mathrm{out} \geq T_0\\
-            \dot{E}_\mathrm{in}^\mathrm{T} + \dot{E}_\mathrm{in}^\mathrm{M} -
-            \dot{E}_\mathrm{out}^\mathrm{M}
-            & T_\mathrm{out} > T_0 \geq T_\mathrm{in}\\
-            \dot{E}_\mathrm{in}^\mathrm{T}-\dot{E}_\mathrm{out}^\mathrm{T}
-            & T_0 \geq T_\mathrm{in}, T_\mathrm{out}\\
-            \end{cases} & \dot{Q} > 0\\
-            \end{cases}
-
-            \dot{E}_\mathrm{bus} =
-            \begin{cases}
-            \begin{cases}
-            \dot{E}_\mathrm{P} & \text{other cases}\\
-            \dot{E}_\mathrm{in}^\mathrm{T}
-            & T_\mathrm{in} \geq T_0 > T_\mathrm{out}\\
-            \end{cases} & \dot{Q} < 0\\
-            \dot{E}_\mathrm{F} & \dot{Q} > 0\\
-            \end{cases}
-        """
-        if self.Q.val < 0:
-            if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
-                if self.dissipative.val:
-                    self.E_P = np.nan
-                else:
-                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_P
-                }
-            elif self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI < T0:
-                self.E_P = self.outl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_therm + self.outl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0,
-                    "massless": self.inl[0].Ex_therm + self.outl[0].Ex_therm
-                }
-            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
-                self.E_P = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_F = self.outl[0].Ex_therm - self.outl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_P
-                }
-            else:
-                msg = ('Exergy balance of simple heat exchangers, where '
-                       'outlet temperature is higher than inlet temperature '
-                       'with heat extracted is not implmented.')
-                logger.warning(msg)
-                self.E_P = np.nan
-                self.E_F = np.nan
-                self.E_bus = {
-                    "chemical": np.nan, "physical": np.nan, "massless": np.nan
-                }
-        elif self.Q.val > 0:
-            if self.inl[0].T.val_SI >= T0 - 1e-6 and self.outl[0].T.val_SI >= T0 - 1e-6:
-                self.E_P = self.outl[0].Ex_physical - self.inl[0].Ex_physical
-                self.E_F = self.outl[0].Ex_therm - self.inl[0].Ex_therm
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_F
-                }
-            elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
-                self.E_P = self.outl[0].Ex_therm + self.inl[0].Ex_therm
-                self.E_F = self.inl[0].Ex_therm + (
-                    self.inl[0].Ex_mech - self.outl[0].Ex_mech)
-                self.E_bus = {
-                    "chemical": 0, "physical": 0,
-                    "massless": self.inl[0].Ex_therm
-                }
-            elif self.inl[0].T.val_SI < T0 and self.outl[0].T.val_SI < T0:
-                if self.dissipative.val:
-                    self.E_P = np.nan
-                else:
-                    self.E_P = self.inl[0].Ex_therm - self.outl[0].Ex_therm + (
-                        self.outl[0].Ex_mech - self.inl[0].Ex_mech
-                    )
-                self.E_F = self.inl[0].Ex_therm - self.outl[0].Ex_therm
-                self.E_bus = {
-                    "chemical": 0, "physical": 0, "massless": self.E_F
-                }
-            else:
-                msg = ('Exergy balance of simple heat exchangers, where '
-                       'inlet temperature is higher than outlet temperature '
-                       'with heat injected is not implmented.')
-                logger.warning(msg)
-                self.E_P = np.nan
-                self.E_F = np.nan
-                self.E_bus = {
-                    "chemical": np.nan, "physical": np.nan, "massless": self.E_F
-                }
-        else:
-            # fully dissipative
-            self.E_P = np.nan
-            self.E_F = self.inl[0].Ex_physical - self.outl[0].Ex_physical
-            self.E_bus = {
-                "chemical": np.nan, "physical": np.nan, "massless": np.nan
-            }
-
-        if np.isnan(self.E_P):
-            self.E_D = self.E_F
-        else:
-            self.E_D = self.E_F - self.E_P
-        self.epsilon = self._calc_epsilon()
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -1152,14 +965,3 @@ class SimpleHeatExchanger(Component):
                 'ending_point_value': self.outl[0].s.val
             }
         }
-
-
-class HeatExchangerSimple(SimpleHeatExchanger):
-
-    def __init__(self, label, **kwargs):
-        super().__init__(label, **kwargs)
-        msg = (
-            "The API for the component HeatExchangerSimple will change with "
-            "the next major release, please import SimpleHeatExchanger instead."
-        )
-        warnings.warn(msg, FutureWarning)

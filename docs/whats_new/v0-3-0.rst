@@ -54,7 +54,7 @@ New Features
   :code:`air` in this example). This has been the case until now as well, thus
   no further changes are required to match an 0.2.x application to the
   0.3.x API. For all back ends available please refer to the
-  :ref:`fluid properties section <tespy_fluid_properties_label>`. To specify
+  :ref:`fluid properties section <fluid_properties_label>`. To specify
   the fluid vector on a connection leave out the back end specification, e.g.:
 
   .. code-block:: python3
@@ -71,13 +71,13 @@ New Features
 
       .. math::
 
-          \eta=\frac{\dot{E}_\mathrm{bus}}{\dot{E}_\mathrm{component}}
+          \eta=\frac{\dot{E}_\text{bus}}{\dot{E}_\text{component}}
 
     - :code:`'bus'`: This means, the efficiency definition of the bus is
 
       .. math::
 
-          \eta=\frac{\dot{E}_\mathrm{component}}{\dot{E}_\mathrm{bus}}
+          \eta=\frac{\dot{E}_\text{component}}{\dot{E}_\text{bus}}
 
   These definitions also apply to the characteristic line usage. The default
   setting (if you do not specify the base) uses :code:`'base': 'component'`.
@@ -94,16 +94,16 @@ New Features
   where :code:`mycomp` is a component object and :code:`mybus` is a bus the
   component has been added to
   (`PR #157 <https://github.com/oemof/tespy/pull/157>`_).
-- New component :py:class:`tespy.components.nodes.droplet_separator` for
+- New component :code:`tespy.components.nodes.droplet_separator` for
   separation of a single fluid in two phase state into saturated gas and
   saturated liquid phase. An example is given in the docstrings of the class
   documentation (`PR #186 <https://github.com/oemof/tespy/pull/186>`_).
-- New component :py:class:`tespy.components.heat_exchangers.parabolic_trough`
+- New component :code:`tespy.components.heat_exchangers.parabolic_trough`
   for concentrated solar power simulation. An example is given in the
   docstrings of the class documentation
   (`PR #191 <https://github.com/oemof/tespy/pull/191>`_).
 - New property :code:`min_iter` of the
-  :py:class:`tespy.networks.networks.network` class, allowing to specify the
+  :code:`tespy.networks.networks.network` class, allowing to specify the
   minimum amount of iterations before a solution is accepted
   (`PR #197 <https://github.com/oemof/tespy/pull/197>`_).
 
@@ -147,7 +147,7 @@ Bug fixes
   line did not have an intersection with the point 1/1
   (`PR #196 <https://github.com/oemof/tespy/pull/196>`_).
 - If a temperature value of a mixture was not found within the maximum number
-  of newton iterations in the :py:mod:`tespy.tools.fluid_properties` module,
+  of newton iterations in the :code:`tespy.tools.fluid_properties` module,
   the wrong value was still displayed in the output without a warning. In this
   case, the value will be :code:`nan` in the future and a warning message is
   displayed (`PR #200 <https://github.com/oemof/tespy/pull/200>`_).
@@ -172,7 +172,7 @@ The changes affect
 - reading design point information from the :code:`design_path`
 - reading starting value information from the :code:`init_path`
 - and loading networks with the network reader's
-  :py:meth:`tespy.networks.network_reader.load_network` method.
+  :code:`tespy.networks.network_reader.load_network` method.
 
 Data generated in older versions of TESPy can not be imported. In order to fix
 this follow the steps below.

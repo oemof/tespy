@@ -10,9 +10,12 @@ tespy/tools/fluid_properties/wrappers.py
 
 SPDX-License-Identifier: MIT
 """
-
 import CoolProp as CP
+import numpy as np
+from scipy.optimize import brentq
 
+from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
+from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
 from tespy.tools.global_vars import ERR
 
 
@@ -37,7 +40,7 @@ class SerializableAbstractState(CP.AbstractState):
 @wrapper_registry
 class FluidPropertyWrapper:
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Base class for fluid property wrappers
 
         Parameters
@@ -49,11 +52,7 @@ class FluidPropertyWrapper:
         """
         self.back_end = back_end
         self.fluid = fluid
-        if "[" in self.fluid:
-            self.fluid, self._fractions = self.fluid.split("[")
-            self._fractions = self._fractions.replace("]", "")
-        else:
-            self._fractions = None
+        self.mixture_type = None
 
     def _not_implemented(self) -> None:
         raise NotImplementedError(
@@ -66,9 +65,6 @@ class FluidPropertyWrapper:
     def _is_below_T_critical(self, T):
         self._not_implemented()
 
-    def _make_p_subcritical(self, p):
-        self._not_implemented()
-
     def T_ph(self, p, h):
         self._not_implemented()
 
@@ -78,7 +74,13 @@ class FluidPropertyWrapper:
     def h_pT(self, p, T):
         self._not_implemented()
 
+    def h_ps(self, p, s):
+        self._not_implemented()
+
     def h_QT(self, Q, T):
+        self._not_implemented()
+
+    def h_pQ(self, p, Q):
         self._not_implemented()
 
     def s_QT(self, Q, T):
@@ -87,10 +89,25 @@ class FluidPropertyWrapper:
     def T_sat(self, p):
         self._not_implemented()
 
+    def T_dew(self, p):
+        return self.T_sat(p)
+
+    def T_bubble(self, p):
+        return self.T_sat(p)
+
     def p_sat(self, T):
         self._not_implemented()
 
+    def p_dew(self, T):
+        return self.p_sat(T)
+
+    def p_bubble(self, T):
+        return self.p_sat(T)
+
     def Q_ph(self, p, h):
+        self._not_implemented()
+
+    def phase_ph(self, p, h):
         self._not_implemented()
 
     def d_ph(self, p, h):
@@ -106,6 +123,12 @@ class FluidPropertyWrapper:
         self._not_implemented()
 
     def viscosity_pT(self, p, T):
+        self._not_implemented()
+
+    def conductivity_ph(self, p, h):
+        self._not_implemented()
+
+    def conductivity_pT(self, p, T):
         self._not_implemented()
 
     def s_ph(self, p, h):
@@ -118,7 +141,7 @@ class FluidPropertyWrapper:
 @wrapper_registry
 class CoolPropWrapper(FluidPropertyWrapper):
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Wrapper for CoolProp.CoolProp.AbstractState instance calls
 
         Parameters
@@ -128,40 +151,111 @@ class CoolPropWrapper(FluidPropertyWrapper):
         back_end : str, optional
             CoolProp back end for the AbstractState object, by default "HEOS"
         """
-        if back_end is None:
-            back_end = "HEOS"
-
         super().__init__(fluid, back_end)
+
+        if self.back_end is None:
+            self.back_end = "HEOS"
+
+        self._identify_mixture()
         self.AS = SerializableAbstractState(self.back_end, self.fluid)
+        self._set_mixture_fractions()
         self._set_constants()
+        self._last_ip = None
+        self._last_a = None
+        self._last_b = None
+
+    def _update(self, input_pair, a, b):
+        if input_pair == self._last_ip and a == self._last_a and b == self._last_b:
+            return
+        self._last_ip = None
+        self.AS.update(input_pair, a, b)
+        self._last_ip = input_pair
+        self._last_a = a
+        self._last_b = b
+
+    def _identify_mixture(self):
+        """Parse the fluid name to identify, if and what kind of mixture we are
+        working with
+        """
+        if "[" in self.fluid:
+            if "|" not in self.fluid:
+                msg = (
+                    f"The fluid {self.fluid} requires the specification of "
+                    "mass, volume or molar based composition information."
+                    "You can do this by appending '|' and 'mass' at the end "
+                    "of the fluid string. For example, "
+                    "'NAMEOFFLUID[0.5]|mass' to indicate a mass based mixture."
+                )
+                raise ValueError(msg)
+
+            self.fluid, self.mixture_type = self.fluid.split("|")
+            allowed = ["mass", "molar", "volume"]
+            if self.mixture_type not in allowed:
+                msg = (
+                    "For the specification of the composition type you have "
+                    f"to select from {', '.join(allowed)}."
+                )
+
+        if "&" in self.fluid:
+            _fluids_with_fractions = self.fluid.split("&")
+        else:
+            _fluids_with_fractions = [self.fluid]
+
+        fluid_names = []
+        fractions = []
+        for fluid in _fluids_with_fractions:
+            if "[" in fluid:
+                _fluid_name, _fraction = fluid.split("[")
+                _fraction = float(_fraction.replace("]", ""))
+                fractions += [_fraction]
+            else:
+                _fluid_name = fluid
+            fluid_names += [_fluid_name]
+
+        self.fractions = fractions
+        self.fluid = "&".join(fluid_names)
+
+    def _set_mixture_fractions(self):
+        """Set the fractions for provided mixture"""
+        if self.mixture_type == "mass":
+            self.AS.set_mass_fractions(self.fractions)
+        elif self.mixture_type == "molar":
+            self.AS.set_mole_fractions(self.fractions)
+        elif self.mixture_type == "volume":
+            self.AS.set_volu_fractions(self.fractions)
 
     def _set_constants(self):
+        """Setup constants for later quick access, e.g. mixture fractions
+        minimum/maximum pressure/temperature and critical point properties
+        """
         self._T_min = self.AS.trivial_keyed_output(CP.iT_min)
         self._T_max = self.AS.trivial_keyed_output(CP.iT_max)
-        try:
-            self._aliases = CP.CoolProp.get_aliases(self.fluid)
-        except RuntimeError:
-            self._aliases = [self.fluid]
 
         if self.back_end == "INCOMP":
-            if self._fractions is not None:
-                # how to find if a mixture is volumetric of mass based?
-                try:
-                    self.AS.set_volu_fractions([float(self._fractions)])
-                except ValueError:
-                    self.AS.set_mass_fractions([float(self._fractions)])
             self._p_min = 1e2
             self._p_max = 1e8
             self._p_crit = 1e8
             self._T_crit = None
             self._molar_mass = 1
-            try:
-                # how to know that we have a binary mixture?
-                self._T_min = self.AS.trivial_keyed_output(CP.iT_freeze)
-            except ValueError:
-                pass
+            if self.mixture_type is not None:
+                try:
+                    self._T_min = max(
+                        self.AS.trivial_keyed_output(CP.iT_freeze),
+                        self._T_min
+                    )
+                except ValueError:
+                    pass
         else:
-            self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
+            if self.back_end == "HEOS":
+                # see https://github.com/CoolProp/CoolProp/discussions/2443
+                self._T_max *= 1.45
+
+            if self.back_end == "REFPROP":
+                if self.mixture_type is not None:
+                    self._T_min += 5
+                self._p_min = 1e1
+            else:
+                self._p_min = self.AS.trivial_keyed_output(CP.iP_min)
             self._p_max = self.AS.trivial_keyed_output(CP.iP_max)
             self._p_crit = self.AS.trivial_keyed_output(CP.iP_critical)
             self._T_crit = self.AS.trivial_keyed_output(CP.iT_critical)
@@ -169,11 +263,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def _is_below_T_critical(self, T):
         return T < self._T_crit
-
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
 
     def get_T_max(self, p):
         if self.back_end == "INCOMP":
@@ -185,84 +274,403 @@ class CoolPropWrapper(FluidPropertyWrapper):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
     def T_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.T()
 
     def T_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
+        self._update(CP.PSmass_INPUTS, p, s)
         return self.AS.T()
 
     def h_pQ(self, p, Q):
-        self.AS.update(CP.PQ_INPUTS, p, Q)
+        self._update(CP.PQ_INPUTS, p, Q)
         return self.AS.hmass()
 
     def h_ps(self, p, s):
-        self.AS.update(CP.PSmass_INPUTS, p, s)
+        self._update(CP.PSmass_INPUTS, p, s)
         return self.AS.hmass()
 
     def h_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.hmass()
 
     def h_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.hmass()
 
     def s_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.smass()
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
-        self.AS.update(CP.PQ_INPUTS, p, 0)
+        self._update(CP.PQ_INPUTS, p, 0)
+        return self.AS.T()
+
+    def T_dew(self, p):
+        self._update(CP.PQ_INPUTS, p, 1)
+        return self.AS.T()
+
+    def T_bubble(self, p):
+        self._update(CP.PQ_INPUTS, p, 0)
         return self.AS.T()
 
     def p_sat(self, T):
-        if T > self._T_crit:
-            T = self._T_crit * 0.99
+        self._update(CP.QT_INPUTS, 0.5, T)
+        return self.AS.p()
 
-        self.AS.update(CP.QT_INPUTS, 0, T)
+    def p_dew(self, T):
+        self._update(CP.QT_INPUTS, 1, T)
+        return self.AS.p()
+
+    def p_bubble(self, T):
+        self._update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
-        self.AS.update(CP.HmassP_INPUTS, h, p)
-        return self.AS.Q()
+        self._update(CP.HmassP_INPUTS, h, p)
+        if len(self.fractions) > 1:
+            return self.AS.Q()
+
+        phase = self.AS.phase()
+        if phase == CP.iphase_twophase:
+            return self.AS.Q()
+        elif phase == CP.iphase_liquid:
+            return 0
+        elif phase == CP.iphase_gas:
+            return 1
+        else:  # all other phases - though this should be unreachable as p is sub-critical
+            return -1
+
+    def phase_ph(self, p, h):
+        if self.back_end == "INCOMP":
+            return "state not recognized"
+
+        self._update(CP.HmassP_INPUTS, h, p)
+        phase = self.AS.phase()
+        if phase == CP.iphase_twophase:
+            return "tp"
+        elif phase == CP.iphase_liquid:
+            return "l"
+        elif phase == CP.iphase_gas:
+            return "g"
+        elif phase == CP.iphase_supercritical_gas:
+            return "g"
+        else:
+            return "state not recognised"
 
     def d_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.rhomass()
 
     def d_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.rhomass()
 
     def d_QT(self, Q, T):
-        self.AS.update(CP.QT_INPUTS, Q, T)
+        self._update(CP.QT_INPUTS, Q, T)
         return self.AS.rhomass()
 
     def viscosity_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.viscosity()
 
     def viscosity_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.viscosity()
 
+    def conductivity_ph(self, p, h):
+        self._update(CP.HmassP_INPUTS, h, p)
+        return self.AS.conductivity()
+
+    def conductivity_pT(self, p, T):
+        self._update(CP.PT_INPUTS, p, T)
+        return self.AS.conductivity()
+
     def s_ph(self, p, h):
-        self.AS.update(CP.HmassP_INPUTS, h, p)
+        self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.smass()
 
     def s_pT(self, p, T):
-        self.AS.update(CP.PT_INPUTS, p, T)
+        self._update(CP.PT_INPUTS, p, T)
         return self.AS.smass()
+
+
+@wrapper_registry
+class IncompressibleFluidWrapper(FluidPropertyWrapper):
+    """Class to represent a fluid in TESPy using tabular data
+
+    Parameters
+    ----------
+    fluid : str
+        Name of fluid
+    back_end : str, optional
+        Name of the back end in context of CoolProp, by default None
+    temperature_data : np.ndarray
+        Array of temperature measurements in SI units (Kelvin)
+    density_data : np.ndarray
+        Array of corresponding density values in SI units (kg/m3)
+    heat_capacity_data : np.ndarray
+        Array of corresponding heat capacity values in SI units (J/kg)
+    viscosity_data : np.ndarray
+        Array of corresponding **dynamic** viscosity values in SI units (Pas)
+    conductivity_data : np.ndarray
+        Array of corresponding thermal conductivity values in SI units
+        (W/mK)
+    """
+
+    def __init__(self, fluid, back_end=None, **kwargs):
+        """Class to represent a fluid in TESPy using tabular data
+
+        Parameters
+        ----------
+        fluid : str
+            Name of fluid
+        back_end : str, optional
+            Name of the back end in context of CoolProp, by default None
+        temperature_data : np.ndarray
+            Array of temperature measurements in SI units (Kelvin)
+        density_data : np.ndarray
+            Array of corresponding density values in SI units (kg/m3)
+        heat_capacity_data : np.ndarray
+            Array of corresponding heat capacity values in SI units (J/kg)
+        viscosity_data : np.ndarray
+            Array of corresponding **dynamic** viscosity values in SI units
+            (Pas)
+        conductivity_data : np.ndarray
+            Array of corresponding thermal conductivity values in SI units
+            (W/mK)
+        """
+        super().__init__(fluid, back_end, **kwargs)
+
+        self.temperature_data = None
+        self.heat_capacity_data = None
+        self.density_data = None
+        self.viscosity_data = None
+
+        for key in ["temperature", "heat_capacity", "density", "viscosity"]:
+            value = kwargs.get(f"{key}_data")
+            if value is None:
+                msg = (
+                    f"The {self.__class__.__name__} requires specification of "
+                    f"the '{key}_data' keyword in the form of a numpy array."
+                )
+                raise KeyError(msg)
+            else:
+                setattr(self, f"{key}_data", value)
+
+        self.conductivity_data = kwargs.get("conductivity_data")
+
+        self._T_ref = kwargs.get("T_ref", min(self.temperature_data))
+        self._p_ref = kwargs.get("p_ref", 1e5)
+
+        self._fit_data()
+        self._set_constants()
+
+    def _fit_data(self):
+        A, B = fit_incompressible_linear(
+            self.temperature_data, self.heat_capacity_data
+        )
+        self._heat_capacity = {
+            "A": A,
+            "B": B
+        }
+
+        A, B = fit_incompressible_linear(
+            self.temperature_data, self.density_data
+        )
+        self._density = {
+            "A": A,
+            "B": B
+        }
+
+        if self.conductivity_data is not None:
+            A, B = fit_incompressible_linear(
+                self.temperature_data, self.conductivity_data
+            )
+        else:
+            A, B = np.nan, np.nan
+
+        self._conductivity = {
+            "A": A,
+            "B": B
+        }
+
+        A, B, C, D = fit_incompressible_viscosity(
+            self.temperature_data, self.viscosity_data
+        )
+        self._viscosity = {
+            "A": A,
+            "B": B,
+            "C": C,
+            "D": D
+        }
+
+    def _set_constants(self):
+        # evaluate h at T=T_ref
+        self._h_ref = self._h_pT(None, self._T_ref)
+
+        self._T_min = self._T_ref
+        self._T_max = max(self.temperature_data)
+
+        self._molar_mass = 1
+        self._p_min = 100
+        self._p_max = 10000000
+        self._p_crit = self._p_max
+
+        self._T_crit = None
+
+    def get_fitting_report(self):
+        import matplotlib.pyplot as plt
+
+        def plot_property(ax, temperature, measurements, evaluation):
+
+            _fit, = ax.plot(temperature, evaluation, "-", color="red")
+            _data = ax.scatter(temperature, measurements, marker="x", c="blue")
+
+            ax_err = ax.twinx()
+
+            _err = ax_err.scatter(
+                temperature, (evaluation - measurements) / measurements * 100,
+                c="#0000ff66"
+            )
+
+            ax_err.set_ylabel("Deviation between fit and data in %")
+
+            return [_data, _fit, _err]
+
+        fig, ax = plt.subplots(2, 2, figsize=(10, 10), sharex=True)
+
+
+        ax[0, 0].set_title("Heat capacity")
+        ax[0, 1].set_title("Density")
+        ax[1, 0].set_title("Viscosity")
+        ax[1, 1].set_title("Thermal conductivity")
+
+        temperature_data = self.temperature_data
+        heat_capacity_data = self.heat_capacity_data
+        density_data = self.density_data
+        viscosity_data = self.viscosity_data
+        conductivity_data = self.conductivity_data
+
+        d = 0.001
+        heat_capacity_eval = (
+            self.h_pT(None, temperature_data + d)
+            - self.h_pT(None, temperature_data - d)
+        ) / (2 * d)
+
+        density_eval = self.d_pT(None, temperature_data)
+        viscosity_eval = self.viscosity_pT(None, temperature_data)
+        conductivity_eval = self.conductivity_pT(None, temperature_data)
+
+        lines = plot_property(ax[0, 0], temperature_data, heat_capacity_data, heat_capacity_eval)
+        labels = ["datapoints", "fitted function", "deviation"]
+
+        plot_property(ax[0, 1], temperature_data, density_data, density_eval)
+
+        plot_property(ax[1, 0], temperature_data, viscosity_data, viscosity_eval)
+        ax[1, 0].set_yscale("log")
+
+        plot_property(ax[1, 1], temperature_data, conductivity_data, conductivity_eval)
+
+
+        ax[0, 0].set_ylabel("Heat capacity in J/kgK")
+        ax[0, 1].set_ylabel("Density in kg/m3")
+        ax[1, 0].set_ylabel("Viscosity in Pas")
+        ax[1, 1].set_ylabel("Thermal conductivity in W/mK")
+
+        ax[1, 0].set_xlabel("Temperature in K")
+        ax[1, 1].set_xlabel("Temperature in K")
+
+        fig.legend(
+            lines, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.05)
+        )
+
+        plt.tight_layout()
+
+        return fig, ax
+
+    def T_ph(self, p, h):
+        # Inverse function of h_pT, using quadratic formula with adding the
+        # root
+        return (
+            (
+                -self._heat_capacity["B"]
+                + (
+                    self._heat_capacity["B"] ** 2
+                    - 4 * 0.5 * self._heat_capacity["A"] * - (h + self._h_ref)
+                ) ** 0.5
+            )
+            / (2 * 0.5 * self._heat_capacity["A"])
+        )
+
+    def h_pT(self, p, T):
+        return self._h_pT(p, T) - self._h_ref
+
+    def _h_pT(self, p, T):
+        # h = integral cp(T) dT
+        return (
+            0.5 * self._heat_capacity["A"] * T ** 2
+            + self._heat_capacity["B"] * T
+        )
+
+    def h_ps(self, p, s):
+        return self.h_pT(p, self.T_ps(p, s))
+
+    def s_ph(self, p, h):
+        return self.s_pT(p, self.T_ph(p, h))
+
+    def s_pT(self, p, T):
+        # s0 = 0
+        return (
+            self._heat_capacity["B"] * np.log(T / self._T_ref)
+            + self._heat_capacity["A"] * (T - self._T_ref)
+            - self.d_pT(p, T) * (p - self._p_ref)
+        )
+
+    def isentropic(self, p_1, h_1, p_2):
+        # assumption that temperature barely changes
+        T = self.T_ph(p_1, h_1)
+        return h_1 + (p_2 - p_1) / self.d_pT(p_1, T)
+
+    def _inverse_s_pT(self, T, p, s):
+        return s - self.s_pT(p, T)
+
+    def T_ps(self, p, s):
+        return brentq(
+            self._inverse_s_pT,
+            self._T_min,
+            self._T_max,
+            args=(p, s)
+        )
+
+    def conductivity_ph(self, p, h):
+        return self.conductivity_pT(p, self.T_ph(p, h))
+
+    def conductivity_pT(self, p, T):
+        return self._conductivity["A"] * T + self._conductivity["B"]
+
+    def d_ph(self, p, h):
+        return self.d_pT(p, self.T_ph(p, h))
+
+    def d_pT(self, p, T):
+        return self._density["A"] * T + self._density["B"]
+
+    def viscosity_ph(self, p, h):
+        return self.viscosity_pT(p, self.T_ph(p, h))
+
+    def viscosity_pT(self, p, T):
+        return np.exp(
+            self._viscosity["A"] /  T ** 3
+            + self._viscosity["B"] /  T ** 2
+            + self._viscosity["C"] /  T
+            + self._viscosity["D"]
+        )
 
 
 @wrapper_registry
 class IAPWSWrapper(FluidPropertyWrapper):
 
 
-    def __init__(self, fluid, back_end=None) -> None:
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
         """Wrapper for iapws library calls
 
         Parameters
@@ -272,7 +680,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         back_end : str, optional
             CoolProp back end for the AbstractState object, by default "IF97"
         """
-        # avoid unncessary loading time if not used
+        # avoid unnecessary loading time if not used
         try:
             import iapws
         except ModuleNotFoundError:
@@ -285,11 +693,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if back_end is None:
             back_end = "IF97"
         super().__init__(fluid, back_end)
-        self._aliases = CP.CoolProp.get_aliases("H2O")
-
-        if self.fluid not in self._aliases:
-            msg = "The iapws wrapper only supports water as fluid."
-            raise ValueError(msg)
 
         if self.back_end == "IF97":
             self.AS = iapws.IAPWS97
@@ -311,11 +714,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
 
     def _is_below_T_critical(self, T):
         return T < self._T_crit
-
-    def _make_p_subcritical(self, p):
-        if p > self._p_crit:
-            p = self._p_crit * 0.99
-        return p
 
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
@@ -342,7 +740,6 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T, x=Q).s * 1e3
 
     def T_sat(self, p):
-        p = self._make_p_subcritical(p)
         return self.AS(P=p / 1e6, x=0).T
 
     def p_sat(self, T):
@@ -352,8 +749,19 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T / 1e6, x=0).P * 1e6
 
     def Q_ph(self, p, h):
-        p = self._make_p_subcritical(p)
         return self.AS(h=h / 1e3, P=p / 1e6).x
+
+    def phase_ph(self, p, h):
+        phase = self.AS(h=h / 1e3, P=p / 1e6).phase
+
+        if phase in ["Liquid"]:
+            return "l"
+        elif phase in  ["Vapour"]:
+            return "g"
+        elif phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
+            return "tp"
+        else:  # to ensure consistent behavior to CoolPropWrapper
+            return "phase not recognized"
 
     def d_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).rho
@@ -380,8 +788,8 @@ class IAPWSWrapper(FluidPropertyWrapper):
 @wrapper_registry
 class PyromatWrapper(FluidPropertyWrapper):
 
-    def __init__(self, fluid, back_end=None) -> None:
-        """_summary_
+    def __init__(self, fluid, back_end=None, **kwargs) -> None:
+        """Wrapper for the Pyromat fluid property library
 
         Parameters
         ----------
@@ -413,19 +821,17 @@ class PyromatWrapper(FluidPropertyWrapper):
     def _set_constants(self):
         self._p_min, self._p_max = 100, 1000e5
         self._T_min, self._T_max = self.AS.Tlim()
+
+        if self.back_end == "mp":
+            self._T_crit, self._p_crit = self.AS.critical()
+        else:
+            self._T_crit = self._T_max
+            self._p_crit = self._p_max
+
         self._molar_mass = self.AS.mw()
 
     def isentropic(self, p_1, h_1, p_2):
         return self.h_ps(p_2, self.s_ph(p_1, h_1))
-
-    def T_ph(self, p, h):
-        return self.AS.T(p=p, h=h)[0]
-
-    def T_ps(self, p, s):
-        return self.AS.T(p=p, s=s)[0]
-
-    def h_pT(self, p, T):
-        return self.AS.h(p=p, T=T)[0]
 
     def T_ph(self, p, h):
         return self.AS.T(p=p, h=h)[0]
@@ -449,8 +855,6 @@ class PyromatWrapper(FluidPropertyWrapper):
         return self.AS.s(p=p, h=h)[0]
 
     def s_pT(self, p, T):
-        if self.back_end == "ig":
-            self._not_implemented()
         return self.AS.s(p=p, T=T)[0]
 
     def h_QT(self, Q, T):
@@ -458,20 +862,15 @@ class PyromatWrapper(FluidPropertyWrapper):
             self._not_implemented()
         return self.AS.h(x=Q, T=T)[0]
 
+    def h_pQ(self, p, Q):
+        if self.back_end == "ig":
+            self._not_implemented()
+        return self.AS.h(p=p, x=Q)[0]
+
     def s_QT(self, Q, T):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.s(x=Q, T=T)[0]
-
-    def T_boiling(self, p):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.T(x=1, p=p)[0]
-
-    def p_boiling(self, T):
-        if self.back_end == "ig":
-            self._not_implemented()
-        return self.AS.p(x=1, T=T)[0]
 
     def Q_ph(self, p, h):
         if self.back_end == "ig":

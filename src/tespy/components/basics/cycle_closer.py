@@ -14,6 +14,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 
 
@@ -22,46 +23,63 @@ class CycleCloser(Component):
     r"""
     Component for closing cycles.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.pressure_equality_func`
-    - :py:meth:`tespy.components.basics.cycle_closer.CycleCloser.enthalpy_equality_func`
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
-    Image not available
+    Mandatory Equations
+    -------------------
+
+    - pressure equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - enthalpy equality constraint: :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    fluid_deviation : float, dict
+        Norm of absolute deviation of fluid composition between inlet and
+        outlet.
 
-    local_design : boolean
+    label : str
+        The label of the component.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    mass_deviation : float, dict
+        Absolute deviation of mass flow between inlet and outlet. Quantity:
+        :code:`mass_flow`.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    Note
-    ----
-    This component can be used to close a cycle process. The system of
-    equations describing your plant will overdetermined, if you close a cycle
-    without this component or a cut the cycle with a sink and a source at
-    some point of the cycle. This component can be used instead of cutting
-    the cycle.
+    Notes
+    -----
+
+    .. note::
+
+        This component can be used to close a cycle process. The system of
+        equations describing your plant will overdetermined, if you close a cycle
+        without this component or a cut the cycle with a sink and a source at
+        some point of the cycle. This component can be used instead of cutting
+        the cycle.
 
     Example
     -------
@@ -74,12 +92,14 @@ class CycleCloser(Component):
     >>> from tespy.components import CycleCloser, Pipe, Pump
     >>> from tespy.connections import Connection
     >>> from tespy.networks import Network
-    >>> nw = Network(p_unit='bar', T_unit='C', iterinfo=False)
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(**{
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
+    ... })
     >>> pi = Pipe('pipe')
     >>> pu = Pump('pump')
     >>> cc = CycleCloser('cycle closing component')
-    >>> cc.component()
-    'cycle closer'
     >>> pu_pi = Connection(pu, 'out1', pi, 'in1')
     >>> pi_cc = Connection(pi, 'out1', cc, 'in1')
     >>> cc_pu = Connection(cc, 'out1', pu, 'in1')
@@ -92,31 +112,42 @@ class CycleCloser(Component):
     True
     """
 
-    @staticmethod
-    def component():
-        return 'cycle closer'
+    def _calc_mass_deviation(self):
+        return abs(self.inl[0].m.val_SI - self.outl[0].m.val_SI)
 
-    @staticmethod
-    def get_parameters():
+    def _calc_fluid_deviation(self):
+        d1 = self.inl[0].fluid.val
+        d2 = self.outl[0].fluid.val
+        return np.linalg.norm([d1[k] - d2[k] for k in d1])
+
+    def get_parameters(self):
         return {
-            'mass_deviation': dc_cp(val=0, max_val=1e-3, is_result=True),
-            'fluid_deviation': dc_cp(val=0, max_val=1e-5, is_result=True)
+            'mass_deviation': dc_cp(
+                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
+                description="absolute deviation of mass flow between inlet and outlet",
+                calc=self._calc_mass_deviation
+            ),
+            'fluid_deviation': dc_cp(
+                _val=0, max_val=1e-5, is_result=True,
+                description="norm of absolute deviation of fluid composition between inlet and outlet",
+                calc=self._calc_fluid_deviation
+            )
         }
 
     def get_mandatory_constraints(self):
         return {
-            'pressure_equality_constraints': {
-                'func': self.pressure_equality_func,
-                'deriv': self.pressure_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.pressure_equality_func_doc,
-                'num_eq': 1},
-            'enthalpy_equality_constraints': {
-                'func': self.enthalpy_equality_func,
-                'deriv': self.enthalpy_equality_deriv,
-                'constant_deriv': True,
-                'latex': self.enthalpy_equality_func_doc,
-                'num_eq': 1}
+            "pressure_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "p"},
+                "description": "pressure equality constraint"
+            }),
+            "enthalpy_equality_constraint": dc_cmc(**{
+                "num_eq_sets": 1,
+                "structure_matrix": self.variable_equality_structure_matrix,
+                "func_params": {"variable": "h"},
+                "description": "enthalpy equality constraint"
+            })
         }
 
     @staticmethod
@@ -126,21 +157,6 @@ class CycleCloser(Component):
     @staticmethod
     def outlets():
         return ['out1']
-
-    @staticmethod
-    def is_branch_source():
-        return True
-
-    def start_branch(self):
-        outconn = self.outl[0]
-        branch = {
-            "connections": [outconn],
-            "components": [self, outconn.target],
-            "subbranches": {}
-        }
-        outconn.target.propagate_to_target(branch)
-
-        return {outconn.label: branch}
 
     def start_fluid_wrapper_branch(self):
         outconn = self.outl[0]
@@ -152,26 +168,7 @@ class CycleCloser(Component):
 
         return {outconn.label: branch}
 
-    def propagate_to_target(self, branch):
-        return
-
     def propagate_wrapper_to_target(self, branch):
         branch["components"] += [self]
         return
 
-    def preprocess(self, num_nw_vars):
-        super().preprocess(num_nw_vars)
-        self._propagation_start = False
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        # calculate deviation in mass flow
-        self.mass_deviation.val = abs(
-            self.inl[0].m.val_SI - self.outl[0].m.val_SI
-        )
-
-        # calculate deviation in fluid composition
-        d1 = self.inl[0].fluid.val
-        d2 = self.outl[0].fluid.val
-        diff = [d1[key] - d2[key] for key in d1.keys()]
-        self.fluid_deviation.val = np.linalg.norm(diff)

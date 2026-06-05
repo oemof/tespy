@@ -1,3 +1,14 @@
+# -*- coding: utf-8
+
+"""Module for testing fluid properties of gas mixtures.
+
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
+by the contributors recorded in the version control history of the file,
+available from its original location
+tests/test_tools/test_fluid_properties/test_pyromat.py
+
+SPDX-License-Identifier: MIT
+"""
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine
@@ -29,7 +40,7 @@ class TestPyromat:
         c1, c2 = self.nwk.get_conn(["1", "2"])
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         h_out_ref = round(c2.h.val_SI / 1e3)
         T_out_ref = round(c2.T.val_SI)
@@ -40,7 +51,7 @@ class TestPyromat:
         c1.set_attr(fluid={"mp::H2O": 1}, fluid_engines={"H2O": PyromatWrapper})
 
         self.nwk.solve("design")
-        self.nwk._convergence_check()
+        self.nwk.assert_convergence()
 
         assert h_out_ref == round(c2.h.val_SI / 1e3)
         assert T_out_ref == round(c2.T.val_SI)

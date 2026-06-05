@@ -12,7 +12,7 @@ New features
   - faulty parameters (:code:`'err'`, red)
 
   In order to change the colors, simply import :code:`coloring` from the
-  :py:mod:`tespy.tools.global_vars` module and adjust the escape codes. For
+  :code:`tespy.tools.global_vars` module and adjust the escape codes. For
   example, to reset all colors to white text:
 
   .. code-block:: python
@@ -38,7 +38,7 @@ Bug fixes
   (`PR #207 <https://github.com/oemof/tespy/pull/207>`_). With the old method,
   the specific volume was calculated according to Amagat's law, which produced
   incorrect values if one or more components of the mixture were liquid at the
-  mixture's temperature and pressure. See discussion about humid air propreties
+  mixture's temperature and pressure. See discussion about humid air properties
   here: `Issue #206 <https://github.com/oemof/tespy/issues/206>`_.
 
 Contributors

@@ -5,7 +5,9 @@ from tespy.networks import Network
 my_plant = Network()
 # %%[sec_2]
 # set the unitsystem for temperatures to °C and for pressure to bar
-my_plant.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
+my_plant.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", heat="kW", power="kW"
+)
 # %%[sec_3]
 from tespy.components import (
     CycleCloser, Compressor, Valve, SimpleHeatExchanger
@@ -33,7 +35,7 @@ c0 = Connection(va, 'out1', cc, 'in1', label='0')
 # this line is crutial: you have to add all connections to your network
 my_plant.add_conns(c1, c2, c3, c4, c0)
 # %%[sec_5]
-co.set_attr(pr=0.98, Q=-1e6)
+co.set_attr(pr=0.98, Q=-1000)
 ev.set_attr(pr=0.98)
 cp.set_attr(eta_s=0.85)
 
@@ -65,7 +67,7 @@ my_plant.solve('design')
 my_plant.print_results()
 # %%[sec_10]
 # first go back to the original state of the specifications
-co.set_attr(Q=-1e6)
+co.set_attr(Q=-1000)
 cp.set_attr(pr=None, eta_s=0.85)
 c1.set_attr(m=None)
 c3.set_attr(T=None)

@@ -30,9 +30,9 @@ Bug fixes
   updated to prevent future bugs resulting from possible API changes
   (`PR #146 <https://github.com/oemof/tespy/pull/146>`_).
 - There was a bug in the heat exchanger kA-functions (
-  :py:meth:`tespy.components.heat_exchangers.simple.kA_func`,
-  :py:meth:`tespy.components.heat_exchangers.base.kA_func` and
-  :py:meth:`tespy.components.heat_exchangers.condenser.kA_func`). The factors
+  :code:`tespy.components.heat_exchangers.simple.kA_func`,
+  :code:`tespy.components.heat_exchangers.base.kA_func` and
+  :code:`tespy.components.heat_exchangers.condenser.kA_func`). The factors
   for the heat transfer coefficient should not simultaneously amplify the
   value but instead with their inverse.
 

@@ -5,7 +5,7 @@
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_tools/test_fluid_properties.py
+tests/test_tools/test_fluid_properties/test_coolprop.py
 
 SPDX-License-Identifier: MIT
 """
@@ -152,7 +152,10 @@ class TestFluidPropertyBackEnds:
     def setup_clausius_rankine(self, fluid, back_end):
         """Setup a Clausius-Rankine cycle."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=True)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
 
         # %% components
 
@@ -204,7 +207,10 @@ class TestFluidPropertyBackEnds:
     def setup_pipeline_network(self, fluid, back_end):
         """Setup a pipeline network."""
         self.nw = Network()
-        self.nw.set_attr(p_unit='bar', T_unit='C', iterinfo=False)
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
 
         # %% components
 
@@ -237,7 +243,8 @@ class TestFluidPropertyBackEnds:
     @pytest.mark.skipif(
         os.environ.get('GITHUB_ACTIONS') == 'true',
         reason='GitHub actions cannot handle the tabular CoolProp back ends, '
-        'skipping this test. The test should run on your local machine.')
+        'skipping this test. The test should run on your local machine.'
+    )
     def test_clausius_rankine_tabular(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -263,7 +270,6 @@ class TestFluidPropertyBackEnds:
                 str(d_rel) + ' but should not be larger than 1e-4.')
             assert d_rel <= 1e-4, msg
 
-    @pytest.mark.skip
     def test_clausius_rankine(self):
         """Test the Clausius-Rankine cycle with different back ends."""
         fluid = 'water'
@@ -294,16 +300,101 @@ class TestFluidPropertyBackEnds:
 
         for fluid, back_end in fluids_back_ends.items():
             self.setup_pipeline_network(fluid, back_end)
-            self.nw._convergence_check()
+            self.nw.assert_convergence()
 
             value = round(self.nw.get_comp('pipeline').pr.val, 5)
             msg = (
                 'The pressure ratio of the pipeline must be at 0.95, but '
-                'is at ' + str(value) + ' for the fluid ' + fluid + '.')
+                f'is at {value} for the fluid {fluid}.'
+            )
             assert value == 0.95, msg
             value = round(self.nw.get_comp('pump').pr.val, 5)
             msg = (
-                'The pressure ratio of the pipeline must be at ' +
-                str(round(1 / 0.95, 5)) + ', but is at ' + str(value) +
-                ' for the fluid ' + fluid + '.')
+                'The pressure ratio of the pipeline must be at '
+                f'{round(1 / 0.95, 5)}, but is at {value} for the fluid '
+                f'{fluid}.'
+            )
             assert value == round(1 / 0.95, 5), msg
+
+
+class TestCoolPropWrapperUpdateCache:
+    """Test that the CoolPropWrapper state cache produces correct results."""
+
+    def setup_method(self):
+        from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
+        self.w = CoolPropWrapper("Water")
+        # reference wrapper with no prior state (fresh per call via direct AS.update)
+        self.ref = CoolPropWrapper("Water")
+
+    def _ref(self, input_pair, a, b, prop):
+        """Return property value from a fresh update, bypassing cache."""
+        import CoolProp as CP
+        self.ref.AS.update(input_pair, a, b)
+        return getattr(self.ref.AS, prop)()
+
+    def test_T_ph_cache_hit_same_result(self):
+        """Second call with identical inputs returns the same T."""
+        p, h = 1e5, 2.7e6
+        t1 = self.w.T_ph(p, h)
+        t2 = self.w.T_ph(p, h)
+        assert t1 == t2
+
+    def test_T_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct T."""
+        import CoolProp as CP
+        p, h = 5e5, 3e6
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "T")
+        assert self.w.T_ph(p, h) == pytest.approx(ref)
+        assert self.w.T_ph(p, h) == pytest.approx(ref)
+
+    def test_cache_miss_on_different_inputs(self):
+        """Different (p, h) inputs return different temperatures."""
+        t1 = self.w.T_ph(1e5, 2.7e6)
+        t2 = self.w.T_ph(2e5, 2.7e6)
+        assert t1 != t2
+
+    def test_alternating_inputs_correct(self):
+        """Alternating between two states always returns the right value."""
+        import CoolProp as CP
+        pairs = [(1e5, 2.7e6), (10e5, 3.2e6)]
+        refs = [self._ref(CP.HmassP_INPUTS, h, p, "T") for p, h in pairs]
+        for _ in range(3):
+            for (p, h), ref in zip(pairs, refs):
+                assert self.w.T_ph(p, h) == pytest.approx(ref)
+
+    def test_cache_invalidated_after_failed_update(self):
+        """After a crashing AS.update the old state is re-fetched correctly."""
+        import CoolProp as CP
+        p, h = 1e5, 2.7e6
+        expected = self.w.T_ph(p, h)
+
+        # provoke a crash in AS.update with nonsense inputs
+        with pytest.raises(Exception):
+            self.w.T_ph(-1, -1)
+
+        # old inputs must still return the correct value
+        assert self.w.T_ph(p, h) == pytest.approx(expected)
+
+    def test_h_pQ_two_phase(self):
+        """Both the first and second (cached) call return the correct h in two-phase."""
+        import CoolProp as CP
+        p, Q = 1e5, 0.5
+        ref = self._ref(CP.PQ_INPUTS, p, Q, "hmass")
+        assert self.w.h_pQ(p, Q) == pytest.approx(ref)
+        assert self.w.h_pQ(p, Q) == pytest.approx(ref)
+
+    def test_s_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct s."""
+        import CoolProp as CP
+        p, h = 3e5, 2.9e6
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "smass")
+        assert self.w.s_ph(p, h) == pytest.approx(ref)
+        assert self.w.s_ph(p, h) == pytest.approx(ref)
+
+    def test_d_ph_matches_reference(self):
+        """Both the first and second (cached) call return the correct density."""
+        import CoolProp as CP
+        p, h = 2e5, 5e5
+        ref = self._ref(CP.HmassP_INPUTS, h, p, "rhomass")
+        assert self.w.d_ph(p, h) == pytest.approx(ref)
+        assert self.w.d_ph(p, h) == pytest.approx(ref)

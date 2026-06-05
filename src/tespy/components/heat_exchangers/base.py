@@ -116,7 +116,7 @@ class HeatExchanger(Component):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
         :code:`temperature_difference`.
 
     local_design : bool
@@ -307,7 +307,7 @@ class HeatExchanger(Component):
             ),
             'lmtd': dc_cp(
                 min_val=0, is_result=True, quantity="temperature_difference",
-                description="effective logarithmic mean temperature difference |Q|/UA",
+                description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
             'ttd_u': dc_cp(
@@ -375,7 +375,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta1': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -388,7 +388,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),

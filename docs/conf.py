@@ -387,7 +387,7 @@ def setup(app):
 # master_doc = 'contents'
 # names, years, etc
 project = 'TESPy'
-year = '2024'
+year = '2026'
 author = 'Francesco Witte'
 copyright = '{0}, {1}'.format(year, author)
 

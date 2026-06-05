@@ -101,7 +101,7 @@ class Desuperheater(HeatExchanger):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
+        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
         :code:`temperature_difference`.
 
     local_design : bool

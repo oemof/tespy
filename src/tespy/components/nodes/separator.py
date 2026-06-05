@@ -163,7 +163,6 @@ class Separator(NodeBase):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
@@ -223,31 +222,6 @@ class Separator(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of fluid balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        for fluid in self.variable_fluids:
-            for o in self.outl:
-                self._partial_derivative(o.m, k, -o.fluid.val[fluid], increment_filter)
-                if fluid in o.fluid.is_var:
-                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
-
-            self._partial_derivative(i.m, k, i.fluid.val[fluid], increment_filter)
-            if fluid in i.fluid.is_var:
-                self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-
-            k += 1
-
     def fluid_dependents(self):
         return {
             "scalars": [
@@ -255,7 +229,7 @@ class Separator(NodeBase):
                 for f in self.variable_fluids
             ],
             "vectors": [{
-                c.fluid: set(f) & c.fluid.is_var for c in self.inl + self.outl
+                c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl
             } for f in self.variable_fluids]
         }
 

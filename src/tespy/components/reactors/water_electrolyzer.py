@@ -248,7 +248,7 @@ class WaterElectrolyzer(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -284,9 +284,7 @@ class WaterElectrolyzer(Component):
         constraints = {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.reactor_mass_flow_func,
-                'deriv': self.reactor_mass_flow_deriv,
                 'dependents': self.reactor_mass_flow_dependents,
-                'constant_deriv': True,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),

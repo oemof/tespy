@@ -489,17 +489,6 @@ class Component:
     def _update_num_eq(self):
         pass
 
-    def _check_dependents_implemented(self, deriv, dependents):
-        if deriv is None and len(dependents) > 1:
-            msg = (
-                "Retrieving the derivatives of component parameters "
-                "associated with more than one equation is not yet "
-                "supported. For these equations, you have to implement "
-                "a separate derivate calculation method yourself and "
-                "specify it in the component's parameter dictionaries."
-            )
-            raise NotImplementedError(msg)
-
     def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
         if data.dependents is None:
             scalar_dependents = [[] for _ in range(data.num_eq)]
@@ -516,8 +505,6 @@ class Component:
                 # this is a temporary fix
                 if len(vector_dependents) < data.num_eq:
                     vector_dependents = [{} for _ in range(data.num_eq)]
-
-            self._check_dependents_implemented(data.deriv, scalar_dependents)
 
         eq_dict[value]._scalar_dependents = scalar_dependents
         eq_dict[value]._vector_dependents = vector_dependents
@@ -976,6 +963,12 @@ class Component:
         return _no_limit_violated
 
     def convergence_check(self):
+        return
+
+    def _isentropic_equation_is_set(self):
+        return False
+
+    def _adjust_to_property_limits(self):
         return
 
     def entropy_balance(self):

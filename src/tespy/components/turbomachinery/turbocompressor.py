@@ -182,6 +182,9 @@ class TurboCompressor(Compressor):
         # skip the FutureWarning of the Compressor class
         return super(Compressor, self)._preprocess(row_idx)
 
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.char_map_eta_s.is_set
+
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({

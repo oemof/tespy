@@ -747,6 +747,9 @@ class Pump(Turbomachine):
         o = self.outl[0]
         return (o.p.val_SI - i.p.val_SI) * i.calc_vol() / GRAVITY
 
+    def _isentropic_equation_is_set(self):
+        return self.eta_s.is_set or self.eta_s_char.is_set
+
     def convergence_check(self):
         r"""
         Perform a convergence check.

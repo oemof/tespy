@@ -3275,6 +3275,9 @@ class Network:
                 # check the fluid properties for physical ranges
                 c._adjust_to_property_limits(self)
 
+            for cp in self.comps['object']:
+                cp._adjust_to_property_limits()
+
         # second check based on component heuristics
         # - for first three iterations
         # - only if the increment is sufficiently large

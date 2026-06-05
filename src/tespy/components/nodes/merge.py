@@ -209,7 +209,6 @@ class Merge(NodeBase):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
@@ -263,42 +262,13 @@ class Merge(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of fluid balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        # we take the total mass flow to handle more than one outlet if necessary
-        total_mass_flow = sum([c.m.val_SI for c in self.outl])
-        for fluid in self.all_fluids:
-            for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = i.fluid.val.get(fluid, 0)
-                if fluid in i.fluid.is_var:
-                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-            for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -self.outl[0].fluid.val.get(fluid, 0)
-            if fluid in self.outl[0].fluid.is_var:
-                self.jacobian[k, self.outl[0].fluid.J_col[fluid]] = -total_mass_flow
-            k += 1
-
     def fluid_dependents(self):
         return {
             "scalars": [
                 [c.m for c in self.inl + self.outl] for f in self.all_fluids
             ],
             "vectors": [{
-                # only depends on first outlet (there is only one in merge)
-                # but there may be more in inheriting components
-                c.fluid: c.fluid.is_var for c in self.inl + self.outl[:1]
+                c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl[:1]
             } for f in self.all_fluids]
         }
 

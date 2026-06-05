@@ -15,11 +15,14 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
 class Turbomachine(Component):
+    _p_in_adj = 0.9   # factor relative to o.p for priority-2 i.p adjustment
+    _p_out_adj = 1.1  # factor relative to i.p for priority-3 o.p adjustment
     r"""
     Parent class for compressor, pump and turbine.
 
@@ -168,6 +171,26 @@ class Turbomachine(Component):
             self.inl[0].h,
             self.outl[0].h,
         ]
+
+    def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
+        i, o = self.inl[0], self.outl[0]
+        fluid = single_fluid(i.fluid_data)
+        if fluid is None:
+            return
+        wrapper = i.fluid.wrapper[fluid]
+        try:
+            s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
+            wrapper.h_ps(o.p.val_SI, s_in)
+        except ValueError:
+            if i.h.is_var and self._p_out_adj > 1:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
+            elif i.p.is_var:
+                i.p.set_reference_val_SI(o.p.val_SI * self._p_in_adj)
+            elif o.p.is_var:
+                o.p.set_reference_val_SI(i.p.val_SI * self._p_out_adj)
 
     def entropy_balance(self):
         r"""

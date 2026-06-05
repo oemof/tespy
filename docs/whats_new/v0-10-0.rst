@@ -1,5 +1,5 @@
-v0.10.0 - Rankine's Renaissance (May, 23, 2026)
-+++++++++++++++++++++++++++++++++++++++++++++++
+v0.10.0 - Rankine's Renaissance (June, 03, 2026)
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 API Changes
 ###########
@@ -180,6 +180,19 @@ Other Changes
   :py:meth:`get_parameters`, while preserving the introductory paragraph,
   :code:`Notes` sections, and :code:`Example` blocks verbatim
   (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+
+- The isentropic calculation in compressor, pump, turbine and displacement
+  machine components is now guarded against fluid property backend errors in
+  the same way fluid property boundaries already are
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
+- Component parameters whose Jacobian depends on multiple equations can now
+  declare their scalar and vector dependents as separate keys
+  (:code:`{"scalars": [...], "vectors": [...]}`) in addition to the flat list
+  form. The derivative dispatcher in
+  :py:meth:`~tespy.components.component.Component._assign_dependents_and_eq_mapping`
+  routes each form correctly, enabling selective finite-difference increments
+  for grouped parameters with mixed scalar/vector dependencies
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
 
 Bug Fixes
 #########

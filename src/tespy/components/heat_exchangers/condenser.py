@@ -308,7 +308,7 @@ class Condenser(HeatExchanger):
         ]
 
     def calculate_td_log(self):
-        T_i1 = self.inl[0].calc_T_sat()
+        T_i1 = self.inl[0].calc_T_dew()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
@@ -335,9 +335,9 @@ class Condenser(HeatExchanger):
 
                 0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
                 UA_{design} \cdot f_{UA} \cdot \frac{T_{out,1} -
-                T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
+                T_{in,2} - T_{dew} \left(p_{in,1}\right) + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}
-                {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
+                {T_{dew} \left(p_{in,1}\right) - T_{out,2}}}}
 
                 f_{UA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
                 \frac{1}{f_2 \left( expr_2\right)}}
@@ -360,16 +360,16 @@ class Condenser(HeatExchanger):
 
             .. math::
 
-                0 = ttd_{u} - T_{sat} \left(p_{in,1}\right) + T_{out,2}
+                0 = ttd_{u} - T_{dew} \left(p_{in,1}\right) + T_{out,2}
 
         Note
         ----
-        The upper terminal temperature difference ttd_u refers to boiling
-        temperature at hot side inlet.
+        The upper terminal temperature difference :code:`ttd_u` refers to the
+        dew point temperature at the hot side inlet.
         """
         i = self.inl[0]
         o = self.outl[1]
-        T_i1 = i.calc_T_sat()
+        T_i1 = i.calc_T_dew()
         T_o2 = o.calc_T()
         return self.ttd_u.val_SI - T_i1 + T_o2
 

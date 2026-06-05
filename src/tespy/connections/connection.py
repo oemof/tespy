@@ -40,7 +40,7 @@ from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_bubble_T
 from tespy.tools.fluid_properties.functions import p_dew_T
-from tespy.tools.fluid_properties.functions import p_sat_T
+from tespy.tools.fluid_properties.functions import p_sat_TQ
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
@@ -1124,7 +1124,7 @@ class Connection(ConnectionBase):
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
-                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_sat_TQ(self.T.val_SI, self.x.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
@@ -1538,6 +1538,18 @@ class Connection(ConnectionBase):
     def calc_T_sat(self):
         try:
             return T_sat_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_T_dew(self):
+        try:
+            return T_dew_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_T_bubble(self):
+        try:
+            return T_bubble_p(self.p.val_SI, self.fluid_data)
         except NotImplementedError:
             return np.nan
 

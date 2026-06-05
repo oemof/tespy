@@ -21,9 +21,10 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties.functions import T_bubble_p
+from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.helpers import TESPyComponentError
 
 
@@ -686,8 +687,8 @@ class PolynomialCompressor(DisplacementMachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_s = _calc_EN12900_SI(self.eta_s_poly.val, t_evap, t_cond)
         h_out_s = isentropic(
@@ -782,8 +783,8 @@ class PolynomialCompressor(DisplacementMachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
         displacement = self.reference_state.val["swept_volume"] * self.rpm.val_SI / 60
@@ -815,8 +816,8 @@ class PolynomialCompressor(DisplacementMachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
         displacement = self.reference_state.val["swept_volume"] * self.frequency.val_SI

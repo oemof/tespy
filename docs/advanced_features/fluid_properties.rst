@@ -94,6 +94,32 @@ recommend using the REFPROP back end instead of HEOS. Also note, the CoolProp
 mixture back end is not tested thoroughly. Please reach out if you would like
 to support us in adopting the TESPy implementation.
 
+CoolProp/REFPROP mixtures (zeotropic fluids)
+++++++++++++++++++++++++++++++++++++++++++++
+Zeotropic mixtures such as refrigerant blends (e.g. isobutane/isopentane for
+ORC applications, R410A, R404A) can be used via the CoolProp/REFPROP backend.
+The fluid name follows the pattern:
+
+.. code-block:: text
+
+    <BACKEND>::<FLUID1>[<x1>]&<FLUID2>[<x2>]|<fraction_type>
+
+where :code:`<BACKEND>` is :code:`REFPROP` or :code:`HEOS`, the fraction
+values :code:`x1`, :code:`x2`, ... sum to 1, and :code:`<fraction_type>` is
+either :code:`mass` (mass fractions) or :code:`molar` (mole fractions).
+REFPROP fluid names must match the REFPROP fluid file names exactly (e.g.
+:code:`ISOBUTAN`, not :code:`ISOBUTANE`), for example:
+
+.. code-block:: text
+
+    REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass
+
+To use this in a connection, specify the full name as the fluid key:
+
+.. code-block:: python
+
+    c.set_attr(fluid={"REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass": 1})
+
 .. _incompressible_wrapper_label:
 
 IncompressibleFluidWrapper

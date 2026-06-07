@@ -104,6 +104,9 @@ class FluidPropertyWrapper:
     def p_bubble(self, T):
         return self.p_sat(T)
 
+    def p_sat_TQ(self, T, Q):
+        self._not_implemented()
+
     def Q_ph(self, p, h):
         self._not_implemented()
 
@@ -325,6 +328,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self._update(CP.QT_INPUTS, 0, T)
         return self.AS.p()
 
+    def p_sat_TQ(self, T, Q):
+        self._update(CP.QT_INPUTS, Q, T)
+        return self.AS.p()
+
     def Q_ph(self, p, h):
         self._update(CP.HmassP_INPUTS, h, p)
         if len(self.fractions) > 1:
@@ -345,6 +352,18 @@ class CoolPropWrapper(FluidPropertyWrapper):
             return "state not recognized"
 
         self._update(CP.HmassP_INPUTS, h, p)
+        if self.mixture_type is not None:
+            if p >= self._p_crit:
+                return "state not recognised"
+            h_bubble = self.h_pQ(p, 0)
+            h_dew = self.h_pQ(p, 1)
+            if h <= h_bubble:
+                return "l"
+            elif h >= h_dew:
+                return "g"
+            else:
+                return "tp"
+
         phase = self.AS.phase()
         if phase == CP.iphase_twophase:
             return "tp"

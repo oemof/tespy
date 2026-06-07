@@ -19,6 +19,37 @@ API Changes
   returned but raises a :code:`FutureWarning`
   (`PR #1001 <https://github.com/oemof/tespy/pull/1001>`__).
 
+Bug Fixes
+#########
+- Fixed :py:meth:`~tespy.connections.connection.Connection._presolve` to use
+  the actual vapor quality when determining saturation pressure from a
+  simultaneous T and x specification. Previously :code:`p_sat_T` (hardcoded
+  Q=0.5) was used; the new :py:func:`~tespy.tools.fluid_properties.functions.p_sat_TQ`
+  dispatches to the bubble or dew pressure as appropriate. For pure fluids
+  there is no change in behavior
+  (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
+- Fixed :py:class:`~tespy.components.heat_exchangers.condenser.Condenser` to
+  use the dew temperature at the hot-side inlet in
+  :py:meth:`~tespy.components.heat_exchangers.condenser.Condenser.calculate_td_log`
+  and
+  :py:meth:`~tespy.components.heat_exchangers.condenser.Condenser.ttd_u_func`
+  instead of the bubble temperature. For pure fluids there is no change in
+  behavior
+  (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
+- Fixed :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  EN12900 polynomial evaluation to use :py:func:`~tespy.tools.fluid_properties.functions.T_dew_p`
+  for the evaporation temperature and
+  :py:func:`~tespy.tools.fluid_properties.functions.T_bubble_p` for the
+  condensation temperature, consistent with how reference pressures are defined
+  in the polynomial generation step. For pure fluids there is no change in
+  behavior
+  (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
+- Fixed :py:meth:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper.phase_ph`
+  for mixture-type backends (e.g. REFPROP zeotropic mixtures) where
+  :code:`calc_phase` is not implemented. Phase is now determined by comparing
+  enthalpy against the bubble and dew enthalpies at the given pressure
+  (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
+
 New Features
 ############
 - A new

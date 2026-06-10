@@ -653,7 +653,7 @@ class TestZeotropicConnectionPresolve:
         self.c_in = Connection(src, "out1", pipe, "in1", label="c_in")
         self.c_out = Connection(pipe, "out1", snk, "in1", label="c_out")
         self.nw.add_conns(self.c_in, self.c_out)
-        pipe.set_attr(dp=0)
+        pipe.set_attr(dp=0, Q=0)
 
     def _solve(self, T_degC, x):
         self.c_in.set_attr(

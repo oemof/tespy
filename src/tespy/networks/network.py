@@ -2101,7 +2101,7 @@ class Network:
                 "components have been relabeled for your offdesign "
                 "calculation."
             )
-            logger.exception(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         c._set_design_params(entries[c.label], self.units)
@@ -2195,7 +2195,6 @@ class Network:
                         "%s"
                     )
                     logger.debug(msg, str(json_path))
-                    pass
             if data is None:
                 with open(json_path, "r") as f:
                     data = json.load(f)
@@ -2618,7 +2617,6 @@ class Network:
         For more information on the solution process have a look at the online
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
-        ## to own function
         self.status = 99
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
@@ -2854,7 +2852,6 @@ class Network:
         logger.progress(0, msg2)
         if print_results:
             print('\n' + msg + '\n' + msg2)
-        return
 
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
@@ -2895,11 +2892,11 @@ class Network:
                 progress_max = math.log(ERR ** 0.5) * -1
                 progress_val = math.log(max(residual_norm, ERR)) * -1
                 # Scale to 0-1
-                progres_scaled = (
+                progress_scaled = (
                     (progress_val - progress_min)
                     / (progress_max - progress_min)
                 )
-                progress_val = max(0, min(1, progres_scaled))
+                progress_val = max(0, min(1, progress_scaled))
                 # Scale to 100%
                 progress_val = int(progress_val * 100)
             else:
@@ -2921,7 +2918,6 @@ class Network:
         logger.progress(progress_val, msg)
         if print_results:
             print(msg)
-        return
 
     def _print_iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""

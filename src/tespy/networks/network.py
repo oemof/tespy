@@ -1989,7 +1989,12 @@ class Network:
             return comp.label
         elif len(comp_entries) == 1:
             return next(iter(comp_entries))
-        return None
+        msg = (
+            f"Could not unambiguously resolve the label for component "
+            f"'{comp.label}' in the isolated design file: multiple entries "
+            f"exist ({', '.join(comp_entries)}) and none match exactly."
+        )
+        raise hlp.TESPyNetworkError(msg)
 
     def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_entries):
         """

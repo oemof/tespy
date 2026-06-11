@@ -2826,7 +2826,7 @@ class Network:
         # Start with defining the format here
         self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
         self.iterinfo_fmt += '| {massflow:10s} | {pressure:10s} | {enthalpy:10s} '
-        self.iterinfo_fmt += '| {fluid:10s} | {component:10s} '
+        self.iterinfo_fmt += '| {fluid:10s} | {energy:10s} | {component:10s} '
         # Use the format to create the first logging entry
         msg = self.iterinfo_fmt.format(
             iter='iter',
@@ -2836,10 +2836,11 @@ class Network:
             pressure='pressure',
             enthalpy='enthalpy',
             fluid='fluid',
+            energy='energy',
             component='component'
         )
         logger.progress(0, msg)
-        msg2 = '-' * 7 + '+------------' * 7
+        msg2 = '-' * 7 + '+------------' * 8
 
         logger.progress(0, msg2)
         if print_results:
@@ -2852,7 +2853,7 @@ class Network:
         h = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         fl = [k for k, v in self.variables_dict.items() if v["variable"] == "fluid"]
         e = [k for k, v in self.variables_dict.items() if v["variable"] == "E"]
-        cp = [k for k in self.variables_dict if k not in m + p + h + fl]
+        cp = [k for k in self.variables_dict if k not in m + p + h + fl + e]
 
         iter_str = str(self.iter + 1)
         residual_norm = norm(self.residual)

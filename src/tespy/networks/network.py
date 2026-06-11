@@ -3347,11 +3347,7 @@ class Network:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
                 variable = variable_dict["object"].get_attr(variable_dict["property"])
-                if variable_dict["property"] != "fluid":
-                    variable.val_SI = variable.val_SI
-                else:
-                    variable.val = variable.val
-                variable._reference_container = None
+                variable.detach()
 
     def _postprocess_connections(self):
         """Process the Connection results."""

@@ -675,6 +675,11 @@ class FluidProperties(_NumEqMixin, DataContainer):
             self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
 
+    def detach(self):
+        if self._reference_container is not None:
+            self._val_SI = self.val_SI
+        self._reference_container = None
+
     def get_val(self):
         if self._val_is_quantity:
             return float(self._val.magnitude)
@@ -984,6 +989,11 @@ class FluidComposition(DataContainer):
             self._reference_container.val[key] = value
         else:
             raise ValueError()
+
+    def detach(self):
+        if self._reference_container is not None:
+            self._val = self.val
+        self._reference_container = None
 
     val = property(get_val, set_val)
     is_set = property(get_is_set, set_is_set)

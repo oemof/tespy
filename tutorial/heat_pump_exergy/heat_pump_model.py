@@ -99,14 +99,14 @@ class HeatPumpModel(ModelTemplate):
         # component parametrization
         cd.set_attr(
             pr1=0.99, pr2=0.99, Q=-4e3,
-            design=["pr2", "td_pinch"], offdesign=["zeta2", "UA_char"],
+            design=["pr2", "td_pinch"], offdesign=["zeta2_d4", "UA_char"],
         )
-        kA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
-        kA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
+        UA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
+        UA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
         ev.set_attr(
             pr1=0.99, pr2=0.99,
-            kA_char1=kA_char1, kA_char2=kA_char2,
-            design=["pr1", "ttd_l"], offdesign=["zeta1", "kA_char"],
+            UA_char1=UA_char1, UA_char2=UA_char2,
+            design=["pr1", "ttd_l"], offdesign=["zeta1_d4", "UA_char"],
         )
         cp.set_attr(eta_s=0.8,  design=["eta_s"], offdesign=["eta_s_char"])
         hsp.set_attr(eta_s=0.75, design=["eta_s"], offdesign=["eta_s_char"])

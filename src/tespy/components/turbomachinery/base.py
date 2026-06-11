@@ -15,65 +15,68 @@ from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
 class Turbomachine(Component):
+    _p_in_adj = 0.9   # factor relative to o.p for priority-2 i.p adjustment
+    _p_out_adj = 1.1  # factor relative to i.p for priority-3 o.p adjustment
     r"""
     Parent class for compressor, pump and turbine.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    local_design : boolean
+    label : str
+        The label of the component.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
-        Include this component in the network's results printout.
+    offdesign : list
+        List containing offdesign parameters (stated as String).
 
     P : float, dict
-        Power, :math:`P/\text{W}`
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
 
     pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -168,6 +171,26 @@ class Turbomachine(Component):
             self.inl[0].h,
             self.outl[0].h,
         ]
+
+    def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
+        i, o = self.inl[0], self.outl[0]
+        fluid = single_fluid(i.fluid_data)
+        if fluid is None:
+            return
+        wrapper = i.fluid.wrapper[fluid]
+        try:
+            s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
+            wrapper.h_ps(o.p.val_SI, s_in)
+        except ValueError:
+            if i.h.is_var and self._p_out_adj > 1:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
+            elif i.p.is_var:
+                i.p.set_reference_val_SI(o.p.val_SI * self._p_in_adj)
+            elif o.p.is_var:
+                o.p.set_reference_val_SI(i.p.val_SI * self._p_out_adj)
 
     def entropy_balance(self):
         r"""

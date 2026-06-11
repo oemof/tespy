@@ -9,8 +9,6 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
-import warnings
-
 import numpy as np
 
 from tespy.components import Subsystem
@@ -42,7 +40,7 @@ from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_bubble_T
 from tespy.tools.fluid_properties.functions import p_dew_T
-from tespy.tools.fluid_properties.functions import p_sat_T
+from tespy.tools.fluid_properties.functions import p_sat_TQ
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
@@ -140,41 +138,12 @@ class ConnectionBase:
                 msg = f"Referencing {key} is not implemented."
                 logger.error(msg)
                 raise NotImplementedError(msg)
-            if self.get_attr(key).is_set:
-                msg = (
-                    f"You have specified a Ref for the parameter '{key}' "
-                    "while having a numerical value specified at the same "
-                    f"time at connection {self.label}. In the moment, "
-                    "this does not overwrite setting the numerical value. "
-                    "To unset the specified value before setting the Ref, "
-                    f"run .set_attr({key}=None) before "
-                    f".set_attr({key}=Ref(...)). With the next major "
-                    "release of TESPy setting a Ref will automatically "
-                    "replace a previously specified numerical value "
-                    "making it impossible to set a numerical value and a "
-                    "Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            self.get_attr(key).is_set = False
             self.get_attr(ref_key).set_attr(ref=value, is_set=True)
 
         else:
-            if has_ref_sibling and self.get_attr(ref_key).is_set:
-                msg = (
-                    f"You have specified a numerical value for the "
-                    f"parameter '{key}' while having a Ref specified "
-                    f"at the same time at connection {self.label}. In "
-                    "the moment, this does not overwrite setting the "
-                    "Ref. To unset the Ref before setting the "
-                    f"numerical value, run .set_attr({key}=None) "
-                    f"before .set_attr({key}={value}). With the next "
-                    "major release of TESPy setting a numerical value "
-                    "will always replace a previously specified Ref "
-                    "making it impossible to set a numerical value "
-                    "and a Ref for one parameter on one connection "
-                    "simultaneously."
-                )
-                warnings.warn(msg, FutureWarning)
+            if has_ref_sibling:
+                self.get_attr(ref_key).is_set = False
             self.get_attr(key).accept(value)
 
     def get_attr(self, key):
@@ -428,7 +397,7 @@ class ConnectionBase:
             param = self.get_attr(var)
             state[var] = units.ureg.Quantity(
                 float(data[var]), unit
-            ).to(SI_UNITS[param.quantity]).magnitude
+            ).m_as(SI_UNITS[param.quantity])
         return state
 
     def _set_design_params(self, data, units):
@@ -473,67 +442,77 @@ class Connection(ConnectionBase):
 
     Parameters
     ----------
-    m : float, tespy.connections.connection.Ref
-        Mass flow specification.
-
-    m0 : float
-        Starting value specification for mass flow.
-
-    p : float, tespy.connections.connection.Ref
-        Pressure specification.
-
-    p0 : float
-        Starting value specification for pressure.
-
-    h : float, tespy.connections.connection.Ref
-        Enthalpy specification.
-
-    h0 : float
-        Starting value specification for enthalpy.
-
-    fluid : dict
-        Fluid compostition specification.
-
-    fluid0 : dict
-        Starting value specification for fluid compostition.
-
-    fluid_balance : boolean
-        Fluid balance equation specification.
-
-    x : float
-        Gas phase mass fraction specification.
-
-    T : float, tespy.connections.connection.Ref
-        Temperature specification.
-
-    v : float
-        Volumetric flow specification.
-
-    state : str
-        State of the pure fluid on this connection: liquid ('l') or gaseous
-        ('g').
 
     design : list
-        List containing design parameters (stated as string).
-
-    offdesign : list
-        List containing offdesign parameters (stated as string).
+        List containing design parameters (stated as String).
 
     design_path : str
-        Path to individual design case for this connection.
+        Path to the individual design case for this connection.
 
-    local_offdesign : boolean
-        Treat this connection in offdesign mode in a design calculation.
+    fluid : dict
+        Mass fractions of the fluid composition (system variable).
 
-    local_design : boolean
-        Treat this connection in design mode in an offdesign calculation.
+    fluid_balance : bool
+        Apply an equation which closes the fluid balance with at least two
+        unknown fluid mass fractions.
+        Equation: :py:meth:`fluid_balance_func <tespy.connections.connection.Connection.fluid_balance_func>`.
 
-    printout : boolean
-        Include this connection in the network's results printout.
+    h : float, Ref
+        Mass specific enthalpy of the fluid (system variable).
 
     label : str
-        Label of the connection. The default value is:
-        :code:`'source:source_id_target:target_id'`.
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    m : float, Ref
+        Mass flow of the fluid (system variable).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    p : float, Ref
+        Absolute pressure of the fluid (system variable).
+
+    printout : bool
+        Include this connection in the network's results printout.
+
+    s : float, Ref
+        Specific entropy of the fluid (output only).
+
+    T : float, Ref
+        Temperature of the fluid.
+        Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    T_bubble : float, Ref
+        Determine pressure based on the provided bubble temperature of the
+        fluid.
+
+    T_dew : float, Ref
+        Determine pressure based on the provided dew temperature of the fluid.
+
+    td_bubble : float, Ref
+        Subcooling temperature difference to bubble line temperature.
+        Equation: :py:meth:`td_bubble_func <tespy.connections.connection.Connection.td_bubble_func>`.
+
+    td_dew : float, Ref
+        Superheating temperature difference to dew line temperature.
+        Equation: :py:meth:`td_dew_func <tespy.connections.connection.Connection.td_dew_func>`.
+
+    v : float, Ref
+        Volumetric flow of the fluid.
+        Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
+
+    vol : float, Ref
+        Specific volume of the fluid (output only).
+
+    x : float, Ref
+        Vapor mass fraction/quality of the two-phase fluid.
+        Equation: :py:meth:`x_func <tespy.connections.connection.Connection.x_func>`.
 
     Note
     ----
@@ -677,8 +656,8 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.state = dc_simple()
-        self.phase = dc_simple()
+        self.state = dc_simple(dtype="str")
+        self.phase = dc_simple(dtype="str")
         self.mixing_rule = None
         self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
@@ -1145,7 +1124,7 @@ class Connection(ConnectionBase):
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
-                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_sat_TQ(self.T.val_SI, self.x.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
@@ -1311,6 +1290,7 @@ class Connection(ConnectionBase):
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"
             ),
             "fluid_balance": dc_simple(
+                dtype="bool",
                 func=self.fluid_balance_func,
                 deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,
@@ -1558,6 +1538,18 @@ class Connection(ConnectionBase):
     def calc_T_sat(self):
         try:
             return T_sat_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_T_dew(self):
+        try:
+            return T_dew_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_T_bubble(self):
+        try:
+            return T_bubble_p(self.p.val_SI, self.fluid_data)
         except NotImplementedError:
             return np.nan
 

@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 """
 
 import math
+import warnings
 from collections import deque
 
 import numpy as np
@@ -131,6 +132,8 @@ class Component:
     <class 'tespy.components.component.Component'>
     """
 
+    _parameter_aliases = {}
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
@@ -191,6 +194,16 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
+        for old, new in self._parameter_aliases.items():
+            if old in kwargs:
+                warnings.warn(
+                    f"The parameter '{old}' of component {self.label!r} is "
+                    f"deprecated. Use '{new}' instead.",
+                    FutureWarning, stacklevel=2
+                )
+                kwargs[new] = kwargs[old]
+                if kwargs[old] == 'var':
+                    del kwargs[old]
         for key, value in kwargs.items():
             if key in self.parameters:
                 self._set_parameter(key, value)
@@ -209,13 +222,13 @@ class Component:
     def _set_parameter(self, key, value):
         try:
             self.parameters[key].accept(value)
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             msg = (
-                f"Bad datatype for keyword argument '{key}' on "
+                f"Bad value for keyword argument '{key}' on "
                 f"component {self.label}: {e}"
             )
             logger.error(msg)
-            raise TypeError(msg) from e
+            raise type(e)(msg) from e
 
     def _set_design_list(self, key, value):
         if not isinstance(value, list):
@@ -369,6 +382,25 @@ class Component:
 
             sum_eq += constraint.num_eq_sets
 
+        for old, new in self._parameter_aliases.items():
+            if old not in self.parameters or new not in self.parameters:
+                continue
+            for lst_name in ('design', 'offdesign'):
+                lst = getattr(self, lst_name)
+                if old in lst:
+                    warnings.warn(
+                        f"Parameter '{old}' of component {self.label!r} is "
+                        f"deprecated. Use '{new}' instead.",
+                        FutureWarning, stacklevel=2
+                    )
+                    lst[lst.index(old)] = new
+            old_p = self.get_attr(old)
+            new_p = self.get_attr(new)
+            if old_p.is_set and not new_p.is_set:
+                new_p.is_set = True
+            if hasattr(old_p, 'design') and old_p.design and not getattr(new_p, 'design', None):
+                new_p.design = old_p.design
+
         if not self.bypass:
             sum_eq = self._setup_user_imposed_constraints(row_idx, sum_eq)
 
@@ -457,17 +489,6 @@ class Component:
     def _update_num_eq(self):
         pass
 
-    def _check_dependents_implemented(self, deriv, dependents):
-        if deriv is None and len(dependents) > 1:
-            msg = (
-                "Retrieving the derivatives of component parameters "
-                "associated with more than one equation is not yet "
-                "supported. For these equations, you have to implement "
-                "a separate derivate calculation method yourself and "
-                "specify it in the component's parameter dictionaries."
-            )
-            raise NotImplementedError(msg)
-
     def _assign_dependents_and_eq_mapping(self, value, data, eq_dict, eq_counter):
         if data.dependents is None:
             scalar_dependents = [[] for _ in range(data.num_eq)]
@@ -484,8 +505,6 @@ class Component:
                 # this is a temporary fix
                 if len(vector_dependents) < data.num_eq:
                     vector_dependents = [{} for _ in range(data.num_eq)]
-
-            self._check_dependents_implemented(data.deriv, scalar_dependents)
 
         eq_dict[value]._scalar_dependents = scalar_dependents
         eq_dict[value]._vector_dependents = vector_dependents
@@ -572,6 +591,50 @@ class Component:
         )
         logger.exception(msg)
         raise NotImplementedError(msg)
+
+    @classmethod
+    def port_schema(cls):
+        """
+        Return a description of the component's port topology for UI tooling.
+
+        The default implementation derives fixed-port descriptions from the
+        ``@staticmethod`` ``inlets``/``outlets``/``powerinlets``/
+        ``poweroutlets`` methods.  Subclasses with variable or conditional
+        port counts must override this method.
+
+        Returns
+        -------
+        dict
+            Keys are ``"inlets"``, ``"outlets"``, ``"powerinlets"``,
+            ``"poweroutlets"``, ``"heatinlets"``, ``"heatoutlets"``.
+            Each value is a dict with at least a ``"type"`` key:
+
+            ``{"type": "fixed", "ports": [...]}``
+                The port list is static.
+
+            ``{"type": "variable", "parameter": str, "pattern": str, "min": int}``
+                Port count is controlled by *parameter*.  *pattern* is a
+                Python format string where ``{n}`` is replaced by the
+                1-based port index (e.g. ``"in{n}"``).
+        """
+        import inspect
+        result = {}
+        for port_type in (
+            "inlets", "outlets",
+            "powerinlets", "poweroutlets",
+            "heatinlets", "heatoutlets",
+        ):
+            attr = inspect.getattr_static(cls, port_type, None)
+            if isinstance(attr, staticmethod):
+                result[port_type] = {
+                    "type": "fixed",
+                    "ports": getattr(cls, port_type)(),
+                }
+            else:
+                # Instance method — subclass should override port_schema()
+                # but provide a safe fallback so schema generation never crashes.
+                result[port_type] = {"type": "unknown"}
+        return result
 
     @staticmethod
     def inlets():
@@ -811,7 +874,7 @@ class Component:
                     if f"{key}_unit" in data:
                         value = _UNITS.ureg.Quantity(
                             data[key], data[f"{key}_unit"]
-                        ).to(SI_UNITS[dc.quantity]).magnitude
+                        ).m_as(SI_UNITS[dc.quantity])
                     else:
                         value = data[key]
                     self.get_attr(key).design = float(value)
@@ -902,6 +965,12 @@ class Component:
     def convergence_check(self):
         return
 
+    def _isentropic_equation_is_set(self):
+        return False
+
+    def _adjust_to_property_limits(self):
+        return
+
     def entropy_balance(self):
         r"""Entropy balance calculation method."""
         return
@@ -961,7 +1030,7 @@ class Component:
             self._structure_matrix[k + count, i.get_attr(variable).sm_col] = 1
             self._structure_matrix[k + count, o.get_attr(variable).sm_col] = -1
 
-    def _calc_zeta(self, inconn=0, outconn=0):
+    def _calc_zeta_d4(self, inconn=0, outconn=0):
         i, o = self.inl[inconn], self.outl[outconn]
 
         if abs(i.m.val_SI) <= 1e-4:
@@ -972,15 +1041,15 @@ class Component:
                 / (4 * i.m.val_SI ** 2 * (i.vol.val_SI + o.vol.val_SI))
             )
 
-    def zeta_func(self, zeta=None, inconn=0, outconn=0):
+    def zeta_d4_func(self, zeta=None, inconn=0, outconn=0):
         r"""
-        Calculate residual value of :math:`\zeta`-function.
+        Calculate residual value of the :math:`\zeta/D^4` pressure loss equation.
 
         Parameters
         ----------
         zeta : str
-            Component parameter to evaluate the zeta_func on, e.g.
-            :code:`zeta1`.
+            Component parameter to evaluate the zeta_d4_func on, e.g.
+            :code:`zeta1_d4`.
 
         inconn : int
             Connection index of inlet.
@@ -1005,9 +1074,10 @@ class Component:
 
         Note
         ----
-        The zeta value is calculated on the basis of a given pressure loss at
-        a given flow rate in the design case. As the cross sectional area A
-        will not change, it is possible to handle the equation in this way:
+        The :math:`\zeta/D^4` value is calculated on the basis of a given
+        pressure loss at a given flow rate in the design case. As the cross
+        sectional area A will not change, it is possible to handle the equation
+        in this way:
 
         .. math::
 
@@ -1029,7 +1099,7 @@ class Component:
                 / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
             )
 
-    def zeta_dependents(self, zeta=None, inconn=0, outconn=0):
+    def zeta_d4_dependents(self, zeta=None, inconn=0, outconn=0):
         return [
             self.inl[inconn].m,
             self.inl[inconn].p,

@@ -30,8 +30,8 @@ Modeling best practices
         - discretized 1D models, which allow the specification of internal
           pinch.
 
-        We have created an :ref:`overview <tutorial_heat_exchanger>` on the
-        different 0D and 1D types available and when to use which model.
+        We have created an :ref:`overview <tutorial_heat_exchanger_label>` on
+        the different 0D and 1D types available and when to use which model.
 
 .. _faq_errors_label:
 
@@ -280,11 +280,15 @@ Visualization, post-processing and cycle analysis
         variants like the
         :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`
         or :py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`.
-        Fortunately, the latter possess the
-        :py:meth:`.calc_sections() <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.calc_sections>`
-        method that returns information about their heat transfer, including
-        the hot and cold side temperatures at different steps. Below is an
-        example snippet of how to generate a Q-T diagram from the results of a
+        Fortunately, the latter automatically populate section data after
+        each solve. The hot and cold side temperatures, cumulated heat
+        transfer, heat per section and LMTD per section are available
+        directly as component attributes :code:`T_hot_sections`,
+        :code:`T_cold_sections`, :code:`Q_sections`, :code:`Q_per_section`
+        and :code:`lmtd_per_section`. Each attribute exposes :code:`.val`
+        in network units and :code:`.val_SI` in SI units. Below is an
+        example snippet of how to generate a Q-T diagram from the results
+        of a
         :py:class:`SectionedHeatExchanger <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger>`
         /:py:class:`MovingBoundaryHeatExchanger <tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger>`.
 
@@ -300,15 +304,12 @@ Visualization, post-processing and cycle analysis
 
             nw.solve("design")
 
-            heat, T_hot, T_cold, heat_per_section, td_log_per_section = heatex.calc_sections()
-            heat /= 1e6
-
             fig, ax = plt.subplots(figsize=(10, 6))
 
-            ax.plot(heat, T_hot, "o-", color="red")
-            ax.plot(heat, T_cold, "o-", color="blue")
+            ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, "o-", color="red")
+            ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, "o-", color="blue")
 
-            ax.set_ylabel("temperature in K")
+            ax.set_ylabel("temperature in °C")
             ax.set_xlabel("heat transferred in MW")
 
             plt.show()

@@ -62,18 +62,18 @@ pipe_feed.set_attr(D=pipe_feed.D.val, pr=None)
 pipe_return.set_attr(D=pipe_return.D.val, pr=None)
 pipe_feed.set_attr(
     Tamb=0,  # ambient temperature level in network's temperature unit
-    kA="var"  # area independent heat transfer coefficient
+    UA="var"  # area independent heat transfer coefficient
 )
 pipe_return.set_attr(
     Tamb=0,  # ambient temperature level in network's temperature unit
-    kA="var"  # area independent heat transfer coefficient
+    UA="var"  # area independent heat transfer coefficient
 )
 nw.solve(mode="design")
 nw.print_results()
 # %%[sec_5]
 nw.iterinfo = False
-pipe_feed.set_attr(Tamb=0, kA=pipe_feed.kA.val, Q=None)
-pipe_return.set_attr(Tamb=0, kA=pipe_return.kA.val, Q=None)
+pipe_feed.set_attr(Tamb=0, UA=pipe_feed.UA.val, Q=None)
+pipe_return.set_attr(Tamb=0, UA=pipe_return.UA.val, Q=None)
 
 import matplotlib.pyplot as plt
 import numpy as np

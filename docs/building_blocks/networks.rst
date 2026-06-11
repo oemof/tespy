@@ -316,12 +316,12 @@ The heat transfer coefficient is calculated in the preprocessing of the
 offdesign case based on the results from the design-case. Of course, this
 applies to all other parameters in the same way. Also, the pressure drop is a
 result of the geometry for the offdesign case, thus we swap the pressure ratios
-with zeta values.
+with geometry independent zeta :math:`\frac{\zeta}{D^4}` values.
 
 .. code-block:: python
 
     mycomponent.set_attr(
-        design=['ttd_u', 'pr1', 'pr2'], offdesign=['kA', 'zeta1', 'zeta2']
+        design=['ttd_u', 'pr1', 'pr2'], offdesign=['UA', 'zeta1_d4', 'zeta2_d4']
     )
 
 .. note::
@@ -643,7 +643,7 @@ added a convergence check.
 applied:
 
 * Cut off fluid mass fractions smaller than 0 and larger than 1. This way a
-  mass fraction of a single fluid component never exceeds oxygenthese boundaries.
+  mass fraction of a single fluid component never exceeds these boundaries.
 * Check, whether the fluid properties of pure fluids are within the available
   ranges of CoolProp and readjust the values if not.
 
@@ -748,14 +748,14 @@ connections to the network.
 
 **Presolving**
 
-In the first part of the presovling phase, the variable space reduction is
+In the first part of the presolving phase, the variable space reduction is
 performed. TESPy will prompt errors, in case the parameter specifications in
 context of the topology lead to an infeasibility in any of the variables. This
 can be, for example
 
 - a circular linear dependency between a set of variables. Typically, the mass
   flow can be over-determined by not including a :code:`CycleCloser` component
-  in a circular network. For example, ff you are modeling a cycle, e.g. the
+  in a circular network. For example, if you are modeling a cycle, e.g. the
   Clausius Rankine cycle, you need to make a cut in the cycle using the
   :code:`CycleCloser` or a :code:`Sink` and a :code:`Source` not to
   over-determine the system. Have a look in the

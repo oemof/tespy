@@ -94,6 +94,32 @@ recommend using the REFPROP back end instead of HEOS. Also note, the CoolProp
 mixture back end is not tested thoroughly. Please reach out if you would like
 to support us in adopting the TESPy implementation.
 
+CoolProp/REFPROP mixtures (zeotropic fluids)
+++++++++++++++++++++++++++++++++++++++++++++
+Zeotropic mixtures such as refrigerant blends (e.g. isobutane/isopentane for
+ORC applications, R410A, R404A) can be used via the CoolProp/REFPROP backend.
+The fluid name follows the pattern:
+
+.. code-block:: text
+
+    <BACKEND>::<FLUID1>[<x1>]&<FLUID2>[<x2>]|<fraction_type>
+
+where :code:`<BACKEND>` is :code:`REFPROP` or :code:`HEOS`, the fraction
+values :code:`x1`, :code:`x2`, ... sum to 1, and :code:`<fraction_type>` is
+either :code:`mass` (mass fractions) or :code:`molar` (mole fractions).
+REFPROP fluid names must match the REFPROP fluid file names exactly (e.g.
+:code:`ISOBUTAN`, not :code:`ISOBUTANE`), for example:
+
+.. code-block:: text
+
+    REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass
+
+To use this in a connection, specify the full name as the fluid key:
+
+.. code-block:: python
+
+    c.set_attr(fluid={"REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass": 1})
+
 .. _incompressible_wrapper_label:
 
 IncompressibleFluidWrapper
@@ -296,6 +322,7 @@ isentropic change of pressure for an ideal gas.
     ...
     ...         self.coefficients = COEF[fluid]
     ...         self.h_ref = self._h_pT(None, reference_temperature)
+    ...         self.s_ref = self._s_pT(None, reference_temperature)
     ...         self._molar_mass = self.coefficients[-1] * 1e-3
     ...         self._T_min = 100
     ...         self._T_max = 2000
@@ -326,8 +353,30 @@ isentropic change of pressure for an ideal gas.
     ...             + self.coefficients[5] / 3 * y ** 3
     ...         ) / self.coefficients[6]
     ...
+    ...     def _s_pT(self, p, T):
+    ...         y = T * 1e-3
+    ...         return 1e3 * (
+    ...             self.coefficients[1]
+    ...             + self.coefficients[2] * np.log(y)
+    ...             + self.coefficients[3] * y
+    ...             - self.coefficients[4] / (2 * y ** 2)
+    ...             + self.coefficients[5] / 2 * y ** 2
+    ...         ) / self.coefficients[6]
+    ...
+    ...     def s_pT(self, p, T):
+    ...         return self._s_pT(p, T) - self.s_ref
+    ...
     ...     def T_ph(self, p, h):
     ...         return newton(self.h_pT, self.cp_pT, h, p)
+    ...
+    ...     def T_ps(self, p, s):
+    ...         return newton(self.s_pT, lambda p, T: self.cp_pT(p, T) / T, s, p)
+    ...
+    ...     def s_ph(self, p, h):
+    ...         return self.s_pT(p, self.T_ph(p, h))
+    ...
+    ...     def h_ps(self, p, s):
+    ...         return self.h_pT(p, self.T_ps(p, s))
     ...
     ...     def isentropic(self, p_1, h_1, p_2):
     ...         T_1 = self.T_ph(p_1, h_1)
@@ -382,6 +431,12 @@ them to CoolProp.
     400.0
     >>> round(h)
     189769
+    >>> s = kkh_water.s_pT(1e5, 400)
+    >>> T = kkh_water.T_ps(1e5, s)
+    >>> float(round(T, 1))
+    400.0
+    >>> round(float(s))
+    546
 
     >>> from tespy.tools.fluid_properties import CoolPropWrapper
 

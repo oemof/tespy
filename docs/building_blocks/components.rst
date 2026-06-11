@@ -54,15 +54,15 @@ at the example of the heat transfer coefficient of an evaporator.
     >>> he = HeatExchanger('evaporator')
 
     >>> # specify the value
-    >>> he.set_attr(kA=1e5)
-    >>> he.kA.val
+    >>> he.set_attr(UA=1e5)
+    >>> he.UA.val
     100000.0
-    >>> he.kA.is_set
+    >>> he.UA.is_set
     True
 
     >>> # possibilities to unset a value
-    >>> he.set_attr(kA=None)
-    >>> he.kA.is_set
+    >>> he.set_attr(UA=None)
+    >>> he.UA.is_set
     False
 
 Grouped parameters
@@ -186,8 +186,8 @@ is possible to specify your own data for these characteristic functions.
     **There are two different characteristics specifications**
 
     The characteristic function can be an auxiliary parameter of a different
-    component property. This is the case for :code:`kA_char1`
-    and :code:`kA_char2` of heat exchangers as well as the characteristics of a
+    component property. This is the case for :code:`UA_char1`
+    and :code:`UA_char2` of heat exchangers as well as the characteristics of a
     combustion engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
     and :code:`Qloss_char`.
 
@@ -196,13 +196,13 @@ is possible to specify your own data for these characteristic functions.
 
     **What does this mean?**
 
-    For the auxiliary functionality the main parameter, e.g. :code:`kA_char`
-    of a heat exchanger must be set :code:`.kA_char.is_set=True`.
+    For the auxiliary functionality the main parameter, e.g. :code:`UA_char`
+    of a heat exchanger must be set :code:`.UA_char.is_set=True`.
 
     For the other functionality the characteristics parameter must be
     set e.g. :code:`.eta_s_char.is_set=True`.
 
-For example, :code:`kA_char` specification for heat exchangers:
+For example, :code:`UA_char` specification for heat exchangers:
 
 .. code-block:: python
 
@@ -235,49 +235,49 @@ For example, :code:`kA_char` specification for heat exchangers:
 
     >>> nw.solve("design")
     >>> nw.save("design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     503013
 
     >>> # the characteristic function is made for offdesign calculation.
-    >>> he.set_attr(offdesign=["kA_char"])
+    >>> he.set_attr(offdesign=["UA_char"])
     >>> c4.set_attr(design=["T"])
     >>> nw.solve("offdesign", design_path="design_case.json")
     >>> # since we did not change any property, the offdesign case yields the
-    >>> # same value as the design kA value
-    >>> round(he.kA.val)
+    >>> # same value as the design UA value
+    >>> round(he.UA.val)
     503013
 
     >>> c1.set_attr(m=9)
     >>> # use a characteristic line from the defaults: specify the component, the
     >>> # parameter and the name of the characteristic function. Also, specify,
     >>> # what type of characteristic function you want to use.
-    >>> kA_char1 = ldc('HeatExchanger', 'kA_char1', 'DEFAULT', CharLine)
-    >>> kA_char2 = ldc('HeatExchanger', 'kA_char2', 'EVAPORATING FLUID', CharLine)
-    >>> he.set_attr(kA_char2=kA_char2)
+    >>> UA_char1 = ldc('HeatExchanger', 'UA_char1', 'DEFAULT', CharLine)
+    >>> UA_char2 = ldc('HeatExchanger', 'UA_char2', 'EVAPORATING FLUID', CharLine)
+    >>> he.set_attr(UA_char2=UA_char2)
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     481745
 
     >>> # specification of a data container yields the same result. It is
     >>> # additionally possible to specify the characteristics parameter, e.g.
-    >>> # mass flow for kA_char1 (identical to default case) and volumetric
-    >>> # flow for kA_char2
+    >>> # mass flow for UA_char1 (identical to default case) and volumetric
+    >>> # flow for UA_char2
     >>> he.set_attr(
-    ...     kA_char1={'char_func': kA_char1, 'param': 'm'},
-    ...     kA_char2={'char_func': kA_char2, 'param': 'v'}
+    ...     UA_char1={'char_func': UA_char1, 'param': 'm'},
+    ...     UA_char2={'char_func': UA_char2, 'param': 'v'}
     ... )
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     481745
 
-    >>> # or use custom values for the characteristic line e.g. kA vs volumetric
+    >>> # or use custom values for the characteristic line e.g. UA vs volumetric
     >>> # flow
     >>> x = np.array([0, 0.5, 1, 2])
     >>> y = np.array([0, 0.8, 1, 1.2])
-    >>> kA_char2 = CharLine(x, y)
-    >>> he.set_attr(kA_char2={'char_func': kA_char2, 'param': 'v'})
+    >>> UA_char2 = CharLine(x, y)
+    >>> he.set_attr(UA_char2={'char_func': UA_char2, 'param': 'v'})
     >>> nw.solve("offdesign", design_path="design_case.json")
-    >>> round(he.kA.val)
+    >>> round(he.UA.val)
     475107
 
 Full working example for :code:`eta_s_char` specification of a turbine.
@@ -347,13 +347,13 @@ extrapolation parameter to :code:`True`.
     # use custom specification parameters
     >>> x = np.array([0, 0.5, 1, 2])
     >>> y = np.array([0, 0.8, 1, 1.2])
-    >>> kA_char1 = CharLine(x, y, extrapolate=True)
-    >>> kA_char1.extrapolate
+    >>> UA_char1 = CharLine(x, y, extrapolate=True)
+    >>> UA_char1.extrapolate
     True
 
     >>> # set extrapolation to True for existing lines, e.g.
-    >>> he.kA_char1.char_func.extrapolate = True
-    >>> he.kA_char1.char_func.extrapolate
+    >>> he.UA_char1.char_func.extrapolate = True
+    >>> he.UA_char1.char_func.extrapolate
     True
 
 For more information on how the characteristic functions work

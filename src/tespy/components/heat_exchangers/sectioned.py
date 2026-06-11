@@ -10,8 +10,6 @@ tespy/components/heat_exchangers/sectioned.py
 
 SPDX-License-Identifier: MIT
 """
-import math
-
 import numpy as np
 from scipy.optimize import brentq
 
@@ -21,7 +19,6 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
@@ -35,136 +32,175 @@ class SectionedHeatExchanger(HeatExchanger):
     Class for counter flow heat exchanger with UA sections.
 
     The heat exchanger is internally discretized into 51 sections of equal heat
-    transfer. The number of section can be adjusted by the user. It is based on
-    the model implemented by :cite:`Quoilin2020`.
+    transfer. The number of section can be adjusted by the user. It is based a
+    combination of the moving boundary approach by :cite:`bell2015` and
+    discretization in :cite:`Quoilin2020`.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func`
-    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.td_pinch_func`
-    - :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func`
-    - :py:meth:`tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func`
-
-    For hot and cold side individually:
-
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.zeta_func`
-
-    Inlets/Outlets
-
-    - in1, in2 (index 1: hot side, index 2: cold side)
-    - out1, out2 (index 1: hot side, index 2: cold side)
-
-    Image
-
-    .. image:: /api/_images/HeatExchanger.svg
-       :alt: flowsheet of the heat exchanger
+    .. image:: /api/_images/components/HeatExchanger.svg
+       :alt: flowsheet of the sectionedheatexchanger
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/HeatExchanger_darkmode.svg
-       :alt: flowsheet of the heat exchanger
+    .. image:: /api/_images/components/HeatExchanger_darkmode.svg
+       :alt: flowsheet of the sectionedheatexchanger
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - hot side to cold side heat transfer equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    alpha_ratio : float, dict
+        Secondary to refrigerant side convective heat transfer coefficient
+        ratio. Quantity: :code:`ratio`.
+
+    area_ratio : float, dict
+        Secondary to refrigerant side heat transfer area ratio. Quantity:
+        :code:`ratio`.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dp1 : float, dict
+        Hot side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    local_design : boolean
+    dp2 : float, dict
+        Cold side inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    eff_cold : float, dict
+        Heat exchanger effectiveness for cold side. Quantity:
+        :code:`efficiency`.
+        Equation: :py:meth:`eff_cold_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_cold_func>`.
+
+    eff_hot : float, dict
+        Heat exchanger effectiveness for hot side. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eff_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_hot_func>`.
+
+    eff_max : float, dict
+        Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
+
+    kA : float, dict
+        Deprecated, use :code:`UA` instead. Quantity:
+        :code:`heat_transfer_coefficient`.
+
+    kA_char : GroupedComponentCharacteristics
+        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
+        :code:`kA_char2`.
+
+    kA_char1 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char1` instead.
+
+    kA_char2 : tespy.tools.characteristics.CharLine, dict
+        Deprecated, use :code:`UA_char2` instead.
+
+    label : str
+        The label of the component.
+
+    lmtd : float, dict
+        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
+        :code:`temperature_difference`.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_sections : int
+        Number of sections of the heat exchanger.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    pr1 : float, dict
+        Hot side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    pr2 : float, dict
+        Cold side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
         Include this component in the network's results printout.
 
     Q : float, dict
-        Heat transfer, :math:`Q/\text{W}`.
+        Heat transfer from hot side. Quantity: :code:`heat`.
+        Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
-    pr1 : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio at hot side, :math:`pr/1`.
+    re_exp_r : float, dict
+        Reynolds exponent for UA modification based on refrigerant side mass
+        flow.
 
-    pr2 : float, dict, :code:`"var"`
-        Outlet to inlet pressure ratio at cold side, :math:`pr/1`.
+    re_exp_sf : float, dict
+        Reynolds exponent for UA modification based on secondary fluid side mass
+        flow.
 
-    dp1 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at hot side, unit is the network's
-        pressure unit!.
+    refrigerant_index : int
+        Side on which the refrigerant is flowing (0: hot, 1:cold).
 
-    dp2 : float, dict, :code:`"var"`
-        Inlet to outlet pressure delta at cold side, unit is the network's
-        pressure unit!.
-
-    zeta1 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient at hot side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    zeta2 : float, dict, :code:`"var"`
-        Geometry independent friction coefficient at cold side,
-        :math:`\frac{\zeta}{D^4}/\frac{1}{\text{m}^4}`.
-
-    ttd_l : float, dict
-        Lower terminal temperature difference :math:`ttd_\text{l}/\text{K}`.
-
-    ttd_u : float, dict
-        Upper terminal temperature difference :math:`ttd_\text{u}/\text{K}`.
-
-    ttd_min : float, dict
-        Minimum terminal temperature difference :math:`ttd_\text{min}/\text{K}`.
-
-    eff_cold : float, dict
-        Cold side heat exchanger effectiveness :math:`eff_\text{cold}/\text{1}`.
-
-    eff_hot : float, dict
-        Hot side heat exchanger effectiveness :math:`eff_\text{hot}/\text{1}`.
-
-    eff_max : float, dict
-        Max value of hot and cold side heat exchanger effectiveness values
-        :math:`eff_\text{max}/\text{1}`.
-
-    UA : float, dict
-        Sum of UA in all sections of the heat exchanger.
+    td_log : float, dict
+        Deprecated, use :code:`lmtd` instead. Quantity:
+        :code:`temperature_difference`.
 
     td_pinch : float, dict
-        Value of the lowest delta T between hot side and cold side at the
-        different sections.
+        Equation for minimum pinch. Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`td_pinch_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.td_pinch_func>`.
 
-    num_sections : int
-        Number of sections.
+    ttd_l : float, dict
+        Terminal temperature difference at hot side outlet to cold side inlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_l_func>`.
 
-    UA_cecchinato : dict
-        Group specification for partload UA modification according to
-        :cite:`cecchinato2010`, for usage see details in the
-        :py:meth:`tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func`.
-        This method can only be used in offdesign simulations!
+    ttd_min : float, dict
+        Minimum terminal temperature difference. Quantity:
+        :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_min_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_min_func>`.
+
+    ttd_u : float, dict
+        Terminal temperature difference at hot side inlet to cold side outlet.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.base.HeatExchanger.ttd_u_func>`.
+
+    UA : float, dict
+        Sum of UA values of all sections of heat exchanger. Quantity:
+        :code:`heat_transfer_coefficient`.
+        Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
+
+    UA_cecchinato : GroupedComponentProperties
+        Equation for UA modification in offdesign. Elements: :code:`re_exp_r`,
+        :code:`re_exp_sf`, :code:`alpha_ratio`, :code:`area_ratio`.
+        Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
+
+    UA_char : GroupedComponentCharacteristics
+        Equation for sectioned UA modification based on characteristic lines.
+        Elements: :code:`UA_char1`, :code:`UA_char2`.
+        Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
+
+    UA_char1 : tespy.tools.characteristics.CharLine, dict
+        Hot side UA modification lookup table for offdesign.
 
     alpha1_sc : float
         Hot-side heat transfer coefficient in subcooled zone,
@@ -200,30 +236,31 @@ class SectionedHeatExchanger(HeatExchanger):
         Hot-side heat transfer area :math:`A_h/\text{m}^2`, Bell (2015)
         area-based constraint.
 
-    alpha_ratio : float
-        Secondary to refrigerant side convective heat transfer coefficient
-        ratio (used by :code:`UA_cecchinato`).
+    UA_char2 : tespy.tools.characteristics.CharLine, dict
+        Cold side UA modification lookup table for offdesign.
 
-    area_ratio : float
-        Secondary to refrigerant side heat transfer area ratio (used by
-        :code:`UA_cecchinato`).
+    zeta1 : float, dict
+        Deprecated, use :code:`zeta1_d4` instead.
 
-    re_exp_r : float
-        Reynolds exponent for refrigerant side (used by
-        :code:`UA_cecchinato`).
+    zeta1_d4 : float, dict
+        Hot side geometry-independent friction coefficient zeta/D^4 for pressure
+        loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
-    re_exp_sf : float
-        Reynolds exponent for secondary fluid side (used by
-        :code:`UA_cecchinato`).
+    zeta2 : float, dict
+        Deprecated, use :code:`zeta2_d4` instead.
 
-    refrigerant_index : int
-        Connection index for the refrigerant side, 0 if refrigerant is on
-        hot side, 1 if refrigerant is on cold side (used by
-        :code:`UA_cecchinato`).
+    zeta2_d4 : float, dict
+        Cold side geometry-independent friction coefficient zeta/D^4 for
+        pressure loss calculation.
+        Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
-    Note
-    ----
-    The equations only apply to counter-current heat exchangers.
+    Notes
+    -----
+
+    .. note::
+
+        The equations only apply to counter-current heat exchangers.
 
     Example
     -------
@@ -274,14 +311,14 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(c1.T.val, 1)
     50.0
 
-    We can also see the temperature differences in all sections of the heat
-    exchanger. Since the water vapor is cooled, condensed and then subcooled,
-    while the air does not change phase, three sections will form:
+    After solving, section data is available directly via the component
+    attributes :code:`T_hot_sections`, :code:`T_cold_sections`,
+    :code:`Q_sections`, :code:`Q_per_section` and :code:`lmtd_per_section`.
+    Since the water vapor is cooled, condensed and then subcooled while the
+    air does not change phase, three sections will form:
 
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[:6]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections[:6].round(2).tolist()
     [5.0, 16.8, 19.75, 19.6, 19.4, 19.2]
 
     We can see that the lowest delta T is the first one. This is the delta T
@@ -298,10 +335,8 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.p.val, 3)
     0.042
-    >>> Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section = cd.calc_sections()
-    >>> delta_T_between_sections = T_steps_hot - T_steps_cold
-    >>> delta_T_list = [round(float(dT), 2) for dT in delta_T_between_sections]
-    >>> delta_T_list[:6]
+    >>> delta_T_between_sections = cd.T_hot_sections.val_SI - cd.T_cold_sections.val_SI
+    >>> delta_T_between_sections[:6].round(2).tolist()
     [9.88, 14.8, 14.68, 14.48, 14.28, 14.08]
 
     Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
@@ -359,12 +394,12 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(cd.td_pinch.val, 2)
     4.3
 
-    Example
-    -------
-    A transcritical gas cooler designed to cool CO2 from 160°C to approximately 50°C
-    while water is heated from 10°C to 60°C. The heat exchanger uses characteristic
-    lines (`kA_char1` and `kA_char2`) to scale the heat transfer coefficient in
-    offdesign operation as mass flow varies.
+    **Second Example**
+
+    A transcritical gas cooler designed to cool CO2 from 160°C to approximately
+    50°C while water is heated from 10°C to 60°C. The heat exchanger uses
+    characteristic lines (`kA_char1` and `kA_char2`) to scale the heat transfer
+    coefficient in offdesign operation as mass flow varies.
 
     This two-stage approach improves convergence:
 
@@ -453,21 +488,21 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(c2.T.val, 1)
     30.0
 
-    **Stage 2: Offdesign analysis with kA_char characteristic scaling**
+    **Stage 2: Offdesign analysis with UA_char characteristic scaling**
 
     Now we activate characteristic line-based scaling. Load the default
     characteristic line for heat exchangers:
 
-    >>> kA_char = load_default_char(
-    ...     "HeatExchanger", "kA_char1", "DEFAULT", CharLine
+    >>> UA_char = load_default_char(
+    ...     "HeatExchanger", "UA_char1", "DEFAULT", CharLine
     ... )
 
     Reconfigure heat exchanger to use characteristic lines for UA scaling in
     offdesign operation:
 
     >>> hx.set_attr(
-    ...     kA_char1=kA_char,
-    ...     kA_char2=kA_char,
+    ...     UA_char1=UA_char,
+    ...     UA_char2=UA_char,
     ...     design=['td_pinch'],
     ...     offdesign=['UA_char']
     ... )
@@ -502,20 +537,26 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> round(hx.td_pinch.val, 1)
     15.3
 
-    The :code:`kA_char` parameter allows automatic part-load scaling of UA,
+    The :code:`UA_char` parameter allows automatic part-load scaling of UA,
     following the same principle as the standard HeatExchanger component
-    (:py:class:`tespy.components.heat_exchangers.base.HeatExchanger`). The
-    difference to the :code:`UA_char` usage is that :code:`kA_char` uses a
-    characteristic line lookup table to define the scaling relationship.
+    (:py:class:`tespy.components.heat_exchangers.base.HeatExchanger`).
     :code:`UA_cecchinato` requires the specification of Reynolds number
     exponents, area ratio and alpha ratio of the involved fluids.
     """
+
+    _parameter_aliases = {
+        'kA_char': 'UA_char',
+        'kA_char1': 'UA_char1',
+        'kA_char2': 'UA_char2',
+        'zeta1': 'zeta1_d4',
+        'zeta2': 'zeta2_d4',
+    }
 
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
             'num_sections': dc_simple(
-                val=50,
+                val=50, dtype="int",
                 description="number of sections of the heat exchanger"
             ),
             'UA': dc_cp(
@@ -523,17 +564,19 @@ class SectionedHeatExchanger(HeatExchanger):
                 func=self.UA_func,
                 dependents=self.UA_dependents,
                 quantity="heat_transfer_coefficient",
-                description="sum of UA values of all sections of heat exchanger"
+                description="sum of UA values of all sections of heat exchanger",
+                calc=self._calc_UA_from_sections,
+                calc_deps=[]
             ),
-             'UA_char': dc_gcc(
-                    elements=['kA_char1', 'kA_char2'],
-                    num_eq_sets=1,
-                    func=self.UA_char_func,
-                    dependents=self.UA_dependents,
-                    description="equation for sectioned UA modification based on characteristic lines"
-         ),
+            'UA_char': dc_gcc(
+                elements=['UA_char1', 'UA_char2'],
+                num_eq_sets=1,
+                func=self.UA_char_func,
+                dependents=self.UA_dependents,
+                description="equation for sectioned UA modification based on characteristic lines"
+            ),
             'refrigerant_index': dc_simple(
-                val=0,
+                val=0, dtype="int",
                 description="side on which the refrigerant is flowing (0: hot, 1:cold)"
             ),
             're_exp_r': dc_cp(
@@ -562,7 +605,9 @@ class SectionedHeatExchanger(HeatExchanger):
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
                 quantity="temperature_difference",
-                description="equation for minimum pinch"
+                description="equation for minimum pinch",
+                calc=self._calc_td_pinch,
+                calc_deps=[]
             ),
             'alpha1_sc': dc_cp(
                 min_val=0,
@@ -601,7 +646,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 func=self.area_zones_func,
                 dependents=self.area_zones_dependents,
                 description="hot-side heat exchange area, Bell (2015) area-based constraint"
-            ),
+            )
         })
         return params
 
@@ -843,7 +888,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
                 0 = UA - \sum UA_{i}
         """
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0.0:
             # Invalid pinch: _calc_td_log_per_section clips negative td to
@@ -859,7 +904,7 @@ class SectionedHeatExchanger(HeatExchanger):
     def UA_char_func(self):
         r"""
         Calculate offdesign UA from characteristic lines analogous to standard
-        heat exchanger kA_char, but for the sectioned heat exchanger.
+        heat exchanger UA_char, but for the sectioned heat exchanger.
 
         Returns
         -------
@@ -871,18 +916,18 @@ class SectionedHeatExchanger(HeatExchanger):
                 0 = UA_\text{design} * f_\text{UA} - \sum\left(UA_{i}\right)
 
         """
-        p1 = self.kA_char1.param
-        p2 = self.kA_char2.param
+        p1 = self.UA_char1.param
+        p2 = self.UA_char2.param
 
-        f1 = self.get_char_expr(p1, **self.kA_char1.char_params)
-        f2 = self.get_char_expr(p2, **self.kA_char2.char_params)
+        f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
+        f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.kA_char1.char_func.evaluate(f1)
-        fUA2 = self.kA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.char_func.evaluate(f1)
+        fUA2 = self.UA_char2.char_func.evaluate(f2)
 
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
@@ -960,7 +1005,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 + alpha_ratio * area_ratio * m_ratio_r ** -re_exp_r
             )
         )
-        sections = self.calc_sections(False)
+        sections = self._calc_sections_SI(postprocess=False)
         min_td = self._min_td(sections)
         if min_td <= 0:
             return self.UA.design * fUA - self.calc_UA(sections) + min_td
@@ -979,6 +1024,12 @@ class SectionedHeatExchanger(HeatExchanger):
             self.outl[1].p,
             self.outl[1].h
         ]
+
+    def _calc_UA_from_sections(self):
+        return float(sum(self.Q_per_section.val_SI / self.lmtd_per_section.val_SI))
+
+    def _calc_td_pinch(self):
+        return float(min(self.T_hot_sections.val_SI - self.T_cold_sections.val_SI))
 
     def calc_td_pinch(self, T_steps_hot, T_steps_cold):
         """Calculate the pinch point temperature difference
@@ -1078,7 +1129,7 @@ class SectionedHeatExchanger(HeatExchanger):
         steps2, zone_phases2 = self._get_moving_steps(self.inl[1], self.outl[1])
         steps_all = self._assign_steps(steps1, steps2)
         T_hot, T_cold = self._get_T_at_steps(steps_all)
-        td_log_per_section = self._calc_td_log_per_section(T_hot, T_cold, postprocess=False)
+        lmtd_per_section = self._calc_lmtd_per_section(T_hot, T_cold, postprocess=False)
         Q_per_section = np.diff(self._get_Q_cumsum_steps(steps_all))
         min_td = float(np.min(T_hot - T_cold))
         phases1 = self._section_phases(steps_all, np.array(steps1), zone_phases1)
@@ -1089,7 +1140,7 @@ class SectionedHeatExchanger(HeatExchanger):
         alpha1 = [self.alpha1_sc.val_SI, self.alpha1_tp.val_SI, self.alpha1_sh.val_SI]
         alpha2 = [self.alpha2_sc.val_SI, self.alpha2_tp.val_SI, self.alpha2_sh.val_SI]
         A_req = 0.0
-        for Q_j, lmtd_j, ph1, ph2 in zip(Q_per_section, td_log_per_section, phases1, phases2):
+        for Q_j, lmtd_j, ph1, ph2 in zip(Q_per_section, lmtd_per_section, phases1, phases2):
             U_j = 1.0 / (
                 1.0 / alpha1[ph1]
                 + A_h * self.R_cond.val_SI
@@ -1104,13 +1155,6 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def area_zones_dependents(self):
         return self.UA_dependents()
-
-    def calc_parameters(self):
-        super().calc_parameters()
-
-        sections = self.calc_sections()
-        self.UA.val_SI = self.calc_UA(sections)
-        self.td_pinch.val_SI = self.calc_td_pinch(sections[1], sections[2])
 
 
 def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):

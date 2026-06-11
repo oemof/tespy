@@ -175,7 +175,7 @@ if os.getenv("GITHUB_ACTIONS") == "true" or "PYTEST_CURRENT_TEST" in os.environ:
 # %%[sec_5]
 algorithm = DE(pop_size=20)
 
-result = plant.optimize(
+log, result = plant.optimize(
     algorithm=algorithm,
     termination=("n_gen", num_evo),
     variables={
@@ -190,18 +190,18 @@ result = plant.optimize(
     kpi=["hpt power", "hpt pressure ratio"],
 )
 # %%[sec_6]
-print(result)
+print(log)
 
-# plot the results
+# plot the results - filter log for feasible individuals before selecting optimum
 import matplotlib.pyplot as plt
 
 plt.rc("font", **{"size": 18})
 
 fig, ax = plt.subplots(1, figsize=(16, 8))
 
-mask_constraint = result["extraction pressure 1>=extraction pressure 2"] < 0
-mask_objective = ~np.isnan(result["efficiency"].values)
-data = result.loc[mask_constraint & mask_objective]
+mask_constraint = log["extraction pressure 1>=extraction pressure 2"] < 0
+mask_objective = ~np.isnan(log["efficiency"].values)
+data = log.loc[mask_constraint & mask_objective]
 
 sc = ax.scatter(
     data["extraction pressure 1"],

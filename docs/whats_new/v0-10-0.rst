@@ -1,5 +1,5 @@
-v0.10.0 - Under development
-+++++++++++++++++++++++++++
+v0.10.0 - Rankine's Renaissance (June, 03, 2026)
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 API Changes
 ###########
@@ -17,15 +17,54 @@ API Changes
   with the new :code:`HeatSource` and :code:`HeatSink` components instead -
   the inlet or outlet side is detected automatically from the connection
   (`PR #961 <https://github.com/oemof/tespy/pull/961>`__).
+- Several component parameters have been renamed for clarity
+  (`PR #989 <https://github.com/oemof/tespy/pull/989>`__). Old names remain
+  available as deprecated aliases: :code:`zeta` → :code:`zeta_d4`
+  (:code:`zeta1`/:code:`zeta2` → :code:`zeta1_d4`/:code:`zeta2_d4`),
+  :code:`kA` → :code:`UA` (:code:`kA_char` → :code:`UA_char`,
+  :code:`kA_group` → :code:`UA_group`, :code:`kA_char_group` →
+  :code:`UA_char_group`; :code:`kA_char1`/:code:`kA_char2` →
+  :code:`UA_char1`/:code:`UA_char2` for two-sided exchangers), and
+  :code:`td_log` → :code:`lmtd` (logarithmic mean temperature difference).
 - The :code:`Bus` class has been removed. Use :code:`PowerConnection` together
   with :code:`PowerBus`, :code:`Motor` and :code:`Generator` instead
   (`PR #964 <https://github.com/oemof/tespy/pull/964>`__).
+- The :code:`rpm` parameter of
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  is deprecated in favour of :code:`frequency`, which integrates with TESPy's
+  unit framework (e.g. set :code:`"1/min"` as the network frequency unit).
+  The :code:`rpm_displacement` and :code:`rpm_poly` keys in
+  :code:`reference_state` are deprecated in favour of
+  :code:`frequency_displacement` (Hz) and :code:`frequency_poly` (Hz). The
+  :code:`displacement` key (m³/h) paired with :code:`frequency_displacement`
+  remains supported, or :code:`swept_volume` (m³ per revolution) can be
+  provided directly. A helper function
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.swept_volume_from_displacement`
+  is available to convert manufacturer displacement data to swept volume
+  (`PR #826 <https://github.com/oemof/tespy/pull/826>`__).
 - Several previously deprecated features have been removed: the
   :code:`Td_bp` parameter of :code:`Connection`, the :code:`Q_diss_rel`
   parameter of :code:`PolynomialCompressor`, the :code:`zeta="var"` option,
   the helper functions :code:`convert_to_SI` and :code:`convert_from_SI`, and
   :code:`fluid_property_data` from :code:`global_vars`
   (`PR #973 <https://github.com/oemof/tespy/pull/973>`__).
+- Setting a :code:`Ref` on a :py:class:`~tespy.connections.connection.Connection`
+  parameter now automatically unsets any previously specified numerical value
+  for that parameter, and setting a numerical value automatically unsets any
+  previously set :code:`Ref`. Both could be set simultaneously before, which
+  raised a :code:`FutureWarning`.
+- The :code:`char_map_pr` and :code:`char_map_eta_s` parameters of
+  :py:class:`~tespy.components.turbomachinery.compressor.Compressor` are
+  deprecated. Use
+  :py:class:`~tespy.components.turbomachinery.turbocompressor.TurboCompressor`
+  instead, which is the dedicated class providing characteristic map offdesign
+  capability.
+- The pygmo compatibility interface of
+  :py:class:`~tespy.tools.optimization.OptimizationProblem` has been removed.
+  The :code:`fitness`, :code:`get_nobj`, :code:`get_nic`, :code:`get_bounds`,
+  :code:`run` and :code:`_process_generation_data` methods are no longer
+  available. Use pymoo-based workflows instead (install via
+  :code:`pip install tespy[opt]`).
 - The built-in :code:`ExergyAnalysis` class has been removed and its
   functionality moved to the external library
   `exerpy <https://github.com/oemof/exerpy>`__. Use
@@ -75,7 +114,6 @@ Other Changes
     not recomputed during finite-difference Jacobian evaluation. The cache is
     cleared at the start of each solve via :code:`_preprocess`.
 
--
 - Support for Python 3.10 has been dropped.
 
 - Installation instructions now recommend
@@ -129,6 +167,32 @@ Other Changes
   the parameter (`PR #980 <https://github.com/oemof/tespy/pull/980>`__).
 - Fix logging message in connection preprocessing
   (`PR #988 <https://github.com/oemof/tespy/pull/988>`__).
+- :py:func:`~tespy.tools.schema.generate_component_schema` and
+  :py:func:`~tespy.tools.schema.generate_connection_schema` export a JSON
+  description of all registered component and connection parameters - including
+  container type, physical quantity and description - for use in external
+  tooling (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+- A docstring updater script has been added at
+  :code:`docs/scripts/docstring_updater.py`. It regenerates the Ports,
+  Mandatory Equations, and Parameters sections of all registered component and
+  connection class docstrings from live introspection of
+  :py:meth:`port_schema`, :py:meth:`get_mandatory_constraints`, and
+  :py:meth:`get_parameters`, while preserving the introductory paragraph,
+  :code:`Notes` sections, and :code:`Example` blocks verbatim
+  (`PR #938 <https://github.com/oemof/tespy/pull/938>`__).
+
+- The isentropic calculation in compressor, pump, turbine and displacement
+  machine components is now guarded against fluid property backend errors in
+  the same way fluid property boundaries already are
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
+- Component parameters whose Jacobian depends on multiple equations can now
+  declare their scalar and vector dependents as separate keys
+  (:code:`{"scalars": [...], "vectors": [...]}`) in addition to the flat list
+  form. The derivative dispatcher in
+  :py:meth:`~tespy.components.component.Component._assign_dependents_and_eq_mapping`
+  routes each form correctly, enabling selective finite-difference increments
+  for grouped parameters with mixed scalar/vector dependencies
+  (`PR #1000 <https://github.com/oemof/tespy/pull/1000>`__).
 
 Bug Fixes
 #########

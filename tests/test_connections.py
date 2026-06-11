@@ -34,6 +34,7 @@ from tespy.networks import Network
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
+from tespy.tools.fluid_properties.functions import p_sat_TQ
 from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.units import SI_UNITS
 
@@ -117,7 +118,7 @@ class TestConnections:
 
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["temperature_difference"]
-        ).to(SI_UNITS["temperature_difference"]).magnitude
+        ).m_as(SI_UNITS["temperature_difference"])
         assert round(delta_SI, 4) == round(c2.T_ref.ref.delta_SI, 4)
 
         T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
@@ -151,7 +152,7 @@ class TestConnections:
         self.nw.solve('design')
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["mass_flow"]
-        ).to(SI_UNITS["mass_flow"]).magnitude
+        ).m_as(SI_UNITS["mass_flow"])
         assert round(delta_SI, 4) == round(c2.m_ref.ref.delta_SI, 4)
 
         m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)
@@ -161,6 +162,28 @@ class TestConnections:
             f'{m_expected} kg/s, but is {m_is} kg/s'
         )
         assert m_is == m_expected, msg
+
+    def test_ref_and_numerical_value_are_mutually_exclusive(self):
+        """Setting a Ref clears any numerical value and vice versa."""
+        c1, c2 = self.nw.get_conn(
+            ['Some example label', 'source 2:out1_sink 2:in1']
+        )
+        # numerical value → Ref: numerical value must be unset
+        c2.set_attr(m=0.5)
+        c2.set_attr(m=Ref(c1, 1, 0))
+        assert not c2.m.is_set
+        assert c2.m_ref.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val_SI, 4) == round(c1.m.val_SI, 4)
+
+        # Ref → numerical value: Ref must be unset
+        c2.set_attr(m=0.3)
+        assert not c2.m_ref.is_set
+        assert c2.m.is_set
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert round(c2.m.val, 4) == round(0.3, 4)
 
 
 @fixture
@@ -196,7 +219,7 @@ def test_td_dew_convergence_helper(simple_test_network):
     c2.set_attr(td_bubble=0)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
     nw.assert_convergence()
@@ -215,7 +238,7 @@ def test_td_bubble_convergence_helper(simple_test_network):
     c2.set_attr(td_bubble=0)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
     nw.assert_convergence()
@@ -236,7 +259,7 @@ def test_td_bubble_and_td_dew_in_iterations(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
 
     nw.solve("design")
 
@@ -269,7 +292,7 @@ def test_td_bubble_larger_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -286,7 +309,7 @@ def test_td_bubble_equals_0(simple_test_network):
     c2.set_attr(td_bubble=delta_T)
 
     # settings to prevent preprocessing of temperatures
-    heatexchanger.set_attr(Q=1e5, zeta=0)
+    heatexchanger.set_attr(Q=1e5, zeta_d4=0)
     nw.solve("design")
     nw.assert_convergence()
 
@@ -602,6 +625,70 @@ def test_property_value_not_none(cls_name, prop):
     )
 
     assert condition, f"Quantity for {prop} of {cls_name} must not be None"
+
+
+_skipif_no_refprop = mark.skipif(
+    get_global_param_string("REFPROP_version") == "n/a",
+    reason="This test requires REFPROP.",
+)
+
+_ZEOTROPIC_FLUID = "ISOBUTAN[0.5]&IPENTANE[0.5]|mass"
+
+
+@_skipif_no_refprop
+class TestZeotropicConnectionPresolve:
+    """Regression tests for the T+x presolve fix.
+
+    Before the fix, _presolve used p_sat_T (Q=0.5) for all quality values.
+    For zeotropic mixtures this gave the wrong pressure when x=0 or x=1.
+    """
+
+    def setup_method(self):
+        self.nw = Network()
+        self.nw.units.set_defaults(temperature="°C", pressure="bar")
+        self.nw.iterinfo = False
+        src = Source("src")
+        snk = Sink("snk")
+        pipe = SimpleHeatExchanger("pipe")
+        self.c_in = Connection(src, "out1", pipe, "in1", label="c_in")
+        self.c_out = Connection(pipe, "out1", snk, "in1", label="c_out")
+        self.nw.add_conns(self.c_in, self.c_out)
+        pipe.set_attr(dp=0, Q=0)
+
+    def _solve(self, T_degC, x):
+        self.c_in.set_attr(
+            fluid={"REFPROP::" + _ZEOTROPIC_FLUID: 1}, T=T_degC, x=x, m=1
+        )
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+    def test_presolve_x1_gives_dew_pressure(self):
+        self._solve(150, x=1)
+        T_K = self.c_in.T.val_SI
+        p_dew = p_sat_TQ(T_K, 1, self.c_in.fluid_data)
+        p_mid = p_sat_TQ(T_K, 0.5, self.c_in.fluid_data)
+        assert self.c_in.p.val_SI == approx(p_dew, rel=1e-4)
+        assert self.c_in.p.val_SI != approx(p_mid, rel=1e-3)
+
+    def test_presolve_x0_gives_bubble_pressure(self):
+        self._solve(100, x=0)
+        T_K = self.c_in.T.val_SI
+        p_bubble = p_sat_TQ(T_K, 0, self.c_in.fluid_data)
+        p_mid = p_sat_TQ(T_K, 0.5, self.c_in.fluid_data)
+        assert self.c_in.p.val_SI == approx(p_bubble, rel=1e-4)
+        assert self.c_in.p.val_SI != approx(p_mid, rel=1e-3)
+
+    def test_presolve_intermediate_x_between_bubble_and_dew(self):
+        self._solve(120, x=0.5)
+        T_K = self.c_in.T.val_SI
+        p_bubble = p_sat_TQ(T_K, 0, self.c_in.fluid_data)
+        p_dew = p_sat_TQ(T_K, 1, self.c_in.fluid_data)
+        p_lo, p_hi = sorted([p_bubble, p_dew])
+        assert p_lo < self.c_in.p.val_SI < p_hi
+
+    def test_calc_T_dew_exceeds_calc_T_bubble(self):
+        self._solve(120, x=0.5)
+        assert self.c_in.calc_T_dew() > self.c_in.calc_T_bubble()
 
 
 def test_wrapper_kwargs_injection():

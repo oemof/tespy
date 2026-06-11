@@ -625,6 +625,40 @@ def p_sat_T(T, fluid_data, mixing_rule=None):
     return _single_fluid_wrapper(fluid_data).p_sat(T)
 
 
+def p_sat_TQ(T, Q, fluid_data, mixing_rule=None):
+    r"""
+    Calculate saturation pressure from temperature and vapor quality.
+
+    For pure fluids this is identical to :func:`p_sat_T` for any :code:`Q`.
+    For zeotropic mixture backends the pressure corresponds to the two-phase
+    state with quality :code:`Q` at temperature :code:`T` (bubble point at
+    :code:`Q=0`, dew point at :code:`Q=1`).
+
+    Parameters
+    ----------
+    T : float
+        Temperature in K.
+    Q : float
+        Vapor quality (0 = bubble point, 1 = dew point).
+    fluid_data : dict
+        Fluid property data:
+        :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
+    mixing_rule : str, optional
+        Ignored.
+
+    Returns
+    -------
+    float
+        Saturation pressure in Pa.
+
+    Raises
+    ------
+    ValueError
+        If :code:`fluid_data` contains more than one fluid.
+    """
+    return _single_fluid_wrapper(fluid_data).p_sat_TQ(T, Q)
+
+
 def T_sat_p(p, fluid_data, mixing_rule=None):
     r"""
     Calculate saturation temperature from pressure.

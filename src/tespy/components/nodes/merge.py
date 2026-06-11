@@ -24,58 +24,59 @@ class Merge(NodeBase):
     r"""
     Class for merge points with multiple inflows and one outflow.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.merge.Merge.fluid_func`
-    - :py:meth:`tespy.components.nodes.merge.Merge.energy_balance_func`
-
-    Inlets/Outlets
-
-    - specify number of inlets with :code:`num_in` (default value: 2)
-    - out1
-
-    Image
-
-    .. image:: /api/_images/Merge.svg
+    .. image:: /api/_images/components/Merge.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Merge_darkmode.svg
+    .. image:: /api/_images/components/Merge_darkmode.svg
        :alt: flowsheet of the merge
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1, in2, ... (variable, count set by :code:`num_in`)
+    - Fluid outlets: out1
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - fluid mass fraction balance constraints: :py:meth:`fluid_func <tespy.components.nodes.merge.Merge.fluid_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.merge.Merge.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_in : int
+        Number of inlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_in : float, dict
-        Number of inlets for this component, default value: 2.
 
     Example
     -------
@@ -166,7 +167,18 @@ class Merge(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_in': dc_simple(description="number of inlets")}
+        return {'num_in': dc_simple(dtype="int", description="number of inlets")}
+
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "variable", "parameter": "num_in", "pattern": "in{n}", "min": 2},
+            "outlets": {"type": "fixed", "ports": ["out1"]},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
 
     def _update_num_eq(self):
         self.variable_fluids = set(
@@ -197,7 +209,6 @@ class Merge(NodeBase):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
@@ -251,42 +262,13 @@ class Merge(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of fluid balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        # we take the total mass flow to handle more than one outlet if necessary
-        total_mass_flow = sum([c.m.val_SI for c in self.outl])
-        for fluid in self.all_fluids:
-            for i in self.inl:
-                if i.m.is_var:
-                    self.jacobian[k, i.m.J_col] = i.fluid.val.get(fluid, 0)
-                if fluid in i.fluid.is_var:
-                    self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-            for o in self.outl:
-                if o.m.is_var:
-                    self.jacobian[k, o.m.J_col] = -self.outl[0].fluid.val.get(fluid, 0)
-            if fluid in self.outl[0].fluid.is_var:
-                self.jacobian[k, self.outl[0].fluid.J_col[fluid]] = -total_mass_flow
-            k += 1
-
     def fluid_dependents(self):
         return {
             "scalars": [
                 [c.m for c in self.inl + self.outl] for f in self.all_fluids
             ],
             "vectors": [{
-                # only depends on first outlet (there is only one in merge)
-                # but there may be more in inheriting components
-                c.fluid: c.fluid.is_var for c in self.inl + self.outl[:1]
+                c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl[:1]
             } for f in self.all_fluids]
         }
 

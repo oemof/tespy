@@ -208,7 +208,7 @@ class ModelTemplate():
             fluid_name = single_fluid(conn.fluid_data)
             ureg = self.nw.units.get_ureg()
             T_unit = self.nw.units.get_default('temperature')
-            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').to(T_unit).magnitude
+            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').m_as(T_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin", clamp_max=T_crit)
 
         diagram.draw_isolines(
@@ -241,7 +241,7 @@ class ModelTemplate():
             fluid_name = single_fluid(conn.fluid_data)
             ureg = self.nw.units.get_ureg()
             p_unit = self.nw.units.get_default('pressure')
-            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').to(p_unit).magnitude
+            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').m_as(p_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "p", "log", clamp_max=p_crit)
 
         diagram.draw_isolines(
@@ -265,10 +265,11 @@ class ModelTemplate():
             fig = ax.get_figure()
 
         heatex = self.nw.get_comp(heatexchanger_label)
-        heat, T_hot, T_cold, _, _ = heatex.calc_sections()
 
-        ax.plot(heat, T_hot, "o-", color="red")
-        ax.plot(heat, T_cold, "o-", color="blue")
+        ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, "o-", color="red")
+        ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, "o-", color="blue")
+        ax.set_ylabel(f"temperature in {self.nw.units.default['temperature']}")
+        ax.set_xlabel(f"heat transferred in {self.nw.units.default['heat']}")
 
         if save_dir:
             fig.savefig(f"{save_dir}/qt_diagram.svg", bbox_inches="tight")
@@ -450,7 +451,7 @@ class ModelTemplate():
         results["_idx"] = order
         return results.sort_values(by="_idx").drop(columns="_idx").reset_index(drop=True)
 
-    # Method for checking the parameter lenghts
+    # Method for checking the parameter lengths
     def _check_parameter_lengths(self, param_dict=None):
         lengths = [len(v) for v in param_dict.values()]
         if len(set(lengths)) != 1:
@@ -518,7 +519,40 @@ class ModelTemplate():
     def get_objectives(self, objective_list: list) -> list:
         return [self.get_parameter(obj) for obj in objective_list]
 
-    def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> pd.DataFrame:
+    def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> tuple:
+        """Run a pymoo optimization and return the full evaluation log and the pymoo result.
+
+        Parameters
+        ----------
+        algorithm :
+            A pymoo algorithm instance, e.g. :code:`PSO(pop_size=20)`.
+        termination :
+            Pymoo termination criterion, e.g. :code:`("n_gen", 50)`.
+        variables : dict
+            Decision variables mapping parameter name to :code:`{"min": ..., "max": ...}`.
+        constraints : dict, optional
+            Inequality constraints mapping parameter name to a bound, e.g.
+            :code:`{"p_extraction_1": "p_extraction_2"}` enforces
+            :code:`p_extraction_1 > p_extraction_2`.
+        objective : list, optional
+            Names of model parameters to use as objectives.
+        minimize_flags : list, optional
+            One :code:`bool` per objective; :code:`True` minimizes,
+            :code:`False` maximizes. Defaults to minimization for all.
+        kpi : list, optional
+            Additional parameter names to record in the log alongside the
+            objectives.
+
+        Returns
+        -------
+        tuple
+            A :code:`(log, result)` tuple where :code:`log` is a
+            :code:`pandas.DataFrame` of every evaluated individual (including
+            infeasible ones) and :code:`result` is the pymoo result object.
+            When constraints are active, filter :code:`log` for feasibility
+            before selecting the optimum. :code:`result.X` and
+            :code:`result.F` already contain only feasible solutions.
+        """
         from pymoo.optimize import minimize as pymoo_minimize
 
         problem = OptimizationProblem(
@@ -530,9 +564,9 @@ class ModelTemplate():
             kpi=kpi,
         )
 
-        pymoo_minimize(
+        result = pymoo_minimize(
             problem=problem,
             algorithm=algorithm,
             termination=termination,
         )
-        return pd.DataFrame(problem.log)
+        return pd.DataFrame(problem.log), result

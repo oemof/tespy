@@ -425,7 +425,7 @@ Define postprocessing
 +++++++++++++++++++++
 
 After the solver converges, :py:meth:`~tespy.components.component.Component.calc_parameters`
-computes all result values (e.g. :code:`kA`, :code:`ttd_u`, :code:`pr1`).
+computes all result values (e.g. :code:`UA`, :code:`ttd_u`, :code:`pr1`).
 Instead of overriding :code:`calc_parameters` directly, the recommended
 approach is to declare a :code:`calc` callable on the :code:`dc_cp` data
 container. The base class will then automatically dispatch all :code:`calc`

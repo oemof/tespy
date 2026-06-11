@@ -64,12 +64,12 @@ def _build_network_and_designs():
     c1.set_attr(fluid={"R290": 1}, T_dew=50, m=1)
     c2.set_attr(x=0)
     c3.set_attr(fluid={"water": 1}, p=2, T=30)
-    kA_char = load_default_char(
-        "HeatExchanger", "kA_char1", "DEFAULT", CharLine
+    UA_char = load_default_char(
+        "HeatExchanger", "UA_char1", "DEFAULT", CharLine
     )
     heatex.set_attr(
         dp1=2, dp2=10, td_pinch=5, design=["td_pinch"], offdesign=["UA_char"],
-        kA_char1=kA_char, kA_char2=kA_char
+        UA_char1=UA_char, UA_char2=UA_char
     )
 
     # design case 1: m = 1 kg/s
@@ -169,6 +169,68 @@ def _build_isolated_design_with_different_labels():
     design = nw.save(as_dict=True)
 
     return dict(design=design)
+
+
+def _build_isolated_design_ambiguous_labels():
+    """
+    Build a standalone network with *two* SectionedHeatExchanger components,
+    neither of which carries the label used in the main network ("heat
+    exchanger"). This makes label resolution ambiguous: the single-type
+    fallback only applies when there is exactly one entry of that type.
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar", temperature="degC", pressure_difference="kPa"
+    )
+
+    so1, so2, so3, so4 = (Source(f"s{i}") for i in range(4))
+    si1, si2, si3, si4 = (Sink(f"k{i}") for i in range(4))
+
+    hx1 = SectionedHeatExchanger("hx-alpha")
+    hx2 = SectionedHeatExchanger("hx-beta")
+
+    ca = Connection(so1, "out1", hx1, "in1", label="ca1")
+    cb = Connection(hx1, "out1", si1, "in1", label="ca2")
+    cc = Connection(so2, "out1", hx1, "in2", label="ca3")
+    cd = Connection(hx1, "out2", si2, "in1", label="ca4")
+
+    ce = Connection(so3, "out1", hx2, "in1", label="cb1")
+    cf = Connection(hx2, "out1", si3, "in1", label="cb2")
+    cg = Connection(so4, "out1", hx2, "in2", label="cb3")
+    ch = Connection(hx2, "out2", si4, "in1", label="cb4")
+
+    nw.add_conns(ca, cb, cc, cd, ce, cf, cg, ch)
+
+    ca.set_attr(fluid={"R290": 1}, T_dew=50, td_dew=25, m=1)
+    cb.set_attr(x=0)
+    cc.set_attr(fluid={"water": 1}, p=2, T=30)
+    hx1.set_attr(dp1=2, dp2=10, td_pinch=5, design=["td_pinch"], offdesign=["UA_char"])
+
+    ce.set_attr(fluid={"R290": 1}, T_dew=50, td_dew=25, m=1)
+    cf.set_attr(x=0)
+    cg.set_attr(fluid={"water": 1}, p=2, T=30)
+    hx2.set_attr(dp1=2, dp2=10, td_pinch=5, design=["td_pinch"], offdesign=["UA_char"])
+
+    nw.solve("design")
+    return dict(design=nw.save(as_dict=True))
+
+
+def test_isolated_design_ambiguous_labels():
+    """
+    When an isolated design file contains multiple components of the same type
+    and none match the requesting component's label, resolution is ambiguous.
+    _find_isolated_comp_label must raise TESPyNetworkError rather than
+    returning None and letting a misleading KeyError surface downstream.
+    """
+    o = _build_network_and_designs()
+    iso = _build_isolated_design_ambiguous_labels()
+
+    nw, heatex = o["nw"], o["heatex"]
+    design1 = o["design1"]
+
+    heatex.set_attr(design_path=iso["design"], local_offdesign=True)
+    with raises(TESPyNetworkError, match="unambiguously resolve"):
+        nw.solve("offdesign", design_path=design1)
 
 
 def test_individual_design_path_offdesign():
@@ -432,11 +494,11 @@ def test_UA_char_char_expr_offdesign_design_reference():
     nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
-    f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
-    f2 = heatex.get_char_expr("m", **heatex.kA_char2.char_params)
+    f1 = heatex.get_char_expr("m", **heatex.UA_char1.char_params)
+    f2 = heatex.get_char_expr("m", **heatex.UA_char2.char_params)
 
-    fUA1 = heatex.kA_char1.char_func.evaluate(f1)
-    fUA2 = heatex.kA_char2.char_func.evaluate(f2)
+    fUA1 = heatex.UA_char1.char_func.evaluate(f1)
+    fUA2 = heatex.UA_char2.char_func.evaluate(f2)
 
     fUA_a = 2 / (1 / fUA1 + 1 / fUA2)
 
@@ -447,11 +509,11 @@ def test_UA_char_char_expr_offdesign_design_reference():
     nw.solve("offdesign", design_path=design1)
     nw.assert_convergence()
 
-    f1 = heatex.get_char_expr("m", **heatex.kA_char1.char_params)
-    f2 = heatex.get_char_expr("m", **heatex.kA_char2.char_params)
+    f1 = heatex.get_char_expr("m", **heatex.UA_char1.char_params)
+    f2 = heatex.get_char_expr("m", **heatex.UA_char2.char_params)
 
-    fUA1 = heatex.kA_char1.char_func.evaluate(f1)
-    fUA2 = heatex.kA_char2.char_func.evaluate(f2)
+    fUA1 = heatex.UA_char1.char_func.evaluate(f1)
+    fUA2 = heatex.UA_char2.char_func.evaluate(f2)
 
     fUA_b = 2 / (1 / fUA1 + 1 / fUA2)
 
@@ -703,7 +765,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design1 = self.nw.save(as_dict=True)
         v1_design = self.sc1_v1.v.val_SI
-        zeta_sc1_design = self.sc1.zeta.val
+        zeta_sc1_design = self.sc1.zeta_d4.val
 
         self.sc2_v2.set_attr(T=95, state='l', m=None)
         self.sc1_v1.set_attr(m=0.001, T=None)
@@ -711,7 +773,7 @@ class TestNetworkIndividualOffdesign:
         self.nw.assert_convergence()
         design2 = self.nw.save(as_dict=True)
         v2_design = self.sc2_v2.v.val_SI
-        zeta_sc2_design = self.sc2.zeta.val
+        zeta_sc2_design = self.sc2.zeta_d4.val
 
         self.sc1_v1.set_attr(m=None)
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -751,14 +813,14 @@ class TestNetworkIndividualOffdesign:
 
         # zeta value of solar collector comparison
         msg = (
-            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta.val}."
+            f"Value of zeta must be {zeta_sc1_design}, is {self.sc1.zeta_d4.val}."
         )
-        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta.val, 0), msg
+        assert round(zeta_sc1_design, 0) == round(self.sc1.zeta_d4.val, 0), msg
 
         msg = (
-            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta.val}."
+            f"Value of zeta must be {zeta_sc2_design}, is {self.sc2.zeta_d4.val}."
         )
-        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta.val, 0), msg
+        assert round(zeta_sc2_design, 0) == round(self.sc2.zeta_d4.val, 0), msg
 
     def test_local_offdesign_on_connections_and_components(self):
         """Test local offdesign feature."""

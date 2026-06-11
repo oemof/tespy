@@ -23,63 +23,57 @@ class Separator(NodeBase):
     r"""
     A separator separates fluid components from a mass flow.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.separator.Separator.fluid_func`
-    - :py:meth:`tespy.components.nodes.separator.Separator.energy_balance_func`
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
 
-    Inlets/Outlets
+    Mandatory Equations
+    -------------------
 
-    - in1
-    - specify number of outlets with :code:`num_out` (default value: 2)
-
-    Image
-
-    .. image:: /api/_images/Splitter.svg
-       :alt: flowsheet of the splitter
-       :align: center
-       :class: only-light
-
-    .. image:: /api/_images/Splitter_darkmode.svg
-       :alt: flowsheet of the splitter
-       :align: center
-       :class: only-dark
-
-    Note
-    ----
-    Fluid separation requires power and cooling, equations have not been
-    implemented, yet!
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - fluid mass fraction balance constraints: :py:meth:`fluid_func <tespy.components.nodes.separator.Separator.fluid_func>`
+    - equal temperature at all outlets constraints: :py:meth:`energy_balance_func <tespy.components.nodes.separator.Separator.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_out : int
+        Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
-    num_out : float, dict
-        Number of outlets for this component, default value: 2.
+    Notes
+    -----
+
+    .. note::
+
+        Fluid separation requires power and cooling, equations have not been
+        implemented, yet!
 
     Example
     -------
@@ -134,7 +128,18 @@ class Separator(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple(description="number of outlets")}
+        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
+
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
 
     def _update_num_eq(self):
         self.variable_fluids = set(
@@ -158,7 +163,6 @@ class Separator(NodeBase):
             'fluid_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'func': self.fluid_func,
-                'deriv': self.fluid_deriv,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
@@ -218,31 +222,6 @@ class Separator(NodeBase):
             residual += [res]
         return residual
 
-    def fluid_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of fluid balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        for fluid in self.variable_fluids:
-            for o in self.outl:
-                self._partial_derivative(o.m, k, -o.fluid.val[fluid], increment_filter)
-                if fluid in o.fluid.is_var:
-                    self.jacobian[k, o.fluid.J_col[fluid]] = -o.m.val_SI
-
-            self._partial_derivative(i.m, k, i.fluid.val[fluid], increment_filter)
-            if fluid in i.fluid.is_var:
-                self.jacobian[k, i.fluid.J_col[fluid]] = i.m.val_SI
-
-            k += 1
-
     def fluid_dependents(self):
         return {
             "scalars": [
@@ -250,7 +229,7 @@ class Separator(NodeBase):
                 for f in self.variable_fluids
             ],
             "vectors": [{
-                c.fluid: set(f) & c.fluid.is_var for c in self.inl + self.outl
+                c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl
             } for f in self.variable_fluids]
         }
 

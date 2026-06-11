@@ -651,12 +651,12 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_SI_from_val(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-        self.val_SI = self._val.to(SI_UNITS[self.quantity]).magnitude
+        self.val_SI = self._val.m_as(SI_UNITS[self.quantity])
 
     def set_SI_from_val0(self, units):
         if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-        self.val_SI = self._val0.to(SI_UNITS[self.quantity]).magnitude
+        self.val_SI = self._val0.m_as(SI_UNITS[self.quantity])
 
     def _get_val_from_SI(self, units):
         if not self._val_is_quantity:
@@ -674,6 +674,11 @@ class FluidProperties(_NumEqMixin, DataContainer):
         self.val0 = units.ureg.Quantity(
             self.val_SI, self._get_val0_base_unit()
         ).to(self.val0.units)
+
+    def detach(self):
+        if self._reference_container is not None:
+            self._val_SI = self.val_SI
+        self._reference_container = None
 
     def get_val(self):
         if self._val_is_quantity:
@@ -746,7 +751,59 @@ class FluidProperties(_NumEqMixin, DataContainer):
     is_var = property(get_is_var, set_is_var)
 
 
+class ComponentArrayProperties(DataContainer):
+    """Data container for array-valued component result properties.
+
+    .. note::
+
+        This class is currently intended for result-only use. Instances are
+        populated automatically by the network after each solve and cannot
+        meaningfully be set by the user. The API of this class may change in
+        future versions.
+
+    Attributes
+    ----------
+    val_SI : numpy.ndarray
+        Values in SI units.
+
+    val : numpy.ndarray
+        Values in the network's user-specified unit. Populated by the network
+        after each solve via :py:meth:`set_val_from_SI`.
+
+    quantity : str
+        Physical quantity type (e.g. :code:`"heat"`, :code:`"temperature"`).
+    """
+
+    @staticmethod
+    def attr():
+        return {
+            "val": None,
+            "val_SI": None,
+            "quantity": None,
+            "structure_matrix": None,
+            "func": None,
+            "is_set": False,
+            "num_eq_sets": 0,
+        }
+
+    def accept(self, value):
+        pass
+
+    def set_val_from_SI(self, units):
+        if self.val_SI is None:
+            return
+        self.val = units.ureg.Quantity(
+            self.val_SI, SI_UNITS[self.quantity]
+        ).m_as(units.default[self.quantity])
+
+
 class ComponentProperties(FluidProperties):
+
+    @staticmethod
+    def attr():
+        attrs = FluidProperties.attr()
+        attrs["_allows_var"] = False
+        return attrs
 
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit", "is_var"]
@@ -754,6 +811,10 @@ class ComponentProperties(FluidProperties):
 
     def accept(self, value):
         if value == "var":
+            if not self._allows_var:
+                raise ValueError(
+                    "This parameter cannot be made a system variable."
+                )
             self.is_set = True
             self.is_var = True
         else:
@@ -929,6 +990,11 @@ class FluidComposition(DataContainer):
         else:
             raise ValueError()
 
+    def detach(self):
+        if self._reference_container is not None:
+            self._val = self.val
+        self._reference_container = None
+
     val = property(get_val, set_val)
     is_set = property(get_is_set, set_is_set)
     is_var = property(get_is_var)
@@ -1089,7 +1155,8 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
             "structure_matrix": None,
             "_solved": False,
             'dependents': None,
-            "description": None
+            "description": None,
+            "dtype": None,
         }
 
     def _serialize(self):

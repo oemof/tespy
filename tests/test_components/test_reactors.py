@@ -157,7 +157,7 @@ class TestWaterElectrolyzer:
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
-        self.instance.set_attr(design=['pr'], offdesign=['zeta'])
+        self.instance.set_attr(design=['pr'], offdesign=['zeta_d4'])
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
@@ -270,7 +270,7 @@ class TestFuelCell:
 
         # use zeta as offdesign parameter, at design point pressure
         # ratio must not change
-        self.instance.set_attr(design=['pr'], offdesign=['zeta'])
+        self.instance.set_attr(design=['pr'], offdesign=['zeta_d4'])
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (

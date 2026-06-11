@@ -2544,10 +2544,9 @@ class Network:
         """
         for dependents in self._variable_dependencies:
             if idx in dependents["variables"]:
-                break
-        variables = [self._variable_lookup[v] for v in dependents["variables"]]
-        variable_list = [(v["object"].label, v["property"]) for v in variables]
-        return variable_list
+                variables = [self._variable_lookup[v] for v in dependents["variables"]]
+                return [(v["object"].label, v["property"]) for v in variables]
+        raise KeyError(f"Variable index {idx} not found in any dependency group.")
 
     def get_sorted_residual_index(self) -> list[int]:
         """Get the sorted array of residual indices.

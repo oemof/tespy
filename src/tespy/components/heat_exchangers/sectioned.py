@@ -15,6 +15,7 @@ from scipy.optimize import brentq
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
@@ -23,7 +24,7 @@ from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
 
-_PHASE_TO_INT = {"l": 0, "tp": 1}  # anything else (g, sc, ...) maps to 2
+_PHASE_TO_INT = {"l": 0, "tp": 1, "g": 2, "sc": 3}
 
 
 @component_registry
@@ -214,6 +215,11 @@ class SectionedHeatExchanger(HeatExchanger):
         Hot-side heat transfer coefficient in superheated zone,
         :math:`\alpha_{h,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
 
+    alpha1_scf : float
+        Hot-side heat transfer coefficient in supercritical zone
+        (:math:`p > p_\text{crit}`, :math:`T > T_\text{crit}`),
+        :math:`\alpha_{h,\text{scf}}/(\text{W}/(\text{m}^2\text{K}))`.
+
     alpha2_sc : float
         Cold-side heat transfer coefficient in subcooled zone,
         :math:`\alpha_{c,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
@@ -225,6 +231,11 @@ class SectionedHeatExchanger(HeatExchanger):
     alpha2_sh : float
         Cold-side heat transfer coefficient in superheated zone,
         :math:`\alpha_{c,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+
+    alpha2_scf : float
+        Cold-side heat transfer coefficient in supercritical zone
+        (:math:`p > p_\text{crit}`, :math:`T > T_\text{crit}`),
+        :math:`\alpha_{c,\text{scf}}/(\text{W}/(\text{m}^2\text{K}))`.
 
     A_ratio : float
         Cold- to hot-side heat transfer area ratio :math:`A_c/A_h`.
@@ -313,7 +324,10 @@ class SectionedHeatExchanger(HeatExchanger):
 
     After solving, section data is available directly via the component
     attributes :code:`T_hot_sections`, :code:`T_cold_sections`,
-    :code:`Q_sections`, :code:`Q_per_section` and :code:`lmtd_per_section`.
+    :code:`Q_sections`, :code:`Q_per_section`, :code:`lmtd_per_section`,
+    :code:`phase_hot_per_section` and :code:`phase_cold_per_section`.
+    The phase attributes hold integer arrays with one entry per section using
+    the mapping 0=liquid, 1=two-phase, 2=gas, 3=supercritical.
     Since the water vapor is cooled, condensed and then subcooled while the
     air does not change phase, three sections will form:
 
@@ -621,6 +635,10 @@ class SectionedHeatExchanger(HeatExchanger):
                 min_val=0,
                 description="hot-side heat transfer coefficient in superheated zone"
             ),
+            'alpha1_scf': dc_cp(
+                min_val=0,
+                description="hot-side heat transfer coefficient in supercritical zone"
+            ),
             'alpha2_sc': dc_cp(
                 min_val=0,
                 description="cold-side heat transfer coefficient in subcooled zone"
@@ -633,6 +651,12 @@ class SectionedHeatExchanger(HeatExchanger):
                 min_val=0,
                 description="cold-side heat transfer coefficient in superheated zone"
             ),
+            'alpha2_scf': dc_cp(
+                min_val=0,
+                description="cold-side heat transfer coefficient in supercritical zone"
+            ),
+            'phase_hot_per_section': dc_cap(quantity="ratio"),
+            'phase_cold_per_section': dc_cap(quantity="ratio"),
             'A_ratio': dc_cp(
                 min_val=0,
                 description="cold to hot area ratio A_c/A_h"
@@ -649,6 +673,18 @@ class SectionedHeatExchanger(HeatExchanger):
             )
         })
         return params
+
+    def _store_sections(self):
+        super()._store_sections()
+        steps1, zp1 = self._get_moving_steps(self.inl[0], self.outl[0])
+        steps2, zp2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps_all = self._assign_steps(steps1, steps2)
+        self.phase_hot_per_section.val_SI = np.array(
+            self._section_phases(steps_all, np.array(steps1), zp1)
+        )
+        self.phase_cold_per_section.val_SI = np.array(
+            self._section_phases(steps_all, np.array(steps2), zp2)
+        )
 
     @staticmethod
     def _get_steps(num_steps=51):
@@ -683,7 +719,7 @@ class SectionedHeatExchanger(HeatExchanger):
         -------
         tuple
             Steps of enthalpy of the specified connections and a list of phase
-            indices (0=SC, 1=TP, 2=SH) for each zone between consecutive steps.
+            indices (0=L, 1=TP, 2=G, 3=SC) for each zone between consecutive steps.
         """
         if c1.fluid.val != c2.fluid.val:
             msg = (
@@ -826,6 +862,20 @@ class SectionedHeatExchanger(HeatExchanger):
                         )
                         h_at_steps = [0, x_liq, 1]
                         zone_phases = [0, 1]
+
+            elif phase_h_high == "sc" and phase_h_low == "l":
+                wrapper = c1.fluid_data[fluid]["wrapper"]
+                h_at_tc = wrapper.h_pT(c1.p.val_SI, wrapper._T_crit)
+                if np.isclose(h_at_tc, c1.h.val_SI):
+                    h_at_steps = [0, 1]
+                    zone_phases = [3]
+                elif np.isclose(h_at_tc, c2.h.val_SI):
+                    h_at_steps = [0, 1]
+                    zone_phases = [0]
+                else:
+                    x_tc = (h_at_tc - c1.h.val_SI) / delta_h
+                    h_at_steps = [0, x_tc, 1]
+                    zone_phases = [0, 3]
 
             else:
                 zone_phases = [_PHASE_TO_INT.get(phase_h_low, 2)]
@@ -1072,7 +1122,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     @staticmethod
     def _section_phases(steps_all, steps_ref, zone_phases):
-        """Return the phase index (0=SC, 1=TP, 2=SH) for each section on one
+        """Return the phase index (0=L, 1=TP, 2=G, 3=SC) for each section on one
         fluid side.
 
         Parameters
@@ -1087,7 +1137,7 @@ class SectionedHeatExchanger(HeatExchanger):
         Returns
         -------
         list
-            Phase index (0=SC, 1=TP, 2=SH) for each section.
+            Phase index (0=L, 1=TP, 2=G, 3=SC) for each section.
         """
         boundaries = steps_ref[1:-1]
         return [
@@ -1132,13 +1182,18 @@ class SectionedHeatExchanger(HeatExchanger):
         lmtd_per_section = self._calc_lmtd_per_section(T_hot, T_cold, postprocess=False)
         Q_per_section = np.diff(self._get_Q_cumsum_steps(steps_all))
         min_td = float(np.min(T_hot - T_cold))
+
+        A_h = self.A_h.val_SI
+        if min_td <= 0.0:
+            # ×10: Newton overshoots past min_td=0 into the feasible side, giving oscillation_damping a sign-change bracket to bisect; ×1 lands at the branch discontinuity.
+            return min_td * 20.0
+
         phases1 = self._section_phases(steps_all, np.array(steps1), zone_phases1)
         phases2 = self._section_phases(steps_all, np.array(steps2), zone_phases2)
 
-        A_h = self.A_h.val_SI
         A_c = A_h * self.A_ratio.val_SI
-        alpha1 = [self.alpha1_sc.val_SI, self.alpha1_tp.val_SI, self.alpha1_sh.val_SI]
-        alpha2 = [self.alpha2_sc.val_SI, self.alpha2_tp.val_SI, self.alpha2_sh.val_SI]
+        alpha1 = [self.alpha1_sc.val_SI, self.alpha1_tp.val_SI, self.alpha1_sh.val_SI, self.alpha1_scf.val_SI]
+        alpha2 = [self.alpha2_sc.val_SI, self.alpha2_tp.val_SI, self.alpha2_sh.val_SI, self.alpha2_scf.val_SI]
         A_req = 0.0
         for Q_j, lmtd_j, ph1, ph2 in zip(Q_per_section, lmtd_per_section, phases1, phases2):
             U_j = 1.0 / (
@@ -1149,8 +1204,6 @@ class SectionedHeatExchanger(HeatExchanger):
             A_req += abs(Q_j) / (U_j * lmtd_j)
 
         residual = A_h - A_req
-        if min_td <= 0.0:
-            return residual + min_td
         return residual
 
     def area_zones_dependents(self):

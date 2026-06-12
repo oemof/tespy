@@ -1048,6 +1048,32 @@ class TestHeatExchangers:
             min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
         ) == instance.td_pinch.val_SI
 
+    def test_SectionedHeatExchanger_phase_postprocessing(self):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        # NH3 hot side: superheated gas -> two-phase -> subcooled liquid (g/tp/l)
+        # water cold side: liquid throughout (l)
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.0, dp2=0.0, num_sections=10)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        ph_hot = instance.phase_hot_per_section.val_SI
+        ph_cold = instance.phase_cold_per_section.val_SI
+
+        assert len(ph_hot) == len(instance.Q_per_section.val_SI)
+        assert len(ph_cold) == len(instance.Q_per_section.val_SI)
+
+        # NH3 passes through all three subcritical zones
+        assert set(ph_hot) == {0, 1, 2}
+        # water stays liquid throughout
+        assert set(ph_cold) == {0}
+
     def test_SectionedHeatExchanger_negative_pinch(self):
         instance = SectionedHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)

@@ -191,13 +191,14 @@ def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
         h_\text{mix}(p, T) = \sum_i x_i \cdot h_i
     """
     molar_fractions = get_molar_fractions(fluid_data)
+    water_aliases = _get_fluid_alias("H2O", fluid_data)
 
     h = 0
     for fluid, data in fluid_data.items():
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            if fluid == "H2O" and pp >= data["wrapper"]._p_min:
+            if fluid in water_aliases and pp >= data["wrapper"]._p_min:
                 if T <= data["wrapper"].T_sat(pp):
                     h += data["wrapper"].h_QT(1, T) * data["mass_fraction"]
                 else:

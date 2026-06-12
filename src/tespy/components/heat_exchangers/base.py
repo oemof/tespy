@@ -1301,9 +1301,11 @@ class HeatExchanger(Component):
         """
         td_at_steps = T_steps_hot - T_steps_cold
         if postprocess:
-            if (td_at_steps <= 0).any():
+            truly_negative = td_at_steps[td_at_steps <= 0]
+            if len(truly_negative) and (truly_negative < -1e-6).any():
                 return np.ones(len(td_at_steps) - 1) * np.nan
-        td_at_steps[td_at_steps <= 0] = 1e-3
+            td_at_steps[td_at_steps <= 0] = abs(td_at_steps[td_at_steps <= 0])
+        td_at_steps[td_at_steps <= 0] = 1e-6
         return np.array([
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])

@@ -655,8 +655,14 @@ class SectionedHeatExchanger(HeatExchanger):
                 min_val=0,
                 description="cold-side heat transfer coefficient in supercritical zone"
             ),
-            'phase_hot_per_section': dc_cap(quantity="ratio"),
-            'phase_cold_per_section': dc_cap(quantity="ratio"),
+            'phase_hot_per_section': dc_cap(
+                quantity=None,
+                description="phase index per section on hot side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
+            ),
+            'phase_cold_per_section': dc_cap(
+                quantity=None,
+                description="phase index per section on cold side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
+            ),
             'A_ratio': dc_cp(
                 min_val=0,
                 description="cold to hot area ratio A_c/A_h"

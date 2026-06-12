@@ -349,12 +349,15 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def phase_ph(self, p, h):
         if self.back_end == "INCOMP":
-            return "state not recognized"
+            return "l"
 
         self._update(CP.HmassP_INPUTS, h, p)
         if self.mixture_type is not None:
             if p >= self._p_crit:
-                return "state not recognised"
+                if self.T_ph(p, h) >= self._T_crit:
+                    return "sc"
+                else:
+                    return "l"
             h_bubble = self.h_pQ(p, 0)
             h_dew = self.h_pQ(p, 1)
             if h <= h_bubble:
@@ -367,14 +370,12 @@ class CoolPropWrapper(FluidPropertyWrapper):
         phase = self.AS.phase()
         if phase == CP.iphase_twophase:
             return "tp"
-        elif phase == CP.iphase_liquid:
+        elif phase in (CP.iphase_liquid, CP.iphase_supercritical_liquid):
             return "l"
-        elif phase == CP.iphase_gas:
-            return "g"
-        elif phase == CP.iphase_supercritical_gas:
+        elif phase in (CP.iphase_gas, CP.iphase_supercritical_gas):
             return "g"
         else:
-            return "state not recognised"
+            return "sc"
 
     def d_ph(self, p, h):
         self._update(CP.HmassP_INPUTS, h, p)
@@ -673,6 +674,9 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     def d_pT(self, p, T):
         return self._density["A"] * T + self._density["B"]
 
+    def phase_ph(self, p, h):
+        return "l"
+
     def viscosity_ph(self, p, h):
         return self.viscosity_pT(p, self.T_ph(p, h))
 
@@ -771,16 +775,19 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(h=h / 1e3, P=p / 1e6).x
 
     def phase_ph(self, p, h):
-        phase = self.AS(h=h / 1e3, P=p / 1e6).phase
-
-        if phase in ["Liquid"]:
-            return "l"
-        elif phase in  ["Vapour"]:
-            return "g"
-        elif phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
+        # (h, P) correctly identifies two-phase but gives unreliable .phase for
+        # single-phase in some regions (e.g. IF95 superheated steam). Use it
+        # only for the two-phase check; re-evaluate via (T, P) for everything else.
+        state_hp = self.AS(h=h / 1e3, P=p / 1e6)
+        if state_hp.phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
             return "tp"
-        else:  # to ensure consistent behavior to CoolPropWrapper
-            return "phase not recognized"
+        phase = self.AS(T=state_hp.T, P=p / 1e6).phase
+        if phase in ["Liquid", "Compressible liquid"]:
+            return "l"
+        elif phase in ["Vapour", "Gas"]:
+            return "g"
+        else:
+            return "sc"
 
     def d_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).rho
@@ -900,3 +907,20 @@ class PyromatWrapper(FluidPropertyWrapper):
         if self.back_end == "ig":
             self._not_implemented()
         return self.AS.d(x=Q, T=T)[0]
+
+    def phase_ph(self, p, h):
+        if self.back_end == "ig":
+            return "g"
+        if p >= self._p_crit:
+            if self.T_ph(p, h) >= self._T_crit:
+                return "sc"
+            else:
+                return "l"
+        h_bubble = self.h_pQ(p, 0)
+        h_dew = self.h_pQ(p, 1)
+        if h <= h_bubble:
+            return "l"
+        elif h >= h_dew:
+            return "g"
+        else:
+            return "tp"

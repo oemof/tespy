@@ -1636,7 +1636,7 @@ class Connection(ConnectionBase):
 
     def calc_phase(self):
         try:
-            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
         except NotImplementedError:
             return np.nan
 

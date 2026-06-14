@@ -105,8 +105,9 @@ class SectionedHeatExchanger(HeatExchanger):
         Hot-side heat exchange area. Quantity: :code:`area`.
 
     area_ratio : float, dict
-        Secondary to refrigerant side heat transfer area ratio. Quantity:
-        :code:`ratio`.
+        Heat transfer area ratio; previously defined as secondary to refrigerant
+        side ratio, will be defined as hot to cold side ratio in a future
+        version. Quantity: :code:`ratio`.
 
     area_zones : GroupedComponentProperties
         Bell (2015) area-based heat exchanger constraint. All elements must be
@@ -226,16 +227,24 @@ class SectionedHeatExchanger(HeatExchanger):
         Wall conduction thermal resistance. Quantity:
         :code:`thermal_resistance`.
 
+    re_exp_cold : float, dict
+        Reynolds exponent for UA modification based on cold side mass flow.
+
+    re_exp_hot : float, dict
+        Reynolds exponent for UA modification based on hot side mass flow.
+
     re_exp_r : float, dict
-        Reynolds exponent for UA modification based on refrigerant side mass
-        flow.
+        Deprecated - Reynolds exponent for refrigerant side mass flow; use
+        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
+        refrigerant flows on.
 
     re_exp_sf : float, dict
-        Reynolds exponent for UA modification based on secondary fluid side mass
-        flow.
+        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
+        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
+        secondary fluid flows on.
 
     refrigerant_index : int
-        Side on which the refrigerant is flowing (0: hot, 1:cold).
+        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
 
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:

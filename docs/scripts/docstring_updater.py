@@ -33,6 +33,7 @@ import re
 import subprocess
 import textwrap
 
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -130,6 +131,8 @@ def _collect_constraints(instance):
 def _dc_type(dc):
     """Return the NumPy-style type annotation string for a data container."""
     import math
+    if isinstance(dc, dc_cap):
+        return "numpy.ndarray"
     if isinstance(dc, dc_cp):
         base = "float, dict"
         return base + ', :code:`"var"`' if getattr(dc, "_allows_var", False) else base
@@ -245,6 +248,11 @@ def _parameters_section(instance, base_params=None, param_filter=None):
         desc = (raw_desc[0].upper() + raw_desc[1:]).rstrip(".") if raw_desc else ""
 
         meta_parts = []
+        if isinstance(dc, dc_cap):
+            q = getattr(dc, "quantity", None)
+            if q:
+                meta_parts.append(f"Quantity: :code:`{q}`.")
+            meta_parts.append("Result only - populated by the network after each solve.")
         if isinstance(dc, dc_cp):
             q = getattr(dc, "quantity", None)
             if q:

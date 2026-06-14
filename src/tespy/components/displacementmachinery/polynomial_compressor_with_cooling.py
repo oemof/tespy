@@ -276,14 +276,14 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     >>> eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
     ...     power, cooling, "R134a", reference_state
     ... )
+    >>> import numpy as np; np.set_printoptions(precision=4)
     >>> eta_s_poly
-    array([ 3.44223012e-03, -3.75139140e-02,  4.39204462e-02, -9.21644870e-04,
-            1.68576190e-03, -8.97540501e-04, -7.54781107e-06,  1.61377008e-05,
-           -1.53820046e-05,  5.04818089e-06])
+    array([ 3.4422e-03, -3.7514e-02,  4.3920e-02, -9.2164e-04,  1.6858e-03,
+           -8.9754e-04, -7.5478e-06,  1.6138e-05, -1.5382e-05,  5.0482e-06])
     >>> eta_vol_poly
-    array([ 5.81192914e-03, -7.18820053e-04,  7.41463587e-02,  2.84410052e-05,
-            6.51372426e-05, -1.89872495e-03,  7.84206012e-07, -1.90585865e-06,
-            4.52695494e-07,  1.51321175e-05])
+    array([ 5.8119e-03, -7.1882e-04,  7.4146e-02,  2.8441e-05,  6.5137e-05,
+           -1.8987e-03,  7.8421e-07, -1.9059e-06,  4.5270e-07,  1.5132e-05])
+    >>> np.set_printoptions()
 
     We can take these polynomials and set them on the compressor instance
     together with the reference state and the assumption on heat dissipation.

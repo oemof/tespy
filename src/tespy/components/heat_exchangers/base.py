@@ -11,12 +11,14 @@ tespy/components/heat_exchangers/base.py
 SPDX-License-Identifier: MIT
 """
 import math
+import warnings
 
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -116,8 +118,13 @@ class HeatExchanger(Component):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
-        :code:`temperature_difference`.
+        Effective logarithmic mean temperature difference :code:`Q/UA`.
+        Quantity: :code:`temperature_difference`.
+
+    lmtd_per_section : numpy.ndarray
+        Logarithmic mean temperature difference in each section. Quantity:
+        :code:`temperature_difference`. Result only - populated by the network
+        after each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -142,6 +149,25 @@ class HeatExchanger(Component):
     Q : float, dict
         Heat transfer from hot side. Quantity: :code:`heat`.
         Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
+
+    Q_per_section : numpy.ndarray
+        Heat transferred from hot to cold side in each section. Quantity:
+        :code:`heat`. Result only - populated by the network after each solve.
+
+    Q_sections : numpy.ndarray
+        Cumulative heat transferred from hot to cold side up to each section
+        boundary. Quantity: :code:`heat`. Result only - populated by the network
+        after each solve.
+
+    T_cold_sections : numpy.ndarray
+        Cold side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
+
+    T_hot_sections : numpy.ndarray
+        Hot side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
@@ -307,7 +333,7 @@ class HeatExchanger(Component):
             ),
             'lmtd': dc_cp(
                 min_val=0, is_result=True, quantity="temperature_difference",
-                description="effective logarithmic mean temperature difference |Q|/UA",
+                description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
             'ttd_u': dc_cp(
@@ -375,7 +401,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta1': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -388,7 +414,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
@@ -444,7 +470,12 @@ class HeatExchanger(Component):
                 quantity="efficiency",
                 description="maximum heat exchanger effectiveness",
                 calc=self._calc_eff_max, calc_deps=['eff_hot', 'eff_cold']
-            )
+            ),
+            'Q_sections': dc_cap(quantity="heat", description="cumulative heat transferred from hot to cold side up to each section boundary"),
+            'T_hot_sections': dc_cap(quantity="temperature", description="hot side temperature at each section boundary"),
+            'T_cold_sections': dc_cap(quantity="temperature", description="cold side temperature at each section boundary"),
+            'Q_per_section': dc_cap(quantity="heat", description="heat transferred from hot to cold side in each section"),
+            'lmtd_per_section': dc_cap(quantity="temperature_difference", description="logarithmic mean temperature difference in each section"),
         }
 
     def get_mandatory_constraints(self):
@@ -556,8 +587,7 @@ class HeatExchanger(Component):
     def _calc_ttd_min(self):
         return min(self.ttd_u.val_SI, self.ttd_l.val_SI)
 
-    def _calc_td_log(self):
-        """Postprocessing method for logarithmic temperature difference"""
+    def _calc_lmtd_from_ttd(self):
         ttd_u = self.ttd_u.val_SI
         ttd_l = self.ttd_l.val_SI
         if ttd_u < 0 or ttd_l < 0:
@@ -569,7 +599,7 @@ class HeatExchanger(Component):
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
     def _calc_UA(self):
-        return -self.Q.val_SI / self._calc_td_log()
+        return -self.Q.val_SI / self._calc_lmtd_from_ttd()
 
     def _calc_lmtd(self):
         if self.UA.val_SI == 0:
@@ -1177,8 +1207,8 @@ class HeatExchanger(Component):
 
         Returns
         -------
-        float
-            Heat exchanged between defined steps of enthalpy.
+        numpy.ndarray
+            Heat exchanged per section.
         """
         return np.diff(h_at_steps) * mass_flow
 
@@ -1187,13 +1217,19 @@ class HeatExchanger(Component):
         return start + steps * (end - start)
 
     def _get_Q_cumsum_steps(self, steps):
-        """Assign the sections of the heat exchanger
+        """Return cumulative heat transferred from the hot-side outlet up to
+        each step, starting from zero.
+
+        Parameters
+        ----------
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps`.
 
         Returns
         -------
-        list
-            List of cumulative sum of heat exchanged defining the heat exchanger
-            sections.
+        numpy.ndarray
+            Cumulative heat values with a leading zero, length
+            :code:`len(steps)`.
         """
         start = self.outl[0].h.val_SI
         end = self.inl[0].h.val_SI
@@ -1203,13 +1239,13 @@ class HeatExchanger(Component):
         return np.insert(np.cumsum(Q_sections_hot), 0, 0.0)
 
     def _assign_steps(self):
-        """Assign the sections of the heat exchanger
+        """Return the normalized step fractions defining section boundaries.
 
         Returns
         -------
-        list
-            List of cumulative sum of heat exchanged defining the heat exchanger
-            sections.
+        numpy.ndarray
+            Step fractions; base class returns :code:`[0, 1]` (inlet and
+            outlet only).
         """
         return np.array([0, 1])
 
@@ -1219,18 +1255,18 @@ class HeatExchanger(Component):
         super()._preprocess(row_idx)
 
     def _get_T_at_steps(self, steps):
-        """Calculate the temperature values for the provided sections.
+        """Calculate hot- and cold-side temperatures at each step.
 
         Parameters
         ----------
-        Q_sections : list
-            Cumulative heat exchanged from the hot side to the cold side
-            defining the sections of the heat exchanger.
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps`.
 
         Returns
         -------
         tuple
-            Lists of cold side and hot side temperature
+            :code:`(T_steps_hot, T_steps_cold)` as numpy arrays, length
+            :code:`len(steps)`.
         """
         h_steps_hot = self._assign_to_steps(
             self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
@@ -1266,28 +1302,34 @@ class HeatExchanger(Component):
         return T_steps_hot, T_steps_cold
 
     @staticmethod
-    def _calc_td_log_per_section(T_steps_hot, T_steps_cold, postprocess=False):
+    def _calc_lmtd_per_section(T_steps_hot, T_steps_cold, postprocess=False):
         """Calculate the logarithmic temperature difference values per section
         of heat exchanged.
 
         Parameters
         ----------
-        T_steps_hot : list
-            Temperature hot side at beginning and end of sections.
-
-        T_steps_cold : list
-            Temperature cold side at beginning and end of sections.
+        T_steps_hot : numpy.ndarray
+            Hot-side temperatures at each step boundary.
+        T_steps_cold : numpy.ndarray
+            Cold-side temperatures at each step boundary.
+        postprocess : bool
+            When :code:`True`, returns an array of :code:`nan` if any
+            temperature difference is non-positive (used for result reporting).
+            When :code:`False` (default), clips negative differences to 1e-3 K
+            so the solver can continue iterating.
 
         Returns
         -------
-        list
-            Lists of temperature differences per section of heat exchanged.
+        numpy.ndarray
+            Logarithmic mean temperature difference for each section.
         """
         td_at_steps = T_steps_hot - T_steps_cold
         if postprocess:
-            if (td_at_steps <= 0).any():
+            truly_negative = td_at_steps[td_at_steps <= 0]
+            if len(truly_negative) and (truly_negative < -1e-6).any():
                 return np.ones(len(td_at_steps) - 1) * np.nan
-        td_at_steps[td_at_steps <= 0] = 1e-3
+            td_at_steps[td_at_steps <= 0] = abs(td_at_steps[td_at_steps <= 0])
+        td_at_steps[td_at_steps <= 0] = 1e-6
         return np.array([
             (td_at_steps[i + 1] - td_at_steps[i])
             / math.log(td_at_steps[i + 1] / td_at_steps[i])
@@ -1298,22 +1340,56 @@ class HeatExchanger(Component):
             for i in range(len(td_at_steps) - 1)
         ])
 
-    def calc_sections(self, postprocess=True):
-        """Calculate the sections of the heat exchanger. For the base class,
-        these are only points at the edges
+    def calc_parameters(self):
+        self._store_sections()
+        super().calc_parameters()
 
-        Returns
-        -------
-        tuple
-            Cumulated heat transfer over sections, temperature at steps hot
-            side, temperature at steps cold side, heat transfer per section,
-            logarithmic temperature per section
+    def _calc_sections_SI(self, postprocess=True):
+        """Compute section data in SI units. Used internally during solving
+        and as the basis for :py:meth:`calc_sections`.
         """
         steps = self._assign_steps()
-        Q_sections = self._get_Q_cumsum_steps(steps)
         T_steps_hot, T_steps_cold = self._get_T_at_steps(steps)
+        Q_sections = self._get_Q_cumsum_steps(steps)
         Q_per_section = np.diff(Q_sections)
-        td_log_per_section = self._calc_td_log_per_section(
+        lmtd_per_section = self._calc_lmtd_per_section(
             T_steps_hot, T_steps_cold, postprocess
         )
-        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, td_log_per_section
+        return Q_sections, T_steps_hot, T_steps_cold, Q_per_section, lmtd_per_section
+
+    def _store_sections(self):
+        """Compute section data and store results as
+        :py:class:`ComponentArrayProperties <tespy.tools.data_containers.ComponentArrayProperties>`
+        attributes. Each attribute exposes :code:`.val` in network units and
+        :code:`.val_SI` in SI units.
+
+        Attributes set
+        --------------
+        Q_sections, T_hot_sections, T_cold_sections, Q_per_section,
+        lmtd_per_section
+        """
+        Q_si, T_hot_si, T_cold_si, Q_per_si, lmtd_si = self._calc_sections_SI(postprocess=True)
+        self.Q_sections.val_SI = Q_si
+        self.T_hot_sections.val_SI = T_hot_si
+        self.T_cold_sections.val_SI = T_cold_si
+        self.Q_per_section.val_SI = Q_per_si
+        self.lmtd_per_section.val_SI = lmtd_si
+
+    def calc_sections(self, postprocess=True):
+        r"""
+        .. deprecated::
+            Use the component attributes :code:`Q_sections`, :code:`T_hot_sections`,
+            :code:`T_cold_sections`, :code:`Q_per_section`, :code:`lmtd_per_section`
+            instead. These are populated automatically after each solve. The return
+            value of this method will be removed in a future version.
+        """
+        warnings.warn(
+            f"The return value of {self.__class__.__name__}.calc_sections() is deprecated. "
+            "Access section data via the component attributes Q_sections, T_hot_sections, "
+            "T_cold_sections, Q_per_section, lmtd_per_section instead. Each attribute "
+            "exposes .val (network units) and .val_SI (SI units). The return value will "
+            "be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._calc_sections_SI(postprocess=postprocess)

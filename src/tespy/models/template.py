@@ -208,7 +208,7 @@ class ModelTemplate():
             fluid_name = single_fluid(conn.fluid_data)
             ureg = self.nw.units.get_ureg()
             T_unit = self.nw.units.get_default('temperature')
-            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').to(T_unit).magnitude
+            T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').m_as(T_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin", clamp_max=T_crit)
 
         diagram.draw_isolines(
@@ -241,7 +241,7 @@ class ModelTemplate():
             fluid_name = single_fluid(conn.fluid_data)
             ureg = self.nw.units.get_ureg()
             p_unit = self.nw.units.get_default('pressure')
-            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').to(p_unit).magnitude
+            p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').m_as(p_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "p", "log", clamp_max=p_crit)
 
         diagram.draw_isolines(
@@ -265,10 +265,11 @@ class ModelTemplate():
             fig = ax.get_figure()
 
         heatex = self.nw.get_comp(heatexchanger_label)
-        heat, T_hot, T_cold, _, _ = heatex.calc_sections()
 
-        ax.plot(heat, T_hot, "o-", color="red")
-        ax.plot(heat, T_cold, "o-", color="blue")
+        ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, "o-", color="red")
+        ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, "o-", color="blue")
+        ax.set_ylabel(f"temperature in {self.nw.units.default['temperature']}")
+        ax.set_xlabel(f"heat transferred in {self.nw.units.default['heat']}")
 
         if save_dir:
             fig.savefig(f"{save_dir}/qt_diagram.svg", bbox_inches="tight")

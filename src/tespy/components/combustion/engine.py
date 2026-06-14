@@ -349,7 +349,7 @@ class CombustionEngine(CombustionChamber):
                 calc=self._calc_zeta_d4
             ),
             'zeta1': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -362,7 +362,7 @@ class CombustionEngine(CombustionChamber):
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': dc_cp(
-                min_val=0, is_result=True,
+                min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
@@ -391,28 +391,24 @@ class CombustionEngine(CombustionChamber):
             'power_constraints': dc_cmc(**{
                 'func': self.tiP_char_func,
                 'dependents': self.tiP_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to power generation relation"
             }),
             'heat1_constraints': dc_cmc(**{
                 'func': self.Q1_char_func,
                 'dependents': self.Q1_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 1 heat generation relation"
             }),
             'heat2_constraints': dc_cmc(**{
                 'func': self.Q2_char_func,
                 'dependents': self.Q2_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 2 heat generation relation"
             }),
             'heatloss_constraints': dc_cmc(**{
                 'func': self.Qloss_char_func,
                 'dependents': self.Qloss_char_dependents,
-                'constant_deriv': False,
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heat dissipation relation"
             }),

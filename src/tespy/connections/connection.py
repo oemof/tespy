@@ -40,7 +40,7 @@ from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_bubble_T
 from tespy.tools.fluid_properties.functions import p_dew_T
-from tespy.tools.fluid_properties.functions import p_sat_T
+from tespy.tools.fluid_properties.functions import p_sat_TQ
 from tespy.tools.fluid_properties.helpers import get_mixture_temperature_range
 from tespy.tools.fluid_properties.helpers import single_fluid
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
@@ -397,7 +397,7 @@ class ConnectionBase:
             param = self.get_attr(var)
             state[var] = units.ureg.Quantity(
                 float(data[var]), unit
-            ).to(SI_UNITS[param.quantity]).magnitude
+            ).m_as(SI_UNITS[param.quantity])
         return state
 
     def _set_design_params(self, data, units):
@@ -1124,7 +1124,7 @@ class Connection(ConnectionBase):
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
-                self.p.set_reference_val_SI(p_sat_T(self.T.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_sat_TQ(self.T.val_SI, self.x.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
                 self.h._potential_var = False
@@ -1541,6 +1541,18 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
+    def calc_T_dew(self):
+        try:
+            return T_dew_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
+    def calc_T_bubble(self):
+        try:
+            return T_bubble_p(self.p.val_SI, self.fluid_data)
+        except NotImplementedError:
+            return np.nan
+
     def calc_td_dew(self):
         try:
             return self.calc_T() - T_dew_p(self.p.val_SI, self.fluid_data)
@@ -1624,7 +1636,7 @@ class Connection(ConnectionBase):
 
     def calc_phase(self):
         try:
-            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return phase_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
         except NotImplementedError:
             return np.nan
 

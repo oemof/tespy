@@ -37,6 +37,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -305,7 +306,7 @@ class Network:
         quantity = "mass_flow"
         unit = self.units.default[quantity]
         self._m_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.m_range_SI = self.m_range.to(SI_UNITS[quantity]).magnitude
+        self.m_range_SI = self.m_range.m_as(SI_UNITS[quantity])
 
     def _get_m_range(self):
         return self._m_range
@@ -315,7 +316,7 @@ class Network:
         quantity = "pressure"
         unit = self.units.default[quantity]
         self._p_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.p_range_SI = self.p_range.to(SI_UNITS[quantity]).magnitude
+        self.p_range_SI = self.p_range.m_as(SI_UNITS[quantity])
 
     def _get_p_range(self):
         return self._p_range
@@ -325,7 +326,7 @@ class Network:
         quantity = "enthalpy"
         unit = self.units.default[quantity]
         self._h_range = self.units.ureg.Quantity(np.array(value), unit)
-        self.h_range_SI = self.h_range.to(SI_UNITS[quantity]).magnitude
+        self.h_range_SI = self.h_range.m_as(SI_UNITS[quantity])
 
     def _get_h_range(self):
         return self._h_range
@@ -1692,7 +1693,7 @@ class Network:
                         param.ref.delta_SI = self.units.ureg.Quantity(
                             param.ref.delta,
                             unit
-                        ).to(SI_UNITS[param.quantity]).magnitude
+                        ).m_as(SI_UNITS[param.quantity])
                     else:
                         param.set_SI_from_val(self.units)
         msg = (
@@ -1988,7 +1989,12 @@ class Network:
             return comp.label
         elif len(comp_entries) == 1:
             return next(iter(comp_entries))
-        return None
+        msg = (
+            f"Could not unambiguously resolve the label for component "
+            f"'{comp.label}' in the isolated design file: multiple entries "
+            f"exist ({', '.join(comp_entries)}) and none match exactly."
+        )
+        raise hlp.TESPyNetworkError(msg)
 
     def _find_conn_in_isolated_design(self, adj_conn, comp, comp_label, conn_entries):
         """
@@ -2095,7 +2101,7 @@ class Network:
                 "components have been relabeled for your offdesign "
                 "calculation."
             )
-            logger.exception(msg)
+            logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
         c._set_design_params(entries[c.label], self.units)
@@ -2189,7 +2195,6 @@ class Network:
                         "%s"
                     )
                     logger.debug(msg, str(json_path))
-                    pass
             if data is None:
                 with open(json_path, "r") as f:
                     data = json.load(f)
@@ -2539,10 +2544,9 @@ class Network:
         """
         for dependents in self._variable_dependencies:
             if idx in dependents["variables"]:
-                break
-        variables = [self._variable_lookup[v] for v in dependents["variables"]]
-        variable_list = [(v["object"].label, v["property"]) for v in variables]
-        return variable_list
+                variables = [self._variable_lookup[v] for v in dependents["variables"]]
+                return [(v["object"].label, v["property"]) for v in variables]
+        raise KeyError(f"Variable index {idx} not found in any dependency group.")
 
     def get_sorted_residual_index(self) -> list[int]:
         """Get the sorted array of residual indices.
@@ -2552,18 +2556,12 @@ class Network:
         list[int]
             List of variable numbers, the index values.
         """
-        # vars: dict[tuple[int, str], dict] = self.get_variables()
-        sidx: list[int] = list(np.argsort(np.abs(self.residual))[::-1])
-        # sres = np.array([self.residual[i] for i in sidx])
-        # chis = self.residual_history.shape[1]
-        # for i in range(2, n):
-        #     sres = np.vstack((sres, [self.residual_history[i-2][j] for j in sidx]))
-        #     sres = np.vstack((sres, self.residual_history[-n+1:, :][:, sidx].T))
-        return sidx
+        return list(np.argsort(np.abs(self.residual))[::-1])
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False):
+              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
+              oscillation_damping=False):
         r"""
         Solve the network.
 
@@ -2607,12 +2605,28 @@ class Network:
             Use cuda instead of numpy for matrix inversion, default:
             :code:`False`.
 
+        robust_relax : boolean
+            Apply a ramped relaxation factor that starts near zero and grows to
+            1 over the first quarter of :code:`max_iter` iterations. Helps
+            avoid divergence from poor starting values, at the cost of slower
+            early convergence. Default: :code:`False`.
+
+        oscillation_damping : boolean
+            Detect Newton oscillations caused by non-smooth residuals (e.g.
+            phase-transition kinks in sectioned heat exchangers) and dampen
+            them automatically. When a residual component changes sign between
+            two consecutive iterations - indicating an overshoot - the
+            increments for all variables that equation depends on are halved
+            before being applied. This converts the oscillating Newton step
+            into a bisection-like contraction and restores monotone convergence
+            without requiring an external bracketing loop. Default:
+            :code:`False`.
+
         Note
         ----
         For more information on the solution process have a look at the online
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
-        ## to own function
         self.status = 99
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
@@ -2637,6 +2651,7 @@ class Network:
         self.iter = 0
         self.use_cuda = use_cuda
         self.robust_relax = robust_relax
+        self.oscillation_damping = oscillation_damping
         self.skip_postprocess = skip_postprocess
 
         if self.skip_postprocess:
@@ -2730,6 +2745,7 @@ class Network:
         self.residual = np.zeros([self.variable_counter])
         self.increment = np.ones([self.variable_counter])
         self.jacobian = np.zeros((self.variable_counter, self.variable_counter))
+        self._prev_residual = None
 
         self.start_time = time()
 
@@ -2830,7 +2846,7 @@ class Network:
         # Start with defining the format here
         self.iterinfo_fmt = ' {iter:5s} | {residual:10s} | {progress:10s} '
         self.iterinfo_fmt += '| {massflow:10s} | {pressure:10s} | {enthalpy:10s} '
-        self.iterinfo_fmt += '| {fluid:10s} | {component:10s} '
+        self.iterinfo_fmt += '| {fluid:10s} | {energy:10s} | {component:10s} '
         # Use the format to create the first logging entry
         msg = self.iterinfo_fmt.format(
             iter='iter',
@@ -2840,15 +2856,15 @@ class Network:
             pressure='pressure',
             enthalpy='enthalpy',
             fluid='fluid',
+            energy='energy',
             component='component'
         )
         logger.progress(0, msg)
-        msg2 = '-' * 7 + '+------------' * 7
+        msg2 = '-' * 7 + '+------------' * 8
 
         logger.progress(0, msg2)
         if print_results:
             print('\n' + msg + '\n' + msg2)
-        return
 
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
@@ -2857,7 +2873,7 @@ class Network:
         h = [k for k, v in self.variables_dict.items() if v["variable"] == "h"]
         fl = [k for k, v in self.variables_dict.items() if v["variable"] == "fluid"]
         e = [k for k, v in self.variables_dict.items() if v["variable"] == "E"]
-        cp = [k for k in self.variables_dict if k not in m + p + h + fl]
+        cp = [k for k in self.variables_dict if k not in m + p + h + fl + e]
 
         iter_str = str(self.iter + 1)
         residual_norm = norm(self.residual)
@@ -2889,11 +2905,11 @@ class Network:
                 progress_max = math.log(ERR ** 0.5) * -1
                 progress_val = math.log(max(residual_norm, ERR)) * -1
                 # Scale to 0-1
-                progres_scaled = (
+                progress_scaled = (
                     (progress_val - progress_min)
                     / (progress_max - progress_min)
                 )
-                progress_val = max(0, min(1, progres_scaled))
+                progress_val = max(0, min(1, progress_scaled))
                 # Scale to 100%
                 progress_val = int(progress_val * 100)
             else:
@@ -2915,7 +2931,6 @@ class Network:
         logger.progress(progress_val, msg)
         if print_results:
             print(msg)
-        return
 
     def _print_iterinfo_tail(self, print_results=True):
         """Print tail of convergence progress."""
@@ -3211,6 +3226,20 @@ class Network:
                         dependent_equations += [i]
         return list(set(dependent_equations))
 
+    def _dampen_oscillating_increments(self):
+        """Halve increments for variables whose residuals changed sign since the last iteration.
+
+        A sign change means the Newton step overshot the zero of that equation.
+        Halving the dependent columns' increments keeps the bracket from growing
+        and makes subsequent iterations behave like bisection for those variables.
+        """
+        if self._prev_residual is None:
+            return
+        sign_flips = np.where(self._prev_residual * self.residual < 0)[0]
+        for row in sign_flips:
+            cols = np.nonzero(self.jacobian[row, :])[0]
+            self.increment[cols] *= 0.5
+
     def _update_variables(self):
         # cast dtype to float from numpy float64
         # this is necessary to keep the doctests running and note make them
@@ -3310,8 +3339,12 @@ class Network:
             self._diagnose_singularity()
             return
 
+        if self.oscillation_damping:
+            self._dampen_oscillating_increments()
+
         self._update_variables()
         self._adapt_to_variable_bounds()
+        self._prev_residual = self.residual.copy()
 
     def _solve_equations(self):
         r"""
@@ -3352,11 +3385,7 @@ class Network:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
                 variable = variable_dict["object"].get_attr(variable_dict["property"])
-                if variable_dict["property"] != "fluid":
-                    variable.val_SI = variable.val_SI
-                else:
-                    variable.val = variable.val
-                variable._reference_container = None
+                variable.detach()
 
     def _postprocess_connections(self):
         """Process the Connection results."""
@@ -3389,7 +3418,9 @@ class Network:
             _converged = _converged and cp.check_parameter_bounds()
             # this thing could be somewhere else
             for key, value in cp.parameters.items():
-                if isinstance(value, dc_prop):
+                if isinstance(value, dc_cap):
+                    value.set_val_from_SI(self.units)
+                elif isinstance(value, dc_prop):
                     result = value._get_val_from_SI(self.units)
                     if (
                         value.is_set

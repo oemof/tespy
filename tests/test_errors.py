@@ -27,6 +27,7 @@ from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.components import Turbine
 from tespy.components.component import Component
+from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
@@ -121,6 +122,10 @@ def test_set_attr_errors():
     # NotImplementedError
     set_attr_NotImplementedError(conn, td_bubble=Ref(conn, 1, 0))
     set_attr_NotImplementedError(conn, x=Ref(conn, 1, 0))
+
+    # result-only array parameters (dc_cap) cannot be set by the user
+    hx = HeatExchanger('heat exchanger')
+    set_attr_TypeError(hx, Q_sections=5)
 
 
 def test_get_attr_errors():

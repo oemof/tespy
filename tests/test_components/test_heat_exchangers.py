@@ -906,14 +906,15 @@ class TestHeatExchangers:
         assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
         assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
 
-        _, T_hot, T_cold, heat_sections, _ = instance.calc_sections()
         # the sum of heat transfer of all sections must be equal to Q
-        assert approx(sum(heat_sections)) == -instance.Q.val_SI
+        assert approx(sum(instance.Q_per_section.val_SI)) == -instance.Q.val_SI
         # UA calculated over sections must be larger than kA
         # this tests stays!
         assert instance.UA.val > instance.kA.val
         # minimum temperature difference at section borders = pinch
-        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+        assert approx(
+            min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
+        ) == instance.td_pinch.val_SI
 
     def test_MovingBoundaryHeatExchanger_negative_pinch(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
@@ -947,9 +948,10 @@ class TestHeatExchangers:
         self.nw.solve("design")
         self.nw.assert_convergence()
 
-        _, T_hot, T_cold, _, _ = instance.calc_sections()
         # minimum temperature difference at section borders = pinch
-        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+        assert approx(
+            min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
+        ) == instance.td_pinch.val_SI
 
     def test_MovingBoundaryHeatExchanger_offdesign_UA(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
@@ -976,8 +978,9 @@ class TestHeatExchangers:
 
         assert approx(instance.td_pinch.val_SI) == 5
 
-        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
-        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+        assert approx(
+            sum(instance.Q_per_section.val_SI / instance.lmtd_per_section.val_SI)
+        ) == instance.UA.val_SI
 
         # reduces heat transfer
         self.c1.set_attr(m=0.9)
@@ -1035,14 +1038,41 @@ class TestHeatExchangers:
         assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
         assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
 
-        _, T_hot, T_cold, heat_sections, _ = instance.calc_sections()
         # the sum of heat transfer of all sections must be equal to Q
-        assert approx(sum(heat_sections)) == -instance.Q.val_SI
+        assert approx(sum(instance.Q_per_section.val_SI)) == -instance.Q.val_SI
         # UA calculated over sections must be larger than kA
         # this tests stays!
         assert instance.UA.val > instance.kA.val
         # minimum temperature difference at section borders = pinch
-        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+        assert approx(
+            min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
+        ) == instance.td_pinch.val_SI
+
+    def test_SectionedHeatExchanger_phase_postprocessing(self):
+        instance = SectionedHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        # NH3 hot side: superheated gas -> two-phase -> subcooled liquid (g/tp/l)
+        # water cold side: liquid throughout (l)
+        self.c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+        self.c2.set_attr(td_bubble=5)
+        self.c3.set_attr(fluid={"water": 1}, p=1, T=50)
+        self.c4.set_attr(T=60)
+        instance.set_attr(dp1=0.0, dp2=0.0, num_sections=10)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        ph_hot = instance.phase_hot_per_section.val_SI
+        ph_cold = instance.phase_cold_per_section.val_SI
+
+        assert len(ph_hot) == len(instance.Q_per_section.val_SI)
+        assert len(ph_cold) == len(instance.Q_per_section.val_SI)
+
+        # NH3 passes through all three subcritical zones
+        assert set(ph_hot) == {0, 1, 2}
+        # water stays liquid throughout
+        assert set(ph_cold) == {0}
 
     def test_SectionedHeatExchanger_negative_pinch(self):
         instance = SectionedHeatExchanger("heat exchanger")
@@ -1076,9 +1106,10 @@ class TestHeatExchangers:
         self.nw.solve("design")
         self.nw.assert_convergence()
 
-        _, T_hot, T_cold, _, _ = instance.calc_sections()
         # minimum temperature difference at section borders = pinch
-        assert approx(min(T_hot - T_cold)) == instance.td_pinch.val_SI
+        assert approx(
+            min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
+        ) == instance.td_pinch.val_SI
 
     def test_SectionedHeatExchanger_offdesign_UA(self):
         instance = SectionedHeatExchanger("heat exchanger")
@@ -1105,8 +1136,9 @@ class TestHeatExchangers:
 
         assert approx(instance.td_pinch.val_SI) == 5
 
-        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
-        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+        assert approx(
+            sum(instance.Q_per_section.val_SI / instance.lmtd_per_section.val_SI)
+        ) == instance.UA.val_SI
 
         # reduces heat transfer
         self.c1.set_attr(m=0.9)
@@ -1189,8 +1221,9 @@ class TestHeatExchangers:
 
         assert approx(instance.td_pinch.val_SI) == 7.61134
 
-        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
-        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+        assert approx(
+            sum(instance.Q_per_section.val_SI / instance.lmtd_per_section.val_SI)
+        ) == instance.UA.val_SI
 
         # reduce heat transfer
         instance.set_attr(Q=-35)
@@ -1243,8 +1276,9 @@ class TestHeatExchangers:
 
         assert approx(instance.td_pinch.val_SI) == 4.662423
 
-        _, _, _, heat_sections, td_log_sections = instance.calc_sections()
-        assert approx(sum(heat_sections / td_log_sections)) == instance.UA.val_SI
+        assert approx(
+            sum(instance.Q_per_section.val_SI / instance.lmtd_per_section.val_SI)
+        ) == instance.UA.val_SI
 
         # reduce heat transfer
         instance.set_attr(Q=-25)

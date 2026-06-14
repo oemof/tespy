@@ -104,8 +104,13 @@ class Condenser(HeatExchanger):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference |Q|/UA. Quantity:
-        :code:`temperature_difference`.
+        Effective logarithmic mean temperature difference :code:`Q/UA`.
+        Quantity: :code:`temperature_difference`.
+
+    lmtd_per_section : numpy.ndarray
+        Logarithmic mean temperature difference in each section. Quantity:
+        :code:`temperature_difference`. Result only - populated by the network
+        after each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -131,9 +136,28 @@ class Condenser(HeatExchanger):
         Heat transfer from hot side. Quantity: :code:`heat`.
         Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
+    Q_per_section : numpy.ndarray
+        Heat transferred from hot to cold side in each section. Quantity:
+        :code:`heat`. Result only - populated by the network after each solve.
+
+    Q_sections : numpy.ndarray
+        Cumulative heat transferred from hot to cold side up to each section
+        boundary. Quantity: :code:`heat`. Result only - populated by the network
+        after each solve.
+
     subcooling : bool
         Allow subcooling in the condenser.
         Equation: :py:meth:`subcooling_func <tespy.components.heat_exchangers.condenser.Condenser.subcooling_func>`.
+
+    T_cold_sections : numpy.ndarray
+        Cold side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
+
+    T_hot_sections : numpy.ndarray
+        Hot side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
@@ -308,7 +332,7 @@ class Condenser(HeatExchanger):
         ]
 
     def calculate_td_log(self):
-        T_i1 = self.inl[0].calc_T_sat()
+        T_i1 = self.inl[0].calc_T_dew()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
@@ -335,9 +359,9 @@ class Condenser(HeatExchanger):
 
                 0 = \dot{m}_{in,1} \cdot \left( h_{out,1} - h_{in,1}\right) +
                 UA_{design} \cdot f_{UA} \cdot \frac{T_{out,1} -
-                T_{in,2} - T_{sat} \left(p_{in,1}\right) + T_{out,2}}
+                T_{in,2} - T_{dew} \left(p_{in,1}\right) + T_{out,2}}
                 {\ln{\frac{T_{out,1} - T_{in,2}}
-                {T_{sat} \left(p_{in,1}\right) - T_{out,2}}}}
+                {T_{dew} \left(p_{in,1}\right) - T_{out,2}}}}
 
                 f_{UA} = \frac{2}{\frac{1}{f_1 \left( expr_1\right)} +
                 \frac{1}{f_2 \left( expr_2\right)}}
@@ -360,16 +384,16 @@ class Condenser(HeatExchanger):
 
             .. math::
 
-                0 = ttd_{u} - T_{sat} \left(p_{in,1}\right) + T_{out,2}
+                0 = ttd_{u} - T_{dew} \left(p_{in,1}\right) + T_{out,2}
 
         Note
         ----
-        The upper terminal temperature difference ttd_u refers to boiling
-        temperature at hot side inlet.
+        The upper terminal temperature difference :code:`ttd_u` refers to the
+        dew point temperature at the hot side inlet.
         """
         i = self.inl[0]
         o = self.outl[1]
-        T_i1 = i.calc_T_sat()
+        T_i1 = i.calc_T_dew()
         T_o2 = o.calc_T()
         return self.ttd_u.val_SI - T_i1 + T_o2
 

@@ -49,6 +49,8 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "heat_transfer_coefficient_per_area": "W/m**2/K",
+            "thermal_resistance": "K/W",
             "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
             "frequency": "1/s",
             # None is the default if not quantity is supplied
@@ -126,6 +128,10 @@ class Units:
             Default unit: "W/m/K"
         heat_transfer_coefficient : str
             Default unit: "W/K"
+        heat_transfer_coefficient_per_area : str
+            Default unit: "W/m**2/K"
+        thermal_resistance : str
+            Default unit: "K/W"
         """
         if "pressure" in kwargs and "pressure_difference" not in kwargs:
             msg = (

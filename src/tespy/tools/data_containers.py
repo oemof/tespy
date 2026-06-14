@@ -788,7 +788,7 @@ class ComponentArrayProperties(DataContainer):
         }
 
     def accept(self, value):
-        pass
+        raise TypeError("This parameter is result-only and cannot be set by the user.")
 
     def set_val_from_SI(self, units):
         if self.val_SI is None:

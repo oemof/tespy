@@ -18,6 +18,7 @@ from pytest import raises
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
+from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import Pipe
@@ -121,6 +122,10 @@ def test_set_attr_errors():
     # NotImplementedError
     set_attr_NotImplementedError(conn, td_bubble=Ref(conn, 1, 0))
     set_attr_NotImplementedError(conn, x=Ref(conn, 1, 0))
+
+    # result-only array parameters (dc_cap) cannot be set by the user
+    hx = HeatExchanger('heat exchanger')
+    set_attr_TypeError(hx, Q_sections=5)
 
 
 def test_get_attr_errors():

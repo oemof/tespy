@@ -755,11 +755,8 @@ class SectionedHeatExchanger(HeatExchanger):
         is_pure_fluid = fluid is not None
 
         if is_pure_fluid:
-            try:
-                phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
-                phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
-            except NotImplementedError:
-                return h_at_steps, zone_phases
+            phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
+            phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
 
             delta_h = c2.h.val_SI - c1.h.val_SI
             # we can round delta p here because we only need it in case it is
@@ -871,19 +868,26 @@ class SectionedHeatExchanger(HeatExchanger):
                         h_at_steps = [0, x_liq, 1]
                         zone_phases = [0, 1]
 
-            elif phase_h_high == "sc" and phase_h_low == "l":
-                wrapper = c1.fluid_data[fluid]["wrapper"]
-                h_at_tc = wrapper.h_pT(c1.p.val_SI, wrapper._T_crit)
-                if np.isclose(h_at_tc, c1.h.val_SI):
-                    h_at_steps = [0, 1]
-                    zone_phases = [3]
-                elif np.isclose(h_at_tc, c2.h.val_SI):
-                    h_at_steps = [0, 1]
-                    zone_phases = [0]
-                else:
-                    x_tc = (h_at_tc - c1.h.val_SI) / delta_h
-                    h_at_steps = [0, x_tc, 1]
-                    zone_phases = [0, 3]
+            elif "sc" in (phase_h_high, phase_h_low):
+                # CoolProp < 8 raises ValueError for h_pT(p, T_crit) when
+                # p > p_crit, so the sc/l boundary cannot be located reliably.
+                # CoolProp 8 fixes this; re-enable the logic below once the
+                # minimum required version is bumped:
+                #
+                #   elif phase_h_high == "sc" and phase_h_low == "l":
+                #       wrapper = c1.fluid_data[fluid]["wrapper"]
+                #       h_at_tc = wrapper.h_pT(c1.p.val_SI, wrapper._T_crit)
+                #       if np.isclose(h_at_tc, c1.h.val_SI):
+                #           h_at_steps = [0, 1]
+                #           zone_phases = [3]
+                #       elif np.isclose(h_at_tc, c2.h.val_SI):
+                #           h_at_steps = [0, 1]
+                #           zone_phases = [0]
+                #       else:
+                #           x_tc = (h_at_tc - c1.h.val_SI) / delta_h
+                #           h_at_steps = [0, x_tc, 1]
+                #           zone_phases = [0, 3]
+                zone_phases = [3]
 
             else:
                 zone_phases = [_PHASE_TO_INT.get(phase_h_low, 2)]

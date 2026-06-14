@@ -23,7 +23,9 @@ from pathlib import Path
 
 import pytest
 
-from tespy.components import MovingBoundaryHeatExchanger, Sink, Source
+from tespy.components import MovingBoundaryHeatExchanger
+from tespy.components import Sink
+from tespy.components import Source
 from tespy.connections import Connection
 from tespy.networks import Network
 

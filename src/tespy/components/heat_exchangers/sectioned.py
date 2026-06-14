@@ -605,17 +605,30 @@ class SectionedHeatExchanger(HeatExchanger):
         'kA_char2': 'UA_char2',
         'zeta1': 'zeta1_d4',
         'zeta2': 'zeta2_d4',
-        're_exp_sf': 're_exp_cold',
-        're_exp_r': 're_exp_hot',
     }
 
     def set_attr(self, **kwargs):
-        if 'refrigerant_index' in kwargs:
-            warnings.warn(
+        for old, msg in [
+            (
+                'refrigerant_index',
                 f"The parameter 'refrigerant_index' of component {self.label!r} is "
-                "deprecated and will not be required in a future version.",
-                FutureWarning, stacklevel=2
-            )
+                "deprecated and will not be required in a future version."
+            ),
+            (
+                're_exp_r',
+                f"The parameter 're_exp_r' of component {self.label!r} is deprecated. "
+                "Use 're_exp_hot' or 're_exp_cold' instead, depending on which side "
+                "the refrigerant flows on (as configured by 'refrigerant_index')."
+            ),
+            (
+                're_exp_sf',
+                f"The parameter 're_exp_sf' of component {self.label!r} is deprecated. "
+                "Use 're_exp_hot' or 're_exp_cold' instead, depending on which side "
+                "the secondary fluid flows on (as configured by 'refrigerant_index')."
+            ),
+        ]:
+            if old in kwargs:
+                warnings.warn(msg, FutureWarning, stacklevel=2)
         super().set_attr(**kwargs)
 
     def get_parameters(self):
@@ -652,10 +665,14 @@ class SectionedHeatExchanger(HeatExchanger):
                 description="Reynolds exponent for UA modification based on cold side mass flow"
             ),
             're_exp_r': dc_cp(
-                description="deprecated, use :code:`re_exp_hot` instead"
+                description="deprecated - Reynolds exponent for refrigerant side mass flow; "
+                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
+                "the refrigerant flows on"
             ),
             're_exp_sf': dc_cp(
-                description="deprecated, use :code:`re_exp_cold` instead"
+                description="deprecated - Reynolds exponent for secondary fluid side mass flow; "
+                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
+                "the secondary fluid flows on"
             ),
             'alpha_ratio': dc_cp(
                 quantity="ratio", min_val=0,
@@ -663,10 +680,12 @@ class SectionedHeatExchanger(HeatExchanger):
             ),
             'area_ratio': dc_cp(
                 quantity="ratio", min_val=0,
-                description="hot side to cold side heat transfer area ratio"
+                description="heat transfer area ratio; previously defined as secondary to "
+                "refrigerant side ratio, will be defined as hot to cold side ratio in a "
+                "future version"
             ),
             'UA_cecchinato': dc_gcp(
-                elements=['re_exp_hot', 're_exp_cold', 'alpha_ratio', 'area_ratio'],
+                elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
@@ -1108,14 +1127,27 @@ class SectionedHeatExchanger(HeatExchanger):
         """
         alpha_ratio = self.alpha_ratio.val_SI
         area_ratio = self.area_ratio.val_SI
-        re_exp_cold = self.re_exp_cold.val_SI
-        re_exp_hot = self.re_exp_hot.val_SI
-        refrigerant_index = self.refrigerant_index.val
 
-        if refrigerant_index == 0:
+        if self.re_exp_hot.is_set and self.re_exp_cold.is_set:
+            re_exp_hot = self.re_exp_hot.val_SI
+            re_exp_cold = self.re_exp_cold.val_SI
             hot_index, cold_index = 0, 1
         else:
-            hot_index, cold_index = 1, 0
+            warnings.warn(
+                f"Component {self.label!r}: UA_cecchinato is using the deprecated "
+                "'re_exp_r'/'re_exp_sf'/'refrigerant_index' parameters. Use "
+                "'re_exp_hot' and 're_exp_cold' instead.",
+                FutureWarning, stacklevel=2
+            )
+            refrigerant_index = self.refrigerant_index.val
+            if refrigerant_index == 0:
+                hot_index, cold_index = 0, 1
+                re_exp_hot = self.re_exp_r.val_SI
+                re_exp_cold = self.re_exp_sf.val_SI
+            else:
+                hot_index, cold_index = 1, 0
+                re_exp_hot = self.re_exp_sf.val_SI
+                re_exp_cold = self.re_exp_r.val_SI
 
         m_hot = self.inl[hot_index].m
         m_ratio_hot = max(

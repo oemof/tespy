@@ -1207,13 +1207,16 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         design_state = self.nw.save(as_dict=True)
 
-        instance.set_attr(
-            area_ratio=21.64,
-            alpha_ratio=8.4e-3,
-            re_exp_r=0.8,
-            re_exp_sf=0.55,
-            refrigerant_index=0
-        )
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            instance.set_attr(
+                area_ratio=21.64,
+                alpha_ratio=8.4e-3,
+                re_exp_r=0.8,
+                re_exp_sf=0.55,
+                refrigerant_index=0
+            )
         instance.set_attr(offdesign=["UA_cecchinato"])
         self.c1.set_attr(design=["T"])
 
@@ -1244,6 +1247,51 @@ class TestHeatExchangers:
         get_global_param_string("REFPROP_version") == "n/a",
         reason='This test requires REFPROP, dependency is missing.'
     )
+    def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_new_api(self):
+        instance = MovingBoundaryHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.nw.units.set_defaults(heat="kW")
+        self.c1.set_attr(fluid={"REFPROP::R410A": 1}, T=70)
+        self.c2.set_attr(td_bubble=0, T=52.4)
+        self.c3.set_attr(fluid={"air": 1}, p=1, T=35)
+        self.c4.set_attr(T=35 + 12.4)
+        instance.set_attr(dp1=0.0, dp2=0.0, Q=-40.23)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        design_state = self.nw.save(as_dict=True)
+
+        instance.set_attr(
+            area_ratio=21.64,
+            alpha_ratio=8.4e-3,
+            re_exp_hot=0.8,
+            re_exp_cold=0.55,
+            offdesign=["UA_cecchinato_hc"],
+        )
+        self.c1.set_attr(design=["T"])
+
+        self.nw.solve("offdesign", design_path=design_state)
+        assert approx(instance.td_pinch.val_SI) == 7.61134
+
+        instance.set_attr(Q=-35)
+        self.nw.solve("offdesign", design_path=design_state)
+
+        m_ratio_hot = self.c1.m.val_SI / self.c1.m.design
+        m_ratio_cold = self.c3.m.val_SI / self.c3.m.design
+        fUA = (
+            (1 + 8.4e-3 * 21.64)
+            / (
+                m_ratio_cold ** -0.55
+                + 8.4e-3 * 21.64 * m_ratio_hot ** -0.8
+            )
+        )
+        assert approx(instance.UA.val_SI) == instance.UA.design * fUA
+
+    @mark.skipif(
+        get_global_param_string("REFPROP_version") == "n/a",
+        reason='This test requires REFPROP, dependency is missing.'
+    )
     def test_MovingBoundaryHeatExchanger_offdesign_cecchinato_evaporator(self):
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
@@ -1262,13 +1310,16 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         design_state = self.nw.save(as_dict=True)
 
-        instance.set_attr(
-            area_ratio=1,
-            alpha_ratio=1.013,
-            re_exp_r=0.5,
-            re_exp_sf=0.5,
-            refrigerant_index=1
-        )
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            instance.set_attr(
+                area_ratio=1,
+                alpha_ratio=1.013,
+                re_exp_r=0.5,
+                re_exp_sf=0.5,
+                refrigerant_index=1
+            )
         instance.set_attr(offdesign=["UA_cecchinato"])
         self.c2.set_attr(design=["T"])
 

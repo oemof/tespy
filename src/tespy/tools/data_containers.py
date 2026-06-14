@@ -784,6 +784,7 @@ class ComponentArrayProperties(DataContainer):
             "func": None,
             "is_set": False,
             "num_eq_sets": 0,
+            "description": None,
         }
 
     def accept(self, value):

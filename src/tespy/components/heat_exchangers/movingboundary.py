@@ -187,39 +187,43 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
 
-    alpha1_sc : float
+    alpha1_l : float
         Hot-side heat transfer coefficient in subcooled zone,
-        :math:`\alpha_{h,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{sc}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     alpha1_tp : float
         Hot-side heat transfer coefficient in two-phase zone,
-        :math:`\alpha_{h,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{tp}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha1_sh : float
+    alpha1_g : float
         Hot-side heat transfer coefficient in superheated zone,
-        :math:`\alpha_{h,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{sh}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha2_sc : float
+    alpha2_l : float
         Cold-side heat transfer coefficient in subcooled zone,
-        :math:`\alpha_{c,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{c,\text{sc}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     alpha2_tp : float
         Cold-side heat transfer coefficient in two-phase zone,
-        :math:`\alpha_{c,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{c,\text{tp}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha2_sh : float
+    alpha2_g : float
         Cold-side heat transfer coefficient in superheated zone,
-        :math:`\alpha_{c,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
-
-    A_ratio : float
-        Cold- to hot-side heat transfer area ratio :math:`A_c/A_h`.
+        :math:`\alpha_{c,\text{sh}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     R_cond : float
-        Total wall thermal resistance :math:`R_k/(\text{K}/\text{W})`.
+        Total wall thermal resistance :math:`R_k`. Quantity:
+        :code:`thermal_resistance`.
 
-    A_h : float
-        Hot-side heat transfer area :math:`A_h/\text{m}^2`, Bell (2015)
-        area-based constraint.
+    area_hot : float
+        Hot-side heat transfer area :math:`A_h`, Bell (2015)
+        area-based constraint. Quantity: :code:`area`.
 
     UA_char1 : tespy.tools.characteristics.CharLine, dict
         Hot side UA modification lookup table for offdesign.

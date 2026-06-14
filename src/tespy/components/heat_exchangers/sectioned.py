@@ -203,49 +203,55 @@ class SectionedHeatExchanger(HeatExchanger):
     UA_char1 : tespy.tools.characteristics.CharLine, dict
         Hot side UA modification lookup table for offdesign.
 
-    alpha1_sc : float
+    alpha1_l : float
         Hot-side heat transfer coefficient in subcooled zone,
-        :math:`\alpha_{h,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{sc}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     alpha1_tp : float
         Hot-side heat transfer coefficient in two-phase zone,
-        :math:`\alpha_{h,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{tp}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha1_sh : float
+    alpha1_g : float
         Hot-side heat transfer coefficient in superheated zone,
-        :math:`\alpha_{h,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{sh}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha1_scf : float
+    alpha1_sc : float
         Hot-side heat transfer coefficient in supercritical zone
         (:math:`p > p_\text{crit}`, :math:`T > T_\text{crit}`),
-        :math:`\alpha_{h,\text{scf}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{h,\text{scf}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha2_sc : float
+    alpha2_l : float
         Cold-side heat transfer coefficient in subcooled zone,
-        :math:`\alpha_{c,\text{sc}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{c,\text{sc}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     alpha2_tp : float
         Cold-side heat transfer coefficient in two-phase zone,
-        :math:`\alpha_{c,\text{tp}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{c,\text{tp}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha2_sh : float
+    alpha2_g : float
         Cold-side heat transfer coefficient in superheated zone,
-        :math:`\alpha_{c,\text{sh}}/(\text{W}/(\text{m}^2\text{K}))`.
+        :math:`\alpha_{c,\text{sh}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
-    alpha2_scf : float
+    alpha2_sc : float
         Cold-side heat transfer coefficient in supercritical zone
         (:math:`p > p_\text{crit}`, :math:`T > T_\text{crit}`),
-        :math:`\alpha_{c,\text{scf}}/(\text{W}/(\text{m}^2\text{K}))`.
-
-    A_ratio : float
-        Cold- to hot-side heat transfer area ratio :math:`A_c/A_h`.
+        :math:`\alpha_{c,\text{scf}}`. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
 
     R_cond : float
-        Total wall thermal resistance :math:`R_k/(\text{K}/\text{W})`.
+        Total wall thermal resistance :math:`R_k`. Quantity:
+        :code:`thermal_resistance`.
 
-    A_h : float
-        Hot-side heat transfer area :math:`A_h/\text{m}^2`, Bell (2015)
-        area-based constraint.
+    area_hot : float
+        Hot-side heat transfer area :math:`A_h`, Bell (2015)
+        area-based constraint. Quantity: :code:`area`.
 
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
@@ -492,7 +498,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     Solve the design point and save results:
 
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> design_state = nw.save(as_dict=True)
 
     After design computation, the CO2 outlet state is:
@@ -623,36 +629,36 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_td_pinch,
                 calc_deps=[]
             ),
-            'alpha1_sc': dc_cp(
-                min_val=0,
+            'alpha1_l': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in subcooled zone"
             ),
             'alpha1_tp': dc_cp(
-                min_val=0,
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha1_sh': dc_cp(
-                min_val=0,
+            'alpha1_g': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in superheated zone"
             ),
-            'alpha1_scf': dc_cp(
-                min_val=0,
+            'alpha1_sc': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in supercritical zone"
             ),
-            'alpha2_sc': dc_cp(
-                min_val=0,
+            'alpha2_l': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in subcooled zone"
             ),
             'alpha2_tp': dc_cp(
-                min_val=0,
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha2_sh': dc_cp(
-                min_val=0,
+            'alpha2_g': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in superheated zone"
             ),
-            'alpha2_scf': dc_cp(
-                min_val=0,
+            'alpha2_sc': dc_cp(
+                min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in supercritical zone"
             ),
             'phase_hot_per_section': dc_cap(
@@ -663,16 +669,12 @@ class SectionedHeatExchanger(HeatExchanger):
                 quantity=None,
                 description="phase index per section on cold side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
             ),
-            'A_ratio': dc_cp(
-                min_val=0,
-                description="cold to hot area ratio A_c/A_h"
-            ),
             'R_cond': dc_cp(
-                min_val=0,
+                min_val=0, quantity="thermal_resistance",
                 description="wall conduction thermal resistance"
             ),
-            'A_h': dc_cp(
-                min_val=0, num_eq_sets=1,
+            'area_hot': dc_cp(
+                min_val=0, num_eq_sets=1, quantity="area",
                 func=self.area_zones_func,
                 dependents=self.area_zones_dependents,
                 description="hot-side heat exchange area, Bell (2015) area-based constraint"
@@ -1174,7 +1176,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
         with :math:`R_k` the total wall thermal resistance in
         :math:`\text{K}/\text{W}` (:code:`R_cond`) and
-        :math:`A_c = A_h \cdot` :code:`A_ratio`.
+        :math:`A_c = A_h \cdot` :code:`area_ratio`.
 
         Returns
         -------
@@ -1189,7 +1191,7 @@ class SectionedHeatExchanger(HeatExchanger):
         Q_per_section = np.diff(self._get_Q_cumsum_steps(steps_all))
         min_td = float(np.min(T_hot - T_cold))
 
-        A_h = self.A_h.val_SI
+        area_hot = self.area_hot.val_SI
         if min_td <= 0.0:
             # ×10: Newton overshoots past min_td=0 into the feasible side, giving oscillation_damping a sign-change bracket to bisect; ×1 lands at the branch discontinuity.
             return min_td * 20.0
@@ -1197,19 +1199,19 @@ class SectionedHeatExchanger(HeatExchanger):
         phases1 = self._section_phases(steps_all, np.array(steps1), zone_phases1)
         phases2 = self._section_phases(steps_all, np.array(steps2), zone_phases2)
 
-        A_c = A_h * self.A_ratio.val_SI
-        alpha1 = [self.alpha1_sc.val_SI, self.alpha1_tp.val_SI, self.alpha1_sh.val_SI, self.alpha1_scf.val_SI]
-        alpha2 = [self.alpha2_sc.val_SI, self.alpha2_tp.val_SI, self.alpha2_sh.val_SI, self.alpha2_scf.val_SI]
+        area_cold = area_hot * self.area_ratio.val_SI
+        alpha1 = [self.alpha1_l.val_SI, self.alpha1_tp.val_SI, self.alpha1_g.val_SI, self.alpha1_sc.val_SI]
+        alpha2 = [self.alpha2_l.val_SI, self.alpha2_tp.val_SI, self.alpha2_g.val_SI, self.alpha2_sc.val_SI]
         A_req = 0.0
         for Q_j, lmtd_j, ph1, ph2 in zip(Q_per_section, lmtd_per_section, phases1, phases2):
             U_j = 1.0 / (
                 1.0 / alpha1[ph1]
-                + A_h * self.R_cond.val_SI
-                + A_h / (alpha2[ph2] * A_c)
+                + area_hot * self.R_cond.val_SI
+                + area_hot / (alpha2[ph2] * area_cold)
             )
             A_req += abs(Q_j) / (U_j * lmtd_j)
 
-        residual = A_h - A_req
+        residual = area_hot - A_req
         return residual
 
     def area_zones_dependents(self):

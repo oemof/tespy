@@ -250,8 +250,15 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`thermal_resistance`.
 
     area_hot : float
-        Hot-side heat transfer area :math:`A_h`, Bell (2015)
-        area-based constraint. Quantity: :code:`area`.
+        Hot-side heat transfer area :math:`A_h`. Quantity: :code:`area`.
+
+    area_zones : GroupedComponentProperties
+        Bell (2015) area-based heat exchanger constraint. Elements:
+        :code:`area_hot`, :code:`area_ratio`, :code:`alpha1_l`,
+        :code:`alpha1_tp`, :code:`alpha1_g`, :code:`alpha1_sc`,
+        :code:`alpha2_l`, :code:`alpha2_tp`, :code:`alpha2_g`,
+        :code:`alpha2_sc`, :code:`R_cond`.
+        Equation: :py:meth:`area_zones_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.area_zones_func>`.
 
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
@@ -674,10 +681,26 @@ class SectionedHeatExchanger(HeatExchanger):
                 description="wall conduction thermal resistance"
             ),
             'area_hot': dc_cp(
-                min_val=0, num_eq_sets=1, quantity="area",
+                min_val=0, quantity="area",
+                description="hot-side heat exchange area"
+            ),
+            'area_zones': dc_gcp(
+                elements=[
+                    'area_hot', 'area_ratio',
+                    'alpha1_l', 'alpha1_tp', 'alpha1_g', 'alpha1_sc',
+                    'alpha2_l', 'alpha2_tp', 'alpha2_g', 'alpha2_sc',
+                    'R_cond',
+                ],
+                num_eq_sets=1,
                 func=self.area_zones_func,
                 dependents=self.area_zones_dependents,
-                description="hot-side heat exchange area, Bell (2015) area-based constraint"
+                description=(
+                    "Bell (2015) area-based heat exchanger constraint. All "
+                    "elements must be set for the group to activate. For "
+                    "phases that do not occur in your application set the "
+                    "corresponding alpha to any value - it only needs to be "
+                    "set, as it will not be used."
+                )
             )
         })
         return params

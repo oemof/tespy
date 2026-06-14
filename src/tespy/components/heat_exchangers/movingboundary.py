@@ -222,8 +222,15 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`thermal_resistance`.
 
     area_hot : float
-        Hot-side heat transfer area :math:`A_h`, Bell (2015)
-        area-based constraint. Quantity: :code:`area`.
+        Hot-side heat transfer area :math:`A_h`. Quantity: :code:`area`.
+
+    area_zones : GroupedComponentProperties
+        Bell (2015) area-based heat exchanger constraint. Elements:
+        :code:`area_hot`, :code:`area_ratio`, :code:`alpha1_l`,
+        :code:`alpha1_tp`, :code:`alpha1_g`, :code:`alpha1_sc`,
+        :code:`alpha2_l`, :code:`alpha2_tp`, :code:`alpha2_g`,
+        :code:`alpha2_sc`, :code:`R_cond`.
+        Equation: :py:meth:`area_zones_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.area_zones_func>`.
 
     UA_char1 : tespy.tools.characteristics.CharLine, dict
         Hot side UA modification lookup table for offdesign.

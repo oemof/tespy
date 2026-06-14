@@ -56,7 +56,7 @@ def test_v_mix_ideal_cond_liquid_fraction_negligible_volume():
     few percent of the dry-gas specific volume.
 
     The previous (buggy) implementation computed
-      d = ρ_liq·x_liq + ρ_gas·(1−x_liq),  v = 1/d
+      d = ρ_liq·x_liq + ρ_gas·(1-x_liq),  v = 1/d
     which produced a value ~10× too small because it averaged densities
     instead of specific volumes.
     """

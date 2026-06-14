@@ -270,8 +270,19 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
     UA_cecchinato : GroupedComponentProperties
-        Equation for UA modification in offdesign. Elements: :code:`re_exp_r`,
-        :code:`re_exp_sf`, :code:`alpha_ratio`, :code:`area_ratio`.
+        Deprecated - equation for UA modification in offdesign using
+        refrigerant/secondary-fluid Reynolds exponents; use
+        :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
+        instead. Elements: :code:`re_exp_r`, :code:`re_exp_sf`,
+        :code:`alpha_ratio`, :code:`area_ratio`.
+        Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
+
+    UA_cecchinato_hc : GroupedComponentProperties
+        Temporary name - equation for UA modification in offdesign using
+        explicit hot/cold Reynolds exponents; in the next major version
+        :code:`UA_cecchinato` will adopt the hot/cold convention of
+        :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
+        :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
     UA_char : GroupedComponentCharacteristics
@@ -400,22 +411,19 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     implementation of :cite:`cecchinato2010`. For this you have to specify
     :code:`UA_cecchinato` as offdesign parameter and along with it, values for
 
-    - refrigerant side Reynolds exponent
-    - secondary fluid side Reynolds exponent
-    - secondary fluid to refrigerant area ratio
-    - secondary fluid to refrigerant alpha (heat transfer coefficient) ratio
-    - the refrigerant index (which side of the heat exchanger is passed by the
-      refrigerant)
+    - hot side Reynolds exponent (:code:`re_exp_hot`)
+    - cold side Reynolds exponent (:code:`re_exp_cold`)
+    - hot to cold side area ratio (:code:`area_ratio`)
+    - hot to cold side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
     >>> design_state = nw.save(as_dict=True)
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
-    ...     re_exp_r=0.8,
-    ...     re_exp_sf=0.55,
-    ...     refrigerant_index=0,  # water is refrigerant in this case
+    ...     re_exp_hot=0.8,
+    ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato"]
+    ...     offdesign=["UA_cecchinato_hc"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 

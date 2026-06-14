@@ -3,13 +3,15 @@ v0.10.0 - Rankine's Renaissance (June, 14, 2026)
 
 API Changes
 ###########
-- The :code:`UA_cecchinato` group parameters :code:`re_exp_r`,
+- The :code:`UA_cecchinato` group and its parameters :code:`re_exp_r`,
   :code:`re_exp_sf`, and :code:`refrigerant_index` on
   :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`
   and
   :py:class:`~tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
-  are deprecated in favour of the new explicit :code:`re_exp_hot` and
-  :code:`re_exp_cold` parameters. Setting the old parameters raises a
+  are deprecated. Use the new :code:`UA_cecchinato_hc` group with
+  :code:`re_exp_hot` and :code:`re_exp_cold` instead. In the next major version
+  :code:`UA_cecchinato` will adopt the hot/cold convention of
+  :code:`UA_cecchinato_hc`. Setting the old parameters raises a
   :code:`FutureWarning`
   (`PR #985 <https://github.com/oemof/tespy/pull/985>`__).
 - :py:meth:`~tespy.components.heat_exchangers.base.HeatExchanger.calc_sections`

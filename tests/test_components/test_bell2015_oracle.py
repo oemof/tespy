@@ -6,17 +6,14 @@ oracle (HX.py) results stored in bell2015_five_cases.json.
 For each case the test:
   1. Builds a MovingBoundaryHeatExchanger network with the oracle's fluid and
      flow inputs, without area_hot (so area_zones does not activate yet).
-  2. Pins T_h_out to oracle + 1 K (capped at T_h_in - 0.5 K) and solves for
-     a warm initial state.  The +1 K offset avoids the T == T_sat singularity
-     for cases where the oracle's hot outlet sits exactly on the bubble point
-     (B1, B3), while keeping the warm state physically close to the solution.
-  3. Releases T_h_out, sets area_hot, and resolves with oscillation_damping so
+  2. Pins Q to the oracle value and solves for a warm initial state.
+  3. Releases Q, sets area_hot, and resolves with oscillation_damping so
      area_zones drives the solution.
   4. Asserts that Q, T_h_out and T_c_out match the oracle within tolerance.
 
 Q sign convention: TESPy stores Q = mdot_h * (h_out - h_in) < 0 for the hot
-side.  The oracle reports positive heat transferred, so assertions use
-:code:`abs(hx.Q.val_SI)`.
+side.  The oracle reports positive heat transferred, so the warm-start pins
+:code:`hx.Q = -Q_oracle` and assertions use :code:`abs(hx.Q.val_SI)`.
 """
 import json
 from pathlib import Path
@@ -40,7 +37,7 @@ def _build_and_solve(
     fluid_h, T_h_in, p_h_in, mdot_h,
     fluid_c, T_c_in, p_c_in, mdot_c,
     alpha_sp, alpha_tp, area, R_cond,
-    T_h_out_oracle,
+    Q_oracle,
 ):
     nw = Network()
     nw.units.set_defaults(temperature="K", pressure="Pa", pressure_difference="Pa")
@@ -68,17 +65,12 @@ def _build_and_solve(
         area_ratio=1.0, R_cond=R_cond,
     )
 
-    # Step 1: warm start — pin T_h_out 1 K above oracle so the solver has a
-    # thermodynamically valid starting state.  The offset keeps us above T_sat
-    # for B1/B3 (where T_h_out_oracle == T_sat(p_h)) and the cap at
-    # T_h_in - 0.5 K prevents an impossible state for near-adiabatic cases.
-    T_warm = min(T_h_out_oracle + 1.0, T_h_in - 0.5)
-    c2.set_attr(T=T_warm)
+    # Step 1: warm start — pin Q to the oracle value (area_zones inactive).
+    hx.set_attr(Q=-Q_oracle)
     nw.solve("design")
 
-    # Step 2: release T_h_out, activate area_zones via area_hot, resolve.
-    c2.set_attr(T=None)
-    hx.set_attr(area_hot=area)
+    # Step 2: release Q, activate area_zones via area_hot, resolve.
+    hx.set_attr(Q=None, area_hot=area)
     nw.solve("design", oscillation_damping=True)
 
     return nw, hx, c2, c4
@@ -98,7 +90,7 @@ def test_section_A_water_propane(case):
         _inp_A["Fluid_c"], _inp_A["T_c_in_K"], _inp_A["p_c_in_Pa"], _inp_A["mdot_c_kg_s"],
         _inp_A["alpha_liquid_vapor_W_m2_K"], _inp_A["alpha_two_phase_W_m2_K"],
         case["A_m2"], _inp_A["R_cond"],
-        case["T_h_out_K"],
+        case["Q_W"],
     )
     assert abs(hx.Q.val_SI) == pytest.approx(case["Q_W"], rel=Q_RTOL)
     assert c2.T.val_SI == pytest.approx(case["T_h_out_K"], abs=T_ATOL_K)
@@ -119,7 +111,7 @@ def test_section_B_propane_propane(case):
         _inp_B["Fluid_c"], _inp_B["T_c_in_K"], _inp_B["p_c_in_Pa"], case["mdot_c_kg_s"],
         _inp_B["alpha_liquid_vapor_W_m2_K"], _inp_B["alpha_two_phase_W_m2_K"],
         case["A_m2"], _inp_B["R_cond"],
-        case["T_h_out_K"],
+        case["Q_W"],
     )
     assert abs(hx.Q.val_SI) == pytest.approx(case["Q_W"], rel=Q_RTOL)
     assert c2.T.val_SI == pytest.approx(case["T_h_out_K"], abs=T_ATOL_K)

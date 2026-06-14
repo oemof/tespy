@@ -10,6 +10,7 @@ import tespy
 from tespy.components import Source, Sink, PowerSource, PowerSink
 from tespy.components.component import component_registry
 from tespy.connections.connection import connection_registry
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -101,6 +102,7 @@ def collect_component_parameters(instance):
     grouped_parameters = {}
     parameters_with_equation = {}
     characteristic_lines_and_maps = {}
+    array_properties = {}
 
     unconditional_constraints, conditional_constraints = _collect_constraints(instance)
 
@@ -133,8 +135,13 @@ def collect_component_parameters(instance):
                 "description": value.description,
                 "elements": ", ".join([f":code:`{element}`" for element in value.elements])
             }
+        elif isinstance(value, dc_cap):
+            array_properties[key] = {
+                "description": value.description,
+                "quantity": value.quantity
+            }
 
-    return unconditional_constraints, conditional_constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps
+    return unconditional_constraints, conditional_constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps, array_properties
 
 
 def collect_connection_parameters(instance):
@@ -201,7 +208,7 @@ def create_tabular_component_views():
         if parent_module not in modules:
             modules[parent_module] = {}
 
-        constraints, conditional_constraints, parameters, parameter_groups, characteristic_lines = collect_component_parameters(instance)
+        constraints, conditional_constraints, parameters, parameter_groups, characteristic_lines, array_properties = collect_component_parameters(instance)
 
         modules[parent_module][cls_name] = _indent_block("\n", 4)
         modules[parent_module][cls_name] += _indent_block(f".. dropdown:: {cls_name}" + "\n" * 2, 8)
@@ -215,6 +222,7 @@ def create_tabular_component_views():
             "Table of parameters": parameters,
             "Table of parameter groups": parameter_groups,
             "Table of characteristic lines and maps": characteristic_lines,
+            "Table of result array properties": array_properties,
         }
         headers = {
             "description": "Description",

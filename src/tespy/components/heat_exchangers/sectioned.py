@@ -1201,13 +1201,6 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             residual value of equation
         """
-        warnings.warn(
-            f"Component {self.label!r}: 'UA_cecchinato' uses deprecated parameters. "
-            "Use 'UA_cecchinato_hc' with 're_exp_hot' and 're_exp_cold' instead. "
-            "In the next major version 'UA_cecchinato' will adopt the hot/cold "
-            "convention of 'UA_cecchinato_hc'.",
-            FutureWarning, stacklevel=2
-        )
         refrigerant_index = self.refrigerant_index.val
         if refrigerant_index == 0:
             hot_index, cold_index = 0, 1

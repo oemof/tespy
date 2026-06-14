@@ -72,7 +72,7 @@ def _build_and_solve(
     # thermodynamically valid starting state.  The offset keeps us above T_sat
     # for B1/B3 (where T_h_out_oracle == T_sat(p_h)) and the cap at
     # T_h_in - 0.5 K prevents an impossible state for near-adiabatic cases.
-    T_warm = min(T_h_out_oracle + 5.0, T_h_in - 0.5)
+    T_warm = min(T_h_out_oracle + 1.0, T_h_in - 0.5)
     c2.set_attr(T=T_warm)
     nw.solve("design")
 

@@ -18,7 +18,6 @@ from pytest import raises
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
-from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import Pipe
@@ -28,6 +27,7 @@ from tespy.components import Splitter
 from tespy.components import Subsystem
 from tespy.components import Turbine
 from tespy.components.component import Component
+from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network

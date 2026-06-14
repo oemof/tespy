@@ -9,8 +9,9 @@ tests/test_components/test_sectioned_hx_sc_phases.py
 
 SPDX-License-Identifier: MIT
 """
-import numpy as np
 from types import SimpleNamespace
+
+import numpy as np
 
 from tespy.components.heat_exchangers.sectioned import SectionedHeatExchanger
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper

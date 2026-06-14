@@ -56,8 +56,8 @@ def test_R601_converges():
     cond.set_attr(pr1=pr_lossless, pr2=pr_lossless)
     cond.set_attr(ttd_l=ttd_l_c)
 
-    orc.solve('design')
-    assert orc.status == 2
+    orc.solve('design', oscillation_damping=True)
+    assert orc.status == 0
 
 
 def test_two_compressors_side_stream_bypass():

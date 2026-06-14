@@ -3,6 +3,15 @@ v0.10.1 - Under development
 
 API Changes
 ###########
+- The :code:`UA_cecchinato` group parameters :code:`re_exp_r`,
+  :code:`re_exp_sf`, and :code:`refrigerant_index` on
+  :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`
+  and
+  :py:class:`~tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
+  are deprecated in favour of the new explicit :code:`re_exp_hot` and
+  :code:`re_exp_cold` parameters. Setting the old parameters raises a
+  :code:`FutureWarning`
+  (`PR #985 <https://github.com/oemof/tespy/pull/985>`__).
 - :py:meth:`~tespy.components.heat_exchangers.base.HeatExchanger.calc_sections`
   on :py:class:`~tespy.components.heat_exchangers.base.HeatExchanger`,
   :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`,
@@ -12,15 +21,38 @@ API Changes
   and exposed as
   :py:class:`~tespy.tools.data_containers.ComponentArrayProperties` attributes
   directly on the component: :code:`Q_sections`, :code:`T_hot_sections`,
-  :code:`T_cold_sections`, :code:`Q_per_section`, and
-  :code:`lmtd_per_section`. Each attribute provides :code:`.val` in the
-  network's user-specified units and :code:`.val_SI` in SI units. The old
-  return value of :code:`calc_sections()` (a 5-tuple in user units) is still
-  returned but raises a :code:`FutureWarning`
+  :code:`T_cold_sections`, :code:`Q_per_section`,
+  :code:`lmtd_per_section`, and :code:`phases_per_section`. Each attribute
+  provides :code:`.val` in the network's user-specified units and
+  :code:`.val_SI` in SI units. The old return value of :code:`calc_sections()`
+  (a 5-tuple in user units) is still returned but raises a :code:`FutureWarning`
   (`PR #1001 <https://github.com/oemof/tespy/pull/1001>`__).
+
+New Features
+############
+- :py:meth:`~tespy.tools.fluid_properties.wrappers.FluidPropertyWrapper.phase_ph`
+  is now implemented across all fluid property wrappers, returning a consistent
+  set of string identifiers: :code:`"l"` (liquid), :code:`"g"` (gas),
+  :code:`"tp"` (two-phase), and :code:`"sc"` (supercritical).
+- Added heat transfer area calculation for the
+  :py:class:`~tespy.components.heat_exchangers.movingboundary.MovingBoundaryHeatExchanger`
+  following the moving-boundary method of :cite:`bell2015`.
+- A new
+  :py:class:`~tespy.tools.data_containers.ComponentArrayProperties`
+  data container has been introduced for array-valued component result
+  properties. It exposes :code:`.val_SI` (SI units) and :code:`.val`
+  (network user units, populated by the network after each solve via
+  :code:`set_val_from_SI`), following the same unit-routing pattern as
+  :py:class:`~tespy.tools.data_containers.ComponentProperties`.
+  This class is currently intended for result-only use and cannot be set by
+  the user. Its API may change in future versions
+  (`PR #1001 <https://github.com/oemof/tespy/pull/1001>`__).
+
 
 Bug Fixes
 #########
+- Fixed specific volume calculation for mixtures containing water in condensing
+  conditions (`PR #985 <https://github.com/oemof/tespy/pull/985>`__).
 - Fixed :py:meth:`~tespy.connections.connection.Connection._presolve` to use
   the actual vapor quality when determining saturation pressure from a
   simultaneous T and x specification. Previously :code:`p_sat_T` (hardcoded
@@ -49,19 +81,6 @@ Bug Fixes
   :code:`calc_phase` is not implemented. Phase is now determined by comparing
   enthalpy against the bubble and dew enthalpies at the given pressure
   (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
-
-New Features
-############
-- A new
-  :py:class:`~tespy.tools.data_containers.ComponentArrayProperties`
-  data container has been introduced for array-valued component result
-  properties. It exposes :code:`.val_SI` (SI units) and :code:`.val`
-  (network user units, populated by the network after each solve via
-  :code:`set_val_from_SI`), following the same unit-routing pattern as
-  :py:class:`~tespy.tools.data_containers.ComponentProperties`.
-  This class is currently intended for result-only use and cannot be set by
-  the user. Its API may change in future versions
-  (`PR #1001 <https://github.com/oemof/tespy/pull/1001>`__).
 
 Other Changes
 #############

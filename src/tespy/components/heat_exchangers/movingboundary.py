@@ -53,13 +53,59 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     Parameters
     ----------
 
+    alpha1_g : float, dict
+        Hot-side heat transfer coefficient in superheated zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha1_l : float, dict
+        Hot-side heat transfer coefficient in subcooled zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha1_sc : float, dict
+        Hot-side heat transfer coefficient in supercritical zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha1_tp : float, dict
+        Hot-side heat transfer coefficient in two-phase zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha2_g : float, dict
+        Cold-side heat transfer coefficient in superheated zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha2_l : float, dict
+        Cold-side heat transfer coefficient in subcooled zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha2_sc : float, dict
+        Cold-side heat transfer coefficient in supercritical zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
+    alpha2_tp : float, dict
+        Cold-side heat transfer coefficient in two-phase zone. Quantity:
+        :code:`heat_transfer_coefficient_per_area`.
+
     alpha_ratio : float, dict
         Secondary to refrigerant side convective heat transfer coefficient
         ratio. Quantity: :code:`ratio`.
 
+    area_hot : float, dict
+        Hot-side heat exchange area. Quantity: :code:`area`.
+
     area_ratio : float, dict
-        Secondary to refrigerant side heat transfer area ratio. Quantity:
-        :code:`ratio`.
+        Heat transfer area ratio; previously defined as secondary to refrigerant
+        side ratio, will be defined as hot to cold side ratio in a future
+        version. Quantity: :code:`ratio`.
+
+    area_zones : GroupedComponentProperties
+        Bell (2015) area-based heat exchanger constraint. All elements must be
+        set for the group to activate. For phases that do not occur in your
+        application set the corresponding alpha to any value - it only needs to
+        be set, as it will not be used. Elements: :code:`area_hot`,
+        :code:`area_ratio`, :code:`alpha1_l`, :code:`alpha1_tp`,
+        :code:`alpha1_g`, :code:`alpha1_sc`, :code:`alpha2_l`,
+        :code:`alpha2_tp`, :code:`alpha2_g`, :code:`alpha2_sc`, :code:`R_cond`.
+        Equation: :py:meth:`area_zones_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.area_zones_func>`.
 
     char_warnings : bool
         Ignore warnings on default characteristics usage for this component.
@@ -111,8 +157,13 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
-        :code:`temperature_difference`.
+        Effective logarithmic mean temperature difference :code:`Q/UA`.
+        Quantity: :code:`temperature_difference`.
+
+    lmtd_per_section : numpy.ndarray
+        Logarithmic mean temperature difference in each section. Quantity:
+        :code:`temperature_difference`. Result only - populated by the network
+        after each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -122,6 +173,16 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     offdesign : list
         List containing offdesign parameters (stated as String).
+
+    phase_cold_per_section : numpy.ndarray
+        Phase index per section on cold side (0=liquid, 1=two-phase, 2=gas,
+        3=supercritical). Result only - populated by the network after each
+        solve.
+
+    phase_hot_per_section : numpy.ndarray
+        Phase index per section on hot side (0=liquid, 1=two-phase, 2=gas,
+        3=supercritical). Result only - populated by the network after each
+        solve.
 
     pr1 : float, dict
         Hot side outlet to inlet pressure ratio. Quantity: :code:`ratio`.
@@ -138,16 +199,47 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Heat transfer from hot side. Quantity: :code:`heat`.
         Equation: :py:meth:`energy_balance_hot_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_hot_func>`.
 
+    Q_per_section : numpy.ndarray
+        Heat transferred from hot to cold side in each section. Quantity:
+        :code:`heat`. Result only - populated by the network after each solve.
+
+    Q_sections : numpy.ndarray
+        Cumulative heat transferred from hot to cold side up to each section
+        boundary. Quantity: :code:`heat`. Result only - populated by the network
+        after each solve.
+
+    R_cond : float, dict
+        Wall conduction thermal resistance. Quantity:
+        :code:`thermal_resistance`.
+
+    re_exp_cold : float, dict
+        Reynolds exponent for UA modification based on cold side mass flow.
+
+    re_exp_hot : float, dict
+        Reynolds exponent for UA modification based on hot side mass flow.
+
     re_exp_r : float, dict
-        Reynolds exponent for UA modification based on refrigerant side mass
-        flow.
+        Deprecated - Reynolds exponent for refrigerant side mass flow; use
+        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
+        refrigerant flows on.
 
     re_exp_sf : float, dict
-        Reynolds exponent for UA modification based on secondary fluid side mass
-        flow.
+        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
+        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
+        secondary fluid flows on.
 
     refrigerant_index : int
-        Side on which the refrigerant is flowing (0: hot, 1:cold).
+        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
+
+    T_cold_sections : numpy.ndarray
+        Cold side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
+
+    T_hot_sections : numpy.ndarray
+        Hot side temperature at each section boundary. Quantity:
+        :code:`temperature`. Result only - populated by the network after each
+        solve.
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
@@ -353,8 +445,17 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         del params["num_sections"]
         return params
 
-    def _assign_steps(self):
+    def _assign_steps(self, steps_hot=None, steps_cold=None):
         """Assign the sections of the heat exchanger
+
+        Parameters
+        ----------
+        steps_hot : list, optional
+            Pre-computed phase-boundary steps for the hot side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
+        steps_cold : list, optional
+            Pre-computed phase-boundary steps for the cold side. Computed from
+            :py:meth:`_get_moving_steps` when not provided.
 
         Returns
         -------
@@ -362,9 +463,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
             List of cumulative sum of heat exchanged defining the heat exchanger
             sections.
         """
-        steps_hot = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps_cold = self._get_moving_steps(self.inl[1], self.outl[1])
-
-        # unique throws out duplicates and sorts at the same time
-        steps = np.unique(np.r_[steps_hot, steps_cold])
-        return steps
+        if steps_hot is None:
+            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+        if steps_cold is None:
+            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+        return np.unique(np.r_[steps_hot, steps_cold])

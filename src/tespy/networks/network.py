@@ -2560,7 +2560,8 @@ class Network:
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
-              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False):
+              use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
+              oscillation_damping=False):
         r"""
         Solve the network.
 
@@ -2604,6 +2605,23 @@ class Network:
             Use cuda instead of numpy for matrix inversion, default:
             :code:`False`.
 
+        robust_relax : boolean
+            Apply a ramped relaxation factor that starts near zero and grows to
+            1 over the first quarter of :code:`max_iter` iterations. Helps
+            avoid divergence from poor starting values, at the cost of slower
+            early convergence. Default: :code:`False`.
+
+        oscillation_damping : boolean
+            Detect Newton oscillations caused by non-smooth residuals (e.g.
+            phase-transition kinks in sectioned heat exchangers) and dampen
+            them automatically. When a residual component changes sign between
+            two consecutive iterations - indicating an overshoot - the
+            increments for all variables that equation depends on are halved
+            before being applied. This converts the oscillating Newton step
+            into a bisection-like contraction and restores monotone convergence
+            without requiring an external bracketing loop. Default:
+            :code:`False`.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -2633,6 +2651,7 @@ class Network:
         self.iter = 0
         self.use_cuda = use_cuda
         self.robust_relax = robust_relax
+        self.oscillation_damping = oscillation_damping
         self.skip_postprocess = skip_postprocess
 
         if self.skip_postprocess:
@@ -2726,6 +2745,7 @@ class Network:
         self.residual = np.zeros([self.variable_counter])
         self.increment = np.ones([self.variable_counter])
         self.jacobian = np.zeros((self.variable_counter, self.variable_counter))
+        self._prev_residual = None
 
         self.start_time = time()
 
@@ -3206,6 +3226,20 @@ class Network:
                         dependent_equations += [i]
         return list(set(dependent_equations))
 
+    def _dampen_oscillating_increments(self):
+        """Halve increments for variables whose residuals changed sign since the last iteration.
+
+        A sign change means the Newton step overshot the zero of that equation.
+        Halving the dependent columns' increments keeps the bracket from growing
+        and makes subsequent iterations behave like bisection for those variables.
+        """
+        if self._prev_residual is None:
+            return
+        sign_flips = np.where(self._prev_residual * self.residual < 0)[0]
+        for row in sign_flips:
+            cols = np.nonzero(self.jacobian[row, :])[0]
+            self.increment[cols] *= 0.5
+
     def _update_variables(self):
         # cast dtype to float from numpy float64
         # this is necessary to keep the doctests running and note make them
@@ -3305,8 +3339,12 @@ class Network:
             self._diagnose_singularity()
             return
 
+        if self.oscillation_damping:
+            self._dampen_oscillating_increments()
+
         self._update_variables()
         self._adapt_to_variable_bounds()
+        self._prev_residual = self.residual.copy()
 
     def _solve_equations(self):
         r"""

@@ -144,8 +144,8 @@ class Pipe(SimpleHeatExchanger):
         The label of the component.
 
     lmtd : float, dict
-        Effective logarithmic mean temperature difference :code:`Q/UA`. Quantity:
-        :code:`temperature_difference`.
+        Effective logarithmic mean temperature difference :code:`Q/UA`.
+        Quantity: :code:`temperature_difference`.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.

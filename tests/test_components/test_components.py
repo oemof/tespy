@@ -32,8 +32,8 @@ QUANTITY_EXEMPTIONS = {
     "HeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
     "Condenser": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
     "Desuperheater": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
-    "SectionedHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf"},
-    "MovingBoundaryHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf"},
+    "SectionedHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf", "re_exp_hot", "re_exp_cold"},
+    "MovingBoundaryHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf", "re_exp_hot", "re_exp_cold"},
     "SimpleHeatExchanger": {"zeta", "zeta_d4", "ks_HW"},
     "ParabolicTrough": {"zeta", "zeta_d4", "c_1", "c_2", "iam_1", "iam_2", "ks_HW"},
     "ParallelFlowHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
@@ -127,4 +127,6 @@ def test_num_equations_with_func_or_structure_matrix(cls_name, prop):
 def test_unset(cls_name, prop):
 
     instance = component_registry.items[cls_name]("")
+    if instance.get_attr(prop).result_only:
+        pytest.skip("result-only parameter cannot be unset")
     instance.set_attr(**{prop: None})

@@ -191,13 +191,14 @@ def h_mix_pT_forced_gas(p, T, fluid_data, **kwargs):
         h_\text{mix}(p, T) = \sum_i x_i \cdot h_i
     """
     molar_fractions = get_molar_fractions(fluid_data)
+    water_aliases = _get_fluid_alias("H2O", fluid_data)
 
     h = 0
     for fluid, data in fluid_data.items():
 
         if _is_larger_than_precision(data["mass_fraction"]):
             pp = p * molar_fractions[fluid]
-            if fluid == "H2O" and pp >= data["wrapper"]._p_min:
+            if fluid in water_aliases and pp >= data["wrapper"]._p_min:
                 if T <= data["wrapper"].T_sat(pp):
                     h += data["wrapper"].h_QT(1, T) * data["mass_fraction"]
                 else:
@@ -754,18 +755,23 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
 
     When :math:`p_\text{sat}(T) < p \cdot y_\text{H2O}`, the liquid water
     mass fraction :math:`x_\text{liq}` is determined by :func:`cond_check`.
-    The mixture density is then:
+    The gas-phase density is the sum of component mass densities at their
+    gas-phase partial pressures (same as :func:`v_mix_pT_ideal`):
 
     .. math::
 
-        \rho_\text{mix} =
-            x_\text{liq} \cdot \rho_\text{H2O}(Q{=}0,\,T)
-            + (1 - x_\text{liq}) \left[
-                \rho_\text{H2O}(Q{=}1,\,T)
-                + \sum_{i \neq \text{H2O}} \rho_i\!\left(p_i^\text{gas},\,T\right)
-            \right]
+        \rho_\text{gas} =
+            \rho_\text{H2O}(Q{=}1,\,T)
+            + \sum_{i \neq \text{H2O}} \rho_i\!\left(p_i^\text{gas},\,T\right)
 
-        v_\text{mix} = \frac{1}{\rho_\text{mix}}
+    The mixture specific volume is the mass-fraction-weighted sum of phase
+    specific volumes:
+
+    .. math::
+
+        v_\text{mix} =
+            x_\text{liq} \cdot v_\text{H2O}(Q{=}0,\,T)
+            + (1 - x_\text{liq}) \cdot \frac{1}{\rho_\text{gas}}
     """
 
     water_alias = _get_fluid_alias("H2O", fluid_data)
@@ -775,17 +781,15 @@ def v_mix_pT_ideal_cond(p=None, T=None, fluid_data=None, **kwargs):
         # at saturation liquid mass may be zero, but we cannot calculate water properties with pT
         if not _is_larger_than_precision(mass_liquid) and abs(pp_water - p_sat) / p_sat > 1e-6:
             return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
-        d = 0
+        d_gas = fluid_data[water_alias]["wrapper"].d_QT(1, T)
         for fluid, data in fluid_data.items():
-            if _is_larger_than_precision(data["mass_fraction"]):
-                if fluid == water_alias:
-                    if mass_liquid > 0:
-                        d += fluid_data[water_alias]["wrapper"].d_QT(0, T) * mass_liquid
-                    d += fluid_data[water_alias]["wrapper"].d_QT(1, T) * (1 - mass_liquid)
-                else:
-                    pp = p * molar_fraction_gas[fluid]
-                    d += data["wrapper"].d_pT(pp, T) * (1 - mass_liquid)
-        return 1 / d
+            if _is_larger_than_precision(data["mass_fraction"]) and fluid != water_alias:
+                pp = p * molar_fraction_gas[fluid]
+                d_gas += data["wrapper"].d_pT(pp, T)
+
+        v_liq = 1 / fluid_data[water_alias]["wrapper"].d_QT(0, T)
+        v_gas = 1 / d_gas
+        return mass_liquid * v_liq + (1 - mass_liquid) * v_gas
     else:
         return v_mix_pT_ideal(p, T, fluid_data, **kwargs)
 

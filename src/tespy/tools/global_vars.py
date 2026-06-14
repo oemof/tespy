@@ -29,7 +29,7 @@ class FluidAliases:
                     alias.replace(" ", "")
                     for alias in CP.CoolProp.get_aliases(fluid)
                 )
-            except RuntimeError:
+            except (RuntimeError, ValueError):  # RuntimeError: CoolProp < 8, ValueError: CoolProp >= 8
                 self.fluids[fluid] = set([fluid])
 
         return self.fluids[fluid]

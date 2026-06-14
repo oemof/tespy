@@ -556,13 +556,25 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
     return _single_fluid_wrapper(fluid_data).Q_ph(p, h)
 
 
+_MIXING_RULE_PHASE = {
+    "ideal": "g",
+    "ideal-cond": "g",
+    "forced-gas": "g",
+    "humidair": "g",
+    "incompressible": "l",
+}
+
+
 def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
     r"""
     Return the thermodynamic phase state from pressure and specific enthalpy.
 
-    Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    For single-component :code:`fluid_data` (including mixture-backend
+    wrappers) the phase is determined by the underlying
+    :class:`.FluidPropertyWrapper`. For multi-component mixtures the phase is
+    derived from the :code:`mixing_rule`: gas-type rules (:code:`"ideal"`,
+    :code:`"ideal-cond"`, :code:`"forced-gas"`, :code:`"humidair"`) return
+    :code:`"g"`; :code:`"incompressible"` returns :code:`"l"`.
 
     Parameters
     ----------
@@ -574,7 +586,7 @@ def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; required for multi-component :code:`fluid_data`.
 
     Returns
     -------
@@ -585,12 +597,17 @@ def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and
+        :code:`mixing_rule` is not recognised.
     """
     if get_number_of_fluids(fluid_data) != 1:
-        raise ValueError(
-            "This function is not available for multi-component fluid data."
-        )
+        if mixing_rule not in _MIXING_RULE_PHASE:
+            raise ValueError(
+                f"Cannot determine phase for multi-component fluid data with "
+                f"mixing_rule={mixing_rule!r}. Known rules: "
+                + ", ".join(_MIXING_RULE_PHASE)
+            )
+        return _MIXING_RULE_PHASE[mixing_rule]
     return get_pure_fluid(fluid_data)["wrapper"].phase_ph(p, h)
 
 

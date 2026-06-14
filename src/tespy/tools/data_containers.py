@@ -225,7 +225,7 @@ class DataContainer:
             Dictionary of available attributes (dictionary keys) with default
             values.
         """
-        return {}
+        return {"result_only": False}
 
     def _serialize(self):
         return {}
@@ -290,7 +290,8 @@ class ComponentCharacteristics(_NumEqMixin, DataContainer):
             "structure_matrix": None,
             "dependents": None,
             "constant_deriv": False,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
     def _serialize(self):
@@ -357,7 +358,8 @@ class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
             "structure_matrix": None,
             "constant_deriv": False,
             "dependents": None,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
     def _serialize(self):
@@ -408,7 +410,8 @@ class ComponentMandatoryConstraints(_NumEqMixin, DataContainer):
             "constant_deriv": False,
             "structure_matrix": None,
             "dependents": None,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
 
@@ -454,7 +457,8 @@ class GroupedComponentProperties(_NumEqMixin, DataContainer):
             "structure_matrix": None,
             "constant_deriv": False,
             "dependents": None,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
     def accept(self, value):
@@ -556,7 +560,8 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "_factor": None,
             'dependents': None,
             "quantity": None,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
     def _serialize(self):
@@ -785,10 +790,12 @@ class ComponentArrayProperties(DataContainer):
             "is_set": False,
             "num_eq_sets": 0,
             "description": None,
+            "result_only": True,
         }
 
     def accept(self, value):
-        raise TypeError("This parameter is result-only and cannot be set by the user.")
+        if self.result_only:
+            raise TypeError("This parameter is result-only and cannot be set by the user.")
 
     def set_val_from_SI(self, units):
         if self.val_SI is None:
@@ -842,7 +849,8 @@ class ScalarVariable(DataContainer):
             "_J_col": None,
             "_d": 1e-4,
             "min_val": None,
-            "max_val": None
+            "max_val": None,
+            "result_only": False
         }
 
     def get_val_SI(self):
@@ -932,7 +940,8 @@ class FluidComposition(DataContainer):
             "_J_col": dict(),
             "_reference_container": None,
             "_offset": None,
-            "_factor": None
+            "_factor": None,
+            "result_only": False
         }
 
     def _serialize(self):
@@ -1040,7 +1049,8 @@ class VectorVariable(DataContainer):
             "_val": dict(),
             "_is_var": set(),
             "_J_col": dict(),
-            "_d": 1e-4
+            "_d": 1e-4,
+            "result_only": False
         }
 
     def get_val_SI(self):
@@ -1105,7 +1115,8 @@ class ReferencedFluidProperties(DataContainer):
             "_solved": False,
             "dependents": None,
             "quantity": None,
-            "description": None
+            "description": None,
+            "result_only": False
         }
 
     def _serialize(self):
@@ -1158,6 +1169,7 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
             'dependents': None,
             "description": None,
             "dtype": None,
+            "result_only": False,
         }
 
     def _serialize(self):

@@ -10,6 +10,8 @@ tespy/components/heat_exchangers/sectioned.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 import numpy as np
 from scipy.optimize import brentq
 
@@ -603,7 +605,18 @@ class SectionedHeatExchanger(HeatExchanger):
         'kA_char2': 'UA_char2',
         'zeta1': 'zeta1_d4',
         'zeta2': 'zeta2_d4',
+        're_exp_sf': 're_exp_cold',
+        're_exp_r': 're_exp_hot',
     }
+
+    def set_attr(self, **kwargs):
+        if 'refrigerant_index' in kwargs:
+            warnings.warn(
+                f"The parameter 'refrigerant_index' of component {self.label!r} is "
+                "deprecated and will not be required in a future version.",
+                FutureWarning, stacklevel=2
+            )
+        super().set_attr(**kwargs)
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -630,13 +643,19 @@ class SectionedHeatExchanger(HeatExchanger):
             ),
             'refrigerant_index': dc_simple(
                 val=0, dtype="int",
-                description="side on which the refrigerant is flowing (0: hot, 1:cold)"
+                description="deprecated - side on which the refrigerant is flowing (0: hot, 1:cold)"
+            ),
+            're_exp_hot': dc_cp(
+                description="Reynolds exponent for UA modification based on hot side mass flow"
+            ),
+            're_exp_cold': dc_cp(
+                description="Reynolds exponent for UA modification based on cold side mass flow"
             ),
             're_exp_r': dc_cp(
-                description="Reynolds exponent for UA modification based on refrigerant side mass flow"
+                description="deprecated, use :code:`re_exp_hot` instead"
             ),
             're_exp_sf': dc_cp(
-                description="Reynolds exponent for UA modification based on secondary fluid side mass flow"
+                description="deprecated, use :code:`re_exp_cold` instead"
             ),
             'alpha_ratio': dc_cp(
                 quantity="ratio", min_val=0,
@@ -644,10 +663,10 @@ class SectionedHeatExchanger(HeatExchanger):
             ),
             'area_ratio': dc_cp(
                 quantity="ratio", min_val=0,
-                description="secondary to refrigerant side heat transfer area ratio"
+                description="hot side to cold side heat transfer area ratio"
             ),
             'UA_cecchinato': dc_gcp(
-                elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
+                elements=['re_exp_hot', 're_exp_cold', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
@@ -1089,31 +1108,31 @@ class SectionedHeatExchanger(HeatExchanger):
         """
         alpha_ratio = self.alpha_ratio.val_SI
         area_ratio = self.area_ratio.val_SI
-        re_exp_sf = self.re_exp_sf.val_SI
-        re_exp_r = self.re_exp_r.val_SI
+        re_exp_cold = self.re_exp_cold.val_SI
+        re_exp_hot = self.re_exp_hot.val_SI
         refrigerant_index = self.refrigerant_index.val
 
         if refrigerant_index == 0:
-            secondary_index = 1
+            hot_index, cold_index = 0, 1
         else:
-            secondary_index = 0
+            hot_index, cold_index = 1, 0
 
-        m_r = self.inl[refrigerant_index].m
-        m_ratio_r = max(
-            m_r.val_SI / self._conn_design(self.inl[refrigerant_index], 'm'),
+        m_hot = self.inl[hot_index].m
+        m_ratio_hot = max(
+            m_hot.val_SI / self._conn_design(self.inl[hot_index], 'm'),
             1e-6
         )
-        m_sf = self.inl[secondary_index].m
-        m_ratio_sf = max(
-            m_sf.val_SI / self._conn_design(self.inl[secondary_index], 'm'),
+        m_cold = self.inl[cold_index].m
+        m_ratio_cold = max(
+            m_cold.val_SI / self._conn_design(self.inl[cold_index], 'm'),
             1e-6
         )
 
         fUA = (
             (1 + alpha_ratio * area_ratio)
             / (
-                m_ratio_sf ** -re_exp_sf
-                + alpha_ratio * area_ratio * m_ratio_r ** -re_exp_r
+                m_ratio_cold ** -re_exp_cold
+                + alpha_ratio * area_ratio * m_ratio_hot ** -re_exp_hot
             )
         )
         sections = self._calc_sections_SI(postprocess=False)

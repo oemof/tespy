@@ -563,6 +563,38 @@ def test_get_ude_not_found_warns():
     assert issubclass(w[0].category, FutureWarning)
 
 
+def test_ude_returning_nan_raises_informative_error():
+    """A UDE returning NaN must be caught early with a clear error message
+    naming the offending equation, instead of silently propagating the NaN
+    into later iterations and failing with an unrelated error."""
+    nw = Network()
+    nw.iterinfo = False
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+
+    so = Source("source")
+    pi = Pipe("pipe", Q=0, pr=0.95)
+    si = Sink("sink")
+
+    c1 = Connection(so, "out1", pi, "in1", label="c1")
+    c2 = Connection(pi, "out1", si, "in1", label="c2")
+    nw.add_conns(c1, c2)
+
+    c1.set_attr(fluid={"water": 1}, T=30, m=1)
+
+    def func(ude):
+        return float("nan")
+
+    def dependents(ude):
+        c2, = ude.conns
+        return [c2.p]
+
+    ude = UserDefinedEquation("nan_ude", func, dependents, conns=[c2])
+    nw.add_ude(ude)
+
+    with raises(TESPyNetworkError, match="nan_ude"):
+        nw.solve("design")
+
+
 def test_missing_source_sink_cycle_closer():
     nw = Network()
 

@@ -2777,8 +2777,9 @@ class Network:
             if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
-                    # the increment should also be small
-                    and (abs(self.increment) < ERR ** 0.5).all()
+                    # the increment should also be small, but it does not need
+                    # to be that small
+                    and (abs(self.increment) < ERR ** 0.25).all()
                 ):
                 self.status = 0
                 break

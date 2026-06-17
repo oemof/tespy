@@ -16,7 +16,6 @@ from scipy.optimize import brentq
 
 from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
 from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
-from tespy.tools.global_vars import ERR
 
 
 def wrapper_registry(type):

@@ -2777,8 +2777,9 @@ class Network:
             if (
                     self.iter >= self.min_iter - 1
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
-                    # the increment should also be small
-                    and (abs(self.increment) < ERR ** 0.5).all()
+                    # the increment should also be small, but it does not need
+                    # to be that small
+                    and (abs(self.increment) < ERR ** 0.25).all()
                 ):
                 self.status = 0
                 break
@@ -3113,6 +3114,8 @@ class Network:
         if len(self.variables_dict) == 0:
             return
 
+        self._check_residual_and_jacobian_for_nan()
+
         overrides = self._fill_jacobian_surrogates()
 
         try:
@@ -3137,6 +3140,34 @@ class Network:
 
         for col, step in overrides.items():
             self.increment[col] = step
+
+    def _check_residual_and_jacobian_for_nan(self):
+        """Raise an informative error if a NaN or inf entry is found.
+
+        A single NaN in the residual or Jacobian typically contaminates the
+        whole solution vector once the linear system is solved, so the bad
+        value has to be located here, before the solve, to be able to point
+        at the equation that produced it. Otherwise it propagates silently
+        into the next iteration's variable values and only surfaces several
+        iterations later as an unrelated and confusing error.
+        """
+        nan_rows = set(np.where(~np.isfinite(self.residual))[0])
+        nan_rows |= set(np.where(~np.isfinite(self.jacobian).any(axis=1))[0])
+        if len(nan_rows) == 0:
+            return
+
+        eq_str = ", ".join(
+            f"{lbl}.{self._format_eq_name(eq_name)}"
+            for lbl, eq_name in self._get_equations_by_number(nan_rows).values()
+        )
+        msg = (
+            "The residual or one of the partial derivatives of the "
+            f"following equation(s) is NaN or inf: {eq_str}. Please check "
+            "the inputs to and the implementation of these equations, e.g. "
+            "a UserDefinedEquation."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
 
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""

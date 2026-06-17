@@ -67,8 +67,18 @@ class PowerConnection(ConnectionBase):
                 raise KeyError(msg)
 
     def _guess_starting_values(self, units):
-        if self.E.is_var and not self.good_starting_values:
-            self.E.set_reference_val_SI(0.0)
+        if self.E.is_var:
+            if not self.good_starting_values:
+                self.E.set_reference_val_SI(0.0)
+            else:
+                # Push the value preserved across the previous solve's
+                # `detach()` into the freshly (re-)built reference
+                # container, mirroring what `Connection._guess_starting_values`
+                # does for m/p/h. Without this, presolve's fresh
+                # `_reference_container` for `E` starts uninitialized on
+                # every solve call after the first, discarding the warm
+                # start even when good_starting_values is True.
+                self.E.set_reference_val_SI(self.E._val_SI)
 
     def get_variables(self):
         return {"E": self.E}

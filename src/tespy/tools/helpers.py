@@ -26,21 +26,6 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 
 
-def get_all_subdictionaries(data):
-    subdictionaries = []
-    for value in data.values():
-        if len(value["subbranches"]) == 0:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-        else:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-            subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
-
-    return subdictionaries
-
 
 def fluidalias_in_list(fluid, fluid_list):
     aliases = FLUID_ALIASES.get_fluid(fluid)
@@ -513,7 +498,7 @@ def _numeric_deriv(variable, func, **kwargs):
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     d = variable.d
     tol = max(variable.val_SI * d, d)
@@ -554,7 +539,7 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     original_vector = variable.val.copy()
     # this is specific to fluids right now (upper limit of 1, lower limit of 0)

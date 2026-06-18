@@ -184,7 +184,7 @@ class ConnectionBase:
         return [
             "source_id", "target_id",
             "design_path", "design", "offdesign",
-            "local_design", "local_design",
+            "local_design", "local_offdesign",
             "printout"
         ]
 

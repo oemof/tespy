@@ -26,7 +26,6 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 
 
-
 def fluidalias_in_list(fluid, fluid_list):
     aliases = FLUID_ALIASES.get_fluid(fluid)
     return set(fluid_list) & aliases

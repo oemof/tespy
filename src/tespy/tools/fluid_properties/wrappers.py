@@ -197,6 +197,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
                     "For the specification of the composition type you have "
                     f"to select from {', '.join(allowed)}."
                 )
+                raise ValueError(msg)
 
         if "&" in self.fluid:
             _fluids_with_fractions = self.fluid.split("&")

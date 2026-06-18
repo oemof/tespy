@@ -357,11 +357,9 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
 
 def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
     if len(x) != len(y):
-        msg = ""
-        raise ValueError(msg)
+        raise ValueError(f"x and y must have the same length, got {len(x)} and {len(y)}.")
     elif len(x) < 2:
-        msg = ""
-        raise ValueError(msg)
+        raise ValueError("At least 2 data points are required for fitting.")
 
 
 def fit_incompressible_viscosity(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:

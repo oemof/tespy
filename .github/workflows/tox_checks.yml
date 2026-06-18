@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Git clone
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ env.default_python || '3.13' }}
         uses: actions/setup-python@v6

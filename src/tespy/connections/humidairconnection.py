@@ -99,7 +99,7 @@ class HAConnection(Connection):
     def _parameter_specification(self, key, value):
         if key == "w" or key == "w0":
             if value is None:
-                self.fluid.is_set = {}
+                self.fluid.is_set = set()
             else:
                 # specification of w is equivalent to specification of fluid
                 # composition for humid air
@@ -235,11 +235,11 @@ class HAConnection(Connection):
             value = str(e).split("value (")[1].split(")")[0]
             return float(value)
 
-    def r_func(self):
+    def r_func(self, **kwargs):
         return self.r.val_SI - self.calc_r()
 
     def r_dependents(self):
-        water_alias = _get_fluid_alias("H2O", self.fluid_data)
+        water_alias = _get_fluid_alias("water", self.fluid_data)
         # water alias is already a set
         return {
             "scalars": [self.p, self.h],

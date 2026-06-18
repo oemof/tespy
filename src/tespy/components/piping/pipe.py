@@ -294,7 +294,7 @@ class Pipe(SimpleHeatExchanger):
     ... )
     >>> nw.solve("design")
     >>> round(pi.Q.val, 2)
-    -2434.12
+    -2434.13
     """
 
     def _preprocess(self, row_idx):

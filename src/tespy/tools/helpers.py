@@ -573,10 +573,21 @@ def newton_with_kwargs(
         tol_mode = "abs"
 
     while expr:
-        # calculate function residual and new value
         function_kwargs[parameter] = x
         residual = target_value - function(**function_kwargs)
+
+        if residual == 0:
+            break
+
+        if tol_mode == 'abs':
+            expr = abs(residual) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(residual / target_value) >= tol_rel
+
         x += residual / derivative(**function_kwargs) * relax
+
+        if not expr:
+            break
 
         # check for value ranges
         if x < valmin:
@@ -599,12 +610,7 @@ def newton_with_kwargs(
                 'iterations.'
             )
             logger.debug(msg)
-
             break
-        if tol_mode == 'abs':
-            expr = abs(residual) >= tol_abs
-        elif tol_mode == 'rel':
-            expr = abs(residual / target_value) >= tol_rel
 
     return x
 

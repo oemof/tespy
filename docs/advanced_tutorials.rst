@@ -89,6 +89,17 @@ you!
         .. image:: /_static/images/thumbnails/advanced_tutorials/drawing_pcwc_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Heat Recovery Steam Generator for Power and Process Heat Production
+        :link: tutorial_hrsg_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/hrsg_steam_supply/flowsheet.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/hrsg_steam_supply/flowsheet_darkmode.svg
+            :class: only-dark
+
+
 .. toctree::
     :maxdepth: 1
     :glob:
@@ -102,3 +113,4 @@ you!
     advanced_tutorials/heat_pump_exergy.rst
     advanced_tutorials/humid_air.ipynb
     advanced_tutorials/develop_components.rst
+    advanced_tutorials/hrsg_process_steam.rst

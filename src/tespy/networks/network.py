@@ -1002,9 +1002,8 @@ class Network:
 
             connections_in_wrapper_branches += all_connections
 
-        mask = self.conns["conn_type"] == "Connection"
         missing_wrappers = (
-            set(self.conns.loc[mask, "object"].tolist())
+            {c for c in self.conns["object"] if c._has_fluid_vector}
             - set(connections_in_wrapper_branches)
         )
         if len(missing_wrappers) > 0:

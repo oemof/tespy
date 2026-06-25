@@ -66,6 +66,8 @@ connection_registry.items = {}
 
 class ConnectionBase:
 
+    _has_fluid_vector = False
+
     def __init__(self):
         pass
 
@@ -637,6 +639,8 @@ class Connection(ConnectionBase):
     >>> so_si2.state.is_set
     False
     """
+
+    _has_fluid_vector = True
 
     def _build_parameters(self):
         return {

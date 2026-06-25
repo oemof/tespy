@@ -69,6 +69,8 @@ class Source(Component):
     'a labeled source'
     """
 
+    _is_wrapper_branch_source = True
+
     @staticmethod
     def outlets():
         return ['out1']

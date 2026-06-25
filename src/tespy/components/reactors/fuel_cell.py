@@ -182,6 +182,7 @@ class FuelCell(Component):
         return self.P.val_SI / self.inl[2].m.val_SI
 
     _parameter_aliases = {'zeta': 'zeta_d4'}
+    _is_wrapper_branch_source = True
 
     def _calc_eta(self):
         return self.e.val_SI / self.e0

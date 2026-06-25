@@ -133,6 +133,7 @@ class Component:
     """
 
     _parameter_aliases = {}
+    _is_wrapper_branch_source = False
 
     def __init__(self, label, **kwargs):
 

@@ -135,6 +135,15 @@ class Subsystem:
             logger.warning(msg)
             self.num_out = 0
 
+        if not hasattr(self, "num_power_in"):
+            self.num_power_in = 0
+        if not hasattr(self, "num_power_out"):
+            self.num_power_out = 0
+        if not hasattr(self, "num_heat_in"):
+            self.num_heat_in = 0
+        if not hasattr(self, "num_heat_out"):
+            self.num_heat_out = 0
+
         if self.num_in == 0 and self.num_out == 0:
             msg = (
                 "Your subsystem has no interfaces at all. To make interfaces "
@@ -146,8 +155,18 @@ class Subsystem:
             )
             logger.warning(msg)
 
-        self.inlet = SubsystemInterface("inlet", num_inter=self.num_in)
-        self.outlet = SubsystemInterface("outlet", num_inter=self.num_out)
+        self.inlet = SubsystemInterface(
+            "inlet",
+            num_inter=self.num_in,
+            num_power_inter=self.num_power_in,
+            num_heat_inter=self.num_heat_in,
+        )
+        self.outlet = SubsystemInterface(
+            "outlet",
+            num_inter=self.num_out,
+            num_power_inter=self.num_power_out,
+            num_heat_inter=self.num_heat_out,
+        )
 
         self.create_network()
 

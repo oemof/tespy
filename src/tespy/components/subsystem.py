@@ -27,6 +27,28 @@ class Subsystem:
     label : str
         The label of the subsystem.
 
+    Notes
+    -----
+    Subclasses must set the following attributes *before* calling
+    :code:`super().__init__()` to declare the subsystem's external interfaces:
+
+    - :code:`num_in` / :code:`num_out` - number of fluid inlet/outlet ports
+      (exposed as :code:`in{n}` / :code:`out{n}` on :code:`self.inlet` /
+      :code:`self.outlet`). Default: 0 with a warning.
+    - :code:`num_power_in` / :code:`num_power_out` - number of
+      :py:class:`~tespy.connections.powerconnection.PowerConnection` inlet/
+      outlet ports (exposed as :code:`power_in{n}` / :code:`power_out{n}`).
+      Default: 0, no warning.
+    - :code:`num_heat_in` / :code:`num_heat_out` - number of
+      :py:class:`~tespy.connections.heatconnection.HeatConnection` inlet/
+      outlet ports (exposed as :code:`heat_in{n}` / :code:`heat_out{n}`).
+      Default: 0, no warning.
+
+    For every power or heat port pair the underlying
+    :py:class:`~tespy.components.basics.subsystem_interface.SubsystemInterface`
+    enforces :math:`\dot E_\text{in} = \dot E_\text{out}`, so energy passes
+    through the boundary unchanged.
+
     Example
     -------
     Basic example for a setting up a Subsystem object. This example does not

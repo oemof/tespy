@@ -74,7 +74,7 @@ class _SorptionBase(NodeBase):
     def saturation_func(self):
         sol_out = self._solution_outlet()
         T = sol_out.calc_T()
-        return _xi_sat_libr(sol_out.p.val_SI, T) - sol_out.fluid.val[_LIBR_KEY]
+        return _xi_sat_libr(sol_out.p.val_SI, T, sol_out.fluid_data) - sol_out.fluid.val[_LIBR_KEY]
 
     def saturation_dependents(self):
         sol_out = self._solution_outlet()

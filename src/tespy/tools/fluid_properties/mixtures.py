@@ -1150,17 +1150,16 @@ class MixingRuleRegistry:
     def T_ps(self, name):
         return self._get(self._T_ps, name, "temperature (from entropy)")
 
-_LIBR_AS = _CP.AbstractState("INCOMP", "LiBr")
 _LIBR_PROPS_CACHE = (None, None, None, None)  # (p, T, xi, (h, s, v))
 _LIBR_T_EPS = 0.01
 
 
-def _libr_T_limits(fluid_data):
+def _libr_wrapper(fluid_data):
     water = _get_fluid_alias("H2O", fluid_data)
     for fluid, data in fluid_data.items():
         if fluid not in water and _is_larger_than_precision(data["mass_fraction"]):
-            return data["wrapper"]._T_min, data["wrapper"]._T_max
-    return 273.0, 500.0
+            return data["wrapper"]
+    return None
 
 
 def _xi_libr(fluid_data):
@@ -1170,7 +1169,7 @@ def _xi_libr(fluid_data):
     return sum(d["mass_fraction"] for d in fluid_data.values())
 
 
-def _xi_sat_libr(p, T):
+def _xi_sat_libr(p, T, fluid_data):
     r"""LiBr mass fraction at which :math:`p_\text{sat}(T, \xi) = p`.
 
     Uses :func:`scipy.optimize.brentq` over :math:`\xi \in [0.001, 0.749]`.
@@ -1179,10 +1178,12 @@ def _xi_sat_libr(p, T):
     """
     from scipy.optimize import brentq
 
+    libr_as = _libr_wrapper(fluid_data).AS
+
     def residual(xi):
-        _LIBR_AS.set_mass_fractions([xi])
-        _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-        return _LIBR_AS.p() - p
+        libr_as.set_mass_fractions([xi])
+        libr_as.update(_CP.QT_INPUTS, 0, T)
+        return libr_as.p() - p
 
     r_lo = residual(0.001)
     if r_lo <= 0:
@@ -1193,7 +1194,7 @@ def _xi_sat_libr(p, T):
     return brentq(residual, 0.001, 0.749, xtol=1e-6)
 
 
-def _T_sat_libr(p, xi):
+def _T_sat_libr(p, xi, fluid_data):
     r"""Saturation temperature of LiBr-H2O at pressure *p* and mass fraction *xi*.
 
     Inverts :func:`_xi_sat_libr` over temperature using
@@ -1202,15 +1203,17 @@ def _T_sat_libr(p, xi):
     """
     from scipy.optimize import brentq
 
+    w = _libr_wrapper(fluid_data)
     xi_safe = max(0.001, min(0.749, xi))
+    libr_as = w.AS
 
     def residual(T):
-        _LIBR_AS.set_mass_fractions([xi_safe])
-        _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-        return _LIBR_AS.p() - p
+        libr_as.set_mass_fractions([xi_safe])
+        libr_as.update(_CP.QT_INPUTS, 0, T)
+        return libr_as.p() - p
 
-    T_min = 273.02
-    T_max = 499.98
+    T_min = w._T_min + 2 * _LIBR_T_EPS
+    T_max = w._T_max - 2 * _LIBR_T_EPS
     if residual(T_min) >= 0:
         return T_min
     if residual(T_max) <= 0:
@@ -1218,12 +1221,13 @@ def _T_sat_libr(p, xi):
     return brentq(residual, T_min, T_max, xtol=1e-6)
 
 
-def _p_sat_libr(T, xi):
+def _p_sat_libr(T, xi, fluid_data):
     r"""Vapour pressure of LiBr-H2O at temperature *T* and mass fraction *xi*."""
     xi_safe = max(0.001, min(0.749, xi))
-    _LIBR_AS.set_mass_fractions([xi_safe])
-    _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-    return _LIBR_AS.p()
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi_safe])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    return libr_as.p()
 
 
 def _libr_props_compute(p, T, xi, fluid_data):
@@ -1241,25 +1245,26 @@ def _libr_props_compute(p, T, xi, fluid_data):
     liquid solution and pure water vapour.
 
     """
-    _LIBR_AS.set_mass_fractions([xi])
-    _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-    p_sat = _LIBR_AS.p()
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    p_sat = libr_as.p()
 
     if p >= p_sat:
-        _LIBR_AS.update(_CP.PT_INPUTS, p, T)
-        return _LIBR_AS.hmass(), _LIBR_AS.smass(), 1.0 / _LIBR_AS.rhomass()
+        libr_as.update(_CP.PT_INPUTS, p, T)
+        return libr_as.hmass(), libr_as.smass(), 1.0 / libr_as.rhomass()
 
-    xi_sat = _xi_sat_libr(p, T)
+    xi_sat = _xi_sat_libr(p, T, fluid_data)
     m_l = xi / xi_sat
     m_v = 1.0 - m_l
 
-    _LIBR_AS.set_mass_fractions([xi_sat])
-    _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-    p_sat_new = _LIBR_AS.p()
-    _LIBR_AS.update(_CP.PT_INPUTS, p_sat_new + 1.0, T)
-    h_l = _LIBR_AS.hmass()
-    s_l = _LIBR_AS.smass()
-    v_l = 1.0 / _LIBR_AS.rhomass()
+    libr_as.set_mass_fractions([xi_sat])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    p_sat_new = libr_as.p()
+    libr_as.update(_CP.PT_INPUTS, p_sat_new + 1.0, T)
+    h_l = libr_as.hmass()
+    s_l = libr_as.smass()
+    v_l = 1.0 / libr_as.rhomass()
 
     water = _get_fluid_alias("H2O", fluid_data)
     w = fluid_data[next(iter(water))]["wrapper"]
@@ -1374,9 +1379,10 @@ def phase_mix_ph_libr_water(p, h, fluid_data):
     """
     T = T_mix_ph_libr_water(p, h, fluid_data)
     xi = _xi_libr(fluid_data)
-    _LIBR_AS.set_mass_fractions([xi])
-    _LIBR_AS.update(_CP.QT_INPUTS, 0, T)
-    return "l" if p >= _LIBR_AS.p() else "tp"
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    return "l" if p >= libr_as.p() else "tp"
 
 
 def T_mix_ph_libr_water(p, h, fluid_data, T0=None):
@@ -1407,9 +1413,9 @@ def T_mix_ph_libr_water(p, h, fluid_data, T0=None):
     from scipy.optimize import brentq
 
     xi = _xi_libr(fluid_data)
-    T_lim_min, T_lim_max = _libr_T_limits(fluid_data)
-    T_lo = T_lim_min + 2 * _LIBR_T_EPS
-    T_hi = T_lim_max - 2 * _LIBR_T_EPS
+    w = _libr_wrapper(fluid_data)
+    T_lo = w._T_min + 2 * _LIBR_T_EPS
+    T_hi = w._T_max - 2 * _LIBR_T_EPS
 
     def residual(T):
         return _libr_props_compute(p, T, xi, fluid_data)[0] - h

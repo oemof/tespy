@@ -19,6 +19,8 @@ from .helpers import get_number_of_fluids
 from .helpers import get_pure_fluid
 from .helpers import inverse_temperature_mixture
 from .mixtures import MIXING_RULES
+from .mixtures import T_mix_ph_libr_water
+from .mixtures import phase_mix_ph_libr_water
 from .mixtures import w_mix_ph_humidair
 from .mixtures import w_mix_ps_humidair
 
@@ -261,6 +263,8 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         if mixing_rule == "humidair":
             w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("T", "P", p, "H", h, "W", w)
+        elif mixing_rule == "libr_water":
+            return T_mix_ph_libr_water(p, h, fluid_data, T0)
         else:
             kwargs = {
                 "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
@@ -601,6 +605,8 @@ def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
         :code:`mixing_rule` is not recognised.
     """
     if get_number_of_fluids(fluid_data) != 1:
+        if mixing_rule == "libr_water":
+            return phase_mix_ph_libr_water(p, h, fluid_data)
         if mixing_rule not in _MIXING_RULE_PHASE:
             raise ValueError(
                 f"Cannot determine phase for multi-component fluid data with "

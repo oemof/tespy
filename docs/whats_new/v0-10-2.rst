@@ -1,0 +1,24 @@
+v0.10.2 (Under Development)
+++++++++++++++++++++++++++++
+
+New Features
+############
+- :py:class:`~tespy.components.basics.subsystem_interface.SubsystemInterface`
+  now supports optional power and heat pass-through ports via the new
+  :code:`num_power_inter` and :code:`num_heat_inter` parameters. Setting these
+  exposes symmetric inlet/outlet port pairs (:code:`power_in{n}`/:code:`power_out{n}`
+  and :code:`heat_in{n}`/:code:`heat_out{n}`) and adds the corresponding
+  energy-equality mandatory constraints (:math:`\dot E_\text{in} = \dot E_\text{out}`).
+  :py:class:`~tespy.components.subsystem.Subsystem` subclasses can declare
+  :code:`num_power_in`, :code:`num_power_out`, :code:`num_heat_in`, and
+  :code:`num_heat_out` class attributes before calling :code:`super().__init__()`,
+  following the same pattern as the existing :code:`num_in`/:code:`num_out` fluid
+  interface declaration. This makes it possible to route
+  :py:class:`~tespy.connections.powerconnection.PowerConnection` and
+  :py:class:`~tespy.connections.heatconnection.HeatConnection` instances across
+  subsystem boundaries
+  (`PR #1014 <https://github.com/oemof/tespy/pull/1014>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

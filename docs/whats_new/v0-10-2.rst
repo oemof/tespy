@@ -16,7 +16,8 @@ New Features
   interface declaration. This makes it possible to route
   :py:class:`~tespy.connections.powerconnection.PowerConnection` and
   :py:class:`~tespy.connections.heatconnection.HeatConnection` instances across
-  subsystem boundaries.
+  subsystem boundaries
+  (`PR #1014 <https://github.com/oemof/tespy/pull/1014>`__).
 
 Contributors
 ############

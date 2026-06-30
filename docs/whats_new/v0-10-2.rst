@@ -19,6 +19,14 @@ New Features
   subsystem boundaries
   (`PR #1014 <https://github.com/oemof/tespy/pull/1014>`__).
 
+Bug Fixes
+#########
+- Default characteristic lines and maps were not available for inherited
+  components. These fell back to `x = [0, 1]` and `y = [1, 1]`. Now instances
+  of classes inherit the `DEFAULT` characteristic lines and maps of parent
+  classes if there is no own `DEFAULT`
+  (`3e65ba3 <https://github.com/oemof/tespy/commit/3e65ba3168aa99bd7afc7d1812fadcbe424fdab8>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

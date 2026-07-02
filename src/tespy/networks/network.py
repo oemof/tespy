@@ -4063,7 +4063,7 @@ class Network:
         for directions, interface_comps in interface_types.items():
             for inttype in interface_comps:
                 interfaces[inttype.__name__]=scan_interfaces(inttype, directions)
-
+        nw_conns=self.conns
         class sub_network(Subsystem):
             def __init__(self,label):
                 self.num_in= len(interfaces['Source'])
@@ -4073,7 +4073,7 @@ class Network:
                 super().__init__(label)
             
             def create_network(self):
-                args=list(self.conns['object'])
+                args=list(nw_conns['object'])
                 map_conns= {inner_key: outer_key 
                 for outer_key, inner_dict in interfaces.items() 
                 for inner_key in inner_dict.keys()}
@@ -4083,12 +4083,10 @@ class Network:
                 heat_in_i = 1
                 
                 for conn in args:
-                    if conn.label not in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]:
-                        print(conn.label)
+                    if conn.label not in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]: 
                         self.conns[conn.label] = conn
                         self.conns[conn.label].label = f"{self.label}_{conn.label}"
                     else:
-                        print(conn.label)
                         #add interface connections
                         match map_conns[conn.label]:
                             case 'Source':

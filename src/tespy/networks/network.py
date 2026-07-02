@@ -30,7 +30,10 @@ from tespy.components import CycleCloser
 from tespy.components import FuelCell
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
+from tespy.components import Subsystem, Source, Sink, HeatSource, HeatSink
+from tespy.connections import Connection, PowerConnection,HeatConnection
 from tespy.components.component import component_registry
+
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools import helpers as hlp
@@ -4043,7 +4046,87 @@ class Network:
                 components[c].update(cp._serialize())
 
         return components
+    def convert_to_subsystem(self, subname):
+        interface_types={'Sources':[Source, HeatSource],
+                    'Sinks': [Sink, HeatSink],
+                    }
+        mapping={'Sources':'source',
+                'Sinks':'target'}
+        def scan_interfaces(interface_type, direction):
+            interface_df={}
 
+            for index, row in self.conns[self.conns[mapping[direction]].apply(
+                lambda x: isinstance(x, interface_type))].iterrows():
+                interface_df[index]=row
+            return(interface_df)
+        interfaces={}
+        for directions, interface_comps in interface_types.items():
+            for inttype in interface_comps:
+                interfaces[inttype.__name__]=scan_interfaces(inttype, directions)
+
+        class sub_network(Subsystem):
+            def __init__(self,label):
+                self.num_in= len(interfaces['Source'])
+                self.num_out= len(interfaces['Sink'])
+                self.num_heat_in = len(interfaces['HeatSource'])
+                self.num_heat_out = len(interfaces['HeatSink'])
+                super().__init__(label)
+            
+            def create_network(self):
+                args=list(self.conns['object'])
+                map_conns= {inner_key: outer_key 
+                for outer_key, inner_dict in interfaces.items() 
+                for inner_key in inner_dict.keys()}
+                out_i=1
+                in_i=1
+                heat_out_i=1
+                heat_in_i = 1
+                
+                for conn in args:
+                    if conn.label not in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]:
+                        print(conn.label)
+                        self.conns[conn.label] = conn
+                        self.conns[conn.label].label = f"{self.label}_{conn.label}"
+                    else:
+                        print(conn.label)
+                        #add interface connections
+                        match map_conns[conn.label]:
+                            case 'Source':
+                                self.conns[conn.label] = Connection(self.inlet, f"out{out_i}", 
+                                                                    interfaces['Source'][conn.label]['target'], 
+                                                                    interfaces['Source'][conn.label]['target_id'], 
+                                                                    label=conn.label)
+                                out_i+=1
+
+                            case 'Sink':
+                                self.conns[conn.label] = Connection(interfaces['Sink'][conn.label]['source'], 
+                                                                    interfaces['Sink'][conn.label]['source_id'],
+                                                                    self.outlet, f"in{in_i}", 
+                                                                    label=conn.label)
+                                in_i+=1
+
+                            case 'HeatSink':
+                                
+                                self.conns[conn.label] = HeatConnection(interfaces['HeatSink'][conn.label]['source'], 
+                                                                    interfaces['HeatSink'][conn.label]['source_id'],
+                                                                    self.outlet, f"heat_in{heat_in_i}", 
+                                                                    label=conn.label)
+                                heat_in_i+=1
+
+                            case 'HeatSource':
+                                
+                                self.conns[conn.label] = HeatConnection(self.inlet, f"heat_out{heat_out_i}", 
+                                                                    interfaces['HeatSource'][conn.label]['target'], 
+                                                                    interfaces['HeatSource'][conn.label]['target_id'], 
+                                                                    label=conn.label)
+                                heat_out_i+=1
+
+                        self.conns[conn.label].label = f"{self.label}_{conn.label}"
+                                
+                self._add_comps(*list(self.conns.values()))
+
+        sub_network.__name__ = subname
+        return sub_network  
 
 def _construct_components(target_class, data, nw):
     r"""

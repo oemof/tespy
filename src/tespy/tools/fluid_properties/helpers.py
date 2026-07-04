@@ -15,26 +15,15 @@ import math
 
 import CoolProp.CoolProp as CP
 import numpy as np
+from scipy.optimize import brentq
 
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import central_difference
 from tespy.tools.helpers import newton_with_kwargs
-from tespy.tools.logger import logger
 
 
 def _is_larger_than_precision(value):
     return value > ERR
-
-
-def _check_mixing_rule(mixing_rule, mixing_functions, propertyfunction):
-    if mixing_rule not in mixing_functions:
-        msg = (
-            f"The mixing rule '{mixing_rule}' is not available for "
-            f"the fluid property functions for {propertyfunction}. Available "
-            f"rules are '" + "', '".join(mixing_functions.keys()) + "'."
-        )
-        logger.exception(msg)
-        raise KeyError(msg)
 
 
 def get_number_of_fluids(fluid_data):
@@ -49,6 +38,9 @@ def get_pure_fluid(fluid_data):
 
 def single_fluid(fluid_data):
     r"""Return the name of the pure fluid in a fluid vector."""
+    if "_HUMID_AIR" in fluid_data:
+        return None
+
     if get_number_of_fluids(fluid_data) > 1:
         return None
     else:
@@ -69,14 +61,16 @@ def get_molar_fractions(fluid_data):
 def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=None, f=None):
     # calculate the fluid properties for fluid mixtures
     valmin, valmax = get_mixture_temperature_range(fluid_data)
-    if T0 is None or T0 == 0 or np.isnan(T0):
+    if T0 is None or T0 == 0 or np.isnan(T0) or T0 < valmin:
         T0 = (valmin + valmax) / 2.0
 
+    # this is to prevent evaluation below valmin!
+    valmin *= 1.001
     valmax *= 2
 
     function_kwargs = {
         "p": p, "fluid_data": fluid_data, "T": T0,
-        "function": f, "parameter": "T" , "delta": 0.01
+        "function": f, "parameter": "T" , "delta": 0.001
     }
     return newton_with_kwargs(
         central_difference,
@@ -149,7 +143,7 @@ def darcy_friction_factor(re, ks, d):
         Pipe roughness ks / m.
 
     d : float
-        Pipe diameter/characteristic lenght d / m.
+        Pipe diameter/characteristic length d / m.
 
     Returns
     -------
@@ -226,40 +220,18 @@ def darcy_friction_factor(re, ks, d):
             elif re < 1e6:
                 return hanakov(re)
             else:
-                l0 = 0.02
-                function_kwargs = {
-                    "function": prandtl_karman,
-                    "parameter": "darcy_friction_factor",
-                    "reynolds": re
-
-                }
-                return newton_with_kwargs(
-                    prandtl_karman_derivative,
-                    0,
-                    val0=l0,
-                    valmin=0.00001,
-                    valmax=0.2,
-                    **function_kwargs
-                )
+                try:
+                    return brentq(lambda lam: prandtl_karman(re, lam), 0.00001, 0.2)
+                except ValueError:
+                    a, b = 0.00001, 0.2
+                    return a if abs(prandtl_karman(re, a)) <= abs(prandtl_karman(re, b)) else b
 
         else:
-            l0 = 0.002
-            function_kwargs = {
-                "function": colebrook,
-                "parameter": "darcy_friction_factor",
-                "reynolds": re,
-                "ks": ks,
-                "diameter": d,
-                "delta": 0.001
-            }
-            return newton_with_kwargs(
-                central_difference,
-                0,
-                val0=l0,
-                valmin=0.0001,
-                valmax=0.2,
-                **function_kwargs
-            )
+            try:
+                return brentq(lambda lam: colebrook(re, ks, d, lam), 0.0001, 0.2)
+            except ValueError:
+                a, b = 0.0001, 0.2
+                return a if abs(colebrook(re, ks, d, a)) <= abs(colebrook(re, ks, d, b)) else b
 
 
 def blasius(re):
@@ -331,7 +303,7 @@ def prandtl_karman_derivative(reynolds, darcy_friction_factor, **kwargs):
 
 def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
     """
-    Calculate friction coefficient accroding to Colebrook-White equation.
+    Calculate friction coefficient according to Colebrook-White equation.
 
     Applied in transition zone and rough conditions.
 
@@ -360,3 +332,35 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
             / (3.71 * diameter)
         ) + 1 / darcy_friction_factor ** 0.5
     )
+
+
+def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
+    if len(x) != len(y):
+        raise ValueError(f"x and y must have the same length, got {len(x)} and {len(y)}.")
+    elif len(x) < 2:
+        raise ValueError("At least 2 data points are required for fitting.")
+
+
+def fit_incompressible_viscosity(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, viscosity)
+
+    x = 1.0 / temperature
+    y = np.log(viscosity)
+
+    return np.polyfit(x, y, 3)
+
+
+def _fit_arrhenius(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, viscosity)
+    x = 1.0 / temperature
+    y = np.log(viscosity)
+
+    intercept, slope = np.polyfit(x, y, 1)
+
+    return intercept, np.exp(slope)
+
+
+def fit_incompressible_linear(temperature: np.ndarray, y: np.ndarray) -> tuple:
+    _check_fitting_data_structure(temperature, y)
+
+    return np.polyfit(temperature, y, 1)

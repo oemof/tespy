@@ -23,7 +23,7 @@ from tespy.networks import Network
 def drum_network_setup():
     nw = Network()
     nw.units.set_defaults(**{
-        "pressure": "bar", "temperature": "degC"
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
     })
     dr = Drum("drum")
     so = Source("liquid")

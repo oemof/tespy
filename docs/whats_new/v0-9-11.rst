@@ -1,0 +1,29 @@
+v0.9.11 - Kelvin's Kingdom (December, 17, 2025)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Other changes
+#############
+- The documentation has been completely restructured to improve navigation. On
+  top new tutorials on creating custom components and model debugging, a
+  section on frequently asked questions and a more compact overview on the
+  available component classes and the respective specification parameters with
+  their underlying equations have been added
+  (`PR #820 <https://github.com/oemof/tespy/pull/820>`__).
+
+Bug Fixes
+#########
+- The moving boundary identification failed in some cases, when the phase
+  change boundary was directly at the inlet or the outlet of a respective
+  stream in the heat exchanger because brentq was to able to perform the root
+  finding in that case
+  (`PR #865 <https://github.com/oemof/tespy/pull/865>`__).
+- With the change of the scaling of the variables in context of the calculation
+  of numerical derivatives, the identification of minimum and maximum enthalpy
+  limits is now working as expected again
+  (`PR #867 <https://github.com/oemof/tespy/pull/867>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- Malte Fritz (`@maltefritz <https://github.com/maltefritz>`__)
+- Jonas Freißmann (`@jfreissmann <https://github.com/jfreissmann>`__)

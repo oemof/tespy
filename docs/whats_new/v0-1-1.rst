@@ -3,7 +3,7 @@ v0.1.1 (May, 14, 2019)
 
 New Features
 ############
-- Specifcation of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
+- Specification of temperature below or above boiling point temperature with :code:`Td_bp` keyword on connections (`PR #64 <https://github.com/oemof/tespy/pull/64>`_).
 - Path specifications for the :code:`init_path` and :code:`design_path` in the networks module as well as :code:`path` in the network_reader module now work with relative and absolute paths. The feature has been tested on windows and linux machines (`PR #66 <https://github.com/oemof/tespy/pull/66>`_).
 
 Documentation
@@ -97,7 +97,7 @@ Example
 	nw.print_results()
 
 	print(fill)
-	print('The temperature at hot side outlet is 10 K above the (prior) unkown '
+	print('The temperature at hot side outlet is 10 K above the (prior) unknown '
 		  'boiling point temperature at that point.')
 	print(fill)
 

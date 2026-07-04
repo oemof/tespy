@@ -34,6 +34,7 @@ class Units:
             "specific_energy": "J/kg",
             "entropy": "J/kg/K",
             "pressure": "Pa",
+            "pressure_difference": "Pa",
             "mass_flow": "kg/s",
             "volumetric_flow": "m3/s",
             "specific_volume": "m3/kg",
@@ -48,6 +49,8 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "heat_transfer_coefficient_per_area": "W/m**2/K",
+            "thermal_resistance": "K/W",
             "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
             "frequency": "1/s",
             # None is the default if not quantity is supplied
@@ -94,6 +97,10 @@ class Units:
         entropy : str
             Default unit: "J/kg/K"
         pressure : str
+            Default unit: "Pa". For backwards compatibility, setting this also
+            sets :code:`pressure_difference` to the same unit unless
+            :code:`pressure_difference` is explicitly provided as well.
+        pressure_difference : str
             Default unit: "Pa"
         mass_flow : str
             Default unit: "kg/s"
@@ -121,20 +128,26 @@ class Units:
             Default unit: "W/m/K"
         heat_transfer_coefficient : str
             Default unit: "W/K"
+        heat_transfer_coefficient_per_area : str
+            Default unit: "W/m**2/K"
+        thermal_resistance : str
+            Default unit: "K/W"
         """
+        if "pressure" in kwargs and "pressure_difference" not in kwargs:
+            msg = (
+                "Setting the 'pressure' unit currently also sets the "
+                "'pressure_difference' unit for backwards compatibility. "
+                "In a future release this will no longer happen. Please "
+                "explicitly set 'pressure_difference' in "
+                "Network.units.set_defaults() to silence this warning."
+            )
+            warnings.warn(msg, FutureWarning)
+            kwargs["pressure_difference"] = kwargs["pressure"]
+
         for key, value in kwargs.items():
             self._check_quantity_exists(key)
             if value == "-":
                 value = "1"
-            elif value == "C":
-                value = "degC"
-                msg = (
-                    "The unit 'C' is used for 'Coulomb' in pint. For "
-                    "backwards compatibility it will be parsed as degC for "
-                    "now. Please use '°C' (or correct pint aliases) instead  "
-                    "as it will stop working with the next major release"
-                )
-                warnings.warn(msg, FutureWarning)
             if self._is_compatible(key, value):
                 self.default[key] = value
             else:

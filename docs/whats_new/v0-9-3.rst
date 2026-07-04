@@ -7,7 +7,7 @@ Hotfix for Postreleases
   component objections. This is necessary in context of pygmo base
   optimization (`PR #726 <https://github.com/oemof/tespy/pull/726>`__).
 - When either :code:`ttd_u` or :code:`ttd_l` on a class :code:`HeatExchanger`
-  component is zero, :code:`kA` will be set to nan to pervent a crash
+  component is zero, :code:`kA` will be set to nan to prevent a crash
   (`PR #728 <https://github.com/oemof/tespy/pull/728>`__).
 - A bug has been fixed, that applied a convergence check based on :code:`Td_bp`
   value even if it was not a set value

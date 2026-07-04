@@ -9,11 +9,12 @@ available from its original location tespy/tools/helpers.py
 SPDX-License-Identifier: MIT
 """
 
-import json
 import os
+from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
 
+import numpy as np
 import pandas as pd
 
 from tespy import __datapath__
@@ -23,30 +24,6 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
-from tespy.tools.global_vars import fluid_property_data
-
-
-def get_all_subdictionaries(data):
-    subdictionaries = []
-    for value in data.values():
-        if len(value["subbranches"]) == 0:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-        else:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-            subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
-
-    return subdictionaries
-
-
-def get_chem_ex_lib(name):
-    """Return a new dictionary by merging two dictionaries recursively."""
-    path = os.path.join(__datapath__, "ChemEx", f"{name}.json")
-    with open(path, "r") as f:
-        return json.load(f)
 
 
 def fluidalias_in_list(fluid, fluid_list):
@@ -84,61 +61,6 @@ class TESPyComponentError(Exception):
     """Custom message for component related errors."""
 
     pass
-
-
-def convert_to_SI(property, value, unit):
-    r"""
-    Convert a value to its SI value.
-
-    Parameters
-    ----------
-    property : str
-        Fluid property to convert.
-
-    value : float
-        Value to convert.
-
-    unit : str
-        Unit of the value.
-
-    Returns
-    -------
-    SI_value : float
-        Specified fluid property in SI value.
-    """
-    if property == 'T':
-        converters = fluid_property_data['T']['units'][unit]
-        return (value + converters[0]) * converters[1]
-
-    else:
-        return value * fluid_property_data[property]['units'][unit]
-
-
-def convert_from_SI(property, SI_value, unit):
-    r"""
-    Get a value in the network's unit system from SI value.
-
-    Parameters
-    ----------
-    property : str
-        Fluid property to convert.
-
-    SI_value : float
-        SI value to convert.
-
-    unit : str
-        Unit of the value.
-
-    Returns
-    -------
-    value : float
-        Specified fluid property value in network's unit system.
-    """
-    if property == 'T':
-        converters = fluid_property_data['T']['units'][unit]
-        return SI_value / converters[1] - converters[0]
-    else:
-        return SI_value / fluid_property_data[property]['units'][unit]
 
 
 class UserDefinedEquation:
@@ -198,8 +120,11 @@ class UserDefinedEquation:
         >>> from tespy.tools import CharLine
         >>> from tespy.tools.fluid_properties import T_mix_ph, v_mix_ph
         >>> nw = Network()
-        >>> nw.set_attr(iterinfo=False)
-        >>> nw.units.set_defaults(**{"pressure": "bar", "temperature": "degC"})
+        >>> nw.iterinfo = False
+        >>> nw.units.set_defaults(**{
+        ...     "pressure": "bar", "pressure_difference": "bar",
+        ...     "temperature": "degC"
+        ... })
         >>> so = Source('source')
         >>> si = Sink('sink')
         >>> pipeline = Pipe('pipeline')
@@ -337,6 +262,19 @@ class UserDefinedEquation:
         self.conns = conns
         self.comps = comps
         self.params = params
+        self._is_set = True
+
+    def _get_is_set(self):
+        return self._is_set
+
+    def _set_is_set(self, value):
+        if not isinstance(value, bool):
+            msg = "is_set must be of type bool."
+            logger.error(msg)
+            raise TypeError(msg)
+        self._is_set = value
+
+    is_set = property(_get_is_set, _set_is_set)
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
@@ -344,6 +282,9 @@ class UserDefinedEquation:
         self._structure_matrix = {}
         self._rhs = {}
         self._equation_set_lookup = {}
+
+        if not self.is_set:
+            return
 
         self._equation_set_lookup[row_idx] = "equation"
 
@@ -441,9 +382,15 @@ def solve(obj, increment_filter):
         _solve_jacobian(obj, data, increment_filter, eq_num)
 
 
+def solve_residuals(obj):
+    """Calculate residuals of a component without recomputing derivatives."""
+    for data in obj.equations.values():
+        _solve_residual(obj, data, data._first_eq_index)
+
+
 def _solve_residual(obj, data, eq_num):
     result = data.func(**data.func_params)
-    if isinstance(result, list):
+    if isinstance(result, Iterable):
         result = {eq_num + k: value for k, value in enumerate(result)}
     else:
         result = {eq_num: result}
@@ -465,18 +412,31 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             **data.func_params
         )
     else:
-        # these can only be parameters with a single equation for now
-        for dependent in data._scalar_dependents[0]:
-            f = data.func
-            obj._partial_derivative(
-                dependent, eq_num, f, increment_filter, **data.func_params
-            )
+        all_scalar_deps = set().union(*data._scalar_dependents)
+        for dependent in all_scalar_deps:
+            result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
+            if result is None:
+                continue
+            for eq_idx, dep_set in enumerate(data._scalar_dependents):
+                if dependent in dep_set:
+                    obj.jacobian[eq_num + eq_idx, dependent.J_col] = (
+                        result[eq_idx] if isinstance(result, np.ndarray) else result
+                    )
 
-        for dependent, dx in data._vector_dependents[0].items():
-            f = data.func
-            obj._partial_derivative_fluid(
-                dependent, eq_num, f, dx, increment_filter, **data.func_params
-            )
+        all_vector_deps = {}
+        for eq_vec_deps in data._vector_dependents:
+            for var, dxs in eq_vec_deps.items():
+                all_vector_deps.setdefault(var, set()).update(dxs)
+        for var, dxs in all_vector_deps.items():
+            for dx in dxs:
+                result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
+                if result is None:
+                    continue
+                for eq_idx, eq_vec_deps in enumerate(data._vector_dependents):
+                    if var in eq_vec_deps and dx in eq_vec_deps[var]:
+                        obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
+                            result[eq_idx] if isinstance(result, np.ndarray) else result
+                        )
 
 
 def _is_variable(var, increment_filter=None):
@@ -531,25 +491,25 @@ def _numeric_deriv(variable, func, **kwargs):
 
     Returns
     -------
-    deriv : float/list
+    deriv : float/ndarray
         Partial derivative(s) of the function :math:`f` to variable(s)
         :math:`x`.
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     d = variable.d
-    variable.val_SI += d
-    exp = func(**kwargs)
+    tol = max(variable.val_SI * d, d)
+    variable.val_SI += tol
+    upper = np.asarray(func(**kwargs))
 
-    variable.val_SI -= 2 * d
-    exp -= func(**kwargs)
-    deriv = exp / (2 * d)
+    variable.val_SI -= 2 * tol
+    lower = np.asarray(func(**kwargs))
 
-    variable.val_SI += d
-
-    return deriv
+    variable.val_SI += tol
+    result = (upper - lower) / (2 * tol)
+    return result.item() if result.ndim == 0 else result
 
 
 def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
@@ -578,62 +538,23 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     original_vector = variable.val.copy()
     # this is specific to fluids right now (upper limit of 1, lower limit of 0)
     d1 = min(variable.d, 1 - variable.val[dx])
     variable.val[dx] += d1
-    exp = func(**kwargs)
+    upper = np.asarray(func(**kwargs))
     d2 = min(variable.d * 2, variable.val[dx])
     variable.val[dx] -= d2
-    exp -= func(**kwargs)
+    lower = np.asarray(func(**kwargs))
 
     variable.val = original_vector
     # d2 is the complete delta of the central difference no matter how big
     # d1 is actually
-    deriv = exp / d2
-    return deriv
+    result = (upper - lower) / d2
+    return result.item() if result.ndim == 0 else result
 
-
-def bus_char_evaluation(component_value, char_func, reference_value, bus_value, **kwargs):
-    r"""
-    Calculate the value of a bus.
-
-    Parameters
-    ----------
-    comp_value : float
-        Value of the energy transfer at the component.
-
-    reference_value : float
-        Value of the bus in reference state.
-
-    char_func : tespy.tools.characteristics.char_line
-        Characteristic function of the bus.
-
-    Returns
-    -------
-    residual : float
-        Residual of the equation.
-
-        .. math::
-
-            residual = \dot{E}_\mathrm{bus} - \frac{\dot{E}_\mathrm{component}}
-            {f\left(\frac{\dot{E}_\mathrm{bus}}
-            {\dot{E}_\mathrm{bus,ref}}\right)}
-    """
-    return bus_value - component_value / char_func.evaluate(
-        bus_value / reference_value
-    )
-
-
-def bus_char_derivative(component_value, char_func, reference_value, bus_value, **kwargs):
-    """Calculate derivative for bus char evaluation."""
-    d = 1e-3
-    return (1 - (
-        1 / char_func.evaluate((bus_value + d) / reference_value) -
-        1 / char_func.evaluate((bus_value - d) / reference_value)
-    ) / (2 * d))
 
 
 def newton_with_kwargs(
@@ -641,7 +562,6 @@ def newton_with_kwargs(
         tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
 
-    # start newton loop
     iteration = 0
     expr = True
     x = val0
@@ -653,10 +573,21 @@ def newton_with_kwargs(
         tol_mode = "abs"
 
     while expr:
-        # calculate function residual and new value
         function_kwargs[parameter] = x
         residual = target_value - function(**function_kwargs)
+
+        if residual == 0:
+            break
+
+        if tol_mode == 'abs':
+            expr = abs(residual) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(residual / target_value) >= tol_rel
+
         x += residual / derivative(**function_kwargs) * relax
+
+        if not expr:
+            break
 
         # check for value ranges
         if x < valmin:
@@ -679,22 +610,35 @@ def newton_with_kwargs(
                 'iterations.'
             )
             logger.debug(msg)
-
             break
-        if tol_mode == 'abs':
-            expr = abs(residual) >= tol_abs
-        elif tol_mode == 'rel':
-            expr = abs(residual / target_value) >= tol_rel
 
     return x
 
 
 def central_difference(function=None, parameter=None, delta=None, **kwargs):
+    delta = abs(max(kwargs[parameter] * delta, delta))
     upper = kwargs.copy()
     upper[parameter] += delta
     lower = kwargs
     lower[parameter] -= delta
     return (function(**upper) - function(**lower)) / (2 * delta)
+
+
+def seeded_random_generator(seed_value: str | bytes | int) -> np.random.Generator:
+    """Generate a reproducible random number generator based on a seed value."""
+    if isinstance(seed_value, str):
+        seed_value = seed_value.encode("utf-8")
+    if isinstance(seed_value, bytes):
+        seed_value = int.from_bytes(seed_value, "little", signed=False) % (2**32)
+    if not isinstance(seed_value, int):
+        raise ValueError("Seed value must be of type str, bytes or int.")
+    return np.random.default_rng(seed=seed_value)
+
+
+def seeded_random(seed_value: str | bytes | int) -> float:
+    """Generate a reproducible random number between 0 and 1 based on a seed value."""
+    rng = seeded_random_generator(seed_value)
+    return rng.random()
 
 
 def get_basic_path():
@@ -783,7 +727,7 @@ def _nested_dict_of_dataframes_to_dict(dictionary):
 
 
 def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
-    """Dump a nested dict with dataframes into a folder structrue
+    """Dump a nested dict with dataframes into a folder structure
 
     The upper level keys with subdictionaries are folder names, the lower
     level keys (where a dataframe is the value) will be the names of the
@@ -799,7 +743,6 @@ def _nested_dict_of_dataframes_to_filetree(dictionary, basepath):
     os.makedirs(basepath, exist_ok=True)
     for key, value in dictionary.items():
         if isinstance(value, dict):
-            basepath = os.path.join(basepath, key)
-            _nested_dict_of_dataframes_to_filetree(value, basepath)
+            _nested_dict_of_dataframes_to_filetree(value, os.path.join(basepath, key))
         else:
             value.to_csv(os.path.join(basepath, f"{key}.csv"))

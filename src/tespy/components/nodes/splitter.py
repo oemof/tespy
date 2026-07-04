@@ -21,58 +21,59 @@ class Splitter(NodeBase):
     r"""
     Split up a mass flow in parts of identical enthalpy and fluid composition.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix`
-    - :py:meth:`tespy.components.nodes.splitter.Splitter.fluid_structure_matrix`
-
-    Inlets/Outlets
-
-    - in1
-    - specify number of outlets with :code:`num_out` (default value: 2)
-
-    Image
-
-    .. image:: /api/_images/Splitter.svg
+    .. image:: /api/_images/components/Splitter.svg
        :alt: flowsheet of the splitter
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Splitter_darkmode.svg
+    .. image:: /api/_images/components/Splitter_darkmode.svg
        :alt: flowsheet of the splitter
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2, ... (variable, count set by :code:`num_out`)
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - equal enthalpy at all outlets constraint: :py:meth:`enthalpy_structure_matrix <tespy.components.nodes.splitter.Splitter.enthalpy_structure_matrix>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+    - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.splitter.Splitter.fluid_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    num_out : int
+        Number of outlets.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
-
-    num_out : float, dict
-        Number of outlets for this component, default value: 2.
 
     Example
     -------
@@ -84,7 +85,8 @@ class Splitter(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ... "temperature": "degC"
     ... })
     >>> so = Source('source')
     >>> si1 = Sink('sink1')
@@ -117,26 +119,41 @@ class Splitter(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple()}
+        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
+
+    @classmethod
+    def port_schema(cls):
+        return {
+            "inlets": {"type": "fixed", "ports": ["in1"]},
+            "outlets": {"type": "variable", "parameter": "num_out", "pattern": "out{n}", "min": 2},
+            "powerinlets": {"type": "fixed", "ports": []},
+            "poweroutlets": {"type": "fixed", "ports": []},
+            "heatinlets": {"type": "fixed", "ports": []},
+            "heatoutlets": {"type": "fixed", "ports": []},
+        }
 
     def get_mandatory_constraints(self):
         return {
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'equal enthalpy at all outlets constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'pressure equality constraints'
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'fluid equality constraints'
             })
         }
 

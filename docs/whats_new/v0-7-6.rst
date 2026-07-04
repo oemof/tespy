@@ -11,7 +11,7 @@ New Features
 
 Bug Fixes
 #########
-- The enthalpy numerical precision critereon for mixtures is relaxed: Mixture
+- The enthalpy numerical precision criterion for mixtures is relaxed: Mixture
   fluid property results (temperature, volume, entropy, ...) are only
   invalidated, if both absolute and relative precision is not acquired.
   Previously, the enthalpy of the mixture, calculated with the temperature
@@ -21,7 +21,7 @@ Bug Fixes
 
 Bug Fixes
 #########
-- Fix the logging text for component paramter value violation in the
+- Fix the logging text for component parameter value violation in the
   postprocessing (`PR #529 <https://github.com/oemof/tespy/pull/529>`__).
 
 Contributors

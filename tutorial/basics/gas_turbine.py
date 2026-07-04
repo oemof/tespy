@@ -85,7 +85,7 @@ c5.set_attr(p=Ref(c2, 1.05, 0))
 nw.solve("design")
 # %%[sec_11]
 cc.set_attr(pr=0.97, eta=0.98)
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 import matplotlib.pyplot as plt
 import numpy as np
 

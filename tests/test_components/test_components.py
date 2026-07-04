@@ -26,22 +26,22 @@ def test_all_classes_in_registry(obj):
 
 QUANTITY_EXEMPTIONS = {
     "CycleCloser": {"fluid_deviation"},
-    "CombustionEngine": {"zeta1", "zeta2"},
+    "CombustionEngine": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
     "PolynomialCompressor": {"rpm", "re_exp_r", "re_exp_sf"},
     "PolynomialCompressorWithCooling": {"rpm", "re_exp_r", "re_exp_sf"},
-    "HeatExchanger": {"zeta1", "zeta2"},
-    "Condenser": {"zeta1", "zeta2"},
-    "Desuperheater": {"zeta1", "zeta2"},
-    "SectionedHeatExchanger": {"zeta1", "zeta2", "re_exp_r", "re_exp_sf"},
-    "MovingBoundaryHeatExchanger": {"zeta1", "zeta2", "re_exp_r", "re_exp_sf"},
-    "SimpleHeatExchanger": {"zeta", "ks_HW"},
-    "ParabolicTrough": {"zeta", "c_1", "c_2", "iam_1", "iam_2", "ks_HW"},
-    "ParallelFlowHeatExchanger": {"zeta1", "zeta2"},
-    "SolarCollector": {"zeta", "lkf_lin", "lkf_quad", "ks_HW"},
-    "Pipe": {"zeta", "ks_HW"},
-    "Valve": {"zeta"},
-    "FuelCell": {"zeta"},
-    "WaterElectrolyzer": {"zeta"}
+    "HeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
+    "Condenser": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
+    "Desuperheater": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
+    "SectionedHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf", "re_exp_hot", "re_exp_cold"},
+    "MovingBoundaryHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf", "re_exp_hot", "re_exp_cold"},
+    "SimpleHeatExchanger": {"zeta", "zeta_d4", "ks_HW"},
+    "ParabolicTrough": {"zeta", "zeta_d4", "c_1", "c_2", "iam_1", "iam_2", "ks_HW"},
+    "ParallelFlowHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
+    "SolarCollector": {"zeta", "zeta_d4", "lkf_lin", "lkf_quad", "ks_HW"},
+    "Pipe": {"zeta", "zeta_d4", "ks_HW"},
+    "Valve": {"zeta", "zeta_d4", "Kv"},
+    "FuelCell": {"zeta", "zeta_d4"},
+    "WaterElectrolyzer": {"zeta", "zeta_d4"},
 }
 
 def properties_of(instance):
@@ -52,13 +52,21 @@ def properties_of(instance):
     ]
 
 
+def all_properties_of(instance):
+    return [
+        prop
+        for prop, container in instance.get_parameters().items()
+    ]
+
+
 def properties_with_eq_of(instance):
     return [
         prop
         for prop, container in instance.get_parameters().items()
         if (
             not isinstance(container, dc_simple)
-            and container.func is not None or container.structure_matrix is not None
+            and container.func is not None
+            or container.structure_matrix is not None
         )
     ]
 
@@ -86,6 +94,12 @@ def pytest_generate_tests(metafunc):
                 generate_class_property_params(properties_with_eq_of)
             )
 
+        elif metafunc.function.__name__ == "test_unset":
+            metafunc.parametrize(
+                "cls_name,prop",
+                generate_class_property_params(all_properties_of)
+            )
+
 
 def test_property_value_not_none(cls_name, prop):
 
@@ -108,3 +122,11 @@ def test_num_equations_with_func_or_structure_matrix(cls_name, prop):
     condition = value.num_eq_sets > 0
 
     assert condition, f"The parameter {prop} of {cls_name} lacks `num_eq_sets` specification"
+
+
+def test_unset(cls_name, prop):
+
+    instance = component_registry.items[cls_name]("")
+    if instance.get_attr(prop).result_only:
+        pytest.skip("result-only parameter cannot be unset")
+    instance.set_attr(**{prop: None})

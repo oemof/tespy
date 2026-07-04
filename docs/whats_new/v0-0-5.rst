@@ -36,7 +36,7 @@ Bug fixes
 - fixed a bug in the function v_mix_ph (specific volume for gas mixtures) (`d487381 <https://github.com/oemof/tespy/commit/d48738163c402c17456193a17d4bce60782258d0>`_).
 - fixed compressor derivatives for usage with custom variables (`71cae48 <https://github.com/oemof/tespy/commit/71cae481a2dabfdd92334f23bf87433fb4a571f7>`_).
 - adjusted error messages (`cccd89c <https://github.com/oemof/tespy/commit/cccd89c6b1648be3e1819deccecc0df69ca92ba4>`_).
-- removed unecessary loop (`187505b <https://github.com/oemof/tespy/commit/187505ba73b4749df6451e4d5464fc909c4f63ed>`_).
+- removed unnecessary loop (`187505b <https://github.com/oemof/tespy/commit/187505ba73b4749df6451e4d5464fc909c4f63ed>`_).
 - fixed attribute handling in subsystem: condenser with subcooler (`2c926bb <https://github.com/oemof/tespy/commit/2c926bb5cb9b9c04d5f767a2c866bba00efcf5aa>`_).
 
 Other changes

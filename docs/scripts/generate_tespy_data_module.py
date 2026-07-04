@@ -1,15 +1,21 @@
 # -*- coding: utf-8 -*-
 
 import json
+import os
 
 from matplotlib import pyplot as plt
-from pkg_resources import resource_filename
 
 import tespy
 
+DOCS_DIR = os.path.join(os.path.dirname(__file__), "..")
+IMAGES_DIR = os.path.join(DOCS_DIR, "api", "_images", "characteristics")
+API_DIR = os.path.join(DOCS_DIR, "api")
+
+os.makedirs(IMAGES_DIR, exist_ok=True)
+
 
 def get_char_data(filename):
-    path = resource_filename('tespy.data', filename + '.json')
+    path = os.path.join(tespy.__datapath__, f'{filename}.json')
 
     with open(path) as f:
         data = json.load(f)
@@ -17,50 +23,68 @@ def get_char_data(filename):
     return data
 
 
-def plot_line(component, parameter, name, data):
+def plot_line(component, parameter, name, data, suffix=""):
 
     char = tespy.tools.characteristics.CharLine(x=data['x'], y=data['y'])
 
-    title = ('Characteristic line "' + name + '" for parameter "' +
-             parameter + '".')
+    title = f'Characteristic line "{name}" for parameter "{parameter}".'
     xlabel = '$X$'
     ylabel = r'$f\left(X\right)$'
 
-    path = component + '_' + parameter + '_' + name + '.svg'
-    char.plot(path.replace(' ', '_'), title, xlabel, ylabel)
+    filename = f'{component}_{parameter}_{name}{suffix}.svg'.replace(' ', '_')
+    char.plot(os.path.join(IMAGES_DIR, filename), title, xlabel, ylabel)
 
 
-def plot_map(component, parameter, name, data):
+def plot_map(component, parameter, name, data, suffix=""):
 
     char = tespy.tools.characteristics.CharMap(
         x=data['x'], y=data['y'], z=data['z'])
 
-    title = ('Characteristic line "' + name + '" for parameter "' +
-             parameter + '".')
+    title = f'Characteristic line "{name}" for parameter "{parameter}".'
     xlabel = '$Y$'
     ylabel = r'$f\left(X,Y\right)$'
 
-    path = component + '_' + parameter + '_' + name + '.svg'
-    char.plot(path.replace(' ', '_'), title, xlabel, ylabel)
+    filename = f'{component}_{parameter}_{name}{suffix}.svg'.replace(' ', '_')
+    char.plot(os.path.join(IMAGES_DIR, filename), title, xlabel, ylabel)
 
 
 def generate_api_doc(component, parameter, name, char_type, ref):
-    path = '_images/' + component + '_' + parameter + '_' + name + '.svg'
-    rst = (
-        '.. figure:: ' + path.replace(' ', '_') + '\n'
-        '    :alt: Characteristic ' + char_type + ' "' + name +
-        '" for parameter "' + parameter + '".\n'
-        '    :align: center\n\n'
-    )
-    if ref:
-        rst += '    Reference: :cite:`' + ref + '`.\n\n'
-    else:
-        rst += '    Reference: Generic data.\n\n'
+    base = f'{component}_{parameter}_{name}'.replace(' ', '_')
+    alt = f'Characteristic {char_type} "{name}" for parameter "{parameter}".'
+    caption = f'    Reference: :cite:`{ref}`.\n\n' if ref else '    Reference: Generic data.\n\n'
 
-    return rst
+    def figure(filename, extra_class):
+        return (
+            f'.. figure:: /api/_images/characteristics/{filename}.svg\n'
+            f'    :alt: {alt}\n'
+            f'    :align: center\n'
+            f'    :figclass: {extra_class}\n\n'
+            + caption
+        )
+
+    return figure(base, 'only-light') + figure(f'{base}_darkmode', 'only-dark')
+
+
+def generate_plots(suffix=""):
+    for component, params in get_char_data('char_lines').items():
+        for param, lines in params.items():
+            for line, data in lines.items():
+                plot_line(component, param, line, data, suffix)
+
+    for component, params in get_char_data('char_maps').items():
+        for param, chars in params.items():
+            for char, data in chars.items():
+                plot_map(component, param, char, data, suffix)
+
+
+generate_plots()
+
+with plt.style.context("dark_background"):
+    generate_plots(suffix="_darkmode")
 
 
 rst = (
+    '.. _data_label:\n\n'
     'tespy.data module\n'
     '=================\n\n'
 )
@@ -82,12 +106,10 @@ rst += (
 )
 
 for component, params in get_char_data('char_lines').items():
-    rst += '**' + component + '**\n\n'
+    rst += f'**{component}**\n\n'
     for param, lines in params.items():
         for line, data in lines.items():
-            plot_line(component, param, line, data)
-            rst += generate_api_doc(
-                component, param, line, 'line', data['ref'])
+            rst += generate_api_doc(component, param, line, 'line', data['ref'])
 
 rst += (
     'Characteristic maps\n'
@@ -95,12 +117,10 @@ rst += (
 )
 
 for component, params in get_char_data('char_maps').items():
-    rst += '**' + component + '**\n\n'
+    rst += f'**{component}**\n\n'
     for param, chars in params.items():
         for char, data in chars.items():
-            plot_map(component, param, char, data)
             rst += generate_api_doc(component, param, char, 'map', data['ref'])
 
-with open('tespy.data.rst', 'w') as f:
+with open(os.path.join(API_DIR, 'data.rst'), 'w') as f:
     f.write(rst)
-    f.close()

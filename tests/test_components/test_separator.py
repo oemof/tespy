@@ -23,9 +23,10 @@ class TestSeparator:
     def setup_method(self):
         self.nwk = Network()
         self.nwk.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
         })
-        self.nwk.set_attr(iterinfo=False)
+        self.nwk.iterinfo = False
 
         so = Source("Source")
         sep = Separator("Separator")

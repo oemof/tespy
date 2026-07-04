@@ -13,8 +13,7 @@ def polynomialcompressornetwork():
 
     nw = Network()
     nw.units.set_defaults(
-        temperature="°C",
-        pressure="bar"
+        temperature="°C", pressure="bar", pressure_difference="bar"
     )
 
     gas_inlet = Source("gas inlet")

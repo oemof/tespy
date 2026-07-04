@@ -9,6 +9,9 @@ from .combustion.diabatic import DiabaticCombustionChamber  # noqa: F401
 from .combustion.engine import CombustionEngine  # noqa: F401
 from .displacementmachinery.polynomial_compressor import PolynomialCompressor  # noqa: F401
 from .displacementmachinery.polynomial_compressor_with_cooling import PolynomialCompressorWithCooling  # noqa: F401
+from .heat.bus import HeatBus  # noqa: F401
+from .heat.sink import HeatSink  # noqa: F401
+from .heat.source import HeatSource  # noqa: F401
 from .heat_exchangers.base import HeatExchanger  # noqa: F401
 from .heat_exchangers.condenser import Condenser  # noqa: F401
 from .heat_exchangers.desuperheater import Desuperheater  # noqa: F401

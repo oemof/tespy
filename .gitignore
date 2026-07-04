@@ -45,6 +45,9 @@ htmlcov
 
 # Sphinx
 docs/_build
+docs/api/*.rst
+docs/building_blocks/_*.rst
+docs/jupyter_execute
 
 .DS_Store
 *~
@@ -59,3 +62,6 @@ docs/_build
 .appveyor.token
 *.bak
 uv.lock
+.python-version
+.claude
+.venv

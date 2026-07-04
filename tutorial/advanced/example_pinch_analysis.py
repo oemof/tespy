@@ -6,6 +6,7 @@ from tespy.connections import Connection
 from tespy.components import SimpleHeatExchanger, Valve, Compressor, CycleCloser
 
 
+# MARK: Example 1
 
 # integrating a tespy model of a heat pump into a given process
 # example Pinch Analysis of a manual workflow without tespy components
@@ -87,6 +88,7 @@ nw.solve("design")
 Example_Analysis.show_heat_pump_in_gcc(condenser=condenser,evaporator=evaporator)
 
 
+# MARK: Example 2
 # second example using a moving boundary heat exchanger as the evaporator and a sectioned heat exchanger as the condenser
 # as the heat exchangers now include the internal H,T-Data, the desuperheater is not included anymore.
 # However, the connection numbers are kept to clarifiy the positions.
@@ -167,3 +169,83 @@ Example_Analysis2.add_cold_stream_manually(-40,80,80)
 
 # reference heat pump components for plotting in the GCC of the same pinch analysis
 Example_Analysis2.show_heat_pump_in_gcc(condenser=condenser_2,evaporator=evaporator_2)
+
+
+
+# MARK: Example 3
+# additional example to test HeatExchanger in pinch analysis
+from tespy.components import  HeatExchanger
+
+# network
+nw_3 = Network()
+
+# taken from example heat pump
+nw_3.units.set_defaults(
+    temperature="degC", pressure="bar", enthalpy="kJ/kg", heat="kW", power="kW"
+)
+
+# components
+condenser_3 = HeatExchanger("Condenser_3")
+evaporator_3 = HeatExchanger("Evaporator_3")
+expansion_valve_3 = Valve("Expansion Valve_3")
+compressor_3 = Compressor("Compressor_3")
+cycle_closer_3 = CycleCloser("Cycle Closer_3")
+# Sinks and Sources for the secondary media
+HeatSinkIn = Source("HeatSinkIn")
+HeatSinkOut = Sink("HeatSinkOut")
+HeatSourceIn = Source("HeatSourceIn")
+HeatSourceOut = Sink("HeatSourceOut")
+
+# connections
+c1_3 = Connection(evaporator_3, "out2", compressor_3,"in1", label = "connection 1_3")
+c2_3 = Connection(compressor_3, "out1", condenser_3, "in1", "connection 2_3") 
+c4_3 = Connection(condenser_3, "out1", expansion_valve_3, "in1", label = "connection 4_3")
+c5_3 = Connection(expansion_valve_3, "out1",cycle_closer_3, "in1", label = "connection 5_3")
+c6_3 = Connection(cycle_closer_3, "out1", evaporator_3, "in2", label = "connection 6_3")
+nw_3.add_conns(c1_3,c2_3,c4_3,c5_3,c6_3)
+
+# add the connections for secondary media
+c7_3 = Connection(HeatSinkIn, "out1", condenser_3, "in2", label = "connection 7_3")
+c8_3 = Connection(condenser_3, "out2", HeatSinkOut, "in1", label = "connection 8_3")
+c9_3 = Connection(HeatSourceIn, "out1", evaporator_3, "in1", label = "connection 9_3")
+c10_3 = Connection(evaporator_3, "out1", HeatSourceOut, "in1", label = "connection 10_3")
+nw_3.add_conns(c7_3,c8_3,c9_3,c10_3)
+
+# set up general parameters of heat pump
+compressor_3.set_attr(eta_s = 0.7)
+condenser_3.set_attr(dp1=0, dp2=0, ttd_l=2)
+evaporator_3.set_attr(dp1=0, dp2=0, ttd_l=2)
+c1_3.set_attr(fluid={"R290": 1})
+# media, temperatures and pressure of heat source and sink
+c7_3.set_attr(fluid={"Water": 1}, T=50, p=1)
+c8_3.set_attr(T=55)
+c9_3.set_attr(fluid={"Water": 1}, T=10, p=1)
+c10_3.set_attr(T=5)
+
+# set up parameters to show specific case
+c1_3.set_attr(m=0.1, x=1)
+c4_3.set_attr(x=0)
+
+# solve design
+nw_3.solve("design")
+
+# integrating a tespy model of a heat pump into a given process
+
+# example Pinch Analysis of a manual workflow without tespy components
+Example_Analysis3 = TesypPinchAnalysis("Example_Process_3")
+
+# setting the minimum temperature difference for the analysis
+Example_Analysis3.set_minimum_temperature_difference(10)
+
+# add all the streams manually
+# Example: Kemp 2007 p. 20, reduced temperature by 50 degC to fit the heat pump example
+Example_Analysis3.add_cold_stream_manually(-230, 20-50, 135-50)
+Example_Analysis3.add_hot_stream_manually(330, 170-50, 60-50)
+Example_Analysis3.add_cold_stream_manually(-240, 80-50, 140-50)
+Example_Analysis3.add_hot_stream_manually(180, 150-50, 30-50)
+# additional latent streams as shown by Arpagaus 2019 p. 99
+Example_Analysis3.add_hot_stream_manually(60,35,35)
+Example_Analysis3.add_cold_stream_manually(-40,80,80)
+
+# reference heat pump components for plotting in the GCC of the same pinch analysis
+Example_Analysis3.show_heat_pump_in_gcc(condenser=condenser_3,evaporator=evaporator_3)

@@ -1,9 +1,13 @@
 
 from tespy.tools.pinch_analysis import TesypPinchAnalysis
+# setting up the heat pump system
+from tespy.networks import Network
+from tespy.connections import Connection
+from tespy.components import SimpleHeatExchanger, Valve, Compressor, CycleCloser
+
 
 
 # integrating a tespy model of a heat pump into a given process
-
 # example Pinch Analysis of a manual workflow without tespy components
 Example_Analysis = TesypPinchAnalysis("Example_Process_1")
 
@@ -36,11 +40,6 @@ Example_Analysis.plot_shifted_cc_diagram()
 # the grand composite curve
 Example_Analysis.plot_gcc_diagram()
 
-
-# setting up the heat pump system
-from tespy.networks import Network
-from tespy.connections import Connection
-from tespy.components import SimpleHeatExchanger, Valve, Compressor, CycleCloser
 
 # network
 nw = Network()
@@ -86,7 +85,6 @@ nw.solve("design")
 
 # reference heat pump components for plotting in the GCC
 Example_Analysis.show_heat_pump_in_gcc(condenser=condenser,evaporator=evaporator)
-
 
 
 # second example using a moving boundary heat exchanger as the evaporator and a sectioned heat exchanger as the condenser

@@ -122,8 +122,9 @@ class TesypPinchAnalysis():
         # add visualization of sections
         # get minimum temperature
         T_min_CC = min(min(self.hot_cc_data_temperature), min(self.cold_cc_data_temperature))
+        # plot line for sections below minimum temperature
         ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
-                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_CC-5]*4, "o-", color="black")
+                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_CC-5]*4, "|-", color="black")
         # adding annotations to the different sections
         ax.annotate(f'{self.cold_utility:.0f}', xy=(self.cold_utility/2, T_min_CC-4), horizontalalignment='center', fontsize=10)
         ax.annotate(f'{self.heat_recovery:.0f}', xy=(self.cold_utility + self.heat_recovery/2, T_min_CC-4), horizontalalignment='center', fontsize=10)
@@ -161,8 +162,9 @@ class TesypPinchAnalysis():
         # add visualization of sections
         # get minimum temperature
         T_min_shifted_CC = min(min(self.shifted_hot_cc_data_temperature), min(self.shifted_cold_cc_data_temperature))
+        # plot line with sections
         ax.plot([0,self.cold_utility,self.heat_recovery+self.cold_utility,
-                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_shifted_CC-5]*4, "o-", color="black")
+                 self.heat_recovery+self.cold_utility+self.hot_utility],[T_min_shifted_CC-5]*4, "|-", color="black")
         # adding annotations to the different sections
         ax.annotate(f'{self.cold_utility:.0f}', xy=(self.cold_utility/2, T_min_shifted_CC-4), horizontalalignment='center', fontsize=10)
         ax.annotate(f'{self.heat_recovery:.0f}', xy=(self.cold_utility + self.heat_recovery/2, T_min_shifted_CC-4), horizontalalignment='center', fontsize=10)
@@ -232,9 +234,10 @@ class TesypPinchAnalysis():
 
     # adding components from tespy models
 
+
     # adding a heat pump in the GCC (by referencing evaporator and condenser)  
     def show_heat_pump_in_gcc(self, evaporator, condenser):
-        from tespy.components import SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger
+        from tespy.components import SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger, HeatExchanger
         
         # create GCC diagram, if not done before
         try:
@@ -248,18 +251,30 @@ class TesypPinchAnalysis():
             fig = self.gcc_fig
             ax = self.gcc_ax
 
-        # get the plotting data of the heat exchangers
+
+        # TODO adjust for changes in tespy
+        """
+          calc_sections() on HeatExchanger, SectionedHeatExchanger,
+          and MovingBoundaryHeatExchanger is deprecated. Section data is 
+          now computed automatically after each solve and exposed as ComponentArrayProperties 
+          attributes directly on the component: Q_sections, T_hot_sections, T_cold_sections,
+          Q_per_section, lmtd_per_section, and phases_per_section. Each attribute provides
+          .val in the network’s user-specified units and .val_SI in SI units. 
+          The old return value of calc_sections() (a 5-tuple in user units) 
+          is still returned but raises a
+        """
+       
+       # get the plotting data of the heat exchangers
         # condensers
         if isinstance(condenser,SimpleHeatExchanger):
             # get plot data of heat exchangers at heat sink (taken from user meeting example of heat exchangers)
             condenser_Q_vals = [0, abs(condenser.Q.val)]
             condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
-            # to do: include a warning, if there is at least one change between to or from a latent stream
-        elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger):
-            # get the data from calc_sections
-            condenser_Q_sections, condenser_T_steps_hot, condenser_T_steps_cold, condenser_Q_per_section, condenser_td_log_per_section = condenser.calc_sections()
-            condenser_Q_vals = [Q / 1000 for Q in condenser_Q_sections] # convert to kW
-            condenser_T_vals = [T - 273.17 for T in condenser_T_steps_hot] # convert to degC
+            # TODO: include a warning, if there is at least one change between to or from a latent stream
+        elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger) or isinstance(condenser, HeatExchanger):
+            # get the data for the hot stream (refrigerant side) of condenser
+            condenser_T_vals = [T - 273.17 for T in condenser.T_hot_sections.val_SI]
+            condenser_Q_vals = [Q / 1000 for Q in condenser.Q_sections.val_SI]
         else:
             raise ValueError("The component type is not implemented as a condenser.")
        
@@ -268,18 +283,15 @@ class TesypPinchAnalysis():
             # get plot data of heat exchangers at heat source (taken from user meeting example of heat exchangers)
             evaporator_Q_vals = [0, abs(evaporator.Q.val)]         
             evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
-            # to do: include a warning, if there is at least one change between to or from a latent stream
-        elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger):
-            # get the data from calc_sections
-            evaporator_Q_sections, evaporator_T_steps_hot, evaporator_T_steps_cold, evaporator_Q_per_section, evaporator_td_log_per_section = evaporator.calc_sections()
-            evaporator_Q_vals = [Q / 1000 for Q in evaporator_Q_sections] # convert to kW
-            evaporator_T_vals = [T - 273.17 for T in evaporator_T_steps_cold] # convert to degC
+            # TODO: include a warning, if there is at least one change between to or from a latent stream
+        elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger) or isinstance(evaporator, HeatExchanger):
+            # get the data for the cold stream (refrigerant side) of evaporator
+            evaporator_T_vals = [T - 273.17 for T in evaporator.T_cold_sections.val_SI]
+            evaporator_Q_vals = [Q / 1000 for Q in evaporator.Q_sections.val_SI]
         else:
             raise ValueError("The component type is not implemented as an evaporator.")
 
-        # add: expand these conditions in future for other types
-        # missing: HeatExchanger, ParallelFlowHeatExchanger, Desuperheater, Condenser
-
+        # add: expand these conditions in future for other types: ParallelFlowHeatExchanger, Desuperheater, Condenser
 
         # show (only display) by adding the plot data of the heat exchangers to the GCC
         ax.plot(condenser_Q_vals, condenser_T_vals, "-",color="red") # as in heat exchanger example

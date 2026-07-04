@@ -251,19 +251,6 @@ class TesypPinchAnalysis():
             # get the GCC
             fig = self.gcc_fig
             ax = self.gcc_ax
-
-
-        # TODO adjust for changes in tespy
-        """
-          calc_sections() on HeatExchanger, SectionedHeatExchanger,
-          and MovingBoundaryHeatExchanger is deprecated. Section data is 
-          now computed automatically after each solve and exposed as ComponentArrayProperties 
-          attributes directly on the component: Q_sections, T_hot_sections, T_cold_sections,
-          Q_per_section, lmtd_per_section, and phases_per_section. Each attribute provides
-          .val in the network’s user-specified units and .val_SI in SI units. 
-          The old return value of calc_sections() (a 5-tuple in user units) 
-          is still returned but raises a
-        """
        
        # get the plotting data of the heat exchangers
         # condensers

@@ -281,9 +281,15 @@ class TesypPinchAnalysis():
 
         # add: expand these conditions in future for other types: ParallelFlowHeatExchanger, Desuperheater, Condenser
 
+        # shift the evaporator / condenser by the half the minimal temperature difference as cold / hot streams
+        # hot stream shifted downwards
+        condenser_shiftedT_vals = [T - self.min_dT/2 for T in condenser_T_vals]
+        # cold stream shifted upwards
+        evaporator_shiftedT_vals = [T - self.min_dT/2 for T in evaporator_T_vals]
+        
         # show (only display) by adding the plot data of the heat exchangers to the GCC
-        ax.plot(condenser_Q_vals, condenser_T_vals, "-",color="red") # as in heat exchanger example
-        ax.plot(evaporator_Q_vals, evaporator_T_vals, "-",color="blue")
+        ax.plot(condenser_Q_vals, condenser_shiftedT_vals, "-",color="red") # as in heat exchanger example
+        ax.plot(evaporator_Q_vals, evaporator_shiftedT_vals, "-",color="blue")
 
         # save figure
         fig.savefig(f"GCC_with_heat_pump_{self.label}.svg")

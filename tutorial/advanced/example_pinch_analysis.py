@@ -78,7 +78,7 @@ c1.set_attr(fluid={"R290": 1})
 # in that case only the condensation is part of the condenser forming a horizontal line in the GCC as
 # the most simple example case
 c1.set_attr(m=0.1, p=5, x=1)
-c3.set_attr(p=20, x=1)
+c3.set_attr(p=21, x=1)
 c4.set_attr(x=0)
 
 # solve design
@@ -137,8 +137,8 @@ condenser_2.set_attr(dp1=0, dp2=0, td_pinch=2)
 evaporator_2.set_attr(dp1=0, dp2=0, td_pinch=2)
 c1_2.set_attr(fluid={"R290": 1})
 # media, temperatures and pressure of heat source and sink
-c7_2.set_attr(fluid={"Water": 1}, T=50, p=1)
-c8_2.set_attr(T=55)
+c7_2.set_attr(fluid={"Water": 1}, T=55, p=1)
+c8_2.set_attr(T=60)
 c9_2.set_attr(fluid={"Water": 1}, T=10, p=1)
 c10_2.set_attr(T=5)
 
@@ -217,8 +217,8 @@ condenser_3.set_attr(dp1=0, dp2=0, ttd_l=2)
 evaporator_3.set_attr(dp1=0, dp2=0, ttd_l=2)
 c1_3.set_attr(fluid={"R290": 1})
 # media, temperatures and pressure of heat source and sink
-c7_3.set_attr(fluid={"Water": 1}, T=50, p=1)
-c8_3.set_attr(T=55)
+c7_3.set_attr(fluid={"Water": 1}, T=55, p=1)
+c8_3.set_attr(T=60)
 c9_3.set_attr(fluid={"Water": 1}, T=10, p=1)
 c10_3.set_attr(T=5)
 

@@ -19,6 +19,7 @@ import os
 import warnings
 from pathlib import Path
 from time import time
+import copy
 
 import numpy as np
 import pandas as pd
@@ -4095,56 +4096,43 @@ class Network:
                 power_in_i = 1
                 
                 for conn in args:
-                    if conn.label not in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]: 
-                        self.conns[conn.label] = conn
-                        self.conns[conn.label].label = f"{self.label}_{conn.label}"
-                    else:
-                        #add interface connections
+                    self.conns[conn.label] = copy.copy(conn)
+                    self.conns[conn.label].label = f"{self.label}_{conn.label}"
+                     
+                    if conn.label in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]:
+                        #reconnect interface connections
                         match map_conns[conn.label]:
                             case 'Source':
-                                self.conns[conn.label] = Connection(self.inlet, f"out{out_i}", 
-                                                                    interfaces['Source'][conn.label]['target'], 
-                                                                    interfaces['Source'][conn.label]['target_id'], 
-                                                                    label=conn.label)
+                                self.conns[conn.label].source= self.inlet
+                                self.conns[conn.label].source_id= f"out{out_i}"
                                 out_i+=1
 
                             case 'Sink':
-                                self.conns[conn.label] = Connection(interfaces['Sink'][conn.label]['source'], 
-                                                                    interfaces['Sink'][conn.label]['source_id'],
-                                                                    self.outlet, f"in{in_i}", 
-                                                                    label=conn.label)
+                                self.conns[conn.label].target = self.outlet 
+                                self.conns[conn.label].target_id =  f"in{in_i}"
                                 in_i+=1
 
                             case 'HeatSink':
-                                self.conns[conn.label] = HeatConnection(interfaces['HeatSink'][conn.label]['source'], 
-                                                                    interfaces['HeatSink'][conn.label]['source_id'],
-                                                                    self.outlet, f"heat_in{heat_in_i}", 
-                                                                    label=conn.label)
+                                self.conns[conn.label].target = self.outlet 
+                                self.conns[conn.label].target_id =  f"heat_in{heat_in_i}" 
                                 heat_in_i+=1
 
                             case 'HeatSource':
-                                self.conns[conn.label] = HeatConnection(self.inlet, f"heat_out{heat_out_i}", 
-                                                                    interfaces['HeatSource'][conn.label]['target'], 
-                                                                    interfaces['HeatSource'][conn.label]['target_id'], 
-                                                                    label=conn.label)
+                                self.conns[conn.label].source = self.inlet
+                                self.conns[conn.label].source_id =f"heat_out{heat_out_i}"
                                 heat_out_i+=1
                             
                             case 'PowerSink':
-                                self.conns[conn.label] = PowerConnection(interfaces['PowerSink'][conn.label]['source'], 
-                                                                    interfaces['PowerSink'][conn.label]['source_id'],
-                                                                    self.outlet, f"power_in{heat_in_i}", 
-                                                                    label=conn.label)
+                                self.conns[conn.label].target = self.outlet 
+                                self.conns[conn.label].target_id = f"power_in{heat_in_i}"
                                 power_in_i+=1
 
                             case 'PowerSource':
-                                
-                                self.conns[conn.label] = PowerConnection(self.inlet, f"power_out{heat_out_i}", 
-                                                                    interfaces['PowerSource'][conn.label]['target'], 
-                                                                    interfaces['PowerSource'][conn.label]['target_id'], 
-                                                                    label=conn.label)
+                                self.conns[conn.label].source = self.inlet 
+                                self.conns[conn.label].source_id = f"power_out{heat_out_i}" 
                                 power_out_i+=1
 
-                        self.conns[conn.label].label = f"{self.label}_{conn.label}"
+                    self.conns[conn.label].label = f"{self.label}_{conn.label}"
                                 
                 self._add_comps(*list(self.conns.values()))
 

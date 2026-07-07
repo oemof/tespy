@@ -4046,7 +4046,8 @@ class Network:
                 components[c].update(cp._serialize())
 
         return components
-    def convert_to_subsystem(self, subname):
+    
+    def convert_to_subsystem(self, subname, interface_exceptions=[]):
         interface_types={'Sources':[Source, HeatSource, PowerSource],
                     'Sinks': [Sink, HeatSink, PowerSink],
                     }
@@ -4056,8 +4057,13 @@ class Network:
             interface_df={}
 
             for index, row in self.conns[self.conns[mapping[direction]].apply(
-                lambda x: isinstance(x, interface_type) and x._interface
-                )].iterrows():
+                lambda x: 
+                #check if connections are connected to a source or sink component:
+                isinstance(x, interface_type) and  
+                #Check if corresponding source or sink component belongs to 
+                # the exceptions list passed as argument:
+                x.label not in interface_exceptions)
+                ].iterrows():
                 interface_df[index]=row
             return(interface_df)
         interfaces={}

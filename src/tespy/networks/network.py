@@ -30,7 +30,7 @@ from tespy.components import CycleCloser
 from tespy.components import FuelCell
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
-from tespy.components import Subsystem, Source, Sink, HeatSource, HeatSink
+from tespy.components import Subsystem, Source, Sink, HeatSource, HeatSink, PowerSource, PowerSink
 from tespy.connections import Connection, PowerConnection,HeatConnection
 from tespy.components.component import component_registry
 
@@ -4047,8 +4047,8 @@ class Network:
 
         return components
     def convert_to_subsystem(self, subname):
-        interface_types={'Sources':[Source, HeatSource],
-                    'Sinks': [Sink, HeatSink],
+        interface_types={'Sources':[Source, HeatSource, PowerSource],
+                    'Sinks': [Sink, HeatSink, PowerSink],
                     }
         mapping={'Sources':'source',
                 'Sinks':'target'}
@@ -4056,7 +4056,8 @@ class Network:
             interface_df={}
 
             for index, row in self.conns[self.conns[mapping[direction]].apply(
-                lambda x: isinstance(x, interface_type))].iterrows():
+                lambda x: isinstance(x, interface_type) and x._interface
+                )].iterrows():
                 interface_df[index]=row
             return(interface_df)
         interfaces={}
@@ -4070,6 +4071,9 @@ class Network:
                 self.num_out= len(interfaces['Sink'])
                 self.num_heat_in = len(interfaces['HeatSource'])
                 self.num_heat_out = len(interfaces['HeatSink'])
+                self.num_power_in = len(interfaces['PowerSource'])
+                self.num_power_out = len(interfaces['PowerSink'])
+
                 super().__init__(label)
             
             def create_network(self):
@@ -4081,6 +4085,8 @@ class Network:
                 in_i=1
                 heat_out_i=1
                 heat_in_i = 1
+                power_out_i=1
+                power_in_i = 1
                 
                 for conn in args:
                     if conn.label not in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]: 
@@ -4104,7 +4110,6 @@ class Network:
                                 in_i+=1
 
                             case 'HeatSink':
-                                
                                 self.conns[conn.label] = HeatConnection(interfaces['HeatSink'][conn.label]['source'], 
                                                                     interfaces['HeatSink'][conn.label]['source_id'],
                                                                     self.outlet, f"heat_in{heat_in_i}", 
@@ -4112,12 +4117,26 @@ class Network:
                                 heat_in_i+=1
 
                             case 'HeatSource':
-                                
                                 self.conns[conn.label] = HeatConnection(self.inlet, f"heat_out{heat_out_i}", 
                                                                     interfaces['HeatSource'][conn.label]['target'], 
                                                                     interfaces['HeatSource'][conn.label]['target_id'], 
                                                                     label=conn.label)
                                 heat_out_i+=1
+                            
+                            case 'PowerSink':
+                                self.conns[conn.label] = PowerConnection(interfaces['PowerSink'][conn.label]['source'], 
+                                                                    interfaces['PowerSink'][conn.label]['source_id'],
+                                                                    self.outlet, f"power_in{heat_in_i}", 
+                                                                    label=conn.label)
+                                power_in_i+=1
+
+                            case 'PowerSource':
+                                
+                                self.conns[conn.label] = PowerConnection(self.inlet, f"power_out{heat_out_i}", 
+                                                                    interfaces['PowerSource'][conn.label]['target'], 
+                                                                    interfaces['PowerSource'][conn.label]['target_id'], 
+                                                                    label=conn.label)
+                                power_out_i+=1
 
                         self.conns[conn.label].label = f"{self.label}_{conn.label}"
                                 

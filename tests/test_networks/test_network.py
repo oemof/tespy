@@ -213,6 +213,48 @@ class TestNetworks:
         imported_nwk.assert_convergence()
         assert approx(pipe.D.val) == imported_nwk.get_comp("pipe").D.val
 
+    def test_Network_import_with_active_reference(self):
+        """Test if an active Ref specification is retained after import."""
+        valve = Valve("valve")
+        c1 = Connection(self.source, 'out1', valve, 'in1', label="c1")
+        c2 = Connection(valve, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=10)
+        c2.set_attr(p=Ref(c1, 0.5, 0))
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        imported_nwk = Network.from_dict(serialization)
+        imported_c2 = imported_nwk.get_conn("c2")
+        assert imported_c2.p_ref.is_set
+        assert not imported_c2.p.is_set
+        imported_nwk.solve("design")
+        imported_nwk.assert_convergence()
+        assert approx(c2.p.val_SI) == imported_c2.p.val_SI
+
+    def test_Network_import_with_inactive_reference(self):
+        """Test if an unset but serialized Ref stays unset after import."""
+        valve = Valve("valve")
+        c1 = Connection(self.source, 'out1', valve, 'in1', label="c1")
+        c2 = Connection(valve, 'out1', self.sink, 'in1', label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=10)
+        c2.set_attr(p=Ref(c1, 0.5, 0))
+        # overwriting with a plain value deactivates the reference but keeps
+        # it in serialized form
+        c2.set_attr(p=6)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        serialization = self.nw.export()
+        assert not serialization["Connection"]["Connection"]["c2"]["p_ref"]["is_set"]
+        imported_nwk = Network.from_dict(serialization)
+        imported_c2 = imported_nwk.get_conn("c2")
+        assert not imported_c2.p_ref.is_set
+        assert imported_c2.p.is_set
+        imported_nwk.solve("design")
+        imported_nwk.assert_convergence()
+        assert approx(c2.p.val_SI) == imported_c2.p.val_SI
+
     def test_Network_deserialze_component_with_default_charmap(self):
         """Test if component variables are retained after import."""
         pump = Pump("pump")

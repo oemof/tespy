@@ -26,6 +26,10 @@ Bug Fixes
   of classes inherit the `DEFAULT` characteristic lines and maps of parent
   classes if there is no own `DEFAULT`
   (`3e65ba3 <https://github.com/oemof/tespy/commit/3e65ba3168aa99bd7afc7d1812fadcbe424fdab8>`__).
+- Network deserialization wrongly activated serialized but inactive
+  :py:class:`~tespy.connections.connection.Ref` specifications. The
+  :code:`is_set` flags are now restored as exported
+  (`PR #1024 <https://github.com/oemof/tespy/pull/1024>`__).
 
 Contributors
 ############

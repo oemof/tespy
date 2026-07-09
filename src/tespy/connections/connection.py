@@ -857,13 +857,19 @@ class Connection(ConnectionBase):
 
         for arg in arglist_ref:
             if len(data[arg]) > 0:
-                param = arg.replace("_ref", "")
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
                     data[arg]["delta"]
                 )
-                self.set_attr(**{param: ref})
+                # do not use set_attr here: it would force is_set to True on
+                # the reference and False on the base property, discarding the
+                # serialized flags
+                self.get_attr(arg).set_attr(
+                    ref=ref,
+                    is_set=data[arg].get("is_set", True),
+                    unit=data[arg].get("unit")
+                )
 
     def _serializable(self):
         return super()._serializable() + ["mixing_rule"]

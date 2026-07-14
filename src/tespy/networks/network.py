@@ -31,8 +31,6 @@ from tespy.components import CycleCloser
 from tespy.components import FuelCell
 from tespy.components import Source
 from tespy.components import WaterElectrolyzer
-from tespy.components import Subsystem, Source, Sink, HeatSource, HeatSink, PowerSource, PowerSink
-from tespy.connections import Connection, PowerConnection,HeatConnection
 from tespy.components.component import component_registry
 
 from tespy.connections.connection import ConnectionBase
@@ -4047,97 +4045,6 @@ class Network:
                 components[c].update(cp._serialize())
 
         return components
-    
-    def convert_to_subsystem(self, subname, interface_exceptions=[]):
-        interface_types={'Sources':[Source, HeatSource, PowerSource],
-                    'Sinks': [Sink, HeatSink, PowerSink],
-                    }
-        mapping={'Sources':'source',
-                'Sinks':'target'}
-        def scan_interfaces(interface_type, direction):
-            interface_df={}
-
-            for index, row in self.conns[self.conns[mapping[direction]].apply(
-                lambda x: 
-                #check if connections are connected to a source or sink component:
-                isinstance(x, interface_type) and  
-                #Check if corresponding source or sink component belongs to 
-                # the exceptions list passed as argument:
-                x.label not in interface_exceptions)
-                ].iterrows():
-                interface_df[index]=row
-            return(interface_df)
-        interfaces={}
-        for directions, interface_comps in interface_types.items():
-            for inttype in interface_comps:
-                interfaces[inttype.__name__]=scan_interfaces(inttype, directions)
-        nw_conns=self.conns
-        class sub_network(Subsystem):
-            def __init__(self,label):
-                self.num_in= len(interfaces['Source'])
-                self.num_out= len(interfaces['Sink'])
-                self.num_heat_in = len(interfaces['HeatSource'])
-                self.num_heat_out = len(interfaces['HeatSink'])
-                self.num_power_in = len(interfaces['PowerSource'])
-                self.num_power_out = len(interfaces['PowerSink'])
-
-                super().__init__(label)
-            
-            def create_network(self):
-                args=list(nw_conns['object'])
-                map_conns= {inner_key: outer_key 
-                for outer_key, inner_dict in interfaces.items() 
-                for inner_key in inner_dict.keys()}
-                out_i=1
-                in_i=1
-                heat_out_i=1
-                heat_in_i = 1
-                power_out_i=1
-                power_in_i = 1
-                
-                for conn in args:
-                    self.conns[conn.label] = copy.copy(conn)
-                    self.conns[conn.label].label = f"{self.label}_{conn.label}"
-                     
-                    if conn.label in [key for inner_dict in interfaces.values() for key in inner_dict.keys()]:
-                        #reconnect interface connections
-                        match map_conns[conn.label]:
-                            case 'Source':
-                                self.conns[conn.label].source= self.inlet
-                                self.conns[conn.label].source_id= f"out{out_i}"
-                                out_i+=1
-
-                            case 'Sink':
-                                self.conns[conn.label].target = self.outlet 
-                                self.conns[conn.label].target_id =  f"in{in_i}"
-                                in_i+=1
-
-                            case 'HeatSink':
-                                self.conns[conn.label].target = self.outlet 
-                                self.conns[conn.label].target_id =  f"heat_in{heat_in_i}" 
-                                heat_in_i+=1
-
-                            case 'HeatSource':
-                                self.conns[conn.label].source = self.inlet
-                                self.conns[conn.label].source_id =f"heat_out{heat_out_i}"
-                                heat_out_i+=1
-                            
-                            case 'PowerSink':
-                                self.conns[conn.label].target = self.outlet 
-                                self.conns[conn.label].target_id = f"power_in{heat_in_i}"
-                                power_in_i+=1
-
-                            case 'PowerSource':
-                                self.conns[conn.label].source = self.inlet 
-                                self.conns[conn.label].source_id = f"power_out{heat_out_i}" 
-                                power_out_i+=1
-
-                    self.conns[conn.label].label = f"{self.label}_{conn.label}"
-                                
-                self._add_comps(*list(self.conns.values()))
-
-        sub_network.__name__ = subname
-        return sub_network  
 
 def _construct_components(target_class, data, nw):
     r"""

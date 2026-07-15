@@ -120,6 +120,8 @@ class CycleCloser(Component):
         d2 = self.outl[0].fluid.val
         return np.linalg.norm([d1[k] - d2[k] for k in d1])
 
+    _is_wrapper_branch_source = True
+
     def get_parameters(self):
         return {
             'mass_deviation': dc_cp(

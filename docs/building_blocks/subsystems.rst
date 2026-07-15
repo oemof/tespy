@@ -18,10 +18,27 @@ class definition of your subsystem and at minimum one method:
 
 - :code:`create_network`: Method to create the network of your subsystem.
 
-On top of that you need to add methods to define the available interfaces of
-your subsystem to the remaining network through specifying the number of inlets
-and outlets in the :code:`__init__` method of your class as seen in the code
-example below.
+On top of that you need to add attributes to define the available interfaces of
+your subsystem to the remaining network. Set the following attributes before
+calling :code:`super().__init__()` in your :code:`__init__` method:
+
+- :code:`num_in` / :code:`num_out` - number of fluid inlet and outlet ports
+- :code:`num_power_in` / :code:`num_power_out` - number of
+  :py:class:`~tespy.connections.powerconnection.PowerConnection` inlet and
+  outlet ports (default: 0)
+- :code:`num_heat_in` / :code:`num_heat_out` - number of
+  :py:class:`~tespy.connections.heatconnection.HeatConnection` inlet and
+  outlet ports (default: 0)
+
+Fluid ports follow the pattern :code:`in{n}`/:code:`out{n}`. Power ports use
+:code:`power_in{n}`/:code:`power_out{n}` and heat ports use
+:code:`heat_in{n}`/:code:`heat_out{n}`. All of these are accessible on
+:code:`self.inlet` and :code:`self.outlet` respectively inside
+:code:`create_network`, and on the subsystem instance when connecting to the
+external network. For every power or heat port pair the
+:py:class:`~tespy.components.basics.subsystem_interface.SubsystemInterface`
+enforces :math:`\dot E_\text{in} = \dot E_\text{out}`, so energy passes
+through unchanged - exactly as fluid properties do on the fluid ports.
 
 All other functionalities are inherited by the parent class of the
 :py:class:`subsystem <tespy.components.subsystem.Subsystem>` object.
@@ -164,3 +181,67 @@ different tespy classes required.
     >>> # offdesign test
     >>> nw.solve('offdesign', design_path='tmp.json')
     >>> nw.assert_convergence()
+
+Example: compressor subsystem with a power inlet
+-------------------------------------------------
+
+This example shows how to expose a
+:py:class:`~tespy.connections.powerconnection.PowerConnection` port on a
+subsystem. The subsystem wraps a
+:py:class:`~tespy.components.turbomachinery.compressor.Compressor`. Component
+parameters that vary between use cases are left unset inside
+:code:`create_network` and configured from the outside via
+:py:meth:`~tespy.components.subsystem.Subsystem.get_comp`.
+
+.. code-block:: python
+
+    >>> from tespy.components import Compressor, PowerSource, Sink, Source, Subsystem
+    >>> from tespy.connections import Connection, PowerConnection
+    >>> from tespy.networks import Network
+
+    >>> class CompressorSubsystem(Subsystem):
+    ...     def __init__(self, label):
+    ...         self.num_in = 1
+    ...         self.num_out = 1
+    ...         self.num_power_in = 1
+    ...         super().__init__(label)
+    ...
+    ...     def create_network(self):
+    ...         comp = Compressor("compressor")
+    ...         c1 = Connection(self.inlet, "out1", comp, "in1", label="c1")
+    ...         c2 = Connection(comp, "out1", self.outlet, "in1", label="c2")
+    ...         p1 = PowerConnection(
+    ...             self.inlet, "power_out1", comp, "power", label="p1"
+    ...         )
+    ...         self.add_conns(c1, c2, p1)
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(temperature="degC", pressure="bar", power="kW")
+
+    >>> source = Source("source")
+    >>> sink = Sink("sink")
+    >>> ps = PowerSource("grid")
+    >>> sub = CompressorSubsystem("sub")
+
+    >>> c_in = Connection(source, "out1", sub.inlet, "in1", label="c_in")
+    >>> c_out = Connection(sub.outlet, "out1", sink, "in1", label="c_out")
+    >>> p_in = PowerConnection(ps, "power", sub.inlet, "power_in1", label="p_in")
+
+    >>> nw.add_conns(c_in, c_out, p_in)
+    >>> nw.add_subsystems(sub)
+
+    >>> c_in.set_attr(fluid={"air": 1}, T=20, p=1, m=1)
+    >>> c_out.set_attr(p=5)
+    >>> sub.get_comp("compressor").set_attr(eta_s=0.8)
+
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
+
+    >>> # E is identical on both sides of the power interface
+    >>> sub.inlet.power_inl[0].E.val_SI == sub.inlet.power_outl[0].E.val_SI
+    True
+
+The same pattern applies for heat ports: set :code:`num_heat_in` or
+:code:`num_heat_out` and use a
+:py:class:`~tespy.connections.heatconnection.HeatConnection` with port names
+:code:`heat_in{n}` and :code:`heat_out{n}`.

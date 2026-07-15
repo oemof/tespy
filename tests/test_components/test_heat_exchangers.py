@@ -1185,7 +1185,7 @@ class TestHeatExchangers:
                 + (1 / instance.UA_char2.char_func.evaluate(expr2))
             )
         )
-        assert approx(UA_mod * instance.UA.val_SI) == instance.UA.design
+        assert approx(instance.UA.val_SI) == UA_mod * instance.UA.design
 
     @mark.skipif(
         get_global_param_string("REFPROP_version") == "n/a",

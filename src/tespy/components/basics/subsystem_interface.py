@@ -147,14 +147,42 @@ class SubsystemInterface(Component):
                 "description": "enthalpy equality constraint"
             })
         })
+        if self.num_power_i > 0:
+            constraints["power_equality_constraint"] = dc_cmc(**{
+                "num_eq_sets": self.num_power_i,
+                "structure_matrix": self.power_equality_structure_matrix,
+                "description": "power equality constraint"
+            })
+        if self.num_heat_i > 0:
+            constraints["heat_equality_constraint"] = dc_cmc(**{
+                "num_eq_sets": self.num_heat_i,
+                "structure_matrix": self.heat_equality_structure_matrix,
+                "description": "heat equality constraint"
+            })
         return constraints
+
+    def power_equality_structure_matrix(self, k, **kwargs):
+        for count, (i, o) in enumerate(zip(self.power_inl, self.power_outl)):
+            self._structure_matrix[k + count, i.E.sm_col] = 1
+            self._structure_matrix[k + count, o.E.sm_col] = -1
+
+    def heat_equality_structure_matrix(self, k, **kwargs):
+        for count, (i, o) in enumerate(zip(self.heat_inl, self.heat_outl)):
+            self._structure_matrix[k + count, i.E.sm_col] = 1
+            self._structure_matrix[k + count, o.E.sm_col] = -1
 
     @staticmethod
     def get_parameters():
         return {
             "num_inter": dc_simple(
                 dtype="int", description="number of interfacing connections"
-            )
+            ),
+            "num_power_inter": dc_simple(
+                dtype="int", description="number of power interfacing connections"
+            ),
+            "num_heat_inter": dc_simple(
+                dtype="int", description="number of heat interfacing connections"
+            ),
         }
 
     @classmethod
@@ -162,10 +190,10 @@ class SubsystemInterface(Component):
         return {
             "inlets": {"type": "variable", "parameter": "num_inter", "pattern": "in{n}", "min": 1},
             "outlets": {"type": "variable", "parameter": "num_inter", "pattern": "out{n}", "min": 1},
-            "powerinlets": {"type": "fixed", "ports": []},
-            "poweroutlets": {"type": "fixed", "ports": []},
-            "heatinlets": {"type": "fixed", "ports": []},
-            "heatoutlets": {"type": "fixed", "ports": []},
+            "powerinlets": {"type": "variable", "parameter": "num_power_inter", "pattern": "power_in{n}", "min": 0},
+            "poweroutlets": {"type": "variable", "parameter": "num_power_inter", "pattern": "power_out{n}", "min": 0},
+            "heatinlets": {"type": "variable", "parameter": "num_heat_inter", "pattern": "heat_in{n}", "min": 0},
+            "heatoutlets": {"type": "variable", "parameter": "num_heat_inter", "pattern": "heat_out{n}", "min": 0},
         }
 
     def inlets(self):
@@ -179,3 +207,23 @@ class SubsystemInterface(Component):
             return ['out' + str(i + 1) for i in range(self.num_inter.val)]
         else:
             return ['out1']
+
+    def powerinlets(self):
+        if self.num_power_inter.is_set:
+            return [f'power_in{i + 1}' for i in range(self.num_power_inter.val)]
+        return []
+
+    def poweroutlets(self):
+        if self.num_power_inter.is_set:
+            return [f'power_out{i + 1}' for i in range(self.num_power_inter.val)]
+        return []
+
+    def heatinlets(self):
+        if self.num_heat_inter.is_set:
+            return [f'heat_in{i + 1}' for i in range(self.num_heat_inter.val)]
+        return []
+
+    def heatoutlets(self):
+        if self.num_heat_inter.is_set:
+            return [f'heat_out{i + 1}' for i in range(self.num_heat_inter.val)]
+        return []

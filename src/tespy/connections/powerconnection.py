@@ -8,6 +8,8 @@ from tespy.tools.logger import logger
 @connection_registry
 class PowerConnection(ConnectionBase):
 
+    _has_fluid_vector = False
+
     def _source_outlets(self, source):
         return source.poweroutlets()
 

@@ -197,6 +197,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
                     "For the specification of the composition type you have "
                     f"to select from {', '.join(allowed)}."
                 )
+                raise ValueError(msg)
 
         if "&" in self.fluid:
             _fluids_with_fractions = self.fluid.split("&")
@@ -768,7 +769,7 @@ class IAPWSWrapper(FluidPropertyWrapper):
         if T > self._T_crit:
             T = self._T_crit * 0.99
 
-        return self.AS(T=T / 1e6, x=0).P * 1e6
+        return self.AS(T=T, x=0).P * 1e6
 
     def Q_ph(self, p, h):
         return self.AS(h=h / 1e3, P=p / 1e6).x

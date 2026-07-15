@@ -1002,9 +1002,8 @@ class Network:
 
             connections_in_wrapper_branches += all_connections
 
-        mask = self.conns["conn_type"] == "Connection"
         missing_wrappers = (
-            set(self.conns.loc[mask, "object"].tolist())
+            {c for c in self.conns["object"] if c._has_fluid_vector}
             - set(connections_in_wrapper_branches)
         )
         if len(missing_wrappers) > 0:
@@ -1503,13 +1502,7 @@ class Network:
     def _create_fluid_wrapper_branches(self):
 
         self.fluid_wrapper_branches = {}
-        mask = self.comps["object"].apply(
-            lambda x:
-            isinstance(x, Source)
-            or isinstance(x, CycleCloser)
-            or isinstance(x, WaterElectrolyzer)
-            or isinstance(x, FuelCell)
-        )
+        mask = self.comps["object"].apply(lambda x: x._is_wrapper_branch_source)
         start_components = self.comps["object"].loc[mask]
 
         for start in start_components:

@@ -66,6 +66,8 @@ connection_registry.items = {}
 
 class ConnectionBase:
 
+    _has_fluid_vector = False
+
     def __init__(self):
         pass
 
@@ -184,7 +186,7 @@ class ConnectionBase:
         return [
             "source_id", "target_id",
             "design_path", "design", "offdesign",
-            "local_design", "local_design",
+            "local_design", "local_offdesign",
             "printout"
         ]
 
@@ -638,6 +640,8 @@ class Connection(ConnectionBase):
     False
     """
 
+    _has_fluid_vector = True
+
     def _build_parameters(self):
         return {
             k: v for k, v in self.get_parameters().items()
@@ -853,13 +857,19 @@ class Connection(ConnectionBase):
 
         for arg in arglist_ref:
             if len(data[arg]) > 0:
-                param = arg.replace("_ref", "")
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
                     data[arg]["delta"]
                 )
-                self.set_attr(**{param: ref})
+                # do not use set_attr here: it would force is_set to True on
+                # the reference and False on the base property, discarding the
+                # serialized flags
+                self.get_attr(arg).set_attr(
+                    ref=ref,
+                    is_set=data[arg].get("is_set", True),
+                    unit=data[arg].get("unit")
+                )
 
     def _serializable(self):
         return super()._serializable() + ["mixing_rule"]
@@ -1566,11 +1576,11 @@ class Connection(ConnectionBase):
             return np.nan
 
     def td_dew_func(self, **kwargs):
-        r"""Equation for fixed bubble temperature subcooling :math:`\Delta T`
+        r"""Equation for fixed dew temperature superheating :math:`\Delta T`
 
         .. math::
 
-            0 = T_\text{dew}\left(p\right) - T\left(p,h\right) - \Delta T
+            0 = T\left(p,h\right) - T_\text{dew}\left(p\right) - \Delta T
 
         Returns
         -------
@@ -1583,11 +1593,11 @@ class Connection(ConnectionBase):
         return [self.p, self.h]
 
     def td_bubble_func(self, **kwargs):
-        r"""Equation for fixed dew temperature superheating :math:`\Delta T`
+        r"""Equation for fixed bubble temperature subcooling :math:`\Delta T`
 
         .. math::
 
-            0 = T\left(p,h\right) - T_\text{bubble}\left(p\right) - \Delta T
+            0 = T_\text{bubble}\left(p\right) - T\left(p,h\right) - \Delta T
 
         Returns
         -------
@@ -2061,7 +2071,7 @@ class Ref:
             raise TypeError(msg)
 
         if not (isinstance(delta, int) or isinstance(delta, float)):
-            msg = 'Thrid parameter must be of type int or float.'
+            msg = 'Third parameter must be of type int or float.'
             logger.error(msg)
             raise TypeError(msg)
 

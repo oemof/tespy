@@ -133,6 +133,7 @@ class Component:
     """
 
     _parameter_aliases = {}
+    _is_wrapper_branch_source = False
 
     def __init__(self, label, **kwargs):
 
@@ -422,11 +423,13 @@ class Component:
                 if data.func is not None:
                     self.char_specifications[key] = data.is_set
                 if data.char_func is None:
-                    try:
-                        data.char_func = ldc(
-                            self.__class__.__name__, key, 'DEFAULT', CharLine
-                        )
-                    except KeyError:
+                    for cls in type(self).__mro__:
+                        try:
+                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharLine)
+                            break
+                        except KeyError:
+                            continue
+                    else:
                         data.char_func = CharLine()
 
             # component characteristics
@@ -434,11 +437,13 @@ class Component:
                 if data.func is not None:
                     self.char_specifications[key] = data.is_set
                 if data.char_func is None:
-                    try:
-                        data.char_func = ldc(
-                            self.__class__.__name__, key, 'DEFAULT', CharMap
-                        )
-                    except KeyError:
+                    for cls in type(self).__mro__:
+                        try:
+                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharMap)
+                            break
+                        except KeyError:
+                            continue
+                    else:
                         data.char_func = CharMap()
 
             # grouped component properties

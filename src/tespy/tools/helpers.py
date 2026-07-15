@@ -26,22 +26,6 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 
 
-def get_all_subdictionaries(data):
-    subdictionaries = []
-    for value in data.values():
-        if len(value["subbranches"]) == 0:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-        else:
-            subdictionaries.append(
-                {k: v for k, v in value.items() if k != "subbranches"}
-            )
-            subdictionaries.extend(get_all_subdictionaries(value["subbranches"]))
-
-    return subdictionaries
-
-
 def fluidalias_in_list(fluid, fluid_list):
     aliases = FLUID_ALIASES.get_fluid(fluid)
     return set(fluid_list) & aliases
@@ -513,7 +497,7 @@ def _numeric_deriv(variable, func, **kwargs):
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     d = variable.d
     tol = max(variable.val_SI * d, d)
@@ -554,7 +538,7 @@ def _numeric_deriv_vecvar(variable, func, dx, **kwargs):
 
         .. math::
 
-            \frac{\partial f}{\partial x} = \frac{f(x + d) + f(x - d)}{2 d}
+            \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     original_vector = variable.val.copy()
     # this is specific to fluids right now (upper limit of 1, lower limit of 0)
@@ -589,10 +573,21 @@ def newton_with_kwargs(
         tol_mode = "abs"
 
     while expr:
-        # calculate function residual and new value
         function_kwargs[parameter] = x
         residual = target_value - function(**function_kwargs)
+
+        if residual == 0:
+            break
+
+        if tol_mode == 'abs':
+            expr = abs(residual) >= tol_abs
+        elif tol_mode == 'rel':
+            expr = abs(residual / target_value) >= tol_rel
+
         x += residual / derivative(**function_kwargs) * relax
+
+        if not expr:
+            break
 
         # check for value ranges
         if x < valmin:
@@ -615,12 +610,7 @@ def newton_with_kwargs(
                 'iterations.'
             )
             logger.debug(msg)
-
             break
-        if tol_mode == 'abs':
-            expr = abs(residual) >= tol_abs
-        elif tol_mode == 'rel':
-            expr = abs(residual / target_value) >= tol_rel
 
     return x
 

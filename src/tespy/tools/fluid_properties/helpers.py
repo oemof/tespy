@@ -15,6 +15,7 @@ import math
 
 import CoolProp.CoolProp as CP
 import numpy as np
+from scipy.optimize import brentq
 
 from tespy.tools.global_vars import ERR
 from tespy.tools.helpers import central_difference
@@ -219,40 +220,18 @@ def darcy_friction_factor(re, ks, d):
             elif re < 1e6:
                 return hanakov(re)
             else:
-                l0 = 0.02
-                function_kwargs = {
-                    "function": prandtl_karman,
-                    "parameter": "darcy_friction_factor",
-                    "reynolds": re
-
-                }
-                return newton_with_kwargs(
-                    prandtl_karman_derivative,
-                    0,
-                    val0=l0,
-                    valmin=0.00001,
-                    valmax=0.2,
-                    **function_kwargs
-                )
+                try:
+                    return brentq(lambda lam: prandtl_karman(re, lam), 0.00001, 0.2)
+                except ValueError:
+                    a, b = 0.00001, 0.2
+                    return a if abs(prandtl_karman(re, a)) <= abs(prandtl_karman(re, b)) else b
 
         else:
-            l0 = 0.002
-            function_kwargs = {
-                "function": colebrook,
-                "parameter": "darcy_friction_factor",
-                "reynolds": re,
-                "ks": ks,
-                "diameter": d,
-                "delta": 0.001
-            }
-            return newton_with_kwargs(
-                central_difference,
-                0,
-                val0=l0,
-                valmin=0.0001,
-                valmax=0.2,
-                **function_kwargs
-            )
+            try:
+                return brentq(lambda lam: colebrook(re, ks, d, lam), 0.0001, 0.2)
+            except ValueError:
+                a, b = 0.0001, 0.2
+                return a if abs(colebrook(re, ks, d, a)) <= abs(colebrook(re, ks, d, b)) else b
 
 
 def blasius(re):
@@ -357,11 +336,9 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
 
 def _check_fitting_data_structure(x: np.ndarray, y: np.ndarray) -> None:
     if len(x) != len(y):
-        msg = ""
-        raise ValueError(msg)
+        raise ValueError(f"x and y must have the same length, got {len(x)} and {len(y)}.")
     elif len(x) < 2:
-        msg = ""
-        raise ValueError(msg)
+        raise ValueError("At least 2 data points are required for fitting.")
 
 
 def fit_incompressible_viscosity(temperature: np.ndarray, viscosity: np.ndarray) -> tuple:

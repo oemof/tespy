@@ -59,7 +59,7 @@ E_F_R290 = df_ED_R290.loc["E_P", "E_F"]
 axs[1, 0].barh(y_NH3_pos, E_P_NH3/E_F_NH3, align="center", color=E_F_colors)
 axs[1, 0].barh(y_NH3_pos, E_D_NH3/E_F_NH3, align="center",
                left=E_P_NH3 / E_F_NH3, color="#6ed880")
-axs[1, 0].set_xlabel("$\epsilon$")
+axs[1, 0].set_xlabel(r"$\epsilon$")
 axs[1, 0].set_yticks(y_NH3_pos)
 axs[1, 0].set_yticklabels(y_NH3)
 axs[1, 0].invert_yaxis()
@@ -68,7 +68,7 @@ axs[1, 1].barh(y_R290_pos, E_P_R290/E_F_R290, align="center",
                color=E_F_colors)
 axs[1, 1].barh(y_R290_pos, E_D_R290/E_F_R290, align="center",
                left=E_P_R290 / E_F_R290, color="#6ed880")
-axs[1, 1].set_xlabel("$\epsilon$")
+axs[1, 1].set_xlabel(r"$\epsilon$")
 axs[1, 1].set_yticks(y_R290_pos)
 axs[1, 1].set_yticklabels(y_R290)
 axs[1, 1].set_xlim(right=1)
@@ -103,10 +103,10 @@ axs[0].plot(Tamb_range, df_eps_Tamb_NH3.loc[Tgeo_design], "x",
 axs[0].plot(Tamb_range, df_eps_Tamb_R290.loc[Tgeo_design], "x",
             label="R290", color=colors[3], markersize=7)
 axs[0].set_title("ambient Temperature")
-axs[0].set_ylabel("$\epsilon$")
+axs[0].set_ylabel(r"$\epsilon$")
 axs[0].set_ylim([0.25, 0.6])
 axs[0].set_xlabel("$T_{amb}$ in °C ($T_{geo}$ = " + str(Tgeo_design) + "°C)")
-axs[0].set_ylabel("$\epsilon$")
+axs[0].set_ylabel(r"$\epsilon$")
 axs[0].legend(loc="lower left")
 
 axs[1].plot(Tgeo_range, df_eps_Tgeo_NH3.loc[Tamb_design], "x",
@@ -150,7 +150,7 @@ for Tgeo in Tgeo_range:
                    color=colors[i], markersize=7, linewidth=2)
     i += 1
 
-axs[0, 0].set_ylabel("$\epsilon$")
+axs[0, 0].set_ylabel(r"$\epsilon$")
 axs[0, 0].set_ylim([0.4, 0.6])
 axs[0, 0].set_title("NH3")
 
@@ -165,7 +165,7 @@ axs[1, 1].set_xlabel("$T_{heating system}$ in °C")
 fig.legend(bbox_to_anchor=(0.08, -0.1, 0.9, .0), loc="lower left",
            ncol=3, mode="expand", borderaxespad=0.)
 fig.suptitle(
-    "COP and $\epsilon$ depending heating and geothermal mean temperature",
+    r"COP and $\epsilon$ depending heating and geothermal mean temperature",
     fontsize=12)
 fig.savefig("diagram_cop_eps_Tgeo_Ths.svg", bbox_inches="tight")
 plt.close()
@@ -200,7 +200,7 @@ for Tgeo in Tgeo_range:
                    color=colors[i], markersize=7, linewidth=2)
     i += 1
 
-axs[0, 0].set_ylabel("$\epsilon$")
+axs[0, 0].set_ylabel(r"$\epsilon$")
 axs[0, 0].set_ylim([0.4, 0.6])
 axs[0, 0].set_title("NH3")
 
@@ -217,7 +217,7 @@ plt.xticks(np.arange(2500, 5000, step=1000), np.arange(2.5, 5, step=1))
 fig.legend(bbox_to_anchor=(0.08, -0.1, 0.9, .0), loc="lower left",
            ncol=3, mode="expand", borderaxespad=0.)
 fig.suptitle(
-    "COP and $\epsilon$ depending on load and geothermal mean temperature",
+    r"COP and $\epsilon$ depending on load and geothermal mean temperature",
     fontsize=12)
 fig.savefig("diagram_cop_eps_Tgeo_Q.svg", bbox_inches="tight")
 plt.close()

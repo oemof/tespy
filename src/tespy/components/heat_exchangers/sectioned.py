@@ -863,12 +863,6 @@ class SectionedHeatExchanger(HeatExchanger):
             )
             raise ValueError(msg)
 
-        if c1.p.val_SI != c2.p.val_SI:
-            msg = (
-                "This method assumes equality of pressure for the inlet and "
-                "the outlet connection. The pressure values provided are not "
-                "equal, the results may be incorrect."
-            )
         # change the order of connections to have c1 as the lower enthalpy
         # connection (enthalpy will be rising in the list)
         if c1.h.val_SI > c2.h.val_SI:

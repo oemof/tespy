@@ -27,6 +27,28 @@ class Subsystem:
     label : str
         The label of the subsystem.
 
+    Notes
+    -----
+    Subclasses must set the following attributes *before* calling
+    :code:`super().__init__()` to declare the subsystem's external interfaces:
+
+    - :code:`num_in` / :code:`num_out` - number of fluid inlet/outlet ports
+      (exposed as :code:`in{n}` / :code:`out{n}` on :code:`self.inlet` /
+      :code:`self.outlet`). Default: 0 with a warning.
+    - :code:`num_power_in` / :code:`num_power_out` - number of
+      :py:class:`~tespy.connections.powerconnection.PowerConnection` inlet/
+      outlet ports (exposed as :code:`power_in{n}` / :code:`power_out{n}`).
+      Default: 0, no warning.
+    - :code:`num_heat_in` / :code:`num_heat_out` - number of
+      :py:class:`~tespy.connections.heatconnection.HeatConnection` inlet/
+      outlet ports (exposed as :code:`heat_in{n}` / :code:`heat_out{n}`).
+      Default: 0, no warning.
+
+    For every power or heat port pair the underlying
+    :py:class:`~tespy.components.basics.subsystem_interface.SubsystemInterface`
+    enforces :math:`\dot E_\text{in} = \dot E_\text{out}`, so energy passes
+    through the boundary unchanged.
+
     Example
     -------
     Basic example for a setting up a Subsystem object. This example does not
@@ -135,6 +157,15 @@ class Subsystem:
             logger.warning(msg)
             self.num_out = 0
 
+        if not hasattr(self, "num_power_in"):
+            self.num_power_in = 0
+        if not hasattr(self, "num_power_out"):
+            self.num_power_out = 0
+        if not hasattr(self, "num_heat_in"):
+            self.num_heat_in = 0
+        if not hasattr(self, "num_heat_out"):
+            self.num_heat_out = 0
+
         if self.num_in == 0 and self.num_out == 0:
             msg = (
                 "Your subsystem has no interfaces at all. To make interfaces "
@@ -146,8 +177,18 @@ class Subsystem:
             )
             logger.warning(msg)
 
-        self.inlet = SubsystemInterface("inlet", num_inter=self.num_in)
-        self.outlet = SubsystemInterface("outlet", num_inter=self.num_out)
+        self.inlet = SubsystemInterface(
+            "inlet",
+            num_inter=self.num_in,
+            num_power_inter=self.num_power_in,
+            num_heat_inter=self.num_heat_in,
+        )
+        self.outlet = SubsystemInterface(
+            "outlet",
+            num_inter=self.num_out,
+            num_power_inter=self.num_power_out,
+            num_heat_inter=self.num_heat_out,
+        )
 
         self.create_network()
 

@@ -358,35 +358,55 @@ class Problem:
     def _presolve(self):
         # handle the fluid vector variables
         self._presolve_fluid_vectors()
-        # set up the actual list of equations for connections, components,
 
-        for c in self.network.conns['object']:
-            self._presolved_equations += c._presolve()
-
+        # impose the user specifications on the affine groups first, so the
+        # first round of connection presolving already sees them as known
         self._presolve_linear_dependents()
 
-        # iteratively check presolvable fluid properties
-        # and distribute presolved variables to all linear dependents
-        # until the number of variables does not change anymore
-        number_variables = sum([
-            variable.is_var
-            for conn in self.network.conns['object']
-            for variable in conn.get_variables().values()
-        ])
-        while True:
-            for c in self.network.conns['object']:
+        known_references = set()
+        for linear_dependents in self._variable_dependencies:
+            reference = linear_dependents["reference"]
+            if self._variable_lookup[reference]["property"] == "fluid":
+                continue
+            container = self._reference_container_lookup[reference]
+            if not container.is_var:
+                known_references.add(id(container))
+
+        # a determination on one connection can only enable further
+        # determinations on the connections holding a variable of a group
+        # that became known, so only those have to be checked again
+        connections = set(self.network.conns['object'])
+        to_check = self.network.conns['object'].tolist()
+        rounds = 0
+        while to_check:
+            rounds += 1
+            for c in to_check:
                 self._presolved_equations += c._presolve()
             self._presolve_linear_dependents()
-            reduced_variables = [
-                variable.is_var
-                for conn in self.network.conns['object']
-                for variable in conn.get_variables().values()
-            ]
-            reduced_variables = sum(reduced_variables)
-            if reduced_variables == number_variables:
-                break
 
-            number_variables = reduced_variables
+            newly_known = []
+            for linear_dependents in self._variable_dependencies:
+                reference = linear_dependents["reference"]
+                if self._variable_lookup[reference]["property"] == "fluid":
+                    continue
+                container = self._reference_container_lookup[reference]
+                if (
+                        not container.is_var
+                        and id(container) not in known_references
+                    ):
+                    known_references.add(id(container))
+                    newly_known.append(linear_dependents)
+
+            candidates = {}
+            for group in newly_known:
+                for variable in group["variables"]:
+                    obj = self._variable_lookup[variable]["object"]
+                    if obj in connections:
+                        candidates[obj] = None
+            to_check = list(candidates)
+
+        msg = f"Fluid property presolving finished after {rounds} rounds."
+        logger.debug(msg)
 
     def _presolve_fluid_vectors(self):
 

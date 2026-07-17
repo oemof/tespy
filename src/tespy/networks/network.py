@@ -940,7 +940,7 @@ class Network:
 
         connections_in_wrapper_branches = []
         self.all_fluids = []
-        for branch_data in self.fluid_wrapper_branches.values():
+        for branch_name, branch_data in self.fluid_wrapper_branches.items():
             all_connections = [c for c in branch_data["connections"]]
 
             any_fluids_set = []
@@ -1028,6 +1028,14 @@ class Network:
                     c.fluid.wrapper_kwargs[f] = w_kwargs
 
                 c._create_fluid_wrapper()
+
+            msg = (
+                f"Fluid domain {branch_name} ({len(all_connections)} "
+                "connections): potential fluids "
+                f"[{', '.join(sorted(potential_fluids))}], mixing rule "
+                f"{mixing_rule}."
+            )
+            logger.debug(msg)
 
             connections_in_wrapper_branches += all_connections
 
@@ -1119,11 +1127,6 @@ class Network:
                         ).m_as(SI_UNITS[param.quantity])
                     else:
                         param.set_SI_from_val(self.units)
-        msg = (
-            "Updated fluid property SI values and fluid mass fraction for user "
-            "specified connection parameters."
-        )
-        logger.debug(msg)
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
@@ -1222,9 +1225,8 @@ class Network:
                     cp.get_attr(var).is_set = False
 
                 # set offdesign parameters
-                switched = False
-                msg = 'Set component attributes '
-
+                set_values = []
+                activated = []
                 for var in cp.offdesign:
                     # set variables provided in .offdesign attribute
                     data = cp.get_attr(var)
@@ -1233,11 +1235,23 @@ class Network:
                     # take nominal values from design point
                     if isinstance(data, dc_cp):
                         cp.get_attr(var).val = cp.get_attr(var).design
-                        switched = True
-                        msg += var + ", "
+                        set_values.append(var)
+                    else:
+                        activated.append(var)
 
-                if switched:
-                    msg = f"{msg[:-2]} to design value at component {cp.label}."
+                if cp.design or cp.offdesign:
+                    parts = [f"unset [{', '.join(cp.design)}]"]
+                    if set_values:
+                        parts.append(
+                            f"set [{', '.join(set_values)}] to design point "
+                            "values"
+                        )
+                    if activated:
+                        parts.append(f"activated [{', '.join(activated)}]")
+                    msg = (
+                        f"Switched component {cp.label} to local offdesign: "
+                        f"{', '.join(parts)}."
+                    )
                     logger.debug(msg)
 
                 cp.new_design = True
@@ -1291,10 +1305,15 @@ class Network:
                     param.val_SI = param.design
                     param.set_val_from_SI(self.units)
 
-                c.new_design = False
+                if c.design or c.offdesign:
+                    msg = (
+                        f"Switched connection {c.label} to offdesign: unset "
+                        f"[{', '.join(c.design)}], set "
+                        f"[{', '.join(c.offdesign)}] to design point values."
+                    )
+                    logger.debug(msg)
 
-        msg = 'Switched connections from design to offdesign.'
-        logger.debug(msg)
+                c.new_design = False
 
         for cp in self.comps['object']:
             if not cp.local_design:
@@ -1302,9 +1321,8 @@ class Network:
                 for var in cp.design:
                     cp.get_attr(var).is_set = False
 
-                switched = False
-                msg = 'Set component attributes '
-
+                set_values = []
+                activated = []
                 for var in cp.offdesign:
                     # set variables provided in .offdesign attribute
                     data = cp.get_attr(var)
@@ -1314,17 +1332,26 @@ class Network:
                     if isinstance(data, dc_cp):
                         data.val_SI = data.design
                         data.set_val_from_SI(self.units)
-                        switched = True
-                        msg += var + ', '
+                        set_values.append(var)
+                    else:
+                        activated.append(var)
 
-                if switched:
-                    msg = f"{msg[:-2]} to design value at component {cp.label}."
+                if cp.design or cp.offdesign:
+                    parts = [f"unset [{', '.join(cp.design)}]"]
+                    if set_values:
+                        parts.append(
+                            f"set [{', '.join(set_values)}] to design point "
+                            "values"
+                        )
+                    if activated:
+                        parts.append(f"activated [{', '.join(activated)}]")
+                    msg = (
+                        f"Switched component {cp.label} to offdesign: "
+                        f"{', '.join(parts)}."
+                    )
                     logger.debug(msg)
 
                 cp.new_design = False
-
-        msg = 'Switched components from design to offdesign.'
-        logger.debug(msg)
 
     def _load_offdesign_state(self):
         r"""
@@ -1380,9 +1407,6 @@ class Network:
                 # write data to components
                 self._write_design_state_to_component(comp, entries, comp.label)
 
-        msg = 'Done reading design point information for components.'
-        logger.debug(msg)
-
         # iter through connections
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
@@ -1393,9 +1417,6 @@ class Network:
                 entries = self._load_network_state(path)[conn_type]
 
             self._write_design_state_to_connection(c, entries)
-
-        msg = 'Done reading design point information for connections.'
-        logger.debug(msg)
 
     def _find_isolated_comp_label(self, comp, comp_entries):
         """
@@ -1545,10 +1566,11 @@ class Network:
             # no matches in the connections of the network and the design files
             msg = f"Could not find connection {c.label} in init path file."
             logger.debug(msg)
-            return
+            return False
 
         c._set_starting_values(entries[c.label], self.units)
         c.good_starting_values = True
+        return True
 
     def _set_starting_values(self):
         """
@@ -1566,9 +1588,18 @@ class Network:
         # improved starting values for referenced connections,
         # specified vapour content values, temperature values as well as
         # subccooling/overheating and state specification
+        num_init_path = 0
+        num_previous = 0
+        num_generic = 0
         for c in self.conns['object']:
-            if self.init_path is not None:
-                self._write_starting_values_to_connection(c, state[c.__class__.__name__])
+            if self.init_path is not None and self._write_starting_values_to_connection(
+                    c, state[c.__class__.__name__]
+                ):
+                num_init_path += 1
+            elif c.good_starting_values:
+                num_previous += 1
+            else:
+                num_generic += 1
 
             c._guess_starting_values(self.units)
 
@@ -1589,7 +1620,10 @@ class Network:
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
-        msg = 'Generic fluid property specification complete.'
+        msg = (
+            f"Starting values: {num_init_path} connections from init_path, "
+            f"{num_previous} from a previous solution, {num_generic} generic."
+        )
         logger.debug(msg)
 
 
@@ -2134,30 +2168,121 @@ class Network:
                 tablefmt="simple",
             ))
 
-    def print_incidence_matrix(self):
-        """Print the incidence matrix with equation rows and variable columns."""
-        eq_indices = sorted(self._problem._incidence_matrix.keys())
-        all_var_indices = sorted({
-            v_idx
-            for deps in self._problem._incidence_matrix.values()
-            for v_idx in deps
-        })
+    def print_incidence_matrix(self, block_order=False):
+        """Print the incidence matrix with equation rows and variable columns.
+
+        Parameters
+        ----------
+        block_order : boolean
+            Sort the equations and variables in the solve order of the block
+            decomposition, so the block lower triangular form of the problem
+            becomes visible, default: :code:`False`.
+        """
+        if block_order:
+            decomposition = self.problem.decompose()
+            eq_indices = [
+                eq for block in decomposition.blocks for eq in block.equations
+            ]
+            all_var_indices = [
+                col for block in decomposition.blocks
+                for col in block.variables
+            ]
+            block_of_eq = {
+                eq: block.id
+                for block in decomposition.blocks for eq in block.equations
+            }
+            block_of_var = {
+                col: block.id
+                for block in decomposition.blocks for col in block.variables
+            }
+        else:
+            eq_indices = sorted(self._problem._incidence_matrix.keys())
+            all_var_indices = sorted({
+                v_idx
+                for deps in self._problem._incidence_matrix.values()
+                for v_idx in deps
+            })
 
         col_labels = [
             self._problem._format_var_label(v_idx) for v_idx in all_var_indices
         ]
 
         rows = []
+        previous_block = None
         for eq_idx in eq_indices:
             label, eq_name = self._problem._equation_lookup[eq_idx]
             row_label = f"{label}.{self._problem._format_eq_name(eq_name)}"
             dep_set = set(self._problem._incidence_matrix[eq_idx])
-            rows.append(
-                [row_label] + ["x" if v in dep_set else "-" for v in all_var_indices]
-            )
+            if block_order:
+                # entries within the equation's own block are marked with X,
+                # dependencies on variables of other blocks with x
+                block_id = block_of_eq[eq_idx]
+                entries = [
+                    (
+                        "X" if block_of_var.get(v) == block_id else "x"
+                    ) if v in dep_set else "-"
+                    for v in all_var_indices
+                ]
+                marker = block_id if block_id != previous_block else ""
+                previous_block = block_id
+                rows.append([marker, row_label] + entries)
+            else:
+                rows.append(
+                    [row_label]
+                    + ["x" if v in dep_set else "-" for v in all_var_indices]
+                )
 
         print("Incidence matrix:")
-        print(tabulate(rows, headers=[""] + col_labels, tablefmt="simple"))
+        headers = ["Block", ""] if block_order else [""]
+        print(tabulate(rows, headers=headers + col_labels, tablefmt="simple"))
+
+    def get_blocks(self) -> list:
+        """Get the block lower triangular decomposition of the problem.
+
+        Returns
+        -------
+        list
+            One dictionary per block in solve order with the block id, its
+            kind, the ids of the blocks it depends on, the equations as
+            tuples of object label and equation name, the short variable
+            labels and the solve status (:code:`None` before solving).
+        """
+        decomposition = self.problem.decompose()
+        return [
+            {
+                "id": block.id,
+                "kind": block.kind,
+                "prerequisites": decomposition.precedence.get(block.id, []),
+                "equations": list(block.equation_labels),
+                "variables": list(block.variable_labels),
+                "status": block.status,
+            }
+            for block in decomposition.blocks
+        ]
+
+    def print_blocks(self):
+        """Print a formatted table of the block decomposition in solve order."""
+        blocks = self.get_blocks()
+        print(f"Block lower triangular decomposition ({len(blocks)} blocks):")
+        rows = [
+            (
+                block["id"],
+                block["kind"],
+                ", ".join(str(dep) for dep in block["prerequisites"]),
+                ", ".join(
+                    f"{lbl}.{self._problem._format_eq_name(name)}"
+                    for lbl, name in block["equations"]
+                ),
+                ", ".join(block["variables"]),
+            )
+            for block in blocks
+        ]
+        if rows:
+            print(tabulate(
+                rows,
+                headers=["#", "Kind", "Needs", "Equations", "Variables"],
+                tablefmt="simple",
+            ))
 
     def print_residuals(self):
         """Print a formatted table of equation residuals, sorted by magnitude."""

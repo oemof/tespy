@@ -70,6 +70,9 @@ class Problem:
         self.structure_graph = None
         self._decomposition = None
 
+        self.num_original_variables = 0
+        self.num_original_equations = 0
+
     def decompose(self):
         """Get the Dulmage-Mendelsohn decomposition of the solver incidence.
 
@@ -136,8 +139,36 @@ class Problem:
           their incidence.
         """
         self._create_structure_matrix()
+
+        self.num_original_variables = len(self._variable_lookup)
+        self.num_original_equations = len(self._equation_set_lookup)
+        num_affine = len(self._presolved_equations)
+        msg = (
+            f"Original problem: {self.num_original_variables} variables and "
+            f"{self.num_original_equations} equations, of which {num_affine} "
+            "equations were consumed by the affine variable elimination."
+        )
+        logger.debug(msg)
+
         self._presolve()
+
+        msg = (
+            "Fluid property presolving consumed "
+            f"{len(self._presolved_equations) - num_affine} further "
+            "equations."
+        )
+        logger.debug(msg)
+
         self._prepare_for_solver()
+
+        num_remaining_eq = (
+            self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
+        )
+        msg = (
+            f"Reduced problem for the solver: {self.variable_counter} "
+            f"variables and {num_remaining_eq} equations."
+        )
+        logger.debug(msg)
 
     def _create_structure_matrix(self):
         self._structure_matrix = {}
@@ -588,16 +619,6 @@ class Problem:
 
     def check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
-        msg = f'Number of connection equations: {self.num_conn_eq}.'
-        logger.debug(msg)
-        msg = f'Number of component equations: {self.num_comp_eq}.'
-        logger.debug(msg)
-        msg = f'Number of user defined equations: {self.num_ude_eq}.'
-        logger.debug(msg)
-
-        msg = f'Total number of variables: {self.variable_counter}.'
-        logger.debug(msg)
-
         _hint = (
             "\nUse nw.print_variables() and nw.print_equations() to inspect "
             "which variables and equations are present, "
@@ -606,11 +627,18 @@ class Problem:
             "overview."
         )
         n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
+        _reduction = (
+            f"\nThe original problem holds {self.num_original_variables} "
+            f"variables and {self.num_original_equations} equations. "
+            f"Presolving consumed {len(self._presolved_equations)} equations "
+            f"and reduced the problem to {self.variable_counter} variables "
+            f"and {n} equations."
+        )
         if n > self.variable_counter:
             msg = (
                 f"You have provided too many parameters: {self.variable_counter} "
-                f"required, {n} supplied. Aborting calculation!{_hint}"
-                f"{self._structural_report()}"
+                f"required, {n} supplied. Aborting calculation!{_reduction}"
+                f"{_hint}{self._structural_report()}"
             )
             logger.error(msg)
             self.status = 12
@@ -618,8 +646,8 @@ class Problem:
         elif n < self.variable_counter:
             msg = (
                 f"You have not provided enough parameters: {self.variable_counter} "
-                f"required, {n} supplied. Aborting calculation!{_hint}"
-                f"{self._structural_report()}"
+                f"required, {n} supplied. Aborting calculation!{_reduction}"
+                f"{_hint}{self._structural_report()}"
             )
             logger.error(msg)
             self.status = 11
@@ -760,6 +788,24 @@ class Problem:
         }
 
         num_blocks = len(decomposition.blocks)
+        kinds = {}
+        for block in decomposition.blocks:
+            kinds[block.kind] = kinds.get(block.kind, 0) + 1
+        kind_str = ", ".join(f"{num} {kind}" for kind, num in kinds.items())
+        msg = f"Block decomposition: {num_blocks} blocks ({kind_str})."
+        logger.debug(msg)
+        for block in decomposition.blocks:
+            eq_str = ", ".join(
+                f"{lbl}.{self._format_eq_name(name)}"
+                for lbl, name in block.equation_labels
+            )
+            var_str = ", ".join(block.variable_labels)
+            msg = (
+                f"Block {block.id} ({block.kind}): equations [{eq_str}], "
+                f"variables [{var_str}]"
+            )
+            logger.debug(msg)
+
         for position, block in enumerate(decomposition.blocks):
             if block.kind == "scalar":
                 strategy = ScalarBracketingStrategy()
@@ -785,7 +831,7 @@ class Problem:
                 logger.progress(
                     100 * (block.id + 1) // num_blocks, msg
                 )
-                if print_results:
+                if print_results and not logger.console_logging_enabled():
                     print(msg)
 
             if block.status != 0:
@@ -836,7 +882,7 @@ class Problem:
                         f"{len(remainder.equations)} equations"
                     )
                     logger.progress(100, msg)
-                    if print_results:
+                    if print_results and not logger.console_logging_enabled():
                         print(msg)
 
                 if remainder.status != 0:
@@ -912,7 +958,7 @@ class Problem:
         msg2 = '-' * 7 + '+------------' * 8
 
         logger.progress(0, msg2)
-        if print_results:
+        if print_results and not logger.console_logging_enabled():
             print('\n' + msg + '\n' + msg2)
 
     def _print_iterinfo_body(self, print_results=True):
@@ -978,7 +1024,7 @@ class Problem:
             component=component
         )
         logger.progress(progress_val, msg)
-        if print_results:
+        if print_results and not logger.console_logging_enabled():
             print(msg)
 
     def _print_iterinfo_tail(self, print_results=True):
@@ -993,7 +1039,7 @@ class Problem:
             "Iterations per second: {2:.2f}"
         ).format(num_iter, clc_time, num_ips)
         logger.debug(msg)
-        if print_results:
+        if print_results and not logger.console_logging_enabled():
             print(msg)
         return
 

@@ -46,13 +46,14 @@ class StructureGraph:
 
     def _build(self, sparse_matrix, rhs):
         # Extract edges and offsets from rows with two non-zero entries
-        rows = {k[0] for k in sparse_matrix}
+        rows_with_cols = {}
+        for row, col in sparse_matrix:
+            rows_with_cols.setdefault(row, []).append(col)
         # sorting needs to be applied to always have same orientation on edges
         # otherwise duplicate edges are not found if one is just in reverse
-        rows_with_cols = {
-            row: sorted([k[1] for k in sparse_matrix if k[0] == row])
-            for row in rows
-        }
+        for cols in rows_with_cols.values():
+            cols.sort()
+
         for row, cols in rows_with_cols.items():
             if len(cols) != 2:
                 self.linear_rows[row] = cols
@@ -107,41 +108,55 @@ class StructureGraph:
     def find_cycle(self):
         """Find a cycle in the affine elimination graph.
 
+        The edges are added to a growing forest one by one. The first edge
+        closing a cycle connects two variables that are already linked
+        through the forest, the cycle is that path plus the closing edge.
+
         Returns
         -------
         set | None
             Set of the variable numbers forming a cycle or :code:`None` in
             case the graph is acyclic.
         """
-        graph = {
-            k: [x[0] for x in v] for k, v in self.affine_adjacency.items()
-        }
-        visited = set()
         parent = {}
 
-        def dfs(node, prev):
-            visited.add(node)
-            for neighbor in graph.get(node, []):
-                if neighbor not in visited:
-                    parent[neighbor] = node
-                    result = dfs(neighbor, node)
-                    if result:
-                        return result
-                elif neighbor != prev:
-                    # Cycle found, reconstruct it
-                    cycle = [neighbor, node]
-                    while cycle[-1] != neighbor:
-                        cycle.append(parent[cycle[-1]])
-                    cycle.reverse()
-                    return cycle
-            return None
+        def find_root(node):
+            while parent[node] != node:
+                parent[node] = parent[parent[node]]
+                node = parent[node]
+            return node
 
-        for node in graph:
-            if node not in visited:
-                parent[node] = None
-                cycle = dfs(node, None)
-                if cycle:
-                    return set(cycle)
+        forest = {}
+        for col1, col2, _ in self.edges_with_factors:
+            for col in (col1, col2):
+                parent.setdefault(col, col)
+                forest.setdefault(col, [])
+
+            root1 = find_root(col1)
+            root2 = find_root(col2)
+            if root1 == root2:
+                # breadth first search for the path from col1 to col2
+                predecessor = {col1: None}
+                queue = [col1]
+                while queue:
+                    node = queue.pop(0)
+                    if node == col2:
+                        break
+                    for neighbor in forest[node]:
+                        if neighbor not in predecessor:
+                            predecessor[neighbor] = node
+                            queue.append(neighbor)
+
+                cycle = {col2}
+                node = col2
+                while predecessor[node] is not None:
+                    node = predecessor[node]
+                    cycle.add(node)
+                return cycle
+
+            parent[root1] = root2
+            forest[col1].append(col2)
+            forest[col2].append(col1)
 
         return None
 

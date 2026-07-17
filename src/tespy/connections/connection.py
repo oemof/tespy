@@ -1077,7 +1077,7 @@ class Connection(ConnectionBase):
                 if "T_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["T_dew"]
                 msg = f"Determined p by specified T_dew at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.T_bubble.is_set:
                 self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
@@ -1085,7 +1085,7 @@ class Connection(ConnectionBase):
                 if "T_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["T_bubble"]
                 msg = f"Determined p by specified T_bubble at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
         if self.h.is_var and not self.p.is_var:
             if self.T.is_set:
@@ -1094,7 +1094,7 @@ class Connection(ConnectionBase):
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
                 msg = f"Determined h by known p and T at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.td_bubble.is_set:
                 T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
@@ -1108,7 +1108,7 @@ class Connection(ConnectionBase):
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
                 msg = f"Determined h by known p and td_bubble at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.td_dew.is_set:
                 T_dew = T_dew_p(self.p.val_SI, self.fluid_data)
@@ -1122,7 +1122,7 @@ class Connection(ConnectionBase):
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
                 msg = f"Determined h by known p and td_dew at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.x.is_set:
                 self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
@@ -1130,7 +1130,7 @@ class Connection(ConnectionBase):
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
                 msg = f"Determined h by known p and x at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
@@ -1143,7 +1143,7 @@ class Connection(ConnectionBase):
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
                 msg = f"Determined h and p by known T and x at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.T.is_set and self.td_bubble.is_set:
                 self.p.set_reference_val_SI(p_bubble_T(self.T.val_SI + self.td_bubble.val_SI, self.fluid_data))
@@ -1158,7 +1158,7 @@ class Connection(ConnectionBase):
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
                 msg = f"Determined h and p by known T and td_bubble at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
             elif self.T.is_set and self.td_dew.is_set:
                 self.p.set_reference_val_SI(p_dew_T(self.T.val_SI - self.td_dew.val_SI, self.fluid_data))
@@ -1173,7 +1173,7 @@ class Connection(ConnectionBase):
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
                 msg = f"Determined h and p by known T and td_dew at {self.label}."
-                logger.info(msg)
+                logger.debug(msg)
 
         presolved_equations = [
             key for parameter in presolved_equations

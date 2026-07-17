@@ -192,6 +192,7 @@ class Network:
         self.design_path = None
         self.iterinfo = True
         self._problem = None
+        self._presolve_pending = False
         self.units = Units()
 
         msg = 'Default unit specifications:\n'
@@ -1950,6 +1951,110 @@ class Network:
         if rows:
             print(tabulate(rows, headers=["#", "Property", "Represents"], tablefmt="simple"))
 
+    def get_variable_values(self) -> dict:
+        """Get the current values of all variables of the presolved problem.
+
+        Every variable is listed with all of the original variables it
+        represents and their individual SI values, which can differ through
+        the affine relation between linearly dependent variables.
+
+        Returns
+        -------
+        dict
+            Variable number and property with the list of represented
+            variables as tuples of object label, property and SI value.
+        """
+        result = {}
+        for key, data in self._problem.variables_dict.items():
+            represents = []
+            for v in data["_represents"]:
+                lookup = self._problem._variable_lookup[v]
+                container = lookup["object"].get_attr(lookup["property"])
+                if data["variable"] == "fluid":
+                    value = container.val[data["fluid"]]
+                else:
+                    value = container.val_SI
+                represents.append(
+                    (lookup["object"].label, lookup["property"], value)
+                )
+            result[(key, data["variable"])] = represents
+        return result
+
+    def print_variable_values(self):
+        """Print a formatted table of the current variable values."""
+        variables = self.get_variable_values()
+        print(f"Current variable values ({len(variables)} total):")
+        rows = [
+            (var_idx, var_type, f"{lbl} ({prop})", value)
+            for (var_idx, var_type), represents in variables.items()
+            for lbl, prop, value in represents
+        ]
+        if rows:
+            print(tabulate(
+                rows,
+                headers=["#", "Property", "Represents", "SI value"],
+                tablefmt="simple",
+                floatfmt=".6e",
+            ))
+
+    def set_variable_value(self, label, prop, value):
+        """Set the SI value of a variable of the presolved problem.
+
+        The value can be set through any of the linearly dependent variables
+        a solver variable represents, it propagates to the underlying
+        reference container through the affine relation. For example setting
+        the enthalpy of a connection whose enthalpy is linked to another
+        connection updates both.
+
+        Parameters
+        ----------
+        label : str
+            Label of the connection or component holding the variable.
+
+        prop : str
+            Name of the variable (e.g. :code:`'m'` or :code:`'h'`).
+
+        value : float
+            SI value to impose.
+
+        Raises
+        ------
+        KeyError
+            In case no object with the given label exists or the object does
+            not have a variable of the given name.
+        tespy.tools.helpers.TESPyNetworkError
+            In case the property is not part of the variable space, e.g.
+            because it is specified or has been presolved.
+        """
+        if label in self.conns.index:
+            obj = self.conns.loc[label, "object"]
+        elif label in self.comps.index:
+            obj = self.comps.loc[label, "object"]
+        else:
+            msg = f"There is no connection or component with label {label}."
+            raise KeyError(msg)
+
+        lookup = self._problem._object_to_variable_lookup
+        if obj not in lookup or prop not in lookup[obj]:
+            msg = f"The object {label} does not have a variable {prop}."
+            raise KeyError(msg)
+
+        container = obj.get_attr(prop)
+        if prop == "fluid":
+            msg = (
+                "Setting fluid mass fractions through set_variable_value is "
+                "not supported."
+            )
+            raise hlp.TESPyNetworkError(msg)
+        if not container.is_var:
+            msg = (
+                f"{label} ({prop}) is not part of the variable space, its "
+                "value is fixed by specification or presolving."
+            )
+            raise hlp.TESPyNetworkError(msg)
+
+        container.set_reference_val_SI(value)
+
     def _get_variables_by_number(self, number_list) -> dict:
         """Get all variables of the presolved problem by variable numbers.
 
@@ -2203,6 +2308,58 @@ class Network:
         For more information on the solution process have a look at the online
         documentation at tespy.readthedocs.io in the section "TESPy modules".
         """
+        self.presolve(
+            mode, init_path=init_path, design_path=design_path,
+            init_previous=init_previous, check=not init_only
+        )
+
+        if init_only:
+            return
+
+        self.solve_continue(
+            max_iter=max_iter, min_iter=min_iter, use_cuda=use_cuda,
+            print_results=print_results, robust_relax=robust_relax,
+            skip_postprocess=skip_postprocess,
+            oscillation_damping=oscillation_damping, block_solve=block_solve
+        )
+
+    def presolve(self, mode, init_path=None, design_path=None,
+                 init_previous=True, check=True):
+        r"""
+        Prepare and presolve the problem without running the solver.
+
+        The network is checked, the problem is built and presolved and the
+        starting values are assigned. The variable space stays loaded
+        afterwards, so it can be inspected through :code:`Network.problem`
+        and the print methods, and variable values can be modified before
+        continuing the solution process with
+        :py:meth:`~tespy.networks.network.Network.solve_continue`.
+
+        Parameters
+        ----------
+        mode : str
+            Choose from 'design' and 'offdesign'.
+
+        init_path : str | Path | dict
+            Path to a previously saved network state (e.g.
+            :code:`nw.save('myplant/test.json')`), or the dict returned by
+            :code:`nw.save(as_dict=True)`.
+
+        design_path : str | Path | dict
+            Path to the saved design-case state (e.g.
+            :code:`nw.save('myplant/test.json')`), or the dict returned by
+            :code:`nw.save(as_dict=True)`.
+
+        init_previous : boolean
+            Initialise the calculation with values from the previous
+            calculation, default: :code:`True`.
+
+        check : boolean
+            Check whether the number of parameters matches the number of
+            variables, default: :code:`True`. The check is skipped when
+            preparing with :code:`solve(mode, init_only=True)`, so ill
+            determined problems can be inspected.
+        """
         self.status = 99
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
@@ -2222,22 +2379,6 @@ class Network:
         self.init_path = init_path
         self.design_path = design_path
         self.init_previous = init_previous
-        self.skip_postprocess = skip_postprocess
-
-        if self.skip_postprocess:
-            msg = (
-                "Postprocessing will be skipped, violations of "
-                "physical/operational are not reported or logged!"
-            )
-            logger.debug(msg)
-
-        if use_cuda and cu is None:
-            msg = (
-                'Specifying use_cuda=True requires cupy to be installed on '
-                'your machine. Numpy will be used instead.'
-            )
-            logger.warning(msg)
-            use_cuda = False
 
         if mode not in ['offdesign', 'design']:
             msg = 'Mode must be "design" or "offdesign".'
@@ -2257,12 +2398,10 @@ class Network:
         logger.debug(msg)
 
         self._prepare_problem()
+        self._presolve_pending = True
 
-        if init_only:
+        if not check:
             return
-
-        msg = 'Starting solver.'
-        logger.info(msg)
 
         try:
             self._problem.check_determination()
@@ -2270,11 +2409,51 @@ class Network:
             self.status = self._problem.status
             raise
 
+    def solve_continue(self, max_iter=50, min_iter=4, use_cuda=False,
+                       print_results=True, robust_relax=False,
+                       skip_postprocess=False, oscillation_damping=False,
+                       block_solve=True):
+        r"""
+        Run the solver on the previously prepared problem.
+
+        Continues after :py:meth:`~tespy.networks.network.Network.presolve`
+        or :code:`solve(mode, init_only=True)`, taking into account any
+        modification of variable values made in between. The solver
+        parameters correspond to the ones of
+        :py:meth:`~tespy.networks.network.Network.solve`.
+        """
+        if self._problem is None or not self._presolve_pending:
+            msg = (
+                "There is no prepared problem to continue from. Call "
+                "Network.presolve or Network.solve first."
+            )
+            raise hlp.TESPyNetworkError(msg)
+
+        self.skip_postprocess = skip_postprocess
+        if self.skip_postprocess:
+            msg = (
+                "Postprocessing will be skipped, violations of "
+                "physical/operational are not reported or logged!"
+            )
+            logger.debug(msg)
+
+        if use_cuda and cu is None:
+            msg = (
+                'Specifying use_cuda=True requires cupy to be installed on '
+                'your machine. Numpy will be used instead.'
+            )
+            logger.warning(msg)
+            use_cuda = False
+
+        msg = 'Starting solver.'
+        logger.info(msg)
+
         n = self._problem.variable_counter
         self._problem._incidence_matrix_dense = np.zeros((n, n))
         for row, cols in self._problem._incidence_matrix.items():
             self._problem._incidence_matrix_dense[row, cols] = 1
 
+        self._presolve_pending = False
         try:
             self._problem.solve_loop(
                 max_iter=max_iter, min_iter=min_iter, use_cuda=use_cuda,

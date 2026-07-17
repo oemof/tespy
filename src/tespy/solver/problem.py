@@ -15,8 +15,11 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import brentq
 
+from tespy.solver.decomposition import dulmage_mendelsohn
+from tespy.solver.structure import StructureGraph
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 
@@ -60,6 +63,569 @@ class Problem:
         self.increment = None
         self.lin_dep = False
         self.singularity_msg = ""
+
+        self.structure_graph = None
+        self._decomposition = None
+
+    def decompose(self):
+        """Get the Dulmage-Mendelsohn decomposition of the solver incidence.
+
+        The result is cached for the lifetime of the problem instance.
+
+        Returns
+        -------
+        tespy.solver.decomposition.Decomposition
+            Ordered block structure of the equation system.
+        """
+        if self._decomposition is None:
+            self._decomposition = dulmage_mendelsohn(
+                self._incidence_matrix, self.variable_counter
+            )
+            for block in self._decomposition.blocks:
+                block.equation_labels = [
+                    self._equation_lookup[eq] for eq in block.equations
+                ]
+                block.variable_labels = [
+                    self._format_var_label(col) for col in block.variables
+                ]
+        return self._decomposition
+
+    def _structural_report(self):
+        report = ""
+        for block in self.decompose().defective_blocks:
+            eq_str = ", ".join(
+                f"{lbl}.{self._format_eq_name(eq_name)}"
+                for lbl, eq_name in block.equation_labels
+            )
+            var_str = ", ".join(block.variable_labels)
+            if block.kind == "overdetermined":
+                report += (
+                    "\nStructural analysis - the following equations "
+                    "over-determine the problem:\n"
+                    f"  Equations: {eq_str}\n"
+                    f"  Involved variables: {var_str}"
+                )
+            else:
+                report += (
+                    "\nStructural analysis - the following variables are "
+                    "under-determined:\n"
+                    f"  Variables: {var_str}\n"
+                    f"  Involved equations: {eq_str}"
+                )
+        return report
+
+    def build(self):
+        """Construct the problem from the prepared network.
+
+        - Assemble the structure matrix and the structure graph and reduce
+          the variable space by the affine linear dependencies.
+        - Presolve fluid vectors and fluid properties iteratively.
+        - Assign the solver variable space and collect the equations and
+          their incidence.
+        """
+        self._create_structure_matrix()
+        self._presolve()
+        self._prepare_for_solver()
+
+    def _create_structure_matrix(self):
+        self._structure_matrix = {}
+        self._rhs = {}
+        self._variable_lookup = {}
+        self._object_to_variable_lookup = {}
+        self._equation_set_lookup = {}
+        self._equation_set_origin = {}
+        self._presolved_equations = []
+        self._reference_container_lookup = {}
+
+        num_vars = self._prepare_variables()
+
+        self._reassign_ude_objects()
+
+        sum_eq = 0
+        sum_eq = self._preprocess_network_parts(self.network.conns["object"], sum_eq)
+        sum_eq = self._preprocess_network_parts(self.network.comps["object"], sum_eq)
+        sum_eq = self._preprocess_network_parts(self.network.user_defined_eq.values(), sum_eq)
+
+        self.structure_graph = StructureGraph(
+            self._structure_matrix, self._rhs,
+            self._variable_lookup, self._equation_set_lookup,
+            self._equation_set_origin
+        )
+        _linear_dependencies = (
+            self.structure_graph.find_linear_dependent_variables()
+        )
+        _linear_dependent_variables = [
+            var for linear_dependents in _linear_dependencies
+            for var in linear_dependents["variables"]
+        ]
+        _missing_variables = [
+            {
+                "variables": [var],
+                "reference": var,
+                "factors": {var: 1.0},
+                "offsets": {var: 0.0},
+                "equation_indices": {}
+            }
+            for var in set(range(num_vars)) - set(_linear_dependent_variables)
+        ]
+        self._variable_dependencies = _missing_variables + _linear_dependencies
+
+        for linear_dependents in self._variable_dependencies:
+            reference_variable = self._variable_lookup[
+                linear_dependents["reference"]
+            ]
+            reference = reference_variable["object"].get_attr(
+                reference_variable["property"]
+            )
+            d = reference.d
+            if hasattr(reference, "min_val"):
+                min_val = reference.min_val
+                max_val = reference.max_val
+            else:
+                min_val = None
+                max_val = None
+
+            if reference_variable["property"] != "fluid":
+                DataContainer = dc_scavar
+                reference_container = DataContainer(
+                    _is_var=True,
+                    _d=d,
+                    min_val=min_val,
+                    max_val=max_val,
+                )
+            else:
+                DataContainer = dc_vecvar
+                reference_container = DataContainer(
+                    _d=d
+                )
+
+            self._reference_container_lookup[
+                linear_dependents['reference']
+            ] = reference_container
+
+            for variable in linear_dependents["variables"]:
+                variable_data = self._variable_lookup[variable]
+                if variable_data["property"] != reference_variable["property"]:
+                    msg = (
+                        "There is a direct linear dependency between two "
+                        "variables of different properties. This is unexpected "
+                        "and might not work as intended: "
+                        f"{reference_variable['object'].label}: "
+                        f"{reference_variable['property']} and "
+                        f"{variable_data['object'].label}: "
+                        f"{variable_data['property']}."
+                    )
+                    logger.warning(msg)
+
+                container = variable_data["object"].get_attr(variable_data["property"])
+                container._reference_container = reference_container
+                container._factor = linear_dependents["factors"][variable]
+                container._offset = linear_dependents["offsets"][variable]
+
+        # impose set values in the reference containers
+        for conn in self.network.conns["object"]:
+            for prop, container in conn.get_variables().items():
+                if conn.get_attr(prop).is_set:
+                    conn.get_attr(prop).set_reference_val_SI(conn.get_attr(prop)._val_SI)
+
+        # collect all presolved equations
+        self._presolved_equations = [
+            indices
+            for dependents in self._variable_dependencies
+            for indices in dependents["equation_indices"].values()
+        ]
+
+    def _prepare_variables(self):
+        num_vars = 0
+        for conn in self.network.conns["object"]:
+            for prop, container in conn.get_variables().items():
+                # flag potential variables
+                container._potential_var = not container.is_set
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": conn, "property": prop
+                }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {prop: container.sm_col}
+                )
+
+            if hasattr(conn, "fluid"):
+                # fluid is handled separately
+                container = conn.fluid
+                container.sm_col = num_vars
+                num_vars += 1
+                self._variable_lookup[container.sm_col] = {
+                    "object": conn, "property": "fluid"
+                }
+                if conn not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[conn] = {}
+                self._object_to_variable_lookup[conn].update(
+                    {"fluid": container.sm_col}
+                )
+
+        for comp in self.network.comps["object"]:
+            for prop, container in comp.get_variables().items():
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": comp, "property": prop
+                }
+                if comp not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[comp] = {}
+                self._object_to_variable_lookup[comp].update(
+                    {prop: container.sm_col}
+                )
+        return num_vars
+
+    def _reassign_ude_objects(self):
+        for ude in self.network.user_defined_eq.values():
+            ude.conns = [self.network.get_conn(c.label) for c in ude.conns]
+            ude.comps = [self.network.get_comp(c.label) for c in ude.comps]
+
+    def _preprocess_network_parts(self, parts, eq_counter):
+
+        for obj in parts:
+            obj._preprocess(eq_counter)
+            self._structure_matrix.update(obj._structure_matrix)
+            self._rhs.update(obj._rhs)
+            eq_map = {
+                eq_num: (obj.label, eq_name)
+                for eq_num, eq_name in obj._equation_set_lookup.items()
+            }
+            self._equation_set_lookup.update(eq_map)
+            # mandatory (and bypass) constraints exist independently of the
+            # parametrization, all other equations are specification imposed
+            self._equation_set_origin.update({
+                eq_num: (
+                    "topology"
+                    if eq_name in getattr(obj, "constraints", {})
+                    else "specification"
+                )
+                for eq_num, eq_name in obj._equation_set_lookup.items()
+            })
+            eq_counter += obj.num_eq
+
+        return eq_counter
+
+    def _presolve(self):
+        # handle the fluid vector variables
+        self._presolve_fluid_vectors()
+        # set up the actual list of equations for connections, components,
+
+        for c in self.network.conns['object']:
+            self._presolved_equations += c._presolve()
+
+        self._presolve_linear_dependents()
+
+        # iteratively check presolvable fluid properties
+        # and distribute presolved variables to all linear dependents
+        # until the number of variables does not change anymore
+        number_variables = sum([
+            variable.is_var
+            for conn in self.network.conns['object']
+            for variable in conn.get_variables().values()
+        ])
+        while True:
+            for c in self.network.conns['object']:
+                self._presolved_equations += c._presolve()
+            self._presolve_linear_dependents()
+            reduced_variables = [
+                variable.is_var
+                for conn in self.network.conns['object']
+                for variable in conn.get_variables().values()
+            ]
+            reduced_variables = sum(reduced_variables)
+            if reduced_variables == number_variables:
+                break
+
+            number_variables = reduced_variables
+
+    def _presolve_fluid_vectors(self):
+
+        # right now, this ignores potential factors and offsets between the
+        # fluids.
+        # On top of that, branches of constant fluid composition are not
+        # caught, if they only consist of a single connection!
+        for linear_dependents in self._variable_dependencies:
+            reference = linear_dependents["reference"]
+
+            if self._variable_lookup[reference]["property"] != "fluid":
+                continue
+
+            all_connections = [
+                self._variable_lookup[var]["object"]
+                for var in linear_dependents["variables"]
+            ]
+            reference_container = self._reference_container_lookup[reference]
+            reference_conn = all_connections[0]
+
+            fluid_specs = [f for c in all_connections for f in c.fluid.is_set]
+            fluid0 = {
+                f: value for c in all_connections
+                for f, value in c.fluid.val0.items()
+            }
+            if len(fluid_specs) == 0:
+
+                if len(reference_conn._potential_fluids) > 1:
+                    reference_container.is_var = {
+                        f for f in reference_conn._potential_fluids
+                    }
+                    reference_container.val = {
+                        f: 1 / len(reference_container.is_var)
+                        for f in reference_container.is_var
+                    }
+                    # load up specification of starting values if any are
+                    # available
+                    reference_container.val.update(fluid0)
+                else:
+                    reference_container.val[
+                        list(reference_conn._potential_fluids)[0]
+                    ] = 1
+
+            elif len(fluid_specs) != len(set(fluid_specs)):
+                msg = (
+                    "The mass fraction of a single fluid has been been "
+                    "specified more than once in the following linear branch "
+                    "of connections: "
+                    f"{', '.join([c.label for c in all_connections])}."
+                )
+                raise hlp.TESPyNetworkError(msg)
+            else:
+                fixed_fractions = {
+                    f: c.fluid._val[f]
+                    for c in all_connections
+                    for f in fluid_specs
+                    if f in c.fluid._is_set
+                }
+                mass_fraction_sum = sum(fixed_fractions.values())
+                if mass_fraction_sum > 1 + ERR:
+                    msg = (
+                        "The mass fraction of fluids within a linear branch "
+                        "of connections cannot exceed 1: "
+                        f"{', '.join([c.label for c in all_connections])}."
+                    )
+                    raise ValueError(msg)
+                elif mass_fraction_sum < 1 - ERR:
+                    # set the fluids with specified mass fraction
+                    # remaining fluids are variable, create wrappers for them
+                    all_fluids = reference_conn._potential_fluids
+                    num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
+                    if num_remaining_fluids == 1:
+                        missing_fluid = list(
+                            set(all_fluids) - set(fixed_fractions.keys())
+                        )[0]
+                        fixed_fractions[missing_fluid] = 1 - mass_fraction_sum
+                        variable = set()
+                    else:
+                        missing_fluids = (
+                            set(all_fluids) - set(fixed_fractions.keys())
+                        )
+                        variable = {f for f in missing_fluids}
+
+                else:
+                    # fluid mass fraction is 100 %, all other fluids are 0 %
+                    all_fluids = reference_container.val.keys()
+                    remaining_fluids = (
+                        reference_container.val.keys() - fixed_fractions.keys()
+                    )
+                    for f in remaining_fluids:
+                        fixed_fractions[f] = 0
+
+                    variable = set()
+
+                reference_container.val.update(fixed_fractions)
+                reference_container.is_set = {f for f in fixed_fractions}
+                reference_container.is_var = variable
+                # this seems to be a problem in some cases, e.g. the basic
+                # gas turbine tutorial
+                num_var = len(variable)
+                for f in variable:
+                    reference_container.val[f] = (1 - mass_fraction_sum) / num_var
+                    if f in fluid0:
+                        reference_container.val[f] = fluid0[f]
+
+            for fluid in reference_container.is_var:
+                reference_container._J_col[fluid] = self.variable_counter
+                self.variables_dict[self.variable_counter] = {
+                    "obj": reference_container,
+                    "variable": "fluid",
+                    "fluid": fluid,
+                    "_represents": linear_dependents["variables"]
+                }
+                self.variable_counter += 1
+
+    def _presolve_linear_dependents(self):
+        for linear_dependents in self._variable_dependencies:
+            reference = linear_dependents["reference"]
+
+            if self._variable_lookup[reference]["property"] == "fluid":
+                continue
+
+            all_containers = [
+                self._variable_lookup[var]["object"].get_attr(
+                    self._variable_lookup[var]["property"]
+                ) for var in linear_dependents["variables"]
+            ]
+
+            number_specifications = sum(
+                [not c._potential_var for c in all_containers]
+            )
+            if number_specifications > 1:
+                variables_properties = [
+                    f"{self._variable_lookup[var]['object'].label} "
+                    f"({self._variable_lookup[var]['property']})"
+                    for var in linear_dependents["variables"]
+                ]
+                var_str = ", ".join(variables_properties)
+                msg = (
+                    "You specified more than one variable within a set of "
+                    "linearly dependent variables.\n"
+                    f"  Variables:  {var_str}"
+                )
+                raise hlp.TESPyNetworkError(msg)
+            elif number_specifications == 1:
+                reference_data = self._variable_lookup[reference]
+                reference_container = reference_data["object"].get_attr(
+                    reference_data["property"]
+                )._reference_container
+                reference_container.is_var = False
+
+    def _prepare_for_solver(self):
+        for variable in self._variable_dependencies:
+            reference = self._variable_lookup[variable["reference"]]
+            represents = variable["variables"]
+            if reference["property"] != "fluid":
+                self._assign_variable_space(reference, represents)
+
+        eq_counter = 0
+
+        _eq_counter = self._prepare_network_parts(self.network.comps["object"], eq_counter)
+        self.num_comp_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
+
+        _eq_counter = self._prepare_network_parts(self.network.conns["object"], eq_counter)
+        self.num_conn_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
+
+        _eq_counter = self._prepare_network_parts(self.network.user_defined_eq.values(), eq_counter)
+        self.num_ude_eq = _eq_counter - eq_counter
+        eq_counter = _eq_counter
+
+        self.structure_graph.attach_solver_incidence(
+            self._incidence_matrix, self.variables_dict
+        )
+
+    def _prepare_network_parts(self, parts, eq_counter):
+        for obj in parts:
+            eq_counter = obj._prepare_for_solver(self._presolved_equations, eq_counter)
+            eq_map = {
+                eq_num: (obj.label, eq_name)
+                for eq_num, eq_name in obj._equation_lookup.items()
+            }
+            self._equation_lookup.update(eq_map)
+            self._equation_obj_lookup.update(
+                {eq_num: obj for eq_num in obj._equation_lookup}
+            )
+
+            dependents_map = {
+                eq_num: [dependent.J_col for dependent in dependents]
+                for eq_num, dependents in obj._equation_scalar_dependents_lookup.items()
+            }
+            self._incidence_matrix.update(dependents_map)
+
+            dependents_map = {
+                eq_num: [
+                    dependent.J_col[key]
+                    for dependent, keys in dependents.items()
+                    for key in keys
+                ]
+                for eq_num, dependents in obj._equation_vector_dependents_lookup.items()
+            }
+            for eq_num, dependents in dependents_map.items():
+                if eq_num in self._incidence_matrix:
+                    self._incidence_matrix[eq_num] += dependents
+
+                else:
+                    self._incidence_matrix[eq_num] = dependents
+
+        return eq_counter
+
+    def _assign_variable_space(self, reference, represents):
+        container = reference["object"].get_attr(reference["property"])._reference_container
+        if container.is_var:
+            container.J_col = self.variable_counter
+            self.variables_dict[self.variable_counter] = {
+                "obj": container,
+                "variable": reference["property"],
+                "fluid": None,
+                "_represents": represents
+            }
+            self.variable_counter += 1
+
+    def _unload_variables(self):
+        for dependents in self._variable_dependencies:
+            for variable_num in dependents["variables"]:
+                variable_dict = self._variable_lookup[variable_num]
+                variable = variable_dict["object"].get_attr(variable_dict["property"])
+                variable.detach()
+
+    def check_determination(self):
+        r"""Check, if the number of supplied parameters is sufficient."""
+        msg = f'Number of connection equations: {self.num_conn_eq}.'
+        logger.debug(msg)
+        msg = f'Number of component equations: {self.num_comp_eq}.'
+        logger.debug(msg)
+        msg = f'Number of user defined equations: {self.num_ude_eq}.'
+        logger.debug(msg)
+
+        msg = f'Total number of variables: {self.variable_counter}.'
+        logger.debug(msg)
+
+        _hint = (
+            "\nUse nw.print_variables() and nw.print_equations() to inspect "
+            "which variables and equations are present, "
+            "nw.print_equations_with_dependents() to see which variables each "
+            "equation depends on, or nw.print_incidence_matrix() for a compact "
+            "overview."
+        )
+        n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
+        if n > self.variable_counter:
+            msg = (
+                f"You have provided too many parameters: {self.variable_counter} "
+                f"required, {n} supplied. Aborting calculation!{_hint}"
+                f"{self._structural_report()}"
+            )
+            logger.error(msg)
+            self.status = 12
+            raise hlp.TESPyNetworkError(msg)
+        elif n < self.variable_counter:
+            msg = (
+                f"You have not provided enough parameters: {self.variable_counter} "
+                f"required, {n} supplied. Aborting calculation!{_hint}"
+                f"{self._structural_report()}"
+            )
+            logger.error(msg)
+            self.status = 11
+            raise hlp.TESPyNetworkError(msg)
+
+    def no_progress_message(self):
+        return (
+            "The solver does not seem to make any progress, aborting "
+            "calculation. Residual value is "
+            "{:.2e}".format(norm(self.residual)) +
+            "\nPossible reasons include:\n"
+            " - fluid properties moving outside the valid range of the "
+            "property database (consider adjusting p_range or h_range),\n"
+            " - an impossible constraint that can never be satisfied \n"
+            " - bad starting values causing the Newton solver to diverge.\n"
+            "Use nw.print_residuals() to identify which equations have "
+            "the largest residuals."
+        )
 
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True):
@@ -464,6 +1030,18 @@ class Problem:
 
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""
+        if self.iter == 0:
+            report = self._structural_report()
+            if report != "":
+                self.singularity_msg = (
+                    "Detected singularity in Jacobian matrix. This "
+                    "singularity is caused by the structure of your problem "
+                    "and NOT a numerical issue. Double check your setup."
+                    f"{report}\n"
+                )
+                self._find_linear_dependencies(self.jacobian)
+                return
+
         if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
             self.singularity_msg = (
                 "Detected singularity in Jacobian matrix. This singularity "

@@ -240,10 +240,12 @@ class HAConnection(Connection):
 
     def r_dependents(self):
         water_alias = _get_fluid_alias("water", self.fluid_data)
-        # water alias is already a set
+        air_alias = _get_fluid_alias("air", self.fluid_data)
+        # the humidity ratio relates the water to the air mass fraction, so
+        # the equation depends on both
         return {
             "scalars": [self.p, self.h],
-            "vectors": [{self.fluid: water_alias}]
+            "vectors": [{self.fluid: water_alias | air_alias}]
         }
 
     def calc_w(self):

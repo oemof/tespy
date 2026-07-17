@@ -15,7 +15,10 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import brentq
 
+from tespy.solver.decomposition import Block
 from tespy.solver.decomposition import dulmage_mendelsohn
+from tespy.solver.strategies import NewtonStrategy
+from tespy.solver.strategies import ScalarBracketingStrategy
 from tespy.solver.structure import StructureGraph
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
@@ -78,8 +81,17 @@ class Problem:
             Ordered block structure of the equation system.
         """
         if self._decomposition is None:
+            # variable mass fractions of one fluid vector are coupled through
+            # their normalization outside of the equation system, so they
+            # must stay within one block
+            coupled = {}
+            for j_col, data in self.variables_dict.items():
+                if data["variable"] == "fluid":
+                    coupled.setdefault(id(data["obj"]), set()).add(j_col)
+            groups = [group for group in coupled.values() if len(group) > 1]
             self._decomposition = dulmage_mendelsohn(
-                self._incidence_matrix, self.variable_counter
+                self._incidence_matrix, self.variable_counter,
+                coupled_variables=groups
             )
             for block in self._decomposition.blocks:
                 block.equation_labels = [
@@ -628,7 +640,8 @@ class Problem:
         )
 
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
-                   oscillation_damping, iterinfo, print_results=True):
+                   oscillation_damping, iterinfo, print_results=True,
+                   block_solve=False):
         r"""Loop of the newton algorithm."""
         self.max_iter = max_iter
         self.min_iter = min_iter
@@ -645,6 +658,14 @@ class Problem:
 
         self.start_time = time()
 
+        if block_solve:
+            self._solve_blocks(iterinfo, print_results)
+        else:
+            self._solve_simultaneous(iterinfo, print_results)
+
+        self.end_time = time()
+
+    def _solve_simultaneous(self, iterinfo, print_results=True):
         if iterinfo:
             self._print_iterinfo_head(print_results)
 
@@ -700,6 +721,174 @@ class Problem:
             )
             logger.warning(msg)
             self.status = 2
+
+    def _solve_blocks(self, iterinfo, print_results):
+        has_variable_composition = any(
+            data["variable"] == "fluid"
+            for data in self.variables_dict.values()
+        )
+        if has_variable_composition:
+            msg = (
+                "The fluid composition is part of the variable space. The "
+                "dependency declarations of the fluid property equations do "
+                "not cover the composition, so a block ordering is not "
+                "reliable in this case: solving the full system "
+                "simultaneously instead."
+            )
+            logger.info(msg)
+            self._solve_simultaneous(iterinfo, print_results)
+            return
+
+        decomposition = self.decompose()
+        if decomposition.defective_blocks:
+            self.singularity_msg = (
+                "The problem is structurally singular, block-wise solving "
+                f"is not possible.{self._structural_report()}"
+            )
+            self.status = 3
+            return
+
+        # cheap insurance for the final escalation: if neither the blocks
+        # nor the coupled solution of the remaining system converge, the
+        # solver restarts from this state like a fresh simultaneous solve
+        snapshot = {
+            key: (
+                data["obj"].val[data["fluid"]]
+                if data["variable"] == "fluid" else data["obj"]._val_SI
+            )
+            for key, data in self.variables_dict.items()
+        }
+
+        num_blocks = len(decomposition.blocks)
+        for position, block in enumerate(decomposition.blocks):
+            if block.kind == "scalar":
+                strategy = ScalarBracketingStrategy()
+            else:
+                strategy = NewtonStrategy()
+            block.status = strategy.solve(self, block)
+
+            residual = (
+                block.residual_history[-1] if block.residual_history else 0.0
+            )
+            self.residual_history = np.append(self.residual_history, residual)
+
+            eq_str = ", ".join(
+                f"{lbl}.{self._format_eq_name(name)}"
+                for lbl, name in block.equation_labels
+            )
+            if iterinfo:
+                msg = (
+                    f" block {block.id:3d} | {block.kind:15s} | "
+                    f"iterations: {len(block.residual_history):3d} | "
+                    f"residual: {residual:.2e} | {eq_str}"
+                )
+                logger.progress(
+                    100 * (block.id + 1) // num_blocks, msg
+                )
+                if print_results:
+                    print(msg)
+
+            if block.status != 0:
+                # the preceding blocks stay solved: their equations do not
+                # depend on any variable of the failed or later blocks. The
+                # failed block's variables were restored by the strategy, so
+                # the coupled solution of everything remaining starts from
+                # the solved blocks plus the original starting values.
+                remaining = decomposition.blocks[position:]
+                remainder = Block(
+                    id=block.id,
+                    kind="remainder",
+                    equations=sorted(
+                        eq for b in remaining for eq in b.equations
+                    ),
+                    variables=sorted(
+                        col for b in remaining for col in b.variables
+                    ),
+                )
+                remainder.equation_labels = [
+                    self._equation_lookup[eq] for eq in remainder.equations
+                ]
+                remainder.variable_labels = [
+                    self._format_var_label(col) for col in remainder.variables
+                ]
+                var_str = ", ".join(block.variable_labels)
+                msg = (
+                    f"Block {block.id} did not converge, solving the "
+                    f"remaining {len(remaining)} blocks simultaneously.\n"
+                    f"  Equations: {eq_str}\n"
+                    f"  Variables: {var_str}"
+                )
+                logger.warning(msg)
+
+                remainder.status = NewtonStrategy().solve(self, remainder)
+                residual = (
+                    remainder.residual_history[-1]
+                    if remainder.residual_history else 0.0
+                )
+                self.residual_history = np.append(
+                    self.residual_history, residual
+                )
+                if iterinfo:
+                    msg = (
+                        f" block {remainder.id:3d} | {remainder.kind:15s} | "
+                        f"iterations: {len(remainder.residual_history):3d} | "
+                        f"residual: {residual:.2e} | "
+                        f"{len(remainder.equations)} equations"
+                    )
+                    logger.progress(100, msg)
+                    if print_results:
+                        print(msg)
+
+                if remainder.status != 0:
+                    msg = (
+                        "The remaining system did not converge either, "
+                        "restarting with the simultaneous solution of the "
+                        "full system from its initial state."
+                    )
+                    logger.warning(msg)
+                    for key, value in snapshot.items():
+                        data = self.variables_dict[key]
+                        if data["variable"] == "fluid":
+                            data["obj"].val[data["fluid"]] = value
+                        else:
+                            data["obj"]._val_SI = value
+                    # iteration counters stage stabilization measures of the
+                    # equations, the restart must begin from counter zero
+                    # like a fresh solve
+                    to_reset = (
+                        self.network.comps["object"].tolist()
+                        + self.network.conns["object"].tolist()
+                        + list(self.network.user_defined_eq.values())
+                    )
+                    for obj in to_reset:
+                        obj.it = 0
+                    self.increment = np.ones([self.variable_counter])
+                    self._solve_simultaneous(iterinfo, print_results)
+                    return
+                break
+
+        # verify the full system: couplings acting outside of the declared
+        # incidence (e.g. equations internally manipulating their residual
+        # during iteration) can leave a global residual the per-block
+        # convergence cannot see
+        if self.variable_counter > 0:
+            self.increment_filter = np.zeros(
+                self.variable_counter, dtype=bool
+            )
+            self._solve_equations()
+            residual_norm = norm(self.residual)
+            if residual_norm > ERR ** 0.5:
+                msg = (
+                    "Block-wise solving finished with a remaining global "
+                    f"residual of {residual_norm:.2e}, continuing with the "
+                    "simultaneous solution of the full system."
+                )
+                logger.info(msg)
+                self.increment = np.ones([self.variable_counter])
+                self._solve_simultaneous(iterinfo, print_results)
+                return
+
+        self.status = 0
 
     def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
@@ -943,7 +1132,7 @@ class Problem:
         else:
             return -minus_d if abs(minus_r) < abs_r0 else None
 
-    def _fill_jacobian_surrogates(self):
+    def _fill_jacobian_surrogates(self, equations=None):
         """Restore invertibility for all-zero rows and find better steps.
 
         For each row that is entirely zero but expected to have non-zero
@@ -957,7 +1146,13 @@ class Problem:
         inversion.
         """
         overrides = {}
-        for row in self._check_all_zero_rows(self.jacobian):
+        if equations is None:
+            zero_rows = self._check_all_zero_rows(self.jacobian)
+        else:
+            zero_rows = [
+                row for row in equations if not self.jacobian[row].any()
+            ]
+        for row in zero_rows:
             for col in self._incidence_matrix.get(row, []):
                 if self.jacobian[row, col] == 0.0:
                     self.jacobian[row, col] = 1.0
@@ -966,33 +1161,44 @@ class Problem:
                         overrides[col] = step
         return overrides
 
-    def _invert_jacobian(self):
+    def _invert_jacobian(self, equations=None, variables=None):
         """Compute Newton step, storing result in self.increment. Sets self.lin_dep."""
         self.lin_dep = False
         self.increment = self.residual * 0
         if len(self.variables_dict) == 0:
             return
 
-        self._check_residual_and_jacobian_for_nan()
+        self._check_residual_and_jacobian_for_nan(equations)
 
-        overrides = self._fill_jacobian_surrogates()
+        overrides = self._fill_jacobian_surrogates(equations)
+
+        if equations is None:
+            jacobian = self.jacobian
+            residual = self.residual
+        else:
+            jacobian = self.jacobian[np.ix_(equations, variables)]
+            residual = self.residual[equations]
 
         try:
-            if self.use_cuda:
+            if self.use_cuda and equations is None:
                 self.increment = cu.asnumpy(cu.dot(
                     cu.linalg.inv(cu.asarray(self.jacobian)),
                     -cu.asarray(self.residual)
                 ))
             else:
-                row_scales = np.abs(self.jacobian).max(axis=1)
+                row_scales = np.abs(jacobian).max(axis=1)
                 row_scales[row_scales == 0] = 1.0
-                J_eq = self.jacobian / row_scales[:, None]
+                J_eq = jacobian / row_scales[:, None]
 
                 col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
                 J_sc = J_eq / col_scales[None, :]
-                r_eq = -self.residual / row_scales
+                r_eq = -residual / row_scales
 
-                self.increment = np.linalg.solve(J_sc, r_eq) / col_scales
+                increment = np.linalg.solve(J_sc, r_eq) / col_scales
+                if equations is None:
+                    self.increment = increment
+                else:
+                    self.increment[variables] = increment
         except np.linalg.LinAlgError:
             self.lin_dep = True
             return
@@ -1000,7 +1206,7 @@ class Problem:
         for col, step in overrides.items():
             self.increment[col] = step
 
-    def _check_residual_and_jacobian_for_nan(self):
+    def _check_residual_and_jacobian_for_nan(self, equations=None):
         """Raise an informative error if a NaN or inf entry is found.
 
         A single NaN in the residual or Jacobian typically contaminates the
@@ -1010,8 +1216,15 @@ class Problem:
         into the next iteration's variable values and only surfaces several
         iterations later as an unrelated and confusing error.
         """
-        nan_rows = set(np.where(~np.isfinite(self.residual))[0])
-        nan_rows |= set(np.where(~np.isfinite(self.jacobian).any(axis=1))[0])
+        if equations is None:
+            nan_rows = set(np.where(~np.isfinite(self.residual))[0])
+            nan_rows |= set(np.where(~np.isfinite(self.jacobian).any(axis=1))[0])
+        else:
+            nan_rows = {
+                row for row in equations
+                if not np.isfinite(self.residual[row])
+                or not np.isfinite(self.jacobian[row]).any()
+            }
         if len(nan_rows) == 0:
             return
 
@@ -1142,7 +1355,7 @@ class Problem:
             cols = np.nonzero(self.jacobian[row, :])[0]
             self.increment[cols] *= 0.5
 
-    def _update_variables(self):
+    def _update_variables(self, variables=None):
         # cast dtype to float from numpy float64
         # this is necessary to keep the doctests running and note make them
         # look ugly all over the place
@@ -1155,7 +1368,9 @@ class Problem:
         if self.robust_relax:
             relax = 0.05 + 0.95 * min(1, self.iter / (0.25 * self.max_iter))
 
-        for _, data in self.variables_dict.items():
+        for key, data in self.variables_dict.items():
+            if variables is not None and key not in variables:
+                continue
             if data["variable"] in ["m", "h", "E"]:
                 container = data["obj"]
                 container._val_SI += increment[container.J_col] * relax
@@ -1190,7 +1405,12 @@ class Problem:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
-    def _adapt_to_variable_bounds(self):
+    def _adapt_to_variable_bounds(self, connections=None, components=None):
+
+        if connections is None:
+            connections = self.network.conns['object']
+        if components is None:
+            components = self.network.comps['object']
 
         # this could be in a different place, its kind of in between
         # network and connection
@@ -1202,11 +1422,11 @@ class Problem:
                         data["obj"]._val[fluid] /= total_mass_fractions
 
         if norm(self.increment) > 1e-1:
-            for c in self.network.conns['object']:
+            for c in connections:
                 # check the fluid properties for physical ranges
                 c._adjust_to_property_limits(self.network)
 
-            for cp in self.network.comps['object']:
+            for cp in components:
                 cp._adjust_to_property_limits()
 
         # second check based on component heuristics
@@ -1218,10 +1438,10 @@ class Problem:
                 and norm(self.increment) > 1e-1
                 and self.network.mode == "design"
             ):
-            for cp in self.network.comps['object']:
+            for cp in components:
                 cp.convergence_check()
 
-            for c in self.network.conns['object']:
+            for c in connections:
                 c._adjust_to_property_limits(self.network)
 
     def _solve_iteration(self):
@@ -1248,15 +1468,18 @@ class Problem:
         self._adapt_to_variable_bounds()
         self._prev_residual = self.residual.copy()
 
-    def _solve_equations(self):
+    def _solve_equations(self, objects=None):
         r"""
         Calculate the residual and derivatives of all equations.
         """
-        to_solve = (
-            self.network.comps["object"].tolist()
-            + self.network.conns["object"].tolist()
-            + list(self.network.user_defined_eq.values())
-        )
+        if objects is None:
+            to_solve = (
+                self.network.comps["object"].tolist()
+                + self.network.conns["object"].tolist()
+                + list(self.network.user_defined_eq.values())
+            )
+        else:
+            to_solve = objects
         for obj in to_solve:
             hlp.solve(obj, self.increment_filter)
             if len(obj.jacobian) > 0:

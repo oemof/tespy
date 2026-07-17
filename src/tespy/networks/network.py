@@ -2130,7 +2130,7 @@ class Network:
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=4, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
-              oscillation_damping=False):
+              oscillation_damping=False, block_solve=True):
         r"""
         Solve the network.
 
@@ -2189,6 +2189,13 @@ class Network:
             before being applied. This converts the oscillating Newton step
             into a bisection-like contraction and restores monotone convergence
             without requiring an external bracketing loop. Default:
+            :code:`False`.
+
+        block_solve : boolean
+            Decompose the equation system into its block lower triangular
+            form and solve the blocks in precedence order instead of solving
+            the full system simultaneously. Scalar blocks are solved with a
+            bracketing fallback on oscillation. Experimental, default:
             :code:`False`.
 
         Note
@@ -2273,7 +2280,8 @@ class Network:
                 max_iter=max_iter, min_iter=min_iter, use_cuda=use_cuda,
                 robust_relax=robust_relax,
                 oscillation_damping=oscillation_damping,
-                iterinfo=self.iterinfo, print_results=print_results
+                iterinfo=self.iterinfo, print_results=print_results,
+                block_solve=block_solve
             )
         except ValueError as e:
             self.status = 99

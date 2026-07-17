@@ -57,7 +57,7 @@ class Decomposition:
         ]
 
 
-def dulmage_mendelsohn(incidence, num_variables):
+def dulmage_mendelsohn(incidence, num_variables, coupled_variables=None):
     r"""Compute the Dulmage-Mendelsohn decomposition of an incidence.
 
     Parameters
@@ -67,6 +67,11 @@ def dulmage_mendelsohn(incidence, num_variables):
         equation depends on.
     num_variables : int
         Total number of variables.
+    coupled_variables : list, optional
+        Groups of variable numbers that must not be separated into
+        different blocks, e.g. the mass fractions of one fluid vector,
+        which are coupled through their normalization outside of the
+        equation system.
 
     Returns
     -------
@@ -154,6 +159,20 @@ def dulmage_mendelsohn(incidence, num_variables):
             owner = col_match[col]
             if owner != eq and owner in node_of_eq:
                 edges.add((node_of_eq[owner], node_of_eq[eq]))
+
+    # inseparable variable groups: mutual edges between the equations
+    # owning the group's variables force them into one strongly connected
+    # block, together with everything on paths between them
+    if coupled_variables:
+        for group in coupled_variables:
+            owners = {
+                node_of_eq[col_match[col]] for col in group
+                if col_match[col] in node_of_eq
+            }
+            for tail in owners:
+                for head in owners:
+                    if tail != head:
+                        edges.add((tail, head))
 
     blocks = []
     precedence = {}

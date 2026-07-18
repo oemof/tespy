@@ -184,6 +184,21 @@ class HAConnection(Connection):
         ]
         return presolved_equations
 
+    def _property_bounds(self, prop, nw):
+        if prop == "p":
+            return 101, 99e5
+
+        elif prop == "h":
+            # TODO: check minimum temperature how it matches minimum humidity ratio
+            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
+            # TODO: where to get reasonable hmax from?!
+            hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
+            d = self.h._reference_container._d
+            delta = max(abs(self.h.val_SI * d), d) * 5
+            return hmin + delta, hmax - delta
+
+        return None
+
     def _adjust_to_property_limits(self, nw):
 
         if self.r.is_set and self.it < 5:
@@ -197,27 +212,6 @@ class HAConnection(Connection):
             if water_alias in self.fluid.is_var:
                 if self.fluid.val[water_alias] > 0.2:
                     self.fluid.set_reference_val(water_alias, 0.05)
-
-        if self.p.is_var:
-            if self.p.val_SI < 100:
-                self.p.val_SI = 101
-            elif self.p.val_SI > 100e5:
-                self.p.val_SI = 99e5
-
-        if self.h.is_var:
-            # TODO: check minimum temperature how it matches minimum humidity ratio
-            d = self.h._reference_container._d
-            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
-            if self.h.val_SI < hmin:
-                delta = max(abs(self.h.val_SI * d), d) * 5
-                self.h.set_reference_val_SI(hmin + delta)
-
-            else:
-                # TODO: where to get reasonable hmax from?!
-                hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
-                if self.h.val_SI > hmax:
-                    delta = max(abs(self.h.val_SI * d), d) * 5
-                    self.h.set_reference_val_SI(hmax - delta)
 
     @classmethod
     def _result_attributes(cls):

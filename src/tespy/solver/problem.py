@@ -1200,8 +1200,8 @@ class Problem:
                         data["obj"]._val[fluid] /= total_mass_fractions
 
         if norm(self.increment) > 1e-1:
+            self._apply_property_bounds(connections)
             for c in connections:
-                # check the fluid properties for physical ranges
                 c._adjust_to_property_limits(self.network)
 
             for cp in components:
@@ -1219,10 +1219,79 @@ class Problem:
             for cp in components:
                 cp.convergence_check()
 
+            self._apply_property_bounds(connections)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
 
         return not np.array_equal(values_before, self._variable_values())
+
+    def _apply_property_bounds(self, connections):
+        """Clamp variables to the tightest bounds of their represented ones.
+
+        Every connection provides the bounds of its own m, p and h in its
+        value space. The bounds are mapped through the affine relation into
+        the space of the reference variable and intersected, so a variable
+        representing several linearly dependent ones is adjusted exactly
+        once instead of every connection clamping the shared reference in
+        turn.
+        """
+        connections = set(connections)
+        # the enthalpy bounds depend on pressure, so pressures are adjusted
+        # first
+        for props in (("m", "p"), ("h",)):
+            for key, data in self.variables_dict.items():
+                if data["variable"] not in props or not data["obj"].is_var:
+                    continue
+
+                lower, upper = -np.inf, np.inf
+                labels = []
+                for var in data["_represents"]:
+                    member = self._variable_lookup[var]
+                    obj = member["object"]
+                    if obj not in connections:
+                        continue
+
+                    bounds = obj._property_bounds(
+                        member["property"], self.network
+                    )
+                    if bounds is None:
+                        continue
+
+                    labels.append(obj.label)
+                    container = obj.get_attr(member["property"])
+                    f = container._factor
+                    lo, hi = (
+                        (b - container._offset) / f if b is not None else None
+                        for b in bounds
+                    )
+                    if f < 0:
+                        lo, hi = hi, lo
+                    if lo is not None and lo > lower:
+                        lower = lo
+                    if hi is not None and hi < upper:
+                        upper = hi
+
+                if lower > upper:
+                    msg = (
+                        "The value bounds of variable "
+                        f"{self.format_var_label(key)} mapped from its "
+                        f"represented variables ({', '.join(labels)}) are "
+                        "incompatible, skipping the value adjustment."
+                    )
+                    logger.warning(msg)
+                    continue
+
+                if data["obj"]._val_SI < lower:
+                    data["obj"]._val_SI = lower
+                elif data["obj"]._val_SI > upper:
+                    data["obj"]._val_SI = upper
+                else:
+                    continue
+                msg = (
+                    f"Value of variable {self.format_var_label(key)} out of "
+                    f"bounds, adjusted to {data['obj']._val_SI}."
+                )
+                logger.debug(msg)
 
     def _solve_iteration(self):
         r"""

@@ -626,12 +626,6 @@ class FluidProperties(_NumEqMixin, DataContainer):
         else:
             self._is_var = value
 
-    def _get_val_base_unit(self):
-        return self._val.to(SI_UNITS[self.quantity]).units
-
-    def _get_val0_base_unit(self):
-        return self._val0.to(SI_UNITS[self.quantity]).units
-
     def get_val_with_unit(self):
         return self._val
 
@@ -666,9 +660,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def _get_val_from_SI(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
-        return units.ureg.Quantity(
-            self.val_SI, self._get_val_base_unit()
-        ).to(self._val.units)
+        return units.quantity_from_SI(
+            self.val_SI, SI_UNITS[self.quantity], self._val.units
+        )
 
     def set_val_from_SI(self, units):
         self.val = self._get_val_from_SI(units)
@@ -676,9 +670,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_val0_from_SI(self, units):
         if not self._val0_is_quantity:
             self._assign_default_unit_to_val0(units)
-        self.val0 = units.ureg.Quantity(
-            self.val_SI, self._get_val0_base_unit()
-        ).to(self.val0.units)
+        self.val0 = units.quantity_from_SI(
+            self.val_SI, SI_UNITS[self.quantity], self.val0.units
+        )
 
     def detach(self):
         if self._reference_container is not None:
@@ -800,9 +794,9 @@ class ComponentArrayProperties(DataContainer):
     def set_val_from_SI(self, units):
         if self.val_SI is None:
             return
-        self.val = units.ureg.Quantity(
-            self.val_SI, SI_UNITS[self.quantity]
-        ).m_as(units.default[self.quantity])
+        self.val = units.value_from_SI(
+            self.val_SI, SI_UNITS[self.quantity], units.default[self.quantity]
+        )
 
 
 class ComponentProperties(FluidProperties):

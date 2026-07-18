@@ -362,6 +362,9 @@ class ConnectionBase:
         if result is not None:
             self.jacobian[eq_num, var.J_col] = result
 
+    def _property_bounds(self, prop, nw):
+        return None
+
     def _adjust_to_property_limits(self, nw):
         pass
 
@@ -1794,114 +1797,99 @@ class Connection(ConnectionBase):
             self.target_id,
         ]
 
-    def _adjust_to_property_limits(self, nw):
+    def _property_bounds(self, prop, nw):
         r"""
-        Check for invalid fluid property values.
-        TODO: The network passed to this method should be putting the value
-        limits to the connections in the preprocessing, then it can be
-        omitted here.
+        Bounds of a variable in the value space of this connection.
+
+        Returns a tuple with the minimum and maximum value, :code:`None` in
+        place of an unbounded side, or :code:`None` if the property is not
+        bounded on this connection.
         """
+        if prop == "m":
+            return nw.m_range_SI
+
         fl = fp.single_fluid(self.fluid_data)
 
         # pure fluid
         if fl is not None:
-            # pressure
-            if self.p.is_var:
-                self._adjust_pressure(fl)
+            wrapper = self.fluid.wrapper[fl]
+            if prop == "p":
+                lower = None
+                if self.p.val_SI < wrapper._p_min:
+                    try:
+                        # if this works, the temperature is higher than the
+                        # minimum temperature, we can access pressure values
+                        # below minimum pressure
+                        wrapper.T_ph(self.p.val_SI, self.h.val_SI)
+                    except ValueError:
+                        lower = wrapper._p_min + 1e1
+                return lower, wrapper._p_max
 
-            # enthalpy
-            if self.h.is_var:
-                self._adjust_enthalpy(fl)
+            elif prop == "h":
+                try:
+                    hmin = wrapper.h_pT(self.p.val_SI, wrapper._T_min + 1e-1)
+                except ValueError:
+                    hmin = wrapper.h_pT(self.p.val_SI, wrapper._T_min * 1.05)
 
-                # two-phase related
-                if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
-                    self._adjust_to_two_phase(fl)
+                T = wrapper._T_max
+                # T_max depends on pressure for incompressibles
+                while True:
+                    try:
+                        hmax = wrapper.h_pT(self.p.val_SI, T)
+                        break
+                    except ValueError as e:
+                        T *= 0.99
+                        if T < wrapper._T_min:
+                            raise ValueError(e) from e
+
+                d = self.h._reference_container._d
+                delta = max(abs(self.h.val_SI * d), d) * 5
+                lower, upper = hmin + delta, hmax - delta
+
+                if (
+                        self.state.is_set and self.it < 30
+                        and self.p.val_SI < wrapper._p_crit
+                    ):
+                    if self.state.val == "g":
+                        lower = max(lower, wrapper.h_pQ(self.p.val_SI, 1))
+                    else:
+                        upper = min(upper, wrapper.h_pQ(self.p.val_SI, 0))
+
+                return lower, upper
 
         # mixture
         elif self.it < 5 and not self.good_starting_values:
-            # pressure
-            if self.p.is_var:
-                if self.p.val_SI <= nw.p_range_SI[0]:
-                    self.p.set_reference_val_SI(nw.p_range_SI[0])
-                    logger.debug(self._property_range_message('p'))
+            if prop == "p":
+                return nw.p_range_SI
 
-                elif self.p.val_SI >= nw.p_range_SI[1]:
-                    self.p.set_reference_val_SI(nw.p_range_SI[1])
-                    logger.debug(self._property_range_message('p'))
-
-            # enthalpy
-            if self.h.is_var:
-                if self.h.val_SI < nw.h_range_SI[0]:
-                    self.h.set_reference_val_SI(nw.h_range_SI[0])
-                    logger.debug(self._property_range_message('h'))
-
-                elif self.h.val_SI > nw.h_range_SI[1]:
-                    self.h.set_reference_val_SI(nw.h_range_SI[1])
-                    logger.debug(self._property_range_message('h'))
-
-                # temperature
+            elif prop == "h":
+                lower, upper = nw.h_range_SI
                 if self.T.is_set:
-                    self._adjust_to_temperature_limits()
+                    Tmin = max(
+                        w._T_min for f, w in self.fluid.wrapper.items()
+                        if self.fluid.val[f] > ERR
+                    ) * 1.01
+                    Tmax = min(
+                        w._T_max for f, w in self.fluid.wrapper.items()
+                        if self.fluid.val[f] > ERR
+                    ) * 0.99
+                    lower = max(lower, h_mix_pT(
+                        self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule
+                    ))
+                    upper = min(upper, h_mix_pT(
+                        self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule
+                    ))
+                return lower, upper
 
-        # mass flow
-        if self.m.is_var:
-            if self.m.val_SI <= nw.m_range_SI[0]:
-                self.m.set_reference_val_SI(nw.m_range_SI[0])
-                logger.debug(self._property_range_message('m'))
+        return None
 
-            elif self.m.val_SI >= nw.m_range_SI[1]:
-                self.m.set_reference_val_SI(nw.m_range_SI[1])
-                logger.debug(self._property_range_message('m'))
+    def _adjust_to_property_limits(self, nw):
+        fl = fp.single_fluid(self.fluid_data)
+        if fl is None or not self.h.is_var:
+            return
 
-    def _adjust_pressure(self, fluid):
-        if self.p.val_SI > self.fluid.wrapper[fluid]._p_max:
-            self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_max)
-            logger.debug(self._property_range_message('p'))
-
-        elif self.p.val_SI < self.fluid.wrapper[fluid]._p_min:
-            try:
-                # if this works, the temperature is higher than the minimum
-                # temperature, we can access pressure values below minimum
-                # pressure
-                self.fluid.wrapper[fluid].T_ph(self.p.val_SI, self.h.val_SI)
-            except ValueError:
-                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_min + 1e1)
-                logger.debug(self._property_range_message('p'))
-
-    def _adjust_enthalpy(self, fluid):
-        # enthalpy
-        try:
-            hmin = self.fluid.wrapper[fluid].h_pT(
-                self.p.val_SI, self.fluid.wrapper[fluid]._T_min + 1e-1
-            )
-        except ValueError:
-            f = 1.05
-            hmin = self.fluid.wrapper[fluid].h_pT(
-                self.p.val_SI, self.fluid.wrapper[fluid]._T_min * f
-            )
-        if self.h.val_SI < hmin:
-            d = self.h._reference_container._d
-            delta = max(abs(self.h.val_SI * d), d) * 5
-            self.h.set_reference_val_SI(hmin + delta)
-            logger.debug(self._property_range_message('h'))
-        else:
-
-            T = self.fluid.wrapper[fluid]._T_max
-            # T_max depends on pressure for incompressibles
-            while True:
-                try:
-                    hmax = self.fluid.wrapper[fluid].h_pT(self.p.val_SI, T)
-                    break
-                except ValueError as e:
-                    T *= 0.99
-                    if T < self.fluid.wrapper[fluid]._T_min:
-                        raise ValueError(e) from e
-
-            if self.h.val_SI > hmax:
-                d = self.h._reference_container._d
-                delta = max(abs(self.h.val_SI * d), d) * 5
-                self.h.set_reference_val_SI(hmax - delta)
-                logger.debug(self._property_range_message('h'))
+        if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
+            self._adjust_to_two_phase(fl)
 
     def _adjust_to_two_phase(self, fluid):
 
@@ -1909,19 +1897,7 @@ class Connection(ConnectionBase):
             self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
         # this is supposed to never be accessed with INCOMP backend but it is
         # not enforced. With INCOMP backend this causes a crash
-        if self.state.is_set:
-            if self.state.val == 'g':
-                h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 1)
-                if self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h)
-                    logger.debug(self._property_range_message('h'))
-            else:
-                h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, 0)
-                if self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h)
-                    logger.debug(self._property_range_message('h'))
-
-        elif self.td_bubble.is_set:
+        if self.td_bubble.is_set:
             # very strictly modifying h to target value
             if abs(self.td_bubble.val_SI) < 1e-3:
                 if self.td_bubble.val_SI >= 0:
@@ -1952,32 +1928,6 @@ class Connection(ConnectionBase):
         elif self.x.is_set:
             h = self.fluid.wrapper[fluid].h_pQ(self.p.val_SI, self.x.val_SI)
             self.h.set_reference_val_SI(h)
-
-    def _adjust_to_temperature_limits(self):
-        r"""
-        Check if temperature is within user specified limits.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to check fluid properties.
-        """
-        Tmin = max(
-            [w._T_min for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
-        ) * 1.01
-        Tmax = min(
-            [w._T_max for f, w in self.fluid.wrapper.items() if self.fluid.val[f] > ERR]
-        ) * 0.99
-        hmin = h_mix_pT(self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule)
-        hmax = h_mix_pT(self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule)
-
-        if self.h.val_SI < hmin:
-            self.h.val_SI = hmin
-            logger.debug(self._property_range_message('h'))
-
-        if self.h.val_SI > hmax:
-            self.h.val_SI = hmax
-            logger.debug(self._property_range_message('h'))
 
     def _property_range_message(self, prop):
         r"""

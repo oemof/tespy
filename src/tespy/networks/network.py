@@ -22,10 +22,6 @@ import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
-from tespy.components import CycleCloser
-from tespy.components import FuelCell
-from tespy.components import Source
-from tespy.components import WaterElectrolyzer
 from tespy.components.component import component_registry
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
@@ -53,7 +49,11 @@ except ModuleNotFoundError:
 
 class Network:
     r"""
-    Class component is the base class of all TESPy components.
+    The container for TESPy simulations.
+
+    The network collects components, connections and user defined equations,
+    builds the system of equations describing the plant topology and
+    parametrization and solves it.
 
     Parameters
     ----------
@@ -237,6 +237,7 @@ class Network:
                 "the respective set methods for specification of value "
                 "ranges, units or iterinfo."
             )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
         self.units = kwargs.get('units', self.units)
         for key in kwargs:
             if "_unit" in key:
@@ -915,10 +916,11 @@ class Network:
         # checking whether a network holds a massflow branch with some
         # connections and compare that with the connection object actually
         # present in the network
-        for k, v in self.fluid_wrapper_branches.items():
-            if self.conns.loc[v["connections"][0].label, "object"] != v["connections"][0]:
+        for branch_data in self.fluid_wrapper_branches.values():
+            first = branch_data["connections"][0]
+            if self.conns.loc[first.label, "object"] != first:
                 self._create_fluid_wrapper_branches()
-            continue
+                break
 
         self._propagate_fluid_wrappers()
         self._init_connection_result_datastructure()
@@ -1144,7 +1146,6 @@ class Network:
         unset, the offdesign values set.
         """
         # connections
-        self._conn_variables = []
         for c in self.conns['object']:
             # read design point information of connections with
             # local_offdesign activated from their respective design path
@@ -1289,7 +1290,6 @@ class Network:
         :code:`cp.offdesign` will be set instead. This does also affect
         referenced values!
         """
-        self._conn_variables = []
         for c in self.conns['object']:
             if not c.local_design:
                 # switch connections to offdesign mode
@@ -1710,107 +1710,8 @@ class Network:
             )
             raise hlp.TESPyNetworkError(msg)
 
-        problem = self._problem
-        graph = problem.structure_graph
-
-        affine_map = {}
-        for dependents in problem._variable_dependencies:
-            for var in dependents["variables"]:
-                affine_map[var] = (
-                    dependents["reference"],
-                    dependents["factors"][var],
-                    dependents["offsets"][var]
-                )
-
-        variables = []
-        for col, data in sorted(problem._variable_lookup.items()):
-            obj = data["object"]
-            prop = data["property"]
-            container = obj.get_attr(prop)
-            reference, factor, offset = affine_map.get(col, (col, 1.0, 0.0))
-
-            if prop == "fluid":
-                if len(container.is_var) > 0:
-                    state = "variable"
-                    solver_index = {
-                        fluid: int(j_col)
-                        for fluid, j_col in container.J_col.items()
-                    }
-                elif len(container._is_set) > 0:
-                    state = "specified"
-                    solver_index = None
-                else:
-                    state = "presolved"
-                    solver_index = None
-            elif container.is_set:
-                state = "specified"
-                solver_index = None
-            elif container.is_var:
-                state = "variable"
-                solver_index = int(container.J_col)
-            else:
-                state = "presolved"
-                solver_index = None
-
-            variables.append({
-                "id": int(col),
-                "object": obj.label,
-                "object_type": (
-                    "connection" if isinstance(obj, ConnectionBase)
-                    else "component"
-                ),
-                "class_name": type(obj).__name__,
-                "property": prop,
-                "quantity": getattr(container, "quantity", None),
-                "state": state,
-                "reference": int(reference),
-                "factor": float(factor),
-                "offset": float(offset),
-                "solver_index": solver_index,
-            })
-
-        edge_by_row = {row: edge for edge, row in graph.edge_eq_idx.items()}
-        solver_equations = {}
-        for eq_num, (label, eq_name) in problem._equation_lookup.items():
-            name = eq_name[0] if isinstance(eq_name, tuple) else eq_name
-            solver_equations.setdefault((label, name), []).append(int(eq_num))
-
-        equations = []
-        for row, (label, name) in sorted(problem._equation_set_lookup.items()):
-            if row in edge_by_row:
-                kind = "affine"
-                related = [int(col) for col in edge_by_row[row]]
-            elif row in graph.linear_rows:
-                kind = "linear"
-                related = [int(col) for col in graph.linear_rows[row]]
-            else:
-                kind = "nonlinear"
-                related = []
-
-            state = (
-                "consumed" if row in problem._presolved_equations else "active"
-            )
-            indices = (
-                solver_equations.get((label, name), [])
-                if state == "active" else []
-            )
-            if kind == "nonlinear" and indices:
-                related = sorted({
-                    int(col)
-                    for eq_num in indices
-                    for col in graph.nonlinear_incidence.get(eq_num, [])
-                })
-
-            equations.append({
-                "id": int(row),
-                "object": label,
-                "name": name,
-                "kind": kind,
-                "origin": problem._equation_set_origin[row],
-                "state": state,
-                "variables": related,
-                "solver_indices": indices,
-            })
+        variables = self._problem.structure_variables()
+        equations = self._problem.structure_equations()
 
         connections = [
             {
@@ -1847,13 +1748,7 @@ class Network:
         list
             List of lists of connection labels per branch.
         """
-        return [
-            sorted(
-                self._problem._variable_lookup[col]["object"].label
-                for col in branch
-            )
-            for branch in self.problem.structure_graph.mass_flow_branches()
-        ]
+        return self.problem.get_mass_flow_branches()
 
     def get_linear_dependent_variables(self) -> list:
         """Get a list with sublists containing linear dependent variables
@@ -1863,25 +1758,7 @@ class Network:
         list
             List of lists of linear dependent variables
         """
-        variable_list = []
-        for dependents in self._problem._variable_dependencies:
-            variables = [
-                self._problem._variable_lookup[v] for v in dependents["variables"]
-            ]
-            variable_list += [
-                [(v["object"].label, v["property"]) for v in variables]
-            ]
-        return variable_list
-
-    def _get_equation_sets_by_eq_set_number(self, number_list) -> list:
-        return [self._problem._equation_set_lookup[num] for num in number_list]
-
-    def _get_variables_before_presolve_by_number(self, number_list) -> list:
-        return [
-            (v["object"].label, v["property"])
-            for k, v in self._problem._variable_lookup.items()
-            if k in number_list
-        ]
+        return self.problem.get_linear_dependent_variables()
 
     def get_presolved_equations(self) -> list:
         """Get the list of equations, that has been presolved with their
@@ -1892,10 +1769,7 @@ class Network:
         list
             list of presolved equations
         """
-        return [
-            v for k, v in self._problem._equation_set_lookup.items()
-            if k in self._problem._presolved_equations
-        ]
+        return self.problem.get_presolved_equations()
 
     def print_presolved_equations(self):
         """Print a formatted table of presolved equations."""
@@ -1912,10 +1786,7 @@ class Network:
         list
             list of original variables
         """
-        return [
-            (v["object"].label, v["property"])
-            for v in self._problem._variable_lookup.values()
-        ]
+        return self.problem.get_variables_before_presolve()
 
     def print_variables_before_presolve(self):
         """Print a formatted table of all variables before presolving."""
@@ -1933,16 +1804,7 @@ class Network:
         list
             list of presolved variables
         """
-        represented_variables = []
-        for v in self._problem.variables_dict.values():
-            represented_variables += v["_represents"]
-        if len(self._problem.variables_dict) == 0 and len(self._problem._presolved_equations) == 0:
-            return []
-        return [
-            (v["object"].label, v["property"])
-            for key, v in self._problem._variable_lookup.items()
-            if key not in represented_variables
-        ]
+        return self.problem.get_presolved_variables()
 
     def print_presolved_variables(self):
         """Print a formatted table of presolved variables."""
@@ -1960,16 +1822,7 @@ class Network:
         dict
             variable number and property with the list of represented variables
         """
-        return {
-            (key, data["variable"]):
-            [
-                (
-                    self._problem._variable_lookup[v]["object"].label,
-                    self._problem._variable_lookup[v]["property"]
-                ) for v in data["_represents"]
-            ]
-            for key, data in self._problem.variables_dict.items()
-        }
+        return self.problem.get_variables()
 
     def print_variables(self):
         """Print a formatted table of variables after presolving."""
@@ -1999,21 +1852,7 @@ class Network:
             Variable number and property with the list of represented
             variables as tuples of object label, property and SI value.
         """
-        result = {}
-        for key, data in self._problem.variables_dict.items():
-            represents = []
-            for v in data["_represents"]:
-                lookup = self._problem._variable_lookup[v]
-                container = lookup["object"].get_attr(lookup["property"])
-                if data["variable"] == "fluid":
-                    value = container.val[data["fluid"]]
-                else:
-                    value = container.val_SI
-                represents.append(
-                    (lookup["object"].label, lookup["property"], value)
-                )
-            result[(key, data["variable"])] = represents
-        return result
+        return self.problem.get_variable_values()
 
     def print_variable_values(self):
         """Print a formatted table of the current variable values."""
@@ -2069,46 +1908,7 @@ class Network:
             msg = f"There is no connection or component with label {label}."
             raise KeyError(msg)
 
-        lookup = self._problem._object_to_variable_lookup
-        if obj not in lookup or prop not in lookup[obj]:
-            msg = f"The object {label} does not have a variable {prop}."
-            raise KeyError(msg)
-
-        container = obj.get_attr(prop)
-        if prop == "fluid":
-            msg = (
-                "Setting fluid mass fractions through set_variable_value is "
-                "not supported."
-            )
-            raise hlp.TESPyNetworkError(msg)
-        if not container.is_var:
-            msg = (
-                f"{label} ({prop}) is not part of the variable space, its "
-                "value is fixed by specification or presolving."
-            )
-            raise hlp.TESPyNetworkError(msg)
-
-        container.set_reference_val_SI(value)
-
-    def _get_variables_by_number(self, number_list) -> dict:
-        """Get all variables of the presolved problem by variable numbers.
-
-        Returns
-        -------
-        dict
-            variable number and property with the list of represented variables
-        """
-        return {
-            (key, data["variable"]):
-            [
-                (
-                    self._problem._variable_lookup[v]["object"].label,
-                    self._problem._variable_lookup[v]["property"]
-                ) for v in data["_represents"]
-            ]
-            for key, data in self._problem.variables_dict.items()
-            if key in number_list
-        }
+        self.problem.set_variable_value(obj, prop, value)
 
     def get_equations(self) -> dict:
         """Get the actual equations after presolving the problem
@@ -2120,14 +1920,14 @@ class Network:
             parameter defining the equation. In case one parameter defines
             multiple equations, the same equation is repeated.
         """
-        return self._problem._equation_lookup
+        return self.problem.get_equations()
 
     def print_equations(self):
         """Print a formatted table of equations after presolving."""
         equations = self.get_equations()
         print(f"Equations after presolving ({len(equations)} total):")
         rows = [
-            (eq_num, label, self._problem._format_eq_name(eq_name))
+            (eq_num, label, self._problem.format_eq_name(eq_name))
             for eq_num, (label, eq_name) in sorted(equations.items())
         ]
         if rows:
@@ -2143,25 +1943,23 @@ class Network:
             the variables it depends on as a list
             (variable number, variable type)
         """
-        dependencies = {}
-        for eq_idx, dependents in self._problem._incidence_matrix.items():
-            dependencies.update({
-                self._problem._equation_lookup[eq_idx]:
-                list(self._get_variables_by_number(dependents).keys())
-            })
-        return dependencies
+        return self.problem.get_equations_with_dependents()
 
     def print_equations_with_dependents(self):
         """Print a formatted table of equations and the variables they depend on."""
-        print(f"Equations with dependent variables ({len(self._problem._incidence_matrix)} total):")
+        incidence = self.problem.get_incidence()
+        equations = self.problem.get_equations()
+        variable_order = [key for key, _ in self.problem.get_variables()]
+        print(f"Equations with dependent variables ({len(incidence)} total):")
         rows = []
-        for eq_idx, dependents in sorted(self._problem._incidence_matrix.items()):
-            label, eq_name = self._problem._equation_lookup[eq_idx]
+        for eq_idx, dependents in sorted(incidence.items()):
+            label, eq_name = equations[eq_idx]
+            dep_set = set(dependents)
             dep_str = ", ".join(
-                self._problem._format_var_label(v_idx)
-                for v_idx, _ in self._get_variables_by_number(dependents).keys()
+                self.problem.format_var_label(v_idx)
+                for v_idx in variable_order if v_idx in dep_set
             )
-            rows.append((eq_idx, label, self._problem._format_eq_name(eq_name), dep_str))
+            rows.append((eq_idx, label, self.problem.format_eq_name(eq_name), dep_str))
         if rows:
             print(tabulate(
                 rows,
@@ -2179,6 +1977,8 @@ class Network:
             decomposition, so the block lower triangular form of the problem
             becomes visible, default: :code:`False`.
         """
+        incidence = self.problem.get_incidence()
+        equations = self.problem.get_equations()
         if block_order:
             decomposition = self.problem.decompose()
             eq_indices = [
@@ -2197,23 +1997,23 @@ class Network:
                 for block in decomposition.blocks for col in block.variables
             }
         else:
-            eq_indices = sorted(self._problem._incidence_matrix.keys())
+            eq_indices = sorted(incidence.keys())
             all_var_indices = sorted({
                 v_idx
-                for deps in self._problem._incidence_matrix.values()
+                for deps in incidence.values()
                 for v_idx in deps
             })
 
         col_labels = [
-            self._problem._format_var_label(v_idx) for v_idx in all_var_indices
+            self.problem.format_var_label(v_idx) for v_idx in all_var_indices
         ]
 
         rows = []
         previous_block = None
         for eq_idx in eq_indices:
-            label, eq_name = self._problem._equation_lookup[eq_idx]
-            row_label = f"{label}.{self._problem._format_eq_name(eq_name)}"
-            dep_set = set(self._problem._incidence_matrix[eq_idx])
+            label, eq_name = equations[eq_idx]
+            row_label = f"{label}.{self.problem.format_eq_name(eq_name)}"
+            dep_set = set(incidence[eq_idx])
             if block_order:
                 # entries within the equation's own block are marked with X,
                 # dependencies on variables of other blocks with x
@@ -2271,7 +2071,7 @@ class Network:
                 block["kind"],
                 ", ".join(str(dep) for dep in block["prerequisites"]),
                 ", ".join(
-                    f"{lbl}.{self._problem._format_eq_name(name)}"
+                    f"{lbl}.{self._problem.format_eq_name(name)}"
                     for lbl, name in block["equations"]
                 ),
                 ", ".join(block["variables"]),
@@ -2290,12 +2090,13 @@ class Network:
         if self._problem is None or self._problem.residual is None:
             print("Residuals are not available before the first solve call.")
             return
+        equations = self.problem.get_equations()
         rows = []
-        for eq_idx in self._problem.get_sorted_residual_index():
-            label, eq_name = self._problem._equation_lookup[eq_idx]
+        for eq_idx in self.problem.get_sorted_residual_index():
+            label, eq_name = equations[eq_idx]
             rows.append((
-                eq_idx, label, self._problem._format_eq_name(eq_name),
-                self._problem.residual[eq_idx]
+                eq_idx, label, self.problem.format_eq_name(eq_name),
+                self.problem.residual[eq_idx]
             ))
         print(f"Residuals per equation ({len(rows)} total, sorted by magnitude):")
         if rows:
@@ -2328,35 +2129,7 @@ class Network:
         KeyError
             In case the specified property is not a variable
         """
-        if obj not in self._problem._object_to_variable_lookup:
-            msg = f"The object {obj.label} does not have any variables."
-            raise KeyError(msg)
-
-        if prop not in self._problem._object_to_variable_lookup[obj]:
-            msg = f"The object {obj.label} does not have a variable {prop}."
-            raise KeyError(msg)
-
-        variable_idx = self._problem._object_to_variable_lookup[obj][prop]
-        return self._get_linear_dependents_by_variable_index(variable_idx)
-
-    def _get_linear_dependents_by_variable_index(self, idx) -> list:
-        """Get the list of linear dependent variables for a specified variable
-
-        Parameters
-        ----------
-        idx : object
-            Index of the variable
-
-        Returns
-        -------
-        list
-            list of linear dependent variables
-        """
-        for dependents in self._problem._variable_dependencies:
-            if idx in dependents["variables"]:
-                variables = [self._problem._variable_lookup[v] for v in dependents["variables"]]
-                return [(v["object"].label, v["property"]) for v in variables]
-        raise KeyError(f"Variable index {idx} not found in any dependency group.")
+        return self.problem.get_linear_dependents_by_object(obj, prop)
 
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
@@ -2580,11 +2353,6 @@ class Network:
         msg = 'Starting solver.'
         logger.info(msg)
 
-        n = self._problem.variable_counter
-        self._problem._incidence_matrix_dense = np.zeros((n, n))
-        for row, cols in self._problem._incidence_matrix.items():
-            self._problem._incidence_matrix_dense[row, cols] = 1
-
         self._presolve_pending = False
         try:
             self._problem.solve_loop(
@@ -2598,11 +2366,11 @@ class Network:
             self.status = 99
             msg = f"Simulation crashed due to an unexpected error:\n{e}"
             logger.exception(msg)
-            self._problem._unload_variables()
+            self._problem.unload_variables()
             return
 
         self.status = self._problem.status
-        self._problem._unload_variables()
+        self._problem.unload_variables()
 
         if self.status == 3:
             logger.error(self._problem.singularity_msg)

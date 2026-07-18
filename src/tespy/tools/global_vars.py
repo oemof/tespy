@@ -11,6 +11,10 @@ SPDX-License-Identifier: MIT
 import CoolProp as CP
 
 ERR = 1e-6
+# convergence acceptance thresholds of the solver, the block wise and the
+# simultaneous solution share these definitions
+RESIDUAL_TOLERANCE = ERR ** 0.5
+INCREMENT_TOLERANCE = ERR ** 0.25
 GAS_CONSTANT_UNI = 8.314462618
 GRAVITY = 9.80665
 

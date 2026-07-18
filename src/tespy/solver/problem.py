@@ -15,16 +15,17 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import brentq
 
-from tespy.solver.decomposition import Block
+from tespy.connections.connection import ConnectionBase
 from tespy.solver.decomposition import dulmage_mendelsohn
-from tespy.solver.strategies import NewtonStrategy
-from tespy.solver.strategies import ScalarBracketingStrategy
+from tespy.solver.strategies import BlockDriver
 from tespy.solver.structure import StructureGraph
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import INCREMENT_TOLERANCE
+from tespy.tools.global_vars import RESIDUAL_TOLERANCE
 
 # Only require cupy if Cuda shall be used
 try:
@@ -101,7 +102,7 @@ class Problem:
                     self._equation_lookup[eq] for eq in block.equations
                 ]
                 block.variable_labels = [
-                    self._format_var_label(col) for col in block.variables
+                    self.format_var_label(col) for col in block.variables
                 ]
         return self._decomposition
 
@@ -109,7 +110,7 @@ class Problem:
         report = ""
         for block in self.decompose().defective_blocks:
             eq_str = ", ".join(
-                f"{lbl}.{self._format_eq_name(eq_name)}"
+                f"{lbl}.{self.format_eq_name(eq_name)}"
                 for lbl, eq_name in block.equation_labels
             )
             var_str = ", ".join(block.variable_labels)
@@ -630,7 +631,7 @@ class Problem:
             }
             self.variable_counter += 1
 
-    def _unload_variables(self):
+    def unload_variables(self):
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
@@ -697,6 +698,11 @@ class Problem:
         self.robust_relax = robust_relax
         self.oscillation_damping = oscillation_damping
 
+        n = self.variable_counter
+        self._incidence_matrix_dense = np.zeros((n, n))
+        for row, cols in self._incidence_matrix.items():
+            self._incidence_matrix_dense[row, cols] = 1
+
         # parameter definitions
         self.residual_history = np.array([])
         self.residual = np.zeros([self.variable_counter])
@@ -707,7 +713,7 @@ class Problem:
         self.start_time = time()
 
         if block_solve:
-            self._solve_blocks(iterinfo, print_results)
+            BlockDriver(self).solve(iterinfo, print_results)
         else:
             self._solve_simultaneous(iterinfo, print_results)
 
@@ -745,10 +751,10 @@ class Problem:
             if (
                     self.iter >= self.min_iter - 1
                     and not modified
-                    and (self.residual_history[-2:] < ERR ** 0.5).all()
+                    and (self.residual_history[-2:] < RESIDUAL_TOLERANCE).all()
                     # the increment should also be small, but it does not need
                     # to be that small
-                    and (abs(self.increment) < ERR ** 0.25).all()
+                    and (abs(self.increment) < INCREMENT_TOLERANCE).all()
                 ):
                 self.status = 0
                 break
@@ -773,210 +779,6 @@ class Problem:
             )
             logger.warning(msg)
             self.status = 2
-
-    def _solve_blocks(self, iterinfo, print_results):
-        has_variable_composition = any(
-            data["variable"] == "fluid"
-            for data in self.variables_dict.values()
-        )
-        if has_variable_composition:
-            msg = (
-                "The fluid composition is part of the variable space. The "
-                "dependency declarations of the fluid property equations do "
-                "not cover the composition, so a block ordering is not "
-                "reliable in this case: solving the full system "
-                "simultaneously instead."
-            )
-            logger.info(msg)
-            self._solve_simultaneous(iterinfo, print_results)
-            return
-
-        decomposition = self.decompose()
-        if decomposition.defective_blocks:
-            self.singularity_msg = (
-                "The problem is structurally singular, block-wise solving "
-                f"is not possible.{self._structural_report()}"
-            )
-            self.status = 3
-            return
-
-        # cheap insurance for the final escalation: if neither the blocks
-        # nor the coupled solution of the remaining system converge, the
-        # solver restarts from this state like a fresh simultaneous solve
-        snapshot = {
-            key: (
-                data["obj"].val[data["fluid"]]
-                if data["variable"] == "fluid" else data["obj"]._val_SI
-            )
-            for key, data in self.variables_dict.items()
-        }
-
-        num_blocks = len(decomposition.blocks)
-        kinds = {}
-        for block in decomposition.blocks:
-            kinds[block.kind] = kinds.get(block.kind, 0) + 1
-        kind_str = ", ".join(f"{num} {kind}" for kind, num in kinds.items())
-        msg = f"Block decomposition: {num_blocks} blocks ({kind_str})."
-        logger.debug(msg)
-        for block in decomposition.blocks:
-            eq_str = ", ".join(
-                f"{lbl}.{self._format_eq_name(name)}"
-                for lbl, name in block.equation_labels
-            )
-            var_str = ", ".join(block.variable_labels)
-            msg = (
-                f"Block {block.id} ({block.kind}): equations [{eq_str}], "
-                f"variables [{var_str}]"
-            )
-            logger.debug(msg)
-
-        frozen = []
-        for position, block in enumerate(decomposition.blocks):
-            if block.kind == "scalar":
-                strategy = ScalarBracketingStrategy()
-            else:
-                strategy = NewtonStrategy()
-            block.status = strategy.solve(self, block)
-
-            residual = (
-                block.residual_history[-1] if block.residual_history else 0.0
-            )
-            self.residual_history = np.append(self.residual_history, residual)
-
-            eq_str = ", ".join(
-                f"{lbl}.{self._format_eq_name(name)}"
-                for lbl, name in block.equation_labels
-            )
-            if iterinfo:
-                msg = (
-                    f" block {block.id:3d} | {block.kind:15s} | "
-                    f"iterations: {len(block.residual_history):3d} | "
-                    f"residual: {residual:.2e} | {eq_str}"
-                )
-                logger.progress(
-                    100 * (block.id + 1) // num_blocks, msg
-                )
-                if print_results and not logger.console_logging_enabled():
-                    print(msg)
-
-            if block.status != 0:
-                # the preceding blocks stay solved: their equations do not
-                # depend on any variable of the failed or later blocks. The
-                # failed block's variables were restored by the strategy, so
-                # the coupled solution of everything remaining starts from
-                # the solved blocks plus the original starting values.
-                remaining = decomposition.blocks[position:]
-                remainder = Block(
-                    id=block.id,
-                    kind="remainder",
-                    equations=sorted(
-                        eq for b in remaining for eq in b.equations
-                    ),
-                    variables=sorted(
-                        col for b in remaining for col in b.variables
-                    ),
-                )
-                remainder.equation_labels = [
-                    self._equation_lookup[eq] for eq in remainder.equations
-                ]
-                remainder.variable_labels = [
-                    self._format_var_label(col) for col in remainder.variables
-                ]
-                var_str = ", ".join(block.variable_labels)
-                msg = (
-                    f"Block {block.id} did not converge, solving the "
-                    f"remaining {len(remaining)} blocks simultaneously.\n"
-                    f"  Equations: {eq_str}\n"
-                    f"  Variables: {var_str}"
-                )
-                logger.warning(msg)
-
-                remainder.status = NewtonStrategy().solve(self, remainder)
-                residual = (
-                    remainder.residual_history[-1]
-                    if remainder.residual_history else 0.0
-                )
-                self.residual_history = np.append(
-                    self.residual_history, residual
-                )
-                if iterinfo:
-                    msg = (
-                        f" block {remainder.id:3d} | {remainder.kind:15s} | "
-                        f"iterations: {len(remainder.residual_history):3d} | "
-                        f"residual: {residual:.2e} | "
-                        f"{len(remainder.equations)} equations"
-                    )
-                    logger.progress(100, msg)
-                    if print_results and not logger.console_logging_enabled():
-                        print(msg)
-
-                if remainder.status != 0:
-                    msg = (
-                        "The remaining system did not converge either, "
-                        "restarting with the simultaneous solution of the "
-                        "full system from its initial state."
-                    )
-                    logger.warning(msg)
-                    for container in frozen:
-                        container.is_var = True
-                    for key, value in snapshot.items():
-                        data = self.variables_dict[key]
-                        if data["variable"] == "fluid":
-                            data["obj"].val[data["fluid"]] = value
-                        else:
-                            data["obj"]._val_SI = value
-                    # iteration counters stage stabilization measures of the
-                    # equations, the restart must begin from counter zero
-                    # like a fresh solve
-                    to_reset = (
-                        self.network.comps["object"].tolist()
-                        + self.network.conns["object"].tolist()
-                        + list(self.network.user_defined_eq.values())
-                    )
-                    for obj in to_reset:
-                        obj.it = 0
-                    self.increment = np.ones([self.variable_counter])
-                    self._solve_simultaneous(iterinfo, print_results)
-                    return
-                break
-
-            # freeze the solved block's variables: the is_var guards of the
-            # convergence heuristics and of the derivative computation then
-            # skip them automatically in all subsequent blocks
-            for col in block.variables:
-                container = self.variables_dict[col]["obj"]
-                container.is_var = False
-                frozen.append(container)
-
-        # verify the full system: couplings acting outside of the declared
-        # incidence (e.g. equations internally manipulating their residual
-        # during iteration) can leave a global residual the per-block
-        # convergence cannot see
-        if self.variable_counter > 0:
-            self._solve_equations(residual_only=True)
-            residual_norm = norm(self.residual)
-            if residual_norm > ERR ** 0.5:
-                msg = (
-                    "Block-wise solving finished with a remaining global "
-                    f"residual of {residual_norm:.2e}, continuing with the "
-                    "simultaneous solution of the full system."
-                )
-                logger.info(msg)
-                for container in frozen:
-                    container.is_var = True
-                self.increment = np.ones([self.variable_counter])
-                self._solve_simultaneous(iterinfo, print_results)
-                return
-
-            msg = (
-                "Block solution verified, global residual "
-                f"{residual_norm:.2e}."
-            )
-            logger.debug(msg)
-
-        for container in frozen:
-            container.is_var = True
-        self.status = 0
 
     def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
@@ -1039,7 +841,7 @@ class Problem:
             # This should not be hardcoded here.
             if residual_norm > np.finfo(float).eps * 100:
                 progress_min = math.log(ERR)
-                progress_max = math.log(ERR ** 0.5) * -1
+                progress_max = math.log(RESIDUAL_TOLERANCE) * -1
                 progress_val = math.log(max(residual_norm, ERR)) * -1
                 # Scale to 0-1
                 progress_scaled = (
@@ -1364,7 +1166,7 @@ class Problem:
             return
 
         eq_str = ", ".join(
-            f"{lbl}.{self._format_eq_name(eq_name)}"
+            f"{lbl}.{self.format_eq_name(eq_name)}"
             for lbl, eq_name in self._get_equations_by_number(nan_rows).values()
         )
         msg = (
@@ -1407,8 +1209,8 @@ class Problem:
         missing_entries = []
         for row, col in zip(rows, cols):
             lbl, eq_name = self._equation_lookup[row]
-            eq_str = f"{lbl}.{self._format_eq_name(eq_name)}"
-            var_str = self._format_var_label(col)
+            eq_str = f"{lbl}.{self.format_eq_name(eq_name)}"
+            var_str = self.format_var_label(col)
             missing_entries += [f"{eq_str}: {var_str}"]
 
         entries_str = ", ".join(missing_entries)
@@ -1429,7 +1231,7 @@ class Problem:
         if len(all_zero_cols) + len(all_zero_rows) == 0:
             eq_indices = self._cauchy_schwarz_inequality(matrix)
             eq_str = ", ".join(
-                f"{lbl}.{self._format_eq_name(eq_name)}"
+                f"{lbl}.{self.format_eq_name(eq_name)}"
                 for lbl, eq_name in self._get_equations_by_number(eq_indices).values()
             )
             self.singularity_msg += (
@@ -1438,14 +1240,14 @@ class Problem:
             )
         else:
             if len(all_zero_cols) > 0:
-                var_str = ", ".join(self._format_var_label(i) for i in all_zero_cols)
+                var_str = ", ".join(self.format_var_label(i) for i in all_zero_cols)
                 self.singularity_msg += (
                     "The following variables are not associated with any equation:\n"
                     f"  {var_str}\n"
                 )
             if len(all_zero_rows) > 0:
                 eq_str = ", ".join(
-                    f"{lbl}.{self._format_eq_name(eq_name)}"
+                    f"{lbl}.{self.format_eq_name(eq_name)}"
                     for lbl, eq_name in self._get_equations_by_number(all_zero_rows).values()
                 )
                 self.singularity_msg += (
@@ -1543,10 +1345,7 @@ class Problem:
     def _variable_values(self):
         values = np.empty(self.variable_counter)
         for key, data in self.variables_dict.items():
-            if data["variable"] == "fluid":
-                values[key] = data["obj"].val[data["fluid"]]
-            else:
-                values[key] = data["obj"]._val_SI
+            values[key] = hlp.get_variable_value(data)
         return values
 
     def _adapt_to_variable_bounds(self, connections=None, components=None):
@@ -1659,7 +1458,7 @@ class Problem:
 
             obj.it += 1
 
-    def _format_var_label(self, v_idx):
+    def format_var_label(self, v_idx):
         v_data = self.variables_dict[v_idx]
         v_type = v_data["variable"]
         if v_type == "fluid" and v_data["fluid"] is not None:
@@ -1667,7 +1466,7 @@ class Problem:
         return f"{v_type}{v_idx}"
 
     @staticmethod
-    def _format_eq_name(eq_name):
+    def format_eq_name(eq_name):
         if isinstance(eq_name, tuple):
             name, sub_idx = eq_name
             return f"{name}{{{sub_idx}}}" if sub_idx > 0 else name
@@ -1697,3 +1496,280 @@ class Problem:
             List of variable numbers, the index values.
         """
         return list(np.argsort(np.abs(self.residual))[::-1])
+
+    def get_mass_flow_branches(self) -> list:
+        """Get the mass flow branch connection labels per branch."""
+        return [
+            sorted(
+                self._variable_lookup[col]["object"].label
+                for col in branch
+            )
+            for branch in self.structure_graph.mass_flow_branches()
+        ]
+
+    def get_linear_dependent_variables(self) -> list:
+        """Get the sets of linearly dependent variables by label."""
+        variable_list = []
+        for dependents in self._variable_dependencies:
+            variables = [
+                self._variable_lookup[v] for v in dependents["variables"]
+            ]
+            variable_list += [
+                [(v["object"].label, v["property"]) for v in variables]
+            ]
+        return variable_list
+
+    def get_presolved_equations(self) -> list:
+        """Get the equations consumed by presolving by label."""
+        return [
+            v for k, v in self._equation_set_lookup.items()
+            if k in self._presolved_equations
+        ]
+
+    def get_variables_before_presolve(self) -> list:
+        """Get the original variables by label."""
+        return [
+            (v["object"].label, v["property"])
+            for v in self._variable_lookup.values()
+        ]
+
+    def get_presolved_variables(self) -> list:
+        """Get the variables solved by presolving by label."""
+        represented_variables = []
+        for v in self.variables_dict.values():
+            represented_variables += v["_represents"]
+        if len(self.variables_dict) == 0 and len(self._presolved_equations) == 0:
+            return []
+        return [
+            (v["object"].label, v["property"])
+            for key, v in self._variable_lookup.items()
+            if key not in represented_variables
+        ]
+
+    def get_variables(self) -> dict:
+        """Get the variables with the original variables they represent."""
+        return {
+            (key, data["variable"]):
+            [
+                (
+                    self._variable_lookup[v]["object"].label,
+                    self._variable_lookup[v]["property"]
+                ) for v in data["_represents"]
+            ]
+            for key, data in self.variables_dict.items()
+        }
+
+    def get_variable_values(self) -> dict:
+        """Get the variables with the current values of the original
+        variables they represent."""
+        result = {}
+        for key, data in self.variables_dict.items():
+            represents = []
+            for v in data["_represents"]:
+                lookup = self._variable_lookup[v]
+                container = lookup["object"].get_attr(lookup["property"])
+                if data["variable"] == "fluid":
+                    value = container.val[data["fluid"]]
+                else:
+                    value = container.val_SI
+                represents.append(
+                    (lookup["object"].label, lookup["property"], value)
+                )
+            result[(key, data["variable"])] = represents
+        return result
+
+    def set_variable_value(self, obj, prop, value):
+        """Set the SI value of a variable through any of the linearly
+        dependent variables it represents.
+
+        Raises a :code:`KeyError` in case the object does not hold a
+        variable of the given name and a :code:`TESPyNetworkError` in case
+        the property is not part of the variable space.
+        """
+        lookup = self._object_to_variable_lookup
+        if obj not in lookup or prop not in lookup[obj]:
+            msg = f"The object {obj.label} does not have a variable {prop}."
+            raise KeyError(msg)
+
+        container = obj.get_attr(prop)
+        if prop == "fluid":
+            msg = (
+                "Setting fluid mass fractions through set_variable_value is "
+                "not supported."
+            )
+            raise hlp.TESPyNetworkError(msg)
+        if not container.is_var:
+            msg = (
+                f"{obj.label} ({prop}) is not part of the variable space, "
+                "its value is fixed by specification or presolving."
+            )
+            raise hlp.TESPyNetworkError(msg)
+
+        container.set_reference_val_SI(value)
+
+    def get_linear_dependents_by_object(self, obj, prop) -> list:
+        """Get the linearly dependent variables of a variable by label.
+
+        Raises a :code:`KeyError` in case the object does not hold a
+        variable of the given name.
+        """
+        if obj not in self._object_to_variable_lookup:
+            msg = f"The object {obj.label} does not have any variables."
+            raise KeyError(msg)
+
+        if prop not in self._object_to_variable_lookup[obj]:
+            msg = f"The object {obj.label} does not have a variable {prop}."
+            raise KeyError(msg)
+
+        variable_idx = self._object_to_variable_lookup[obj][prop]
+        for dependents in self._variable_dependencies:
+            if variable_idx in dependents["variables"]:
+                variables = [
+                    self._variable_lookup[v] for v in dependents["variables"]
+                ]
+                return [
+                    (v["object"].label, v["property"]) for v in variables
+                ]
+        msg = (
+            f"Variable index {variable_idx} not found in any dependency "
+            "group."
+        )
+        raise KeyError(msg)
+
+    def _get_variables_by_number(self, number_list) -> dict:
+        return {
+            (key, data["variable"]):
+            [
+                (
+                    self._variable_lookup[v]["object"].label,
+                    self._variable_lookup[v]["property"]
+                ) for v in data["_represents"]
+            ]
+            for key, data in self.variables_dict.items()
+            if key in number_list
+        }
+
+    def get_equations(self) -> dict:
+        """Get the lookup of solver equation numbers to labels."""
+        return self._equation_lookup
+
+    def get_incidence(self) -> dict:
+        """Get the lookup of solver equation numbers to the variable
+        numbers each equation depends on."""
+        return self._incidence_matrix
+
+    def get_equations_with_dependents(self) -> dict:
+        """Get the equations with the variables they depend on."""
+        dependencies = {}
+        for eq_idx, dependents in self._incidence_matrix.items():
+            dependencies.update({
+                self._equation_lookup[eq_idx]:
+                list(self._get_variables_by_number(dependents).keys())
+            })
+        return dependencies
+
+    def structure_variables(self) -> list:
+        """Get the serializable description of the structural variables."""
+        affine_map = {}
+        for dependents in self._variable_dependencies:
+            for var in dependents["variables"]:
+                affine_map[var] = (
+                    dependents["reference"],
+                    dependents["factors"][var],
+                    dependents["offsets"][var]
+                )
+
+        variables = []
+        for col, data in sorted(self._variable_lookup.items()):
+            obj = data["object"]
+            prop = data["property"]
+            container = obj.get_attr(prop)
+            reference, factor, offset = affine_map.get(col, (col, 1.0, 0.0))
+
+            if prop == "fluid":
+                if len(container.is_var) > 0:
+                    state = "variable"
+                    solver_index = {
+                        fluid: int(j_col)
+                        for fluid, j_col in container.J_col.items()
+                    }
+                elif len(container._is_set) > 0:
+                    state = "specified"
+                    solver_index = None
+                else:
+                    state = "presolved"
+                    solver_index = None
+            elif container.is_set:
+                state = "specified"
+                solver_index = None
+            elif container.is_var:
+                state = "variable"
+                solver_index = int(container.J_col)
+            else:
+                state = "presolved"
+                solver_index = None
+
+            variables.append({
+                "id": int(col),
+                "object": obj.label,
+                "object_type": (
+                    "connection" if isinstance(obj, ConnectionBase)
+                    else "component"
+                ),
+                "class_name": type(obj).__name__,
+                "property": prop,
+                "quantity": getattr(container, "quantity", None),
+                "state": state,
+                "reference": int(reference),
+                "factor": float(factor),
+                "offset": float(offset),
+                "solver_index": solver_index,
+            })
+        return variables
+
+    def structure_equations(self) -> list:
+        """Get the serializable description of the structural equations."""
+        graph = self.structure_graph
+        edge_by_row = {row: edge for edge, row in graph.edge_eq_idx.items()}
+        solver_equations = {}
+        for eq_num, (label, eq_name) in self._equation_lookup.items():
+            name = eq_name[0] if isinstance(eq_name, tuple) else eq_name
+            solver_equations.setdefault((label, name), []).append(int(eq_num))
+
+        equations = []
+        for row, (label, name) in sorted(self._equation_set_lookup.items()):
+            if row in edge_by_row:
+                kind = "affine"
+                related = [int(col) for col in edge_by_row[row]]
+            elif row in graph.linear_rows:
+                kind = "linear"
+                related = [int(col) for col in graph.linear_rows[row]]
+            else:
+                kind = "nonlinear"
+                related = []
+
+            state = (
+                "consumed" if row in self._presolved_equations else "active"
+            )
+            indices = (
+                solver_equations.get((label, name), [])
+                if state == "active" else []
+            )
+            if kind == "nonlinear" and indices:
+                related = sorted({
+                    int(col)
+                    for eq_num in indices
+                    for col in graph.nonlinear_incidence.get(eq_num, [])
+                })
+
+            equations.append({
+                "id": int(row),
+                "object": label,
+                "name": name,
+                "kind": kind,
+                "origin": self._equation_set_origin[row],
+                "state": state,
+                "variables": related,
+                "solver_indices": indices,
+            })
+        return equations

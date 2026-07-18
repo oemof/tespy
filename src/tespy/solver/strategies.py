@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 from numpy.linalg import norm
+from scipy.optimize import brentq
 
 from tespy.components.component import Component
 from tespy.connections.connection import ConnectionBase
@@ -19,6 +20,202 @@ from tespy.tools import logger
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import INCREMENT_TOLERANCE
 from tespy.tools.global_vars import RESIDUAL_TOLERANCE
+
+
+def scalar_residual_closure(problem, row, col):
+    """Build an evaluator of equation row over variable col.
+
+    The evaluator computes the equation's residual at a given value of
+    the variable and restores the current value afterwards. Works for
+    both scalar variables (m, h, p, E) and vector variables (fluid mass
+    fractions), where the largest other variable fluid is adjusted in
+    the opposite direction to maintain the sum of 1.
+
+    Returns the evaluator and the current variable value, or None in
+    case the equation cannot be evaluated standalone.
+    """
+    obj = problem._equation_obj_lookup.get(row)
+    if obj is None:
+        return None
+    _, (param_name, sub_idx) = problem._equation_lookup[row]
+    if param_name not in obj.equations:
+        return None
+    data = obj.equations[param_name]
+
+    var_data = problem.variables_dict[col]
+    container = var_data["obj"]
+
+    if var_data["variable"] == "fluid":
+        fluid_key = var_data["fluid"]
+        x0 = container.val[fluid_key]
+        # Maintain sum=1 by adjusting the largest other variable fluid by
+        # the same delta in the opposite direction.
+        other_var_fluids = [f for f in container.is_var if f != fluid_key]
+        if other_var_fluids:
+            companion = max(other_var_fluids, key=lambda f: container.val.get(f, 0))
+            companion_x0 = container.val[companion]
+        else:
+            companion = None
+            companion_x0 = None
+
+        def set_x(v):
+            container.val[fluid_key] = v
+            if companion is not None:
+                container.val[companion] = companion_x0 - (v - x0)
+    else:
+        x0 = container._val_SI
+
+        def set_x(v):
+            container._val_SI = v
+
+    def eval_r(x):
+        set_x(x)
+        try:
+            result = data.func(**data.func_params)
+        except Exception:
+            return None
+        finally:
+            set_x(x0)
+        if hasattr(result, '__iter__'):
+            result = list(result)
+            return result[sub_idx] if sub_idx < len(result) else result[0]
+        return result
+
+    return eval_r, x0
+
+
+def bracketed_step(problem, row, col, bracket_value):
+    """Refine the root of a scalar equation within a known bracket.
+
+    The bracket value is the variable value of a preceding newton
+    iteration whose residual had the opposite sign of the current one,
+    so the root is enclosed between the two values and can be refined
+    directly without searching for a bracket first.
+
+    Returns the step to add to the variable, or None in case the
+    refinement fails, e.g. because the residual function changed
+    between the iterations through other variables or heuristics.
+    """
+    closure = scalar_residual_closure(problem, row, col)
+    if closure is None:
+        return None
+    eval_r, x0 = closure
+
+    # each iteration costs a single equation evaluation, so the root is
+    # refined to close to machine precision right away
+    try:
+        tol = max(abs(x0) * 1e-12, 1e-12)
+        x_root = brentq(
+            eval_r, min(x0, bracket_value), max(x0, bracket_value),
+            xtol=tol, maxiter=60
+        )
+        return x_root - x0
+    except Exception:
+        return None
+
+
+def search_reducing_step(problem, row, col):
+    """Find the increment for variable col that reduces equation row's
+    residual.
+
+    Searches both +/- directions with geometrically growing step sizes
+    (x2 per iteration, up to 20 iterations each). Prefers the side that
+    produces a sign change in the residual, which guarantees a root in
+    the bracket [x0, x0±d] by the IVT, and refines its location with
+    Brent's method. If both sides bracket a root, the tighter one
+    (smaller |r| at the probe point) is used. Falls back to a secant
+    step if brentq raises, and to the lower-magnitude heuristic when
+    neither side yields a sign change.
+
+    Returns the step to add to the variable, or None if neither direction
+    improves the residual.
+    """
+    closure = scalar_residual_closure(problem, row, col)
+    if closure is None:
+        return None
+    eval_r, x0 = closure
+
+    r0 = problem.residual[row]
+    abs_r0 = abs(r0)
+
+    # Guard against x0 == 0 producing a zero initial step
+    d = max(abs(x0) * 0.1, 1e-3)
+    found_plus = None
+    found_minus = None
+    # outermost probes whose residual still equals the starting residual:
+    # they tighten the bracket, e.g. cutting off most of a residual plateau
+    # the search walked across
+    same_plus = 0.0
+    same_minus = 0.0
+
+    for _ in range(20):
+        if found_plus is None:
+            r = eval_r(x0 + d)
+            if r is not None and r != r0:
+                found_plus = (d, r)
+            elif r is not None:
+                same_plus = d
+
+        if found_minus is None:
+            r = eval_r(x0 - d)
+            if r is not None and r != r0:
+                found_minus = (d, r)
+            elif r is not None:
+                same_minus = d
+
+        if found_plus is not None and found_minus is not None:
+            break
+        d *= 2
+
+    plus_sign_change = found_plus is not None and r0 * found_plus[1] < 0
+    minus_sign_change = found_minus is not None and r0 * found_minus[1] < 0
+
+    if plus_sign_change or minus_sign_change:
+        # Both sides bracket a root: prefer the tighter probe (smaller |r|)
+        if plus_sign_change and minus_sign_change:
+            plus_d, plus_r = found_plus
+            minus_d, minus_r = found_minus
+            if abs(plus_r) <= abs(minus_r):
+                sign, step_d, r_val = +1, plus_d, plus_r
+            else:
+                sign, step_d, r_val = -1, minus_d, minus_r
+        elif plus_sign_change:
+            sign, step_d, r_val = +1, found_plus[0], found_plus[1]
+        else:
+            sign, step_d, r_val = -1, found_minus[0], found_minus[1]
+
+        a = x0 + sign * (same_plus if sign > 0 else same_minus)
+        b = x0 + sign * step_d
+        try:
+            tol = max(abs(x0) * 1e-6, 1e-10)
+            # residual plateaus (e.g. temperatures inside the two phase
+            # region) degrade brentq to bisection, which needs the iterations
+            x_root = brentq(
+                eval_r, min(a, b), max(a, b), xtol=tol, maxiter=60
+            )
+            return x_root - x0
+        except Exception:
+            pass
+
+        # Secant fallback: linear interpolation between x0 and the probe
+        return sign * step_d * (-r0) / (r_val - r0)
+
+    # No sign change found - fall back to lower-magnitude direction
+    if found_plus is None and found_minus is None:
+        return None
+    if found_plus is None:
+        step_d, r_val = found_minus
+        return -step_d if abs(r_val) < abs_r0 else None
+    if found_minus is None:
+        step_d, r_val = found_plus
+        return +step_d if abs(r_val) < abs_r0 else None
+
+    plus_d, plus_r = found_plus
+    minus_d, minus_r = found_minus
+    if abs(plus_r) <= abs(minus_r):
+        return +plus_d if abs(plus_r) < abs_r0 else None
+    else:
+        return -minus_d if abs(minus_r) < abs_r0 else None
 
 
 class NewtonStrategy:
@@ -167,9 +364,9 @@ class ScalarBracketingStrategy(NewtonStrategy):
                 self._prev_residual is not None
                 and self._prev_residual * residual < 0
             ):
-            step = problem._bracketed_step(row, col, self._prev_value)
+            step = bracketed_step(problem, row, col, self._prev_value)
             if step is None:
-                step = problem._search_reducing_step(row, col)
+                step = search_reducing_step(problem, row, col)
             if step is not None:
                 problem.increment[col] = step
 

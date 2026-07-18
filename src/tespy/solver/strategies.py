@@ -104,18 +104,32 @@ class NewtonStrategy:
                 problem._dampen_oscillating_increments()
             self._modify_increment(problem, block)
             problem._update_variables(variable_set)
-            problem._adapt_to_variable_bounds(connections, components)
+            modified = problem._adapt_to_variable_bounds(
+                connections, components
+            )
             problem._prev_residual = problem.residual.copy()
 
             block.residual_history.append(
                 float(norm(problem.residual[equations]))
             )
+            # accept once the residual and the increment are small in an
+            # iteration without interference of the value heuristics and at
+            # least one newton update has been applied before the residual
+            # evaluation. A deeply converged residual is accepted right
+            # away (exactly solved blocks), otherwise two consecutive small
+            # residuals are required, forcing another newton iteration
+            # while convergence is still in progress
+            deep = block.residual_history[-1] < ERR
+            confirmed = (
+                len(block.residual_history) >= 2
+                and (
+                    np.array(block.residual_history[-2:]) < ERR ** 0.5
+                ).all()
+            )
             if (
-                    block_iter >= problem.min_iter - 1
-                    and len(block.residual_history) >= 2
-                    and (
-                        np.array(block.residual_history[-2:]) < ERR ** 0.5
-                    ).all()
+                    block_iter >= 1
+                    and not modified
+                    and (deep or confirmed)
                     and (
                         np.abs(problem.increment[variables]) < ERR ** 0.25
                     ).all()
@@ -133,24 +147,37 @@ class ScalarBracketingStrategy(NewtonStrategy):
     Solve a scalar block with newton steps and bracketing as fallback.
 
     When the block's residual changes sign between two iterations, the
-    newton step overshot the root. In that case the increment is replaced by
-    a bracketing search on the equation (bisection probing refined with
-    Brent's method), which restores monotone convergence for non-smooth
-    residuals.
+    newton step overshot the root - but the two iterates then enclose it.
+    The increment is replaced by a refinement of the root within that known
+    bracket (Brent's method), which restores monotone convergence for
+    non-smooth residuals. Only if the refinement fails, e.g. because
+    heuristics modified the state between the iterations, a bracketing
+    search on the equation is performed instead.
     """
 
     def __init__(self):
         self._prev_residual = None
+        self._prev_value = None
 
     def _modify_increment(self, problem, block):
         row = block.equations[0]
         col = block.variables[0]
         residual = problem.residual[row]
+        data = problem.variables_dict[col]
+        if data["variable"] == "fluid":
+            value = data["obj"].val[data["fluid"]]
+        else:
+            value = data["obj"]._val_SI
+
         if (
                 self._prev_residual is not None
                 and self._prev_residual * residual < 0
             ):
-            step = problem._search_reducing_step(row, col)
+            step = problem._bracketed_step(row, col, self._prev_value)
+            if step is None:
+                step = problem._search_reducing_step(row, col)
             if step is not None:
                 problem.increment[col] = step
+
         self._prev_residual = residual
+        self._prev_value = value

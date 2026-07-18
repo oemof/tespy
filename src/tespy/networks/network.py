@@ -1660,6 +1660,7 @@ class Network:
             return {col: np.nan if val is None else val for col, val in d.items()}
 
         state = {}
+        # TODO: Let this somehow run through connection-registry and not hardcoded names
         if any(k in data["Connection"] for k in ("Connection", "PowerConnection", "HeatConnection")):
             for key, value in data["Connection"].items():
                 state[key] = {str(k): _row(v) for k, v in value.items()}
@@ -2358,7 +2359,7 @@ class Network:
         raise KeyError(f"Variable index {idx} not found in any dependency group.")
 
     def solve(self, mode, init_path=None, design_path=None,
-              max_iter=50, min_iter=4, init_only=False, init_previous=True,
+              max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
               oscillation_damping=False, block_solve=True):
         r"""
@@ -2391,7 +2392,13 @@ class Network:
             Maximum number of iterations before calculation stops, default: 50.
 
         min_iter : int
-            Minimum number of iterations before calculation stops, default: 4.
+            Minimum number of iterations of the simultaneous solution before
+            convergence can be accepted, default: 2. Convergence is only
+            accepted in an iteration in which the value bounds and
+            convergence heuristics did not modify any variable, so the
+            parameter is a hard floor on top of that, not the primary guard.
+            Block-wise solving accepts every block individually on the same
+            criterion.
 
         init_only : boolean
             Perform initialisation only, default: :code:`False`.
@@ -2534,7 +2541,7 @@ class Network:
             self.status = self._problem.status
             raise
 
-    def solve_continue(self, max_iter=50, min_iter=4, use_cuda=False,
+    def solve_continue(self, max_iter=50, min_iter=2, use_cuda=False,
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
                        block_solve=True):

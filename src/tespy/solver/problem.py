@@ -719,7 +719,7 @@ class Problem:
 
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            self._solve_iteration()
+            modified = self._solve_iteration()
             self.residual_history = np.append(
                 self.residual_history, norm(self.residual)
             )
@@ -739,8 +739,12 @@ class Problem:
                     self.status = 2
                     break
 
+            # accept once two consecutive residuals and the increment are
+            # small in an iteration without interference of the value
+            # heuristics
             if (
                     self.iter >= self.min_iter - 1
+                    and not modified
                     and (self.residual_history[-2:] < ERR ** 0.5).all()
                     # the increment should also be small, but it does not need
                     # to be that small
@@ -826,6 +830,7 @@ class Problem:
             )
             logger.debug(msg)
 
+        frozen = []
         for position, block in enumerate(decomposition.blocks):
             if block.kind == "scalar":
                 strategy = ScalarBracketingStrategy()
@@ -912,6 +917,8 @@ class Problem:
                         "full system from its initial state."
                     )
                     logger.warning(msg)
+                    for container in frozen:
+                        container.is_var = True
                     for key, value in snapshot.items():
                         data = self.variables_dict[key]
                         if data["variable"] == "fluid":
@@ -933,15 +940,20 @@ class Problem:
                     return
                 break
 
+            # freeze the solved block's variables: the is_var guards of the
+            # convergence heuristics and of the derivative computation then
+            # skip them automatically in all subsequent blocks
+            for col in block.variables:
+                container = self.variables_dict[col]["obj"]
+                container.is_var = False
+                frozen.append(container)
+
         # verify the full system: couplings acting outside of the declared
         # incidence (e.g. equations internally manipulating their residual
         # during iteration) can leave a global residual the per-block
         # convergence cannot see
         if self.variable_counter > 0:
-            self.increment_filter = np.zeros(
-                self.variable_counter, dtype=bool
-            )
-            self._solve_equations()
+            self._solve_equations(residual_only=True)
             residual_norm = norm(self.residual)
             if residual_norm > ERR ** 0.5:
                 msg = (
@@ -950,10 +962,20 @@ class Problem:
                     "simultaneous solution of the full system."
                 )
                 logger.info(msg)
+                for container in frozen:
+                    container.is_var = True
                 self.increment = np.ones([self.variable_counter])
                 self._solve_simultaneous(iterinfo, print_results)
                 return
 
+            msg = (
+                "Block solution verified, global residual "
+                f"{residual_norm:.2e}."
+            )
+            logger.debug(msg)
+
+        for container in frozen:
+            container.is_var = True
         self.status = 0
 
     def _print_iterinfo_head(self, print_results=True):
@@ -1063,22 +1085,17 @@ class Problem:
             print(msg)
         return
 
-    def _search_reducing_step(self, row, col):
-        """Find the increment for variable col that reduces equation row's
-        residual.
+    def _scalar_residual_closure(self, row, col):
+        """Build an evaluator of equation row over variable col.
 
-        Searches both +/- directions with geometrically growing step sizes
-        (x2 per iteration, up to 20 iterations each). Works for both scalar
-        variables (m, h, p, E) and vector variables (fluid mass fractions).
-        Prefers the side that produces a sign change in the residual, which
-        guarantees a root in the bracket [x0, x0±d] by the IVT, and refines
-        its location with Brent's method. If both sides bracket a root, the
-        tighter one (smaller |r| at the probe point) is used. Falls back to a
-        secant step if brentq raises, and to the lower-magnitude heuristic
-        when neither side yields a sign change.
+        The evaluator computes the equation's residual at a given value of
+        the variable and restores the current value afterwards. Works for
+        both scalar variables (m, h, p, E) and vector variables (fluid mass
+        fractions), where the largest other variable fluid is adjusted in
+        the opposite direction to maintain the sum of 1.
 
-        Returns the step to add to the variable, or None if neither direction
-        improves the residual.
+        Returns the evaluator and the current variable value, or None in
+        case the equation cannot be evaluated standalone.
         """
         obj = self._equation_obj_lookup.get(row)
         if obj is None:
@@ -1114,9 +1131,6 @@ class Problem:
             def set_x(v):
                 container._val_SI = v
 
-        r0 = self.residual[row]
-        abs_r0 = abs(r0)
-
         def eval_r(x):
             set_x(x)
             try:
@@ -1129,6 +1143,61 @@ class Problem:
                 result = list(result)
                 return result[sub_idx] if sub_idx < len(result) else result[0]
             return result
+
+        return eval_r, x0
+
+    def _bracketed_step(self, row, col, bracket_value):
+        """Refine the root of a scalar equation within a known bracket.
+
+        The bracket value is the variable value of a preceding newton
+        iteration whose residual had the opposite sign of the current one,
+        so the root is enclosed between the two values and can be refined
+        directly without searching for a bracket first.
+
+        Returns the step to add to the variable, or None in case the
+        refinement fails, e.g. because the residual function changed
+        between the iterations through other variables or heuristics.
+        """
+        closure = self._scalar_residual_closure(row, col)
+        if closure is None:
+            return None
+        eval_r, x0 = closure
+
+        # each iteration costs a single equation evaluation, so the root is
+        # refined to close to machine precision right away
+        try:
+            tol = max(abs(x0) * 1e-12, 1e-12)
+            x_root = brentq(
+                eval_r, min(x0, bracket_value), max(x0, bracket_value),
+                xtol=tol, maxiter=60
+            )
+            return x_root - x0
+        except Exception:
+            return None
+
+    def _search_reducing_step(self, row, col):
+        """Find the increment for variable col that reduces equation row's
+        residual.
+
+        Searches both +/- directions with geometrically growing step sizes
+        (x2 per iteration, up to 20 iterations each). Prefers the side that
+        produces a sign change in the residual, which guarantees a root in
+        the bracket [x0, x0±d] by the IVT, and refines its location with
+        Brent's method. If both sides bracket a root, the tighter one
+        (smaller |r| at the probe point) is used. Falls back to a secant
+        step if brentq raises, and to the lower-magnitude heuristic when
+        neither side yields a sign change.
+
+        Returns the step to add to the variable, or None if neither direction
+        improves the residual.
+        """
+        closure = self._scalar_residual_closure(row, col)
+        if closure is None:
+            return None
+        eval_r, x0 = closure
+
+        r0 = self.residual[row]
+        abs_r0 = abs(r0)
 
         # Guard against x0 == 0 producing a zero initial step
         d = max(abs(x0) * 0.1, 1e-3)
@@ -1471,12 +1540,29 @@ class Problem:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
-    def _adapt_to_variable_bounds(self, connections=None, components=None):
+    def _variable_values(self):
+        values = np.empty(self.variable_counter)
+        for key, data in self.variables_dict.items():
+            if data["variable"] == "fluid":
+                values[key] = data["obj"].val[data["fluid"]]
+            else:
+                values[key] = data["obj"]._val_SI
+        return values
 
+    def _adapt_to_variable_bounds(self, connections=None, components=None):
+        """Apply value bounds and convergence heuristics.
+
+        Returns whether any variable value was modified. As long as the
+        heuristics interfere, residual and increment do not describe the
+        state the next iteration will see, so convergence must not be
+        accepted.
+        """
         if connections is None:
             connections = self.network.conns['object']
         if components is None:
             components = self.network.comps['object']
+
+        values_before = self._variable_values()
 
         # this could be in a different place, its kind of in between
         # network and connection
@@ -1510,6 +1596,8 @@ class Problem:
             for c in connections:
                 c._adjust_to_property_limits(self.network)
 
+        return not np.array_equal(values_before, self._variable_values())
+
     def _solve_iteration(self):
         r"""
         Control iteration step of the newton algorithm.
@@ -1525,16 +1613,17 @@ class Problem:
 
         if self.lin_dep:
             self._diagnose_singularity()
-            return
+            return True
 
         if self.oscillation_damping:
             self._dampen_oscillating_increments()
 
         self._update_variables()
-        self._adapt_to_variable_bounds()
+        modified = self._adapt_to_variable_bounds()
         self._prev_residual = self.residual.copy()
+        return modified
 
-    def _solve_equations(self, objects=None):
+    def _solve_equations(self, objects=None, residual_only=False):
         r"""
         Calculate the residual and derivatives of all equations.
         """
@@ -1546,6 +1635,16 @@ class Problem:
             )
         else:
             to_solve = objects
+
+        if residual_only:
+            for obj in to_solve:
+                hlp.solve_residuals(obj)
+                if len(obj.residual) > 0:
+                    rows = list(obj.residual.keys())
+                    self.residual[rows] = list(obj.residual.values())
+                obj.it += 1
+            return
+
         for obj in to_solve:
             hlp.solve(obj, self.increment_filter)
             if len(obj.jacobian) > 0:

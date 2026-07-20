@@ -277,6 +277,25 @@ class CombustionEngine(CombustionChamber):
 
     _parameter_aliases = {'zeta1': 'zeta1_d4', 'zeta2': 'zeta2_d4'}
 
+    def initial_state(self, port):
+        if port == 'out3':
+            return {"phase": "gas", "T": 1200}
+        elif port in ('in3', 'in4'):
+            return {"phase": "gas", "T": 293.15}
+        return {"phase": "liquid"}
+
+    def _initial_affine_edges(self):
+        # in1/in2 with out1/out2 are the cooling water sides, in3 (air),
+        # in4 (fuel) and out3 (exhaust) form the combustion side
+        return [
+            (self.inl[0].p, self.outl[0].p, 1.0, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
+            (self.inl[1].p, self.outl[1].p, 1.0, 0.0),
+            (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
+            (self.inl[2].p, self.outl[2].p, 1.0, 0.0),
+            (self.inl[3].p, self.outl[2].p, 1.0, 0.0),
+        ]
+
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
@@ -885,8 +904,7 @@ class CombustionEngine(CombustionChamber):
         """
         if key == 'p':
             return 5e5
-        elif key == 'h':
-            return 10e5
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
@@ -915,8 +933,7 @@ class CombustionEngine(CombustionChamber):
         """
         if key == 'p':
             return 5e5
-        elif key == 'h':
-            return 5e5
+        return 0
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits."""

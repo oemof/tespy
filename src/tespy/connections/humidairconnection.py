@@ -125,27 +125,62 @@ class HAConnection(Connection):
 
     mixing_rule = property(_get_mixing_rule, _set_mixing_rule)
 
-    def _guess_starting_values(self, units):
+    def _temperature_hint(self):
+        if self.T.is_set:
+            return self.T.val_SI
+        return None
+
+    def _apply_temperature_field(self, field, covered, seeded):
+        h_sources = []
+        if self not in field or not self.h.is_var:
+            return h_sources
+        reference = self.h._reference_container
+        if reference in covered:
+            return h_sources
+        try:
+            w = self.calc_w()
+            h = HAPropsSI("H", "P", self.p.val_SI, "T", field[self], "W", w)
+        except ValueError:
+            return h_sources
+        self.h.set_reference_val_SI(h)
+        covered.add(reference)
+        h_sources.append(reference)
+        return h_sources
+
+    def _guess_starting_values(self, units, covered):
+        h_sources = []
         if self.h.is_var and not self.good_starting_values:
-            value = seeded_random(self.label)
-            T_rand = 280 + value * (300 - 280)
-            h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
-            self.h.set_reference_val_SI(h)
-            self._precalc_guess_values()
+            reference = self.h._reference_container
+            if reference not in covered:
+                value = seeded_random(self.label)
+                T_rand = 280 + value * (300 - 280)
+                h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
+                self.h.set_reference_val_SI(h)
+                covered.add(reference)
+                h_sources.append(reference)
+            if self._precalc_guess_values():
+                covered.add(reference)
+                if reference not in h_sources:
+                    h_sources.append(reference)
+        return h_sources
 
     def _precalc_guess_values(self):
-        if not self.h.is_var:
-            return
+        if not self.h.is_var or self.good_starting_values:
+            return False
 
-        if not self.good_starting_values:
-            if self.T.is_set:
-                try:
-                    w = self.calc_w()
-                    self.h.set_reference_val_SI(
-                        HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
-                    )
-                except ValueError:
-                    pass
+        if self.T.is_set:
+            try:
+                w = self.calc_w()
+                self.h.set_reference_val_SI(
+                    HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
+                )
+                return True
+            except ValueError:
+                pass
+        return False
+
+    def _refine_two_phase_guess(self, has_value=True):
+        return False
 
     def _precalc_guess_values_for_references(self):
         """precalculate starting values for specified temperature
@@ -194,7 +229,9 @@ class HAConnection(Connection):
             # TODO: where to get reasonable hmax from?!
             hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
             d = self.h._reference_container._d
-            delta = max(abs(self.h.val_SI * d), d) * 5
+            delta = min(
+                max(abs(self.h.val_SI * d), d) * 5, (hmax - hmin) / 100
+            )
             return hmin + delta, hmax - delta
 
         return None

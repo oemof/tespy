@@ -800,6 +800,58 @@ class Component:
                 return local_state[param]
         return getattr(conn, param).design
 
+    def initial_state(self, port):
+        r"""
+        Expected state at the given port for starting value selection.
+
+        Returns :code:`None` for no expectation or a dict with a
+        :code:`"phase"` key (:code:`"liquid"`, :code:`"gas"` or
+        :code:`"two-phase"`) and an optional temperature hint :code:`"T"`
+        in Kelvin. The phase refers to the side of the two phase dome
+        below the critical pressure and to the side of the critical
+        isotherm above it.
+        """
+        return None
+
+    def _initial_temperature_edges(self):
+        r"""
+        Approximate temperature relations between the ports.
+
+        The relations reconcile a temperature per connection before the
+        starting enthalpies are selected. Every relation is a tuple
+        :code:`(connection_in, connection_out, offset, weight)` meaning
+        :code:`T_outlet = T_inlet + offset` as a rough guess. The default
+        assumes unchanged temperature for components with a single inlet
+        and a single outlet.
+        """
+        if len(self.inl) == 1 and len(self.outl) == 1:
+            return [(self.inl[0], self.outl[0], 0.0, 1.0)]
+        return []
+
+    def _initial_affine_edges(self):
+        r"""
+        Approximate affine relations between inlet and outlet properties.
+
+        The relations seed the starting value propagation: known values
+        travel along them through the network before the local component
+        anchors of :code:`initialise_source` and :code:`initialise_target`
+        fill whatever remains unreached. Every relation is a tuple
+        :code:`(container_in, container_out, factor, offset)` meaning
+        :code:`outlet = factor * inlet + offset` as a rough guess, with an
+        optional fifth element weighting the relation in the least squares
+        propagation (default 1). The
+        default assumes a small pressure drop and unchanged enthalpy for
+        components with a single inlet and a single outlet: the offset from
+        pressure equality keeps friction equations away from their zero
+        pressure difference boundary.
+        """
+        if len(self.inl) == 1 and len(self.outl) == 1:
+            return [
+                (self.inl[0].p, self.outl[0].p, 0.99, 0.0),
+                (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
+            ]
+        return []
+
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.

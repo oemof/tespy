@@ -36,6 +36,7 @@ from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.fluid_properties import viscosity_mix_ph
+from tespy.tools.fluid_properties.functions import _MIXING_RULE_PHASE
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_bubble_T
@@ -54,6 +55,11 @@ from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import seeded_random
 from tespy.tools.units import SI_UNITS
+
+# offset of phase based starting values from the phase boundaries: it must
+# dominate the numeric derivative step so perturbations never straddle the
+# saturation kink, and it keeps starts off residual plateau edges
+PHASE_MARGIN = 1e4
 
 
 def connection_registry(type):
@@ -272,7 +278,19 @@ class ConnectionBase:
     def _presolve(self):
         return []
 
-    def _guess_starting_values(self, units):
+    def _seed_starting_values(self, units):
+        return []
+
+    def _temperature_hint(self):
+        return None
+
+    def _apply_temperature_field(self, field, covered, seeded):
+        return []
+
+    def _guess_starting_values(self, units, covered):
+        return []
+
+    def _finalize_starting_values(self, units, covered, seeded, nw):
         pass
 
     def _precalc_guess_values_for_references(self):
@@ -907,7 +925,326 @@ class Connection(ConnectionBase):
             for fluid in self.fluid.val
         }
 
-    def _guess_starting_values(self, units):
+    def _seed_starting_values(self, units):
+        """Impose user provided or previous solution starting values.
+
+        Returns the reference containers seeded this way: they act as the
+        fixed points of the starting value propagation.
+        """
+        seeded = []
+        for key, variable in self.get_variables().items():
+            if variable.is_var:
+                if self.good_starting_values or not np.isnan(variable.val0):
+                    variable.set_SI_from_val0(units)
+                    variable.set_reference_val_SI(variable._val_SI)
+                    seeded.append(variable._reference_container)
+        return seeded
+
+    def _declared_state(self):
+        """Resolve the state expectation of the adjacent components."""
+        source_state = self.source.initial_state(self.source_id)
+        target_state = self.target.initial_state(self.target_id)
+        if source_state is None:
+            return target_state
+        if target_state is None:
+            return source_state
+        if source_state["phase"] == target_state["phase"]:
+            merged = dict(target_state)
+            merged.update(source_state)
+            return merged
+        msg = (
+            "Conflicting phase expectations on connection "
+            f"{self.label}: {self.source.label}:{self.source_id} declares "
+            f"{source_state['phase']}, {self.target.label}:{self.target_id} "
+            f"declares {target_state['phase']}."
+        )
+        logger.debug(msg)
+        return None
+
+    def _h_for_state(self, state):
+        """Enthalpy value and phase region bounds for a state expectation.
+
+        Returns a tuple (value, lower, upper) with None entries where
+        unavailable or unbounded, or None if no value can be derived. The
+        phase refers to the dome sides below the critical pressure and to
+        the sides of the critical isotherm above it; for mixtures and
+        backends without a two phase dome only a temperature hint can
+        provide a value and there is no region to project into.
+        """
+        phase = state["phase"]
+        T_hint = state.get("T")
+        p = self.p.val_SI
+        fluid = fp.single_fluid(self.fluid_data)
+        try:
+            if fluid is None or self.fluid.wrapper[fluid]._T_crit is None:
+                expected = _MIXING_RULE_PHASE.get(self.mixing_rule)
+                token = {"liquid": "l", "gas": "g"}.get(phase)
+                if (
+                        fluid is None and expected is not None
+                        and token is not None and expected != token
+                    ):
+                    msg = (
+                        f"The phase expectation {phase} on connection "
+                        f"{self.label} does not match the mixing rule "
+                        f"{self.mixing_rule}."
+                    )
+                    logger.debug(msg)
+                    return None
+                if T_hint is None:
+                    return None
+                value = fp.h_mix_pT(
+                    p, T_hint, self.fluid_data, self.mixing_rule
+                )
+                return value, None, None
+
+            wrapper = self.fluid.wrapper[fluid]
+            if p < wrapper._p_crit:
+                if phase == "liquid":
+                    lower = None
+                    upper = wrapper.h_pQ(p, 0) - PHASE_MARGIN
+                    value = upper
+                elif phase == "gas":
+                    lower = wrapper.h_pQ(p, 1) + PHASE_MARGIN
+                    upper = None
+                    value = lower
+                else:
+                    lower = wrapper.h_pQ(p, 0) + PHASE_MARGIN
+                    upper = wrapper.h_pQ(p, 1) - PHASE_MARGIN
+                    value = wrapper.h_pQ(p, 0.5)
+            else:
+                if phase == "two-phase":
+                    return None
+                divider = wrapper.h_pT(p, wrapper._T_crit)
+                if phase == "liquid":
+                    lower = None
+                    upper = divider - PHASE_MARGIN
+                    value = min(wrapper.h_pT(p, wrapper._T_crit * 0.9), upper)
+                else:
+                    lower = divider + PHASE_MARGIN
+                    upper = None
+                    value = max(wrapper.h_pT(p, wrapper._T_crit * 1.2), lower)
+
+            if T_hint is not None:
+                try:
+                    value = wrapper.h_pT(p, T_hint)
+                except ValueError:
+                    pass
+                if lower is not None:
+                    value = max(value, lower)
+                if upper is not None:
+                    value = min(value, upper)
+        except (ValueError, NotImplementedError):
+            return None
+        return value, lower, upper
+
+    def _temperature_hint(self):
+        """Temperature of this connection as far as the specifications and
+        presolved values determine it, or None."""
+        if self.T.is_set:
+            return self.T.val_SI
+        try:
+            if not self.h.is_var and not self.p.is_var:
+                return self.calc_T()
+            if not self.p.is_var:
+                p = self.p.val_SI
+                if self.td_bubble.is_set:
+                    return T_bubble_p(p, self.fluid_data) - self.td_bubble.val_SI
+                if self.td_dew.is_set:
+                    return T_dew_p(p, self.fluid_data) + self.td_dew.val_SI
+                if self.x.is_set:
+                    return T_dew_p(p, self.fluid_data)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return None
+        return None
+
+    def _p_sat_for_T(self, T):
+        """Saturation pressure at the given temperature, or None."""
+        fluid = fp.single_fluid(self.fluid_data)
+        if fluid is None:
+            return None
+        wrapper = self.fluid.wrapper[fluid]
+        if wrapper._T_crit is None or T >= wrapper._T_crit:
+            return None
+        try:
+            return p_dew_T(T, self.fluid_data)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return None
+
+    def _apply_temperature_field(self, field, covered, seeded):
+        """Apply the reconciled temperature of this connection.
+
+        Two phase positions receive their saturation pressure, single phase
+        positions with a declared phase the enthalpy at the reconciled
+        temperature. The assigned enthalpies are returned as sources of the
+        enthalpy propagation.
+        """
+        if self not in field:
+            return []
+        T = field[self]
+        state = self._declared_state()
+        p_on_saturation = False
+
+        two_phase = (
+            (state is not None and state["phase"] == "two-phase")
+            or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set
+            or self.state.is_set
+        )
+        if two_phase and self.p.is_var:
+            reference = self.p._reference_container
+            if reference not in seeded:
+                p_sat = self._p_sat_for_T(T)
+                if p_sat is not None:
+                    self.p.set_reference_val_SI(p_sat)
+                    covered.add(reference)
+        elif (
+                state is not None and state["phase"] in ("liquid", "gas")
+                and self.p.is_var
+            ):
+            reference = self.p._reference_container
+            if state.get("saturated") and reference not in seeded:
+                # the port sits on the saturation line by a component
+                # equation, so the pressure is determined by the reconciled
+                # temperature - stronger information than any propagated
+                # guess, and it keeps the side subcritical by construction.
+                # The cap holds the affine linked neighbors below the
+                # critical pressure when the field temperature approaches
+                # the critical point
+                p_sat = self._p_sat_for_T(T)
+                if p_sat is not None:
+                    fluid = fp.single_fluid(self.fluid_data)
+                    p_sat = min(p_sat, self.fluid.wrapper[fluid]._p_crit * 0.9)
+                    self.p.set_reference_val_SI(p_sat)
+                    covered.add(reference)
+                    p_on_saturation = True
+            elif reference not in covered:
+                # nothing anchored this pressure - the saturation level a
+                # few Kelvin into the declared phase region is the best
+                # information available
+                if state["phase"] == "liquid":
+                    p_sat = self._p_sat_for_T(T + 5)
+                else:
+                    p_sat = self._p_sat_for_T(T - 5)
+                if p_sat is not None:
+                    self.p.set_reference_val_SI(p_sat)
+                    covered.add(reference)
+            elif reference not in seeded:
+                # when the reconciled temperature contradicts the declared
+                # phase at the current pressure guess, the pressure is the
+                # guessed quantity and moves to the consistent saturation
+                # level
+                fluid = fp.single_fluid(self.fluid_data)
+                p_crit = (
+                    self.fluid.wrapper[fluid]._p_crit
+                    if fluid is not None else None
+                )
+                if (
+                        state["phase"] == "liquid" and p_crit is not None
+                        and self.p.val_SI >= p_crit
+                    ):
+                    # a declared liquid at supercritical pressure with a
+                    # subcritical field temperature: the propagated pressure
+                    # overshot the dome
+                    p_sat = self._p_sat_for_T(T + 5)
+                    if p_sat is not None:
+                        self.p.set_reference_val_SI(p_sat)
+                        covered.add(reference)
+                else:
+                    try:
+                        T_sat = T_dew_p(self.p.val_SI, self.fluid_data)
+                    except (ValueError, KeyError, IndexError, NotImplementedError):
+                        T_sat = None
+                    if T_sat is not None:
+                        p_sat = None
+                        if state["phase"] == "gas" and T < T_sat:
+                            p_sat = self._p_sat_for_T(T - 5)
+                        elif state["phase"] == "liquid" and T > T_sat:
+                            p_sat = self._p_sat_for_T(T + 5)
+                        if p_sat is not None:
+                            self.p.set_reference_val_SI(p_sat)
+                            covered.add(reference)
+
+        h_sources = []
+        if self.h.is_var:
+            reference = self.h._reference_container
+            declared = (
+                state is not None and state["phase"] in ("liquid", "gas")
+            )
+            if reference not in covered and (
+                    declared or self._unambiguous_single_phase(T)
+                ):
+                if p_on_saturation:
+                    # the pressure was just anchored at the saturation line
+                    # of this very temperature, so h(p, T) is ill defined -
+                    # the value comes from the saturation properties instead
+                    result = self._h_for_state(state)
+                    if result is not None:
+                        self.h.set_reference_val_SI(result[0])
+                        covered.add(reference)
+                        h_sources.append(reference)
+                    return h_sources
+                try:
+                    value = fp.h_mix_pT(
+                        self.p.val_SI, T, self.fluid_data, self.mixing_rule
+                    )
+                except (ValueError, KeyError, IndexError, NotImplementedError):
+                    if not (declared and state.get("saturated")):
+                        return h_sources
+                    # a saturated port with an externally set pressure can
+                    # still sit numerically on the line for some back ends
+                    result = self._h_for_state(state)
+                    if result is None:
+                        return h_sources
+                    value = result[0]
+                if declared:
+                    result = self._h_for_state(state)
+                    if result is not None:
+                        _, lower, upper = result
+                        if lower is not None:
+                            value = max(value, lower)
+                        if upper is not None:
+                            value = min(value, upper)
+                self.h.set_reference_val_SI(value)
+                covered.add(reference)
+                h_sources.append(reference)
+        return h_sources
+
+    def _unambiguous_single_phase(self, T):
+        """Whether pressure and temperature determine the phase without
+        ambiguity: supercritical, clear of the two phase dome, or a fluid
+        without one."""
+        fluid = fp.single_fluid(self.fluid_data)
+        if fluid is None:
+            return self.mixing_rule in _MIXING_RULE_PHASE
+        wrapper = self.fluid.wrapper[fluid]
+        if wrapper._T_crit is None:
+            return True
+        try:
+            p = self.p.val_SI
+            if p >= wrapper._p_crit:
+                return True
+            return abs(T - T_dew_p(p, self.fluid_data)) > 5
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return False
+
+    def _state_prior(self):
+        """Enthalpy prior from the declared phase expectation, or None."""
+        state = self._declared_state()
+        if state is None:
+            return None
+        result = self._h_for_state(state)
+        if result is None:
+            return None
+        return result[0]
+
+    def _guess_starting_values(self, units, covered):
+        """Fill starting values into uncovered variables.
+
+        Mass flow gets its random value, pressure the anchors of the
+        adjacent components. Enthalpies assigned from the temperature and
+        quality precalculation and from the two phase specifications are
+        returned as sources of the enthalpy propagation; everything else
+        stays open for it.
+        """
         # the below part does not work for PowerConnection right now
         if sum(self.fluid.val.values()) == 0:
             msg = (
@@ -919,49 +1256,30 @@ class Connection(ConnectionBase):
             )
             logger.warning(msg)
 
+        h_sources = []
         for key, variable in self.get_variables().items():
             # for connections variables can be presolved and not be var anymore
-            if variable.is_var:
-                if not self.good_starting_values:
-                    self._guess_starting_value_from_connected_components(key, units)
+            if not variable.is_var:
+                continue
+            reference = variable._reference_container
+            if reference in covered:
+                continue
 
-                variable.set_SI_from_val0(units)
-                # variable.set_SI_from_val0()
-                variable.set_reference_val_SI(variable._val_SI)
-
-        self._precalc_guess_values()
-
-    def _guess_starting_value_from_connected_components(self, key, units):
-        r"""
-        Set starting values for fluid properties.
-
-        The component classes provide generic starting values for their inlets
-        and outlets.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to initialise.
-        """
-        if np.isnan(self.get_attr(key).val0):
             # starting value for mass flow is random between 1 and 2 kg/s
             # (should be generated based on some hash maybe?)
             if key == 'm':
                 rndm = seeded_random(self.label)
-                value = float(rndm + 1)
+                variable.set_reference_val_SI(float(rndm + 1))
+                covered.add(reference)
 
-            # generic starting values for pressure and enthalpy
-            elif key in ['p', 'h']:
-                # retrieve starting values from component information
+            # generic starting values for pressure and enthalpy from
+            # component information
+            elif key == 'p':
                 val_s = self.source.initialise_source(self, key)
                 val_t = self.target.initialise_target(self, key)
 
                 if val_s == 0 and val_t == 0:
-                    if key == 'p':
-                        value = 1e5
-                    elif key == 'h':
-                        value = 1e6
-
+                    value = 1e5
                 elif val_s == 0:
                     value = val_t
                 elif val_t == 0:
@@ -969,46 +1287,116 @@ class Connection(ConnectionBase):
                 else:
                     value = (val_s + val_t) / 2
 
-            # these values are SI, so they are set to the respective variable
-            self.get_attr(key).set_reference_val_SI(value)
-            self.get_attr(key).set_val0_from_SI(units)
+                variable.set_reference_val_SI(value)
+                covered.add(reference)
+
+
+        if self.h.is_var:
+            reference = self.h._reference_container
+            if self._precalc_guess_values():
+                covered.add(reference)
+                if reference not in h_sources:
+                    h_sources.append(reference)
+            # with a known pressure the two phase specifications generate
+            # an enthalpy at the dome on their own
+            if self._refine_two_phase_guess(has_value=reference in covered):
+                covered.add(reference)
+                if reference not in h_sources:
+                    h_sources.append(reference)
+
+        return h_sources
 
     def _precalc_guess_values(self):
         """
-        Precalculate enthalpy values for connections.
+        Precalculate the enthalpy value of the connection.
 
-        Precalculation is performed only if temperature, vapor mass fraction,
-        temperature difference to boiling point or phase is specified.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to precalculate values for.
+        Precalculation is performed only if temperature or vapor mass
+        fraction is specified. Returns whether a value was assigned, the
+        assigned enthalpy acts as a source of the enthalpy propagation.
         """
-        # starting values for specified vapour content or temperature
-        if not self.h.is_var:
-            return
+        if not self.h.is_var or self.good_starting_values:
+            return False
 
-        if not self.good_starting_values:
-            if self.x.is_set:
-                fluid = fp.single_fluid(self.fluid_data)
-                if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                    self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+        assigned = False
+        if self.x.is_set:
+            fluid = fp.single_fluid(self.fluid_data)
+            if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+            self.h.set_reference_val_SI(
+                fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
+            )
+            assigned = True
+        if self.T.is_set:
+            try:
                 self.h.set_reference_val_SI(
-                    fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
+                    fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
                 )
-            if self.T.is_set:
-                try:
-                    self.h.set_reference_val_SI(
-                        fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
-                    )
-                except ValueError:
-                    pass
+                assigned = True
+            except ValueError:
+                pass
+        return assigned
 
+    def _finalize_starting_values(self, units, covered, seeded, nw):
+        """Assign generic values to whatever no information reached.
+
+        Every cold guess - anything not seeded from user input or a
+        previous solution - is clamped into the valid property range and
+        the enthalpy additionally projected into the phase region the
+        adjacent components declare, so no starting value contradicts the
+        expected phase or sits on a phase boundary. Also applies the two
+        phase refinement for state and subcooling/overheating
+        specifications and backfills the user facing starting values of
+        all variables.
+        """
+        generic = {'m': 1.0, 'p': 1e5, 'h': 1e6}
+        for key, variable in self.get_variables().items():
+            if variable.is_var:
+                reference = variable._reference_container
+                if reference not in covered:
+                    variable.set_reference_val_SI(generic.get(key, 1.0))
+                    covered.add(reference)
+
+        for key, variable in self.get_variables().items():
+            if not variable.is_var or variable._reference_container in seeded:
+                continue
+            try:
+                bounds = self._property_bounds(key, nw)
+            except ValueError:
+                continue
+            if bounds is None:
+                continue
+            lower, upper = bounds
+            if lower is not None and variable.val_SI < lower:
+                variable.set_reference_val_SI(lower)
+            elif upper is not None and variable.val_SI > upper:
+                variable.set_reference_val_SI(upper)
+
+        if self.h.is_var and self.h._reference_container not in seeded:
+            state = self._declared_state()
+            if state is not None:
+                result = self._h_for_state(state)
+                if result is not None:
+                    _, lower, upper = result
+                    if lower is not None and self.h.val_SI < lower:
+                        self.h.set_reference_val_SI(lower)
+                    elif upper is not None and self.h.val_SI > upper:
+                        self.h.set_reference_val_SI(upper)
+
+        self._refine_two_phase_guess()
+
+        for key, variable in self.get_variables().items():
+            if variable.is_var and np.isnan(variable.val0):
+                variable.set_val0_from_SI(units)
+
+    def _refine_two_phase_guess(self, has_value=True):
         # starting values for specified quality, specified subcooling/overheating
         # and state specification. These should be recalculated even with
         # good starting values, for example, when one exchanges enthalpy
-        # with boiling point temperature difference.
+        # with boiling point temperature difference. Without a present value
+        # the dome itself is the guess. Returns whether a value was assigned.
+        if not self.h.is_var:
+            return False
+
         if (self.state.is_set or self.td_dew.is_set or self.td_bubble.is_set):
             fluid = fp.single_fluid(self.fluid_data)
             if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
@@ -1019,8 +1407,9 @@ class Connection(ConnectionBase):
                     or (self.td_bubble.val_SI < 0 and self.td_bubble.is_set)
                 ):
                 h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
-                if self.h.val_SI < h:
+                if not has_value or self.h.val_SI < h:
                     self.h.set_reference_val_SI(h + 1e3)
+                    return True
 
             elif (
                     (self.state.val == 'l' and self.state.is_set)
@@ -1028,8 +1417,10 @@ class Connection(ConnectionBase):
                     or (self.td_dew.val_SI < 0 and self.td_dew.is_set)
                 ):
                 h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
-                if self.h.val_SI > h:
+                if not has_value or self.h.val_SI > h:
                     self.h.set_reference_val_SI(h - 1e3)
+                    return True
+        return False
 
     def _precalc_guess_values_for_references(self):
         """precalculate starting values for specified temperature
@@ -1823,13 +2214,40 @@ class Connection(ConnectionBase):
                         wrapper.T_ph(self.p.val_SI, self.h.val_SI)
                     except ValueError:
                         lower = wrapper._p_min + 1e1
-                return lower, wrapper._p_max
+                upper = wrapper._p_max
+                # two phase specifications evaluate saturation properties,
+                # which only exist below the critical pressure. The margin
+                # is kept tiny so no legitimate trajectory or solution is
+                # affected, only the property domain is protected
+                if (
+                        self.x.is_set or self.td_bubble.is_set
+                        or self.td_dew.is_set or self.state.is_set
+                    ):
+                    upper = min(upper, wrapper._p_crit * 0.999)
+                # a port on the saturation line by a component equation
+                # requires a subcritical pressure for the saturation
+                # properties to exist
+                for comp, port in (
+                        (self.source, self.source_id),
+                        (self.target, self.target_id)
+                    ):
+                    claim = comp.initial_state(port)
+                    if claim is not None and claim.get("saturated"):
+                        upper = min(upper, wrapper._p_crit * 0.95)
+                return lower, upper
 
             elif prop == "h":
-                try:
-                    hmin = wrapper.h_pT(self.p.val_SI, wrapper._T_min + 1e-1)
-                except ValueError:
-                    hmin = wrapper.h_pT(self.p.val_SI, wrapper._T_min * 1.05)
+                T = wrapper._T_min + 1e-1
+                # the minimum temperature is not accessible at every
+                # pressure, e.g. below the melting line
+                while True:
+                    try:
+                        hmin = wrapper.h_pT(self.p.val_SI, T)
+                        break
+                    except ValueError as e:
+                        T *= 1.05
+                        if T > wrapper._T_max:
+                            raise ValueError(e) from e
 
                 T = wrapper._T_max
                 # T_max depends on pressure for incompressibles
@@ -1843,7 +2261,12 @@ class Connection(ConnectionBase):
                             raise ValueError(e) from e
 
                 d = self.h._reference_container._d
-                delta = max(abs(self.h.val_SI * d), d) * 5
+                # cap the inside offset so it stays a nudge into the valid
+                # range and a runaway enthalpy value cannot invert or
+                # excessively shrink the interval
+                delta = min(
+                    max(abs(self.h.val_SI * d), d) * 5, (hmax - hmin) / 100
+                )
                 lower, upper = hmin + delta, hmax - delta
 
                 if (

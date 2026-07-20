@@ -157,6 +157,14 @@ class Turbine(Turbomachine):
 
     _p_in_adj = 1 / 0.9   # expand: i.p just above o.p
     _p_out_adj = 0.9       # expand: o.p just below i.p
+    _initial_pr_guess = 0.25
+    _initial_dh_fallback = -2e5
+
+    def initial_state(self, port):
+        # the outlet may be wet, the state based anchor decides there
+        if port == 'in1':
+            return {"phase": "gas"}
+        return None
 
     @staticmethod
     def poweroutlets():
@@ -418,8 +426,7 @@ class Turbine(Turbomachine):
         if i.p.val_SI <= o.p.val_SI and o.p.is_var:
             o.p.set_reference_val_SI(i.p.val_SI * 2 /3)
 
-    @staticmethod
-    def initialise_source(c, key):
+    def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -442,17 +449,7 @@ class Turbine(Turbomachine):
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                if c.p.val_SI >= c.fluid.wrapper[fluid]._p_crit:
-                    temp = c.fluid.wrapper[fluid]._T_crit * 1.2
-                    return h_mix_pT(c.p.val_SI, temp, c.fluid_data)
-                else:
-                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
-            else:
-                temp = 1000
-                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
@@ -478,15 +475,5 @@ class Turbine(Turbomachine):
                 return c.fluid.wrapper[fluid]._p_crit / 4 * 3
             else:
                 return 10e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                if c.p.val_SI >= c.fluid.wrapper[fluid]._p_crit:
-                    temp = c.fluid.wrapper[fluid]._T_crit * 1.4
-                    return h_mix_pT(c.p.val_SI, temp, c.fluid_data)
-                else:
-                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 1e5
-            else:
-                temp = 500
-                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 

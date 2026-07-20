@@ -151,6 +151,15 @@ class Compressor(Turbomachine):
     >>> round(comp.eta_s.val, 2)
     0.79
     """
+
+    _initial_pr_guess = 3.0
+    _initial_dh_fallback = 5e4
+
+    def initial_state(self, port):
+        if port in ('in1', 'out1'):
+            return {"phase": "gas"}
+        return None
+
     @staticmethod
     def powerinlets():
         return ["power"]
@@ -358,8 +367,7 @@ class Compressor(Turbomachine):
         if i.h.is_var and o.h.val_SI < i.h.val_SI:
             i.h.set_reference_val_SI(o.h.val_SI - 100e3)
 
-    @staticmethod
-    def initialise_source(c, key):
+    def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -382,19 +390,7 @@ class Compressor(Turbomachine):
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 10e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
-                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule) + 2e5
-                else:
-                    temp = c.fluid.wrapper[fluid]._T_crit
-                    return h_mix_pT(
-                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
-                    ) + 2e5
-            else:
-                temp = 450
-                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
@@ -420,19 +416,7 @@ class Compressor(Turbomachine):
                 return c.fluid.wrapper[fluid]._p_crit / 3
             else:
                 return 1e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                if c.p.val_SI < c.fluid.wrapper[fluid]._p_crit:
-                    return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
-                else:
-                    temp = c.fluid.wrapper[fluid]._T_crit
-                    return h_mix_pT(
-                        c.p.val_SI, temp * 1.2, c.fluid_data, c.mixing_rule
-                    )
-            else:
-                temp = 350
-                return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     def _calc_eta_s(self):
         i, o = self.inl[0], self.outl[0]

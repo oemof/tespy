@@ -837,13 +837,7 @@ class SimpleHeatExchanger(Component):
         """
         if key == 'p':
             return 1e5
-        elif key == 'h':
-            if self.Q.val < 0 and self.Q.is_set:
-                return 1e5
-            elif self.Q.val > 0 and self.Q.is_set:
-                return 5e5
-            else:
-                return 3e5
+        return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -875,13 +869,7 @@ class SimpleHeatExchanger(Component):
         """
         if key == 'p':
             return 1e5
-        elif key == 'h':
-            if self.Q.val < 0 and self.Q.is_set:
-                return 5e5
-            elif self.Q.val > 0 and self.Q.is_set:
-                return 1e5
-            else:
-                return 3e5
+        return 0
 
     def calc_parameters(self):
         r"""Postprocessing parameter calculation."""

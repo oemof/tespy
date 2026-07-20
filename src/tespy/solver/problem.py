@@ -27,6 +27,11 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import INCREMENT_TOLERANCE
 from tespy.tools.global_vars import RESIDUAL_TOLERANCE
 
+# weight of the phase expectation priors in the starting value least
+# squares: low enough that any information transported by the guess edges
+# dominates, only holding the absolute level where nothing else reaches
+PRIOR_WEIGHT = 0.1
+
 # Only require cupy if Cuda shall be used
 try:
     import cupy as cu
@@ -637,6 +642,368 @@ class Problem:
                 variable_dict = self._variable_lookup[variable_num]
                 variable = variable_dict["object"].get_attr(variable_dict["property"])
                 variable.detach()
+
+    def starting_temperature_field(self):
+        """Reconcile a temperature per connection for the starting values.
+
+        The components provide approximate temperature relations between
+        their ports, including the terminal temperature differences of
+        heat exchangers - so known temperature levels reach coupled
+        circuits the enthalpy relations cannot connect. The known
+        temperatures - specifications, values derived from saturation
+        specifications and converted fixed states - anchor a least squares
+        problem per connected component of that graph; the temperature
+        hints of the component state expectations act as soft priors.
+        Returns a dict mapping connections to reconciled temperatures,
+        including the known ones.
+        """
+        edges = []
+        neighbors = {}
+        for cp in self.network.comps["object"]:
+            for c_from, c_to, offset, weight in cp._initial_temperature_edges():
+                edges.append((c_from, c_to, offset, weight))
+                neighbors.setdefault(c_from, []).append(c_to)
+                neighbors.setdefault(c_to, []).append(c_from)
+
+        fixed = {}
+        priors = {}
+        for c in self.network.conns["object"]:
+            hint = c._temperature_hint()
+            if hint is not None:
+                fixed[c] = hint
+                continue
+            state = (
+                c._declared_state() if hasattr(c, "_declared_state") else None
+            )
+            if state is not None and state.get("T") is not None:
+                priors[c] = state["T"]
+
+        field = dict(fixed)
+        visited = set()
+        for start in neighbors:
+            if start in visited or start in fixed:
+                continue
+            component = []
+            anchored = False
+            stack = [start]
+            visited.add(start)
+            while stack:
+                node = stack.pop()
+                component.append(node)
+                if node in priors:
+                    anchored = True
+                for neighbor in neighbors[node]:
+                    if neighbor in fixed:
+                        anchored = True
+                    elif neighbor not in visited:
+                        visited.add(neighbor)
+                        stack.append(neighbor)
+
+            if not anchored:
+                continue
+
+            index = {c: i for i, c in enumerate(component)}
+            rows = []
+            rhs = []
+            for c_from, c_to, offset, weight in edges:
+                from_in = c_from in index
+                to_in = c_to in index
+                if not from_in and not to_in:
+                    continue
+                row = np.zeros(len(component))
+                if from_in and to_in:
+                    row[index[c_to]] = 1.0
+                    row[index[c_from]] = -1.0
+                    residual = offset
+                elif to_in:
+                    if c_from not in fixed:
+                        continue
+                    row[index[c_to]] = 1.0
+                    residual = offset + fixed[c_from]
+                else:
+                    if c_to not in fixed:
+                        continue
+                    row[index[c_from]] = -1.0
+                    residual = offset - fixed[c_to]
+                rows.append(row * weight)
+                rhs.append(residual * weight)
+
+            for c, value in priors.items():
+                if c not in index:
+                    continue
+                row = np.zeros(len(component))
+                row[index[c]] = PRIOR_WEIGHT
+                rows.append(row)
+                rhs.append(value * PRIOR_WEIGHT)
+
+            solution = np.linalg.lstsq(
+                np.array(rows), np.array(rhs), rcond=None
+            )[0]
+            for c, value in zip(component, solution):
+                if not np.isnan(value):
+                    field[c] = float(value)
+        return field
+
+    def propagate_starting_values(self, seeded, props):
+        """Propagate starting values through approximate affine relations.
+
+        The components provide rough affine guesses between their inlet and
+        outlet properties, mapped into the space of the reference variables
+        through the exact affine relations of the variable groups. The
+        known values - specified, presolved or one of the passed source
+        containers - anchor a least squares problem over every connected
+        component of the guess graph, minimizing the sum of the squared
+        edge residuals. Along a chain this reproduces the composed guesses,
+        between several known values it interpolates, and around a cycle
+        the closure residual of the guesses distributes over the edges
+        instead of accumulating at an arbitrary meeting point. Returns the
+        set of reference containers that received a value; unreached
+        variables are left to the local component anchors and generic
+        values.
+        """
+        properties = {}
+        known = []
+        for sm_col, container in self._reference_container_lookup.items():
+            if type(container) == dc_vecvar:
+                continue
+            prop = self._variable_lookup[sm_col]["property"]
+            properties[container] = prop
+            if prop in props and not container.is_var:
+                known.append(container)
+
+        edges = []
+        neighbors = {}
+        for cp in self.network.comps["object"]:
+            for edge in cp._initial_affine_edges():
+                c_from, c_to, factor, offset = edge[:4]
+                weight = edge[4] if len(edge) > 4 else 1.0
+                ref_from = c_from._reference_container
+                ref_to = c_to._reference_container
+                if ref_from is None or ref_to is None or ref_from is ref_to:
+                    continue
+                if (
+                        properties.get(ref_from) not in props
+                        or properties.get(ref_to) not in props
+                    ):
+                    continue
+                # with member = f * ref + o on both sides, the approximate
+                # relation to = factor * from + offset maps to reference space
+                a = factor * c_from._factor / c_to._factor
+                b = (
+                    factor * c_from._offset + offset - c_to._offset
+                ) / c_to._factor
+                edges.append((ref_from, ref_to, a, b, weight))
+                neighbors.setdefault(ref_from, []).append(ref_to)
+                neighbors.setdefault(ref_to, []).append(ref_from)
+
+        fixed = {}
+        for ref in dict.fromkeys(seeded + known):
+            if properties.get(ref) in props and not np.isnan(ref.val_SI):
+                fixed[ref] = ref.val_SI
+
+        # the phase expectations of the components act as soft priors: they
+        # hold the absolute level where no fixed value reaches, but any
+        # real information transported by the edges dominates them
+        priors = {}
+        if "h" in props:
+            for c in self.network.conns["object"]:
+                if not hasattr(c, "_state_prior"):
+                    continue
+                ref = c.h._reference_container
+                if (
+                        ref is None or not getattr(ref, "is_var", False)
+                        or ref in fixed or ref in priors
+                    ):
+                    continue
+                value = c._state_prior()
+                if value is not None:
+                    priors[ref] = value
+                    neighbors.setdefault(ref, [])
+
+        assigned = set()
+        visited = set()
+        for start in neighbors:
+            if start in visited or start in fixed:
+                continue
+            # collect the connected component of unknowns around this node,
+            # the known values act as its boundary
+            component = []
+            anchored = False
+            stack = [start]
+            visited.add(start)
+            while stack:
+                node = stack.pop()
+                component.append(node)
+                if node in priors:
+                    anchored = True
+                for neighbor in neighbors[node]:
+                    if neighbor in fixed:
+                        anchored = True
+                    elif neighbor not in visited:
+                        visited.add(neighbor)
+                        stack.append(neighbor)
+
+            if not anchored:
+                continue
+
+            index = {ref: i for i, ref in enumerate(component)}
+            rows = []
+            rhs = []
+            for ref_from, ref_to, a, b, weight in edges:
+                from_in = ref_from in index
+                to_in = ref_to in index
+                if not from_in and not to_in:
+                    continue
+                row = np.zeros(len(component))
+                if from_in and to_in:
+                    row[index[ref_to]] = 1.0
+                    row[index[ref_from]] = -a
+                    residual = b
+                elif to_in:
+                    if ref_from not in fixed:
+                        continue
+                    row[index[ref_to]] = 1.0
+                    residual = b + a * fixed[ref_from]
+                else:
+                    if ref_to not in fixed:
+                        continue
+                    row[index[ref_from]] = -a
+                    residual = b - fixed[ref_to]
+                rows.append(row * weight)
+                rhs.append(residual * weight)
+
+            for ref, value in priors.items():
+                if ref not in index:
+                    continue
+                row = np.zeros(len(component))
+                row[index[ref]] = PRIOR_WEIGHT
+                rows.append(row)
+                rhs.append(value * PRIOR_WEIGHT)
+
+            solution = np.linalg.lstsq(
+                np.array(rows), np.array(rhs), rcond=None
+            )[0]
+            if any(
+                np.isnan(value)
+                or (properties[ref] in ("p", "m") and value <= 0)
+                for ref, value in zip(component, solution)
+            ):
+                continue
+            for ref, value in zip(component, solution):
+                ref._val_SI = float(value)
+                assigned.add(ref)
+        return assigned
+
+    def presolve_flow_variables(self, seeded):
+        """Solve the flow variables on the completed property field.
+
+        With pressures and enthalpies frozen at their starting values,
+        the equations determining the flows - mass balances, energy
+        balances, heat and power specifications, energy connector and
+        bus balances - are linear in the mass and energy flow
+        variables. A single newton step restricted to those variables
+        therefore solves them exactly with respect to the guessed
+        property field, replacing the random mass flow starting values
+        by consistent levels and branch ratios. Seeded values stay
+        untouched. Returns the number of updated variables.
+        """
+        columns = [
+            key for key, data in self.variables_dict.items()
+            if data["variable"] in ("m", "E") and data["obj"] not in seeded
+        ]
+        if not any(
+                self.variables_dict[col]["variable"] == "m"
+                for col in columns
+            ):
+            return 0
+
+        column_set = set(columns)
+        # the frozen property field only reconciles pressures and
+        # enthalpies - equations depending on a guessed fluid composition
+        # (combustion stoichiometry and energy balances) would inject
+        # arbitrary flow information and are left to the solver
+        fluid_columns = set()
+        for data in self.variables_dict.values():
+            if data["variable"] == "fluid":
+                fluid_columns.update(data["obj"].J_col.values())
+        rows = [
+            row for row, cols in self._incidence_matrix.items()
+            if not column_set.isdisjoint(cols)
+            and fluid_columns.isdisjoint(cols)
+        ]
+        if not rows:
+            return 0
+
+        n = self.variable_counter
+        self.residual = np.zeros(n)
+        self.jacobian = np.zeros((n, n))
+        self.increment = np.ones(n)
+        self.increment_filter = np.absolute(self.increment) < ERR ** 2
+        try:
+            self._solve_equations()
+        except Exception as e:
+            # best effort pass: any failure of the evaluation on the
+            # guessed values - including badly parametrized equations,
+            # which raise their descriptive errors in the actual solve -
+            # just skips the flow presolve
+            msg = (
+                "Skipping the flow variable presolve, the equation "
+                f"evaluation on the starting values failed: {e}"
+            )
+            logger.debug(msg)
+            return 0
+        finally:
+            for obj in (
+                    self.network.comps["object"].tolist()
+                    + self.network.conns["object"].tolist()
+                ):
+                obj.it = 0
+
+        rows = [
+            row for row in rows
+            if np.isfinite(self.residual[row])
+            and np.isfinite(self.jacobian[row, columns]).all()
+        ]
+        if not rows:
+            return 0
+
+        matrix = self.jacobian[np.ix_(rows, columns)]
+        rhs = -self.residual[rows]
+        # equilibrate the rows: energy balances live on a scale of watts,
+        # mass balances on kilograms per second - without normalization
+        # the least squares compromise would sacrifice the exact balances
+        # to the approximate energy rows
+        norms = np.linalg.norm(matrix, axis=1)
+        keep = norms > 0
+        if not keep.any():
+            return 0
+        matrix = matrix[keep] / norms[keep, None]
+        rhs = rhs[keep] / norms[keep]
+
+        delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
+        if not np.isfinite(delta).all():
+            return 0
+        # deliberately stay short of the exact solution of the linearized
+        # system: some models have degenerate jacobians exactly on the
+        # solution manifold of the flow equations (recirculation with a
+        # specified split ratio), the same way starting enthalpies are kept
+        # off the saturation lines
+        delta *= 0.9
+
+        for col, increment in zip(columns, delta):
+            data = self.variables_dict[col]
+            value = data["obj"]._val_SI + float(increment)
+            # a previously positive mass flow crossing zero means the
+            # retained rows underdetermine this flow (e.g. a bare total
+            # mass balance distributing its correction arbitrarily) - it
+            # keeps a fraction of its previous value instead
+            if (
+                    data["variable"] == "m" and data["obj"]._val_SI > 0
+                    and value <= 0
+                ):
+                value = data["obj"]._val_SI * 0.1
+            data["obj"]._val_SI = value
+        return len(columns)
 
     def check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""

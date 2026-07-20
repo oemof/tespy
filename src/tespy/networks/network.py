@@ -152,10 +152,19 @@ class Network:
             self.h_range = h_range
 
     def _serialize(self):
+        # the ranges are interpreted in the default units at load time, so
+        # they have to be exported in exactly those units independent of
+        # which defaults were active when the range was assigned
         return {
-            "m_range": list(self.m_range.magnitude),
-            "p_range": list(self.p_range.magnitude),
-            "h_range": list(self.h_range.magnitude),
+            "m_range": list(
+                self.m_range.m_as(self.units.default["mass_flow"])
+            ),
+            "p_range": list(
+                self.p_range.m_as(self.units.default["pressure"])
+            ),
+            "h_range": list(
+                self.h_range.m_as(self.units.default["enthalpy"])
+            ),
             "units": self.units._serialize()
         }
 
@@ -1601,7 +1610,50 @@ class Network:
             else:
                 num_generic += 1
 
-            c._guess_starting_values(self.units)
+        # known values - specifications, presolved values and user provided
+        # starting values - propagate through the approximate affine
+        # relations of the components. Pressures and mass flows propagate
+        # first, so the component anchors and the temperature and quality
+        # based enthalpy precalculation compute from propagated pressures.
+        # Their results then act as additional sources of the enthalpy
+        # propagation, which fills the gaps between them.
+        seeded = []
+        for c in self.conns["object"]:
+            seeded += c._seed_starting_values(self.units)
+
+        covered = self._problem.propagate_starting_values(seeded, ("m", "p"))
+        num_propagated = len(covered)
+        covered |= set(seeded)
+
+        # the reconciled temperatures carry known levels across heat
+        # exchangers into coupled circuits: two phase positions receive
+        # their saturation pressure, declared single phase positions their
+        # enthalpy at the reconciled temperature
+        seeded_set = set(seeded)
+        temperature_field = self._problem.starting_temperature_field()
+        h_sources = []
+        for c in self.conns["object"]:
+            h_sources += c._apply_temperature_field(
+                temperature_field, covered, seeded_set
+            )
+
+        for c in self.conns["object"]:
+            h_sources += c._guess_starting_values(self.units, covered)
+
+        assigned = self._problem.propagate_starting_values(
+            seeded + h_sources, ("h",)
+        )
+        num_propagated += len(assigned)
+        covered |= assigned
+
+        seeded = set(seeded)
+        for c in self.conns["object"]:
+            c._finalize_starting_values(self.units, covered, seeded, self)
+
+        # with the property field complete, the flow determining equations
+        # are linear in the mass and energy flow variables and solve their
+        # levels and branch ratios exactly with respect to the field
+        num_propagated += self._problem.presolve_flow_variables(seeded)
 
         # here reference values can be updated, e.g. a reference temperature
         # if the starting value of the reference connection is not yet updated
@@ -1622,7 +1674,8 @@ class Network:
 
         msg = (
             f"Starting values: {num_init_path} connections from init_path, "
-            f"{num_previous} from a previous solution, {num_generic} generic."
+            f"{num_previous} from a previous solution, {num_generic} generic, "
+            f"{num_propagated} variables assigned by propagation."
         )
         logger.debug(msg)
 

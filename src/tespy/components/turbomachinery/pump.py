@@ -24,6 +24,7 @@ from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties import v_mix_ph
 from tespy.tools.global_vars import GRAVITY
 from tespy.tools.helpers import _get_dependents
 
@@ -346,6 +347,33 @@ class Pump(Turbomachine):
     >>> round(pu.frequency.val)
     1862
     """
+
+    _initial_pr_guess = 10.0
+    _initial_dh_fallback = 1e3
+
+    def initial_state(self, port):
+        if port in ('in1', 'out1'):
+            return {"phase": "liquid"}
+        return None
+
+    def _initial_dh_guess(self):
+        """Pump work from the volume flow: dh = v * dp / eta."""
+        i, o = self.inl[0], self.outl[0]
+        try:
+            h_in = i.h.val_SI
+            if np.isnan(h_in):
+                state = self.initial_state('in1')
+                result = i._h_for_state(state) if state is not None else None
+                if result is None:
+                    return self._initial_dh_fallback
+                h_in = result[0]
+            p_out = o.p.val_SI
+            if np.isnan(p_out) or p_out <= 0:
+                p_out = i.p.val_SI * self._initial_pr_guess
+            v = v_mix_ph(i.p.val_SI, h_in, i.fluid_data, i.mixing_rule)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return self._initial_dh_fallback
+        return v * (p_out - i.p.val_SI) / self._initial_eta_guess
 
     @staticmethod
     def powerinlets():
@@ -793,8 +821,7 @@ class Pump(Turbomachine):
             elif expr < self.flow_char.char_func.x[1]:
                 i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
 
-    @staticmethod
-    def initialise_source(c, key):
+    def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
 
@@ -811,27 +838,13 @@ class Pump(Turbomachine):
         val : float
             Starting value for pressure/enthalpy in SI units.
         """
-        fluid = single_fluid(c.fluid_data)
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             if fluid is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 10e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                temp = c.fluid.wrapper[fluid]._T_crit
-                if temp is None:
-                    temp = c.fluid.wrapper[fluid]._T_max
-
-                dT = temp - c.fluid.wrapper[fluid]._T_min
-
-                temp = temp - dT * 0.89
-            else:
-                # a pump with a mixture does not really make a lot of sense
-                temp = 300
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
@@ -858,20 +871,7 @@ class Pump(Turbomachine):
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                temp = c.fluid.wrapper[fluid]._T_crit
-                if temp is None:
-                    temp = c.fluid.wrapper[fluid]._T_max
-
-                dT = temp - c.fluid.wrapper[fluid]._T_min
-
-                temp = temp - dT * 0.9
-            else:
-                # a pump with a mixture does not really make a lot of sense
-                temp = 300
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     def _calc_eta(self):
         i, o = self.inl[0], self.outl[0]

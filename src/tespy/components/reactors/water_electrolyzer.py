@@ -208,6 +208,18 @@ class WaterElectrolyzer(Component):
     def _calc_eta(self):
         return self.e0 / self.e.val_SI
 
+    def _initial_affine_edges(self):
+        # only the cooling loop in1 -> out1 allows a guess
+        return [
+            (self.inl[0].p, self.outl[0].p, 1.0, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
+        ]
+
+    def initial_state(self, port):
+        if port in ('in1', 'out1', 'in2'):
+            return {"phase": "liquid"}
+        return {"phase": "gas", "T": 323.15}
+
     def get_parameters(self):
         return {
             'P': dc_cp(
@@ -809,9 +821,7 @@ class WaterElectrolyzer(Component):
         """
         if key == 'p':
             return 5e5
-        elif key == 'h':
-            temp = 50 + 273.15
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -832,6 +842,4 @@ class WaterElectrolyzer(Component):
         """
         if key == 'p':
             return 5e5
-        elif key == 'h':
-            temp = 20 + 273.15
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0

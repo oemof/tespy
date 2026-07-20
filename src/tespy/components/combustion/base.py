@@ -899,6 +899,18 @@ class CombustionChamber(Component):
             if fuel_found:
                 fuel_inlet.m.set_reference_val_SI(air_tmp / 25)
 
+    def _initial_affine_edges(self):
+        # the reaction enthalpy dominates the outlet enthalpy, only the
+        # pressure relations are usable guesses
+        connections = self.inl + self.outl
+        first = connections[0]
+        return [(first.p, c.p, 1.0, 0.0) for c in connections[1:]]
+
+    def initial_state(self, port):
+        if port == 'out1':
+            return {"phase": "gas", "T": 1200}
+        return {"phase": "gas", "T": 293.15}
+
     @staticmethod
     def initialise_source(c, key):
         r"""
@@ -926,8 +938,7 @@ class CombustionChamber(Component):
         """
         if key == "p":
             return 5e5
-        elif key == "h":
-            return 10e5
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
@@ -956,8 +967,7 @@ class CombustionChamber(Component):
         """
         if key == "p":
             return 5e5
-        elif key == "h":
-            return 5e5
+        return 0
 
     def entropy_balance(self):
         r"""

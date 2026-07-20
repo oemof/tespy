@@ -1003,6 +1003,30 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
+    def _initial_temperature_edges(self):
+        # the terminal temperature differences couple the two sides: known
+        # temperature levels of one circuit reach the other one this way
+        ttd_upper = self.ttd_u.val_SI if self.ttd_u.is_set else 10.0
+        weight_upper = 5.0 if self.ttd_u.is_set else 0.3
+        ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
+        weight_lower = 5.0 if self.ttd_l.is_set else 0.3
+        return [
+            (self.inl[0], self.outl[0], 0.0, 1.0),
+            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.outl[1], self.inl[0], ttd_upper, weight_upper),
+            (self.inl[1], self.outl[0], ttd_lower, weight_lower),
+        ]
+
+    def _initial_affine_edges(self):
+        # zero enthalpy offsets: the propagation distributes the enthalpy
+        # change between the surrounding known values evenly over the edges
+        return [
+            (self.inl[0].p, self.outl[0].p, 0.99, 0.0),
+            (self.inl[1].p, self.outl[1].p, 0.99, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
+            (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
+        ]
+
     def initialise_source(self, c, key):
         r"""
         Return a starting value for pressure and enthalpy at outlet.
@@ -1027,25 +1051,7 @@ class HeatExchanger(Component):
             else:
                 return 1e5
 
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                temp = c.fluid.wrapper[fluid]._T_crit
-                if temp is None:
-                    temp = c.fluid.wrapper[fluid]._T_max
-
-                dT = temp - c.fluid.wrapper[fluid]._T_min
-
-                if c.source_id == 'out1':
-                    temp = temp - dT * 2 / 3
-                else:
-                    temp = temp - dT / 3
-            else:
-                if c.source_id == 'out1':
-                    temp = 600
-                else:
-                    temp = 500
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     def initialise_target(self, c, key):
         r"""
@@ -1070,27 +1076,7 @@ class HeatExchanger(Component):
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5
-        elif key == 'h':
-            fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
-                temp = c.fluid.wrapper[fluid]._T_crit
-                if temp is None:
-                    temp = c.fluid.wrapper[fluid]._T_max
-
-                dT = temp - c.fluid.wrapper[fluid]._T_min
-
-                if c.target_id == 'in1':
-                    temp = temp - dT / 4
-                else:
-                    temp = temp - dT / 3
-
-            else:
-                if c.target_id == 'in1':
-                    temp = 650
-                else:
-                    temp = 550
-
-            return h_mix_pT(c.p.val_SI, temp, c.fluid_data, c.mixing_rule)
+        return 0
 
     def entropy_balance(self):
         r"""

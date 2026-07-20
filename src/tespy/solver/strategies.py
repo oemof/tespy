@@ -138,34 +138,76 @@ def search_reducing_step(problem, row, col):
     r0 = problem.residual[row]
     abs_r0 = abs(r0)
 
+    def changed(r):
+        # a probe only counts once the residual changed sign or moved
+        # significantly: on nearly flat landscapes, e.g. drifting residuals
+        # in the supercritical region, every probe differs by floating
+        # point amounts and a strict comparison would stop the walk at the
+        # very first probe
+        return r * r0 < 0 or abs(r - r0) > 0.1 * abs_r0
+
     # Guard against x0 == 0 producing a zero initial step
     d = max(abs(x0) * 0.1, 1e-3)
     found_plus = None
     found_minus = None
-    # outermost probes whose residual still equals the starting residual:
+    # outermost probes whose residual still matches the starting residual:
     # they tighten the bracket, e.g. cutting off most of a residual plateau
     # the search walked across
     same_plus = 0.0
     same_minus = 0.0
 
+    invalid_plus = None
+    invalid_minus = None
+
     for _ in range(20):
         if found_plus is None:
             r = eval_r(x0 + d)
-            if r is not None and r != r0:
+            if r is not None and changed(r):
                 found_plus = (d, r)
             elif r is not None:
                 same_plus = d
+            elif invalid_plus is None:
+                invalid_plus = d
 
         if found_minus is None:
             r = eval_r(x0 - d)
-            if r is not None and r != r0:
+            if r is not None and changed(r):
                 found_minus = (d, r)
             elif r is not None:
                 same_minus = d
+            elif invalid_minus is None:
+                invalid_minus = d
 
         if found_plus is not None and found_minus is not None:
             break
         d *= 2
+
+    def bisect_domain_edge(sign, same, invalid):
+        # the doubling probes jump across the end of the property range: a
+        # residual change close to the range boundary, e.g. the liquid
+        # region below a two phase plateau spanning the valid enthalpy
+        # range, lies between the outermost valid probe and the first
+        # invalid one
+        lo, hi = same, invalid
+        for _ in range(20):
+            mid = (lo + hi) / 2
+            r = eval_r(x0 + sign * mid)
+            if r is None:
+                hi = mid
+            elif changed(r):
+                return (mid, r), lo
+            else:
+                lo = mid
+        return None, lo
+
+    if found_plus is None and invalid_plus is not None:
+        found_plus, same_plus = bisect_domain_edge(
+            +1, same_plus, invalid_plus
+        )
+    if found_minus is None and invalid_minus is not None:
+        found_minus, same_minus = bisect_domain_edge(
+            -1, same_minus, invalid_minus
+        )
 
     plus_sign_change = found_plus is not None and r0 * found_plus[1] < 0
     minus_sign_change = found_minus is not None and r0 * found_minus[1] < 0
@@ -235,9 +277,12 @@ class NewtonStrategy:
 
     def solve(self, problem, block):
         """Solve the block and return its status (0, 2 or 3)."""
+        # the value heuristics can modify variables outside of the block -
+        # other properties of the block's connections - so a failed attempt
+        # must restore the full variable state to be side effect free
         snapshot = {
-            col: hlp.get_variable_value(problem.variables_dict[col])
-            for col in block.variables
+            col: hlp.get_variable_value(data)
+            for col, data in problem.variables_dict.items()
         }
 
         try:
@@ -367,6 +412,19 @@ class ScalarBracketingStrategy(NewtonStrategy):
             step = bracketed_step(problem, row, col, self._prev_value)
             if step is None:
                 step = search_reducing_step(problem, row, col)
+            if step is not None:
+                problem.increment[col] = step
+        elif (
+                self._prev_residual is not None
+                and abs(residual) > ERR
+                and abs(residual - self._prev_residual)
+                < 1e-3 * abs(residual)
+            ):
+            # the iteration stalls: the residual is high but barely moves,
+            # e.g. on a residual plateau with a surrogate derivative. The
+            # bracketing search probes geometrically growing steps to find
+            # a value that actually changes the residual
+            step = search_reducing_step(problem, row, col)
             if step is not None:
                 problem.increment[col] = step
 

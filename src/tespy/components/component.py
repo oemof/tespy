@@ -1121,13 +1121,9 @@ class Component:
 
             .. math::
 
-                0 = \begin{cases}
-                p_{in} - p_{out} & |\dot{m}| < \epsilon \\
-                \frac{\zeta}{D^4} - \frac{(p_{in} - p_{out}) \cdot \pi^2}
-                {8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot \frac{v_{in} +
-                v_{out}}{2}} &
-                |\dot{m}| > \epsilon
-                \end{cases}
+                0 = p_{in} - p_{out} - \frac{\zeta}{D^4} \cdot
+                \frac{8 \cdot \dot{m}_{in} \cdot |\dot{m}_{in}| \cdot
+                \frac{v_{in} + v_{out}}{2}}{\pi^2}
 
         Note
         ----
@@ -1140,21 +1136,24 @@ class Component:
 
             \frac{\zeta}{D^4} = \frac{\Delta p \cdot \pi^2}
             {8 \cdot \dot{m}^2 \cdot v}
+
+        The residual is formulated in terms of the pressure difference: the
+        coefficient formulation saturates at the :math:`\zeta` value with
+        vanishing derivatives when the pressure difference approaches zero
+        or the mass flow diverges, leaving the newton algorithm without
+        gradient information exactly where the equation is most violated.
         """
         data = self.get_attr(zeta)
         i = self.inl[inconn]
         o = self.outl[outconn]
 
-        if abs(i.m.val_SI) < 1e-4:
-            return i.p.val_SI - o.p.val_SI
-
-        else:
-            v_i = i.calc_vol(T0=i.T.val_SI)
-            v_o = o.calc_vol(T0=o.T.val_SI)
-            return (
-                data.val_SI - (i.p.val_SI - o.p.val_SI) * math.pi ** 2
-                / (8 * abs(i.m.val_SI) * i.m.val_SI * (v_i + v_o) / 2)
-            )
+        v_i = i.calc_vol(T0=i.T.val_SI)
+        v_o = o.calc_vol(T0=o.T.val_SI)
+        return (
+            i.p.val_SI - o.p.val_SI
+            - data.val_SI * 8 * abs(i.m.val_SI) * i.m.val_SI
+            * (v_i + v_o) / 2 / math.pi ** 2
+        )
 
     def zeta_d4_dependents(self, zeta=None, inconn=0, outconn=0):
         return [

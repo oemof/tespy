@@ -279,7 +279,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     UA_cecchinato_hc : GroupedComponentProperties
         Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in the next major version
+        explicit hot/cold Reynolds exponents; in version 0.12
         :code:`UA_cecchinato` will adopt the hot/cold convention of
         :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.

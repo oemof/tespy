@@ -294,7 +294,7 @@ class SectionedHeatExchanger(HeatExchanger):
 
     UA_cecchinato_hc : GroupedComponentProperties
         Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in the next major version
+        explicit hot/cold Reynolds exponents; in version 0.12
         :code:`UA_cecchinato` will adopt the hot/cold convention of
         :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
@@ -630,23 +630,23 @@ class SectionedHeatExchanger(HeatExchanger):
                 'refrigerant_index',
                 f"The parameter 'refrigerant_index' of component {self.label!r} is "
                 "deprecated. Use 'UA_cecchinato_hc' with 're_exp_hot' and 're_exp_cold' "
-                "instead. In the next major version 'UA_cecchinato' will adopt the "
+                "instead. In version 0.12 'UA_cecchinato' will adopt the "
                 "hot/cold convention of 'UA_cecchinato_hc'."
             ),
             (
                 're_exp_r',
                 f"The parameter 're_exp_r' of component {self.label!r} is deprecated. "
                 "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the refrigerant flows on. In the next major "
-                "version 'UA_cecchinato' will adopt the hot/cold convention of "
+                "depending on which side the refrigerant flows on. In version 0.12 "
+                "'UA_cecchinato' will adopt the hot/cold convention of "
                 "'UA_cecchinato_hc'."
             ),
             (
                 're_exp_sf',
                 f"The parameter 're_exp_sf' of component {self.label!r} is deprecated. "
                 "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the secondary fluid flows on. In the next "
-                "major version 'UA_cecchinato' will adopt the hot/cold convention of "
+                "depending on which side the secondary fluid flows on. In version "
+                "0.12 'UA_cecchinato' will adopt the hot/cold convention of "
                 "'UA_cecchinato_hc'."
             ),
         ]:
@@ -704,8 +704,8 @@ class SectionedHeatExchanger(HeatExchanger):
             'area_ratio': dc_cp(
                 quantity="ratio", min_val=0,
                 description="heat transfer area ratio; previously defined as secondary to "
-                "refrigerant side ratio, will be defined as hot to cold side ratio in a "
-                "future version"
+                "refrigerant side ratio, will be defined as hot to cold side ratio in "
+                "version 0.12"
             ),
             'UA_cecchinato': dc_gcp(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
@@ -726,7 +726,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 dependents=self.UA_dependents,
                 description=(
                     "temporary name - equation for UA modification in offdesign using "
-                    "explicit hot/cold Reynolds exponents; in the next major version "
+                    "explicit hot/cold Reynolds exponents; in version 0.12 "
                     ":code:`UA_cecchinato` will adopt the hot/cold convention of "
                     ":code:`UA_cecchinato_hc`"
                 )
@@ -1183,7 +1183,7 @@ class SectionedHeatExchanger(HeatExchanger):
     def UA_cecchinato_legacy_func(self):
         r"""
         Deprecated - use :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and
-        :code:`re_exp_cold` instead. In the next major version
+        :code:`re_exp_cold` instead. In version 0.12
         :code:`UA_cecchinato` will adopt the new hot/cold parameter convention
         and this group will be removed.
 

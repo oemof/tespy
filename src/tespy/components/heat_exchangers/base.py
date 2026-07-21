@@ -1367,14 +1367,14 @@ class HeatExchanger(Component):
             Use the component attributes :code:`Q_sections`, :code:`T_hot_sections`,
             :code:`T_cold_sections`, :code:`Q_per_section`, :code:`lmtd_per_section`
             instead. These are populated automatically after each solve. The return
-            value of this method will be removed in a future version.
+            value of this method will be removed in version 0.12.
         """
         warnings.warn(
             f"The return value of {self.__class__.__name__}.calc_sections() is deprecated. "
             "Access section data via the component attributes Q_sections, T_hot_sections, "
             "T_cold_sections, Q_per_section, lmtd_per_section instead. Each attribute "
             "exposes .val (network units) and .val_SI (SI units). The return value will "
-            "be removed in a future version.",
+            "be removed in version 0.12.",
             FutureWarning,
             stacklevel=2,
         )

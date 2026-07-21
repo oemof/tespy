@@ -464,7 +464,7 @@ class Network:
         except KeyError:
             warnings.warn(
                 f"Connection with label {label} not found. Returning None is "
-                "deprecated and will raise a KeyError in a future version.",
+                "deprecated and will raise a KeyError in version 0.12.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -490,7 +490,7 @@ class Network:
         except KeyError:
             warnings.warn(
                 f"Component with label {label} not found. Returning None is "
-                "deprecated and will raise a KeyError in a future version.",
+                "deprecated and will raise a KeyError in version 0.12.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -693,7 +693,7 @@ class Network:
         except KeyError:
             warnings.warn(
                 f"UserDefinedEquation with label {label} not found. Returning "
-                "None is deprecated and will raise a KeyError in a future version.",
+                "None is deprecated and will raise a KeyError in version 0.12.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -744,11 +744,19 @@ class Network:
                 name in Network._PROBLEM_ATTRIBUTES
                 and self.__dict__.get("_problem") is not None
             ):
-            warnings.warn(
-                f"Accessing Network.{name} is deprecated, use "
-                f"Network.problem.{name} instead.",
-                FutureWarning, stacklevel=2
+            msg = (
+                f"Accessing Network.{name} is deprecated and will stop "
+                f"working in version 0.12, use Network.problem.{name} "
+                "instead."
             )
+            if name == "residual_history":
+                msg += (
+                    " Note that its values hold the scaled maximum "
+                    "residual norm of every iteration since version "
+                    "0.11, previous versions stored the euclidean norm "
+                    "of the unscaled residual vector."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             return getattr(self._problem, name)
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
@@ -3130,7 +3138,7 @@ class Network:
             a dict that can be passed directly as :code:`design_path` or
             :code:`init_path` in a subsequent :meth:`solve` call. Default
             :code:`False`; the :code:`False` behaviour (returning a JSON string) is
-            deprecated and will be removed in a future release.
+            deprecated and will be removed in version 0.12.
 
         Returns
         -------

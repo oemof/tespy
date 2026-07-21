@@ -492,7 +492,7 @@ class SimpleHeatExchanger(Component):
             warnings.warn(
                 f"Component {self.label} is connected via PowerConnection. "
                 "Please use HeatConnection instead. PowerConnection support for "
-                "SimpleHeatExchanger will be removed in a future version.",
+                "SimpleHeatExchanger will be removed in version 0.12.",
                 FutureWarning,
                 stacklevel=2,
             )

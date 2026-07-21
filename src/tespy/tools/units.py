@@ -163,7 +163,7 @@ class Units:
             msg = (
                 "Setting the 'pressure' unit currently also sets the "
                 "'pressure_difference' unit for backwards compatibility. "
-                "In a future release this will no longer happen. Please "
+                "In version 0.12 this will no longer happen. Please "
                 "explicitly set 'pressure_difference' in "
                 "Network.units.set_defaults() to silence this warning."
             )

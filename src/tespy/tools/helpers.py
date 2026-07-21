@@ -614,7 +614,7 @@ def newton_with_kwargs(
         # relaxation to help convergence in case of jumping
         if iteration == 5:
             relax = 0.75
-            max_iter = 12
+            max_iter = max(max_iter, 12)
 
         if iteration > max_iter:
             msg = (

@@ -18,8 +18,8 @@ from tespy.solver.decomposition import Block
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import INCREMENT_TOLERANCE
-from tespy.tools.global_vars import RESIDUAL_TOLERANCE
+from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
+from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
 
 def scalar_residual_closure(problem, row, col):
@@ -287,6 +287,22 @@ class NewtonStrategy:
 
         try:
             status = self._iterate(problem, block)
+            if status == 3:
+                block.failure_cause = (
+                    "a linear dependency in the jacobian of the block"
+                )
+            elif status == 2:
+                residual = (
+                    block.residual_history[-1]
+                    if block.residual_history else float("nan")
+                )
+                block.failure_cause = (
+                    "no acceptance within the iteration budget of "
+                    f"{problem.max_iter} iterations, the last scaled "
+                    f"residual is {residual:.2e}"
+                )
+            else:
+                block.failure_cause = None
         except hlp.TESPyNetworkError:
             # informative errors, e.g. on NaN residuals pointing at the
             # equation that produced them, must reach the user
@@ -294,9 +310,23 @@ class NewtonStrategy:
         except Exception as e:
             msg = f"Solving the block raised an error: {e}"
             logger.warning(msg)
+            block.failure_cause = (
+                f"an error during the equation evaluation: {e}"
+            )
             status = 2
 
         if status != 0:
+            # record the linear system of the failing iteration for
+            # inspection before the variables are restored
+            block.jacobian = problem.jacobian[
+                np.ix_(block.equations, block.variables)
+            ].copy()
+            block.residual = problem.residual[block.equations].copy()
+            block.variable_values = [
+                hlp.get_variable_value(problem.variables_dict[col])
+                for col in block.variables
+            ]
+            block.connection_states = problem._connection_states(block)
             for col, value in snapshot.items():
                 hlp.set_variable_value(problem.variables_dict[col], value)
 
@@ -328,17 +358,19 @@ class NewtonStrategy:
         for obj in equation_objects:
             obj.it = 0
         problem._prev_residual = None
+        problem._auto_damping = False
         for block_iter in range(problem.max_iter):
             problem.iter = block_iter
             problem.increment_filter = (
                 np.absolute(problem.increment) < ERR ** 2
             )
             problem._solve_equations(equation_objects)
+            problem._update_residual_scales()
             problem._invert_jacobian(equations, variables)
             if problem.lin_dep:
                 return 3
 
-            if problem.oscillation_damping:
+            if problem.oscillation_damping or problem._auto_damping:
                 problem._dampen_oscillating_increments()
             self._modify_increment(problem, block)
             problem._update_variables(variable_set)
@@ -348,8 +380,21 @@ class NewtonStrategy:
             problem._prev_residual = problem.residual.copy()
 
             block.residual_history.append(
-                float(norm(problem.residual[equations]))
+                float(problem.scaled_residual(equations).max())
             )
+            if (
+                    not problem._auto_damping
+                    and problem._detect_residual_oscillation(
+                        block.residual_history
+                    )
+                ):
+                problem._auto_damping = True
+                msg = (
+                    f"The residual norm of block {block.id} alternates "
+                    "between two values, dampening the oscillating "
+                    "increments."
+                )
+                logger.debug(msg)
             # accept once the residual and the increment are small in an
             # iteration without interference of the value heuristics and at
             # least one newton update has been applied before the residual
@@ -357,12 +402,14 @@ class NewtonStrategy:
             # away (exactly solved blocks), otherwise two consecutive small
             # residuals are required, forcing another newton iteration
             # while convergence is still in progress
-            deep = block.residual_history[-1] < ERR
+            deep = (
+                block.residual_history[-1] < SCALED_RESIDUAL_TOLERANCE ** 2
+            )
             confirmed = (
                 len(block.residual_history) >= 2
                 and (
                     np.array(block.residual_history[-2:])
-                    < RESIDUAL_TOLERANCE
+                    < SCALED_RESIDUAL_TOLERANCE
                 ).all()
             )
             if (
@@ -371,7 +418,8 @@ class NewtonStrategy:
                     and (deep or confirmed)
                     and (
                         np.abs(problem.increment[variables])
-                        < INCREMENT_TOLERANCE
+                        / problem.variable_weights[variables]
+                        < SCALED_INCREMENT_TOLERANCE
                     ).all()
                 ):
                 return 0
@@ -416,7 +464,8 @@ class ScalarBracketingStrategy(NewtonStrategy):
                 problem.increment[col] = step
         elif (
                 self._prev_residual is not None
-                and abs(residual) > ERR
+                and abs(residual) / problem.residual_scales[row]
+                > SCALED_RESIDUAL_TOLERANCE
                 and abs(residual - self._prev_residual)
                 < 1e-3 * abs(residual)
             ):
@@ -445,11 +494,24 @@ class BlockDriver:
     block phase the full residual vector is verified and a simultaneous
     polish runs in case couplings outside of the declared incidence left a
     remaining residual.
+
+    With :code:`pause_on_block_failure` a failed block pauses the solution
+    process instead of escalating: the solved blocks stay frozen, the
+    failed block's variables can be inspected and modified and
+    :code:`resume` retries the block and continues from there.
     """
 
-    def __init__(self, problem):
+    def __init__(self, problem, pause_on_block_failure=False):
         self.problem = problem
+        self.pause_on_block_failure = pause_on_block_failure
         self._frozen = []
+        self._decomposition = None
+        self._snapshot = None
+        self._position = 0
+
+    @property
+    def paused_block(self):
+        return self._decomposition.blocks[self._position]
 
     def solve(self, iterinfo, print_results=True):
         problem = self.problem
@@ -462,6 +524,12 @@ class BlockDriver:
                 "simultaneously instead."
             )
             logger.info(msg)
+            if self.pause_on_block_failure:
+                msg = (
+                    "Pausing on a failed block is not possible for the "
+                    "simultaneous solution, the option has no effect."
+                )
+                logger.info(msg)
             problem._solve_simultaneous(iterinfo, print_results)
             return
 
@@ -478,16 +546,37 @@ class BlockDriver:
 
         # snapshot to restore the starting state in the final escalation
         # stage, so it behaves exactly like the default simultaneous solver
-        snapshot = {
+        self._snapshot = {
             key: hlp.get_variable_value(data)
             for key, data in problem.variables_dict.items()
         }
+        self._decomposition = decomposition
+
+        self._run(0, iterinfo, print_results)
+
+    def resume(self, iterinfo, print_results=True):
+        """Retry the paused block and continue the block-wise solution."""
+        problem = self.problem
+        block = self.paused_block
+        problem._paused_driver = None
+        msg = f"Resuming the block-wise solution at block {block.id}."
+        logger.info(msg)
+        self._run(self._position, iterinfo, print_results)
+
+    def _run(self, start, iterinfo, print_results):
+        problem = self.problem
+        decomposition = self._decomposition
+        snapshot = self._snapshot
 
         num_blocks = len(decomposition.blocks)
-        for position, block in enumerate(decomposition.blocks):
+        for position in range(start, num_blocks):
+            block = decomposition.blocks[position]
             self._solve_block(block, num_blocks, iterinfo, print_results)
 
             if block.status != 0:
+                if self.pause_on_block_failure:
+                    self._pause(block, position)
+                    return
                 # the preceding blocks stay solved: their equations do not
                 # depend on any variable of the failed or later blocks. The
                 # failed block's variables were restored by the strategy, so
@@ -503,6 +592,7 @@ class BlockDriver:
                     f"Block {block.id} did not converge, solving the "
                     f"remaining {num_blocks - position} blocks "
                     "simultaneously.\n"
+                    f"  Cause: {block.failure_cause}\n"
                     f"  Equations: {eq_str}\n"
                     f"  Variables: {var_str}"
                 )
@@ -611,6 +701,33 @@ class BlockDriver:
         ]
         return remainder
 
+    def _pause(self, block, position):
+        problem = self.problem
+        self._position = position
+        problem._paused_driver = self
+        problem.status = 20
+        msg = (
+            f"Block {block.id} did not converge, pausing the solution "
+            "process.\n"
+            f"  Cause: {block.failure_cause}\n"
+            "Inspect the failed block with\n"
+            "  - Network.print_blocks() for the block decomposition with "
+            "the equations, variables and solve status of every block,\n"
+            f"  - Network.print_variable_values(block={block.id}) for the "
+            "variables of the block and their current values,\n"
+            f"  - Network.print_block_jacobian(block={block.id}) for the "
+            "jacobian and residual as evaluated in the failing iteration,\n"
+            f"  - Network.print_block_states(block={block.id}) for the "
+            "states of the involved connections at the current values, "
+            "with at='failure' as evaluated in the failing iteration.\n"
+            "Modify variable values with Network.set_variable_value and "
+            "retry with Network.solve_continue(). Passing "
+            "pause_on_block_failure=False there continues with the "
+            "standard escalation stages instead in case the block fails "
+            "again."
+        )
+        logger.warning(msg)
+
     def _freeze(self, block):
         # the is_var guards of the convergence heuristics and of the
         # derivative computation skip frozen variables automatically in all
@@ -655,8 +772,10 @@ class BlockDriver:
             return True
 
         problem._solve_equations(residual_only=True)
-        residual_norm = norm(problem.residual)
-        if residual_norm > RESIDUAL_TOLERANCE:
+        # the scales stem from the last evaluated jacobian - one state
+        # stale, but they only serve as magnitude reference
+        residual_norm = problem.scaled_residual().max()
+        if residual_norm > SCALED_RESIDUAL_TOLERANCE:
             msg = (
                 "Block-wise solving finished with a remaining global "
                 f"residual of {residual_norm:.2e}, continuing with the "

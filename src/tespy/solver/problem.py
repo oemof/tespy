@@ -24,8 +24,8 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import INCREMENT_TOLERANCE
-from tespy.tools.global_vars import RESIDUAL_TOLERANCE
+from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
+from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
 # weight of the phase expectation priors in the starting value least
 # squares: low enough that any information transported by the guess edges
@@ -70,11 +70,14 @@ class Problem:
         self.residual = None
         self.jacobian = None
         self.increment = None
+        self.residual_scales = None
+        self.variable_weights = None
         self.lin_dep = False
         self.singularity_msg = ""
 
         self.structure_graph = None
         self._decomposition = None
+        self._paused_driver = None
 
         self.num_original_variables = 0
         self.num_original_equations = 0
@@ -92,7 +95,11 @@ class Problem:
         if self._decomposition is None:
             # variable mass fractions of one fluid vector are coupled through
             # their normalization outside of the equation system, so they
-            # must stay within one block
+            # must stay within one block. Block-wise solving falls back to
+            # the simultaneous solution for variable compositions anyway -
+            # this grouping keeps the structural diagnostics (determination
+            # check, defective block reports, get_blocks) honest for such
+            # networks
             coupled = {}
             for j_col, data in self.variables_dict.items():
                 if data["variable"] == "fluid":
@@ -938,6 +945,8 @@ class Problem:
         self.residual = np.zeros(n)
         self.jacobian = np.zeros((n, n))
         self.increment = np.ones(n)
+        self.residual_scales = np.ones(n)
+        self.variable_weights = np.ones(n)
         self.increment_filter = np.absolute(self.increment) < ERR ** 2
         try:
             self._solve_equations()
@@ -982,8 +991,7 @@ class Problem:
 
         delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
         if not np.isfinite(delta).all():
-            return 0
-        # deliberately stay short of the exact solution of the linearized
+            return 0        # deliberately stay short of the exact solution of the linearized
         # system: some models have degenerate jacobians exactly on the
         # solution manifold of the flow equations (recirculation with a
         # specified split ratio), the same way starting enthalpies are kept
@@ -1044,8 +1052,10 @@ class Problem:
     def no_progress_message(self):
         return (
             "The solver does not seem to make any progress, aborting "
-            "calculation. Residual value is "
-            "{:.2e}".format(norm(self.residual)) +
+            "calculation. Scaled residual value is "
+            "{:.2e}{}".format(
+                self.scaled_residual().max(), self._worst_equation_hint()
+            ) +
             "\nPossible reasons include:\n"
             " - fluid properties moving outside the valid range of the "
             "property database (consider adjusting p_range or h_range),\n"
@@ -1055,15 +1065,42 @@ class Problem:
             "the largest residuals."
         )
 
+    @property
+    def paused(self):
+        """Whether the solution process is paused at a failed block."""
+        return self._paused_driver is not None
+
+    def _release_pause(self):
+        if self._paused_driver is not None:
+            self._paused_driver._unfreeze()
+            self._paused_driver = None
+
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True,
-                   block_solve=False):
+                   block_solve=False, pause_on_block_failure=None):
         r"""Loop of the newton algorithm."""
         self.max_iter = max_iter
         self.min_iter = min_iter
         self.use_cuda = use_cuda
         self.robust_relax = robust_relax
         self.oscillation_damping = oscillation_damping
+        self._auto_damping = False
+
+        if self._paused_driver is not None:
+            driver = self._paused_driver
+            if pause_on_block_failure is not None:
+                driver.pause_on_block_failure = pause_on_block_failure
+            self.start_time = time()
+            driver.resume(iterinfo, print_results)
+            self.end_time = time()
+            return
+
+        if pause_on_block_failure and not block_solve:
+            msg = (
+                "Pausing on a failed block is not possible for the "
+                "simultaneous solution, the option has no effect."
+            )
+            logger.info(msg)
 
         n = self.variable_counter
         self._incidence_matrix_dense = np.zeros((n, n))
@@ -1075,12 +1112,16 @@ class Problem:
         self.residual = np.zeros([self.variable_counter])
         self.increment = np.ones([self.variable_counter])
         self.jacobian = np.zeros((self.variable_counter, self.variable_counter))
+        self.residual_scales = np.ones([self.variable_counter])
+        self.variable_weights = np.ones([self.variable_counter])
         self._prev_residual = None
 
         self.start_time = time()
 
         if block_solve:
-            BlockDriver(self).solve(iterinfo, print_results)
+            BlockDriver(
+                self, pause_on_block_failure=bool(pause_on_block_failure)
+            ).solve(iterinfo, print_results)
         else:
             self._solve_simultaneous(iterinfo, print_results)
 
@@ -1090,12 +1131,25 @@ class Problem:
         if iterinfo:
             self._print_iterinfo_head(print_results)
 
+        self._auto_damping = False
         for self.iter in range(self.max_iter):
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
             modified = self._solve_iteration()
             self.residual_history = np.append(
-                self.residual_history, norm(self.residual)
+                self.residual_history, self.scaled_residual().max()
             )
+            if (
+                    self.iter >= 3 and not self._auto_damping
+                    and self._detect_residual_oscillation(
+                        self.residual_history[-4:]
+                    )
+                ):
+                self._auto_damping = True
+                msg = (
+                    "The residual norm alternates between two values, "
+                    "dampening the oscillating increments."
+                )
+                logger.debug(msg)
             if iterinfo:
                 self._print_iterinfo_body(print_results)
 
@@ -1118,10 +1172,16 @@ class Problem:
             if (
                     self.iter >= self.min_iter - 1
                     and not modified
-                    and (self.residual_history[-2:] < RESIDUAL_TOLERANCE).all()
+                    and (
+                        self.residual_history[-2:]
+                        < SCALED_RESIDUAL_TOLERANCE
+                    ).all()
                     # the increment should also be small, but it does not need
                     # to be that small
-                    and (abs(self.increment) < INCREMENT_TOLERANCE).all()
+                    and (
+                        abs(self.increment) / self.variable_weights
+                        < SCALED_INCREMENT_TOLERANCE
+                    ).all()
                 ):
                 self.status = 0
                 break
@@ -1134,8 +1194,11 @@ class Problem:
         if self.iter == self.max_iter - 1:
             msg = (
                 f"Reached maximum iteration count ({self.max_iter}), "
-                "calculation stopped. Residual value is "
-                "{:.2e}. ".format(norm(self.residual)) +
+                "calculation stopped. Scaled residual value is "
+                "{:.2e}{}. ".format(
+                    self.scaled_residual().max(),
+                    self._worst_equation_hint()
+                ) +
                 "\nPossible reasons include:\n"
                 " - fluid properties moving outside the valid range of the "
                 "property database (consider adjusting p_range or h_range),\n"
@@ -1182,7 +1245,7 @@ class Problem:
         cp = [k for k in self.variables_dict if k not in m + p + h + fl + e]
 
         iter_str = str(self.iter + 1)
-        residual_norm = norm(self.residual)
+        residual_norm = self.scaled_residual().max()
         residual = 'NaN'
         progress = 'NaN'
         massflow = 'NaN'
@@ -1205,19 +1268,14 @@ class Problem:
                 energy  = '{:.2e}'.format(norm(self.increment[e]))
                 component  = '{:.2e}'.format(norm(self.increment[cp]))
 
-            # This should not be hardcoded here.
+            # 0 % at a scaled residual of 1 (variables off by their own
+            # magnitude), 100 % at the acceptance tolerance
             if residual_norm > np.finfo(float).eps * 100:
-                progress_min = math.log(ERR)
-                progress_max = math.log(RESIDUAL_TOLERANCE) * -1
-                progress_val = math.log(max(residual_norm, ERR)) * -1
-                # Scale to 0-1
                 progress_scaled = (
-                    (progress_val - progress_min)
-                    / (progress_max - progress_min)
+                    math.log(max(residual_norm, SCALED_RESIDUAL_TOLERANCE))
+                    / math.log(SCALED_RESIDUAL_TOLERANCE)
                 )
-                progress_val = max(0, min(1, progress_scaled))
-                # Scale to 100%
-                progress_val = int(progress_val * 100)
+                progress_val = int(max(0, min(1, progress_scaled)) * 100)
             else:
                 progress_val = 100
 
@@ -1472,6 +1530,26 @@ class Problem:
                         dependent_equations += [i]
         return list(set(dependent_equations))
 
+    def _detect_residual_oscillation(self, history):
+        """Detect a two-cycle of the residual norm.
+
+        Newton bouncing between two states produces an alternating
+        residual norm: the last two values repeat the two before them
+        while differing from each other. Such a cycle is stable up to
+        floating point noise and does not resolve on its own within any
+        reasonable iteration budget.
+        """
+        if len(history) < 4:
+            return False
+        a, b, c, d = history[-1], history[-2], history[-3], history[-4]
+        if a == 0 or b == 0:
+            return False
+        return (
+            abs(a - c) < 1e-3 * abs(a)
+            and abs(b - d) < 1e-3 * abs(b)
+            and abs(a - b) > 1e-1 * max(abs(a), abs(b))
+        )
+
     def _dampen_oscillating_increments(self):
         """Halve increments for variables whose residuals changed sign since the last iteration.
 
@@ -1589,7 +1667,7 @@ class Problem:
             self._apply_property_bounds(connections)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
-
+        # detect if any heuristic modifications were applied
         return not np.array_equal(values_before, self._variable_values())
 
     def _apply_property_bounds(self, connections):
@@ -1671,19 +1749,45 @@ class Problem:
         - Check component parameters for consistency
         """
         self._solve_equations()
+        self._update_residual_scales()
         self._invert_jacobian()
 
         if self.lin_dep:
             self._diagnose_singularity()
             return True
 
-        if self.oscillation_damping:
+        if self.oscillation_damping or self._auto_damping:
             self._dampen_oscillating_increments()
 
         self._update_variables()
         modified = self._adapt_to_variable_bounds()
         self._prev_residual = self.residual.copy()
         return modified
+
+    def _update_residual_scales(self):
+        """Per equation scales from the current jacobian.
+
+        The scale of an equation is its response to order one relative
+        changes of the variables it depends on, so the scaled residual
+        :code:`|r| / s` reads as the relative change of the variables
+        required to close the equation. This makes the convergence
+        acceptance independent of the physical magnitude of the
+        equations - a heat exchanger energy balance on a megawatt scale
+        plant would otherwise have to close to fractions of a watt,
+        below the noise of the fluid property evaluations chained into
+        its residual.
+        """
+        values = np.abs(self._variable_values())
+        self.variable_weights = np.maximum(values, 1.0)
+        self.residual_scales = np.maximum(
+            np.abs(self.jacobian) @ self.variable_weights, 1.0
+        )
+
+    def scaled_residual(self, rows=None):
+        """Residuals divided by their per equation scales."""
+        if rows is None:
+            return np.abs(self.residual) / self.residual_scales
+        return np.abs(self.residual[rows]) / self.residual_scales[rows]
 
     def _solve_equations(self, objects=None, residual_only=False):
         r"""
@@ -1751,14 +1855,25 @@ class Problem:
         }
 
     def get_sorted_residual_index(self) -> list[int]:
-        """Get the sorted array of residual indices.
+        """Get the equation indices sorted by scaled residual.
 
         Returns
         -------
         list[int]
-            List of variable numbers, the index values.
+            List of equation numbers, the index values.
         """
-        return list(np.argsort(np.abs(self.residual))[::-1])
+        return list(np.argsort(self.scaled_residual())[::-1])
+
+    def _worst_equation_hint(self):
+        """Name the equation with the largest scaled residual."""
+        if self.residual is None or len(self.residual) == 0:
+            return ""
+        worst = int(np.argmax(self.scaled_residual()))
+        equations = self._get_equations_by_number([worst])
+        for obj, name in equations.values():
+            label = obj.label if hasattr(obj, "label") else str(obj)
+            return f" ({label}: {self.format_eq_name(name)})"
+        return ""
 
     def get_mass_flow_branches(self) -> list:
         """Get the mass flow branch connection labels per branch."""
@@ -1822,11 +1937,21 @@ class Problem:
             for key, data in self.variables_dict.items()
         }
 
-    def get_variable_values(self) -> dict:
+    def get_variable_values(self, block=None) -> dict:
         """Get the variables with the current values of the original
-        variables they represent."""
+        variables they represent, optionally restricted to the variables
+        of the block with the given id."""
+        if block is not None:
+            blocks = {b.id: b for b in self.decompose().blocks}
+            if block not in blocks:
+                msg = f"There is no block with id {block}."
+                raise KeyError(msg)
+            columns = set(blocks[block].variables)
+
         result = {}
         for key, data in self.variables_dict.items():
+            if block is not None and key not in columns:
+                continue
             represents = []
             for v in data["_represents"]:
                 lookup = self._variable_lookup[v]
@@ -1841,6 +1966,119 @@ class Problem:
             result[(key, data["variable"])] = represents
         return result
 
+    def get_block_jacobian(self, block) -> dict:
+        """Get the linear system of a failed block at its state of failure.
+
+        The jacobian and residual restricted to the block's equations and
+        variables are recorded as evaluated in the failing iteration of the
+        last solution attempt (surrogate placeholders for all-zero rows
+        appear as their fill-in value of 1). They are only available for
+        blocks whose solution failed. The result also holds the expected
+        entries declared by the incidence matrix, so evaluated entries can
+        be compared against the declared dependencies, e.g. to find
+        derivatives that are zero although the equation declares the
+        dependency.
+        """
+        blocks = {b.id: b for b in self.decompose().blocks}
+        if block not in blocks:
+            msg = f"There is no block with id {block}."
+            raise KeyError(msg)
+
+        data = blocks[block]
+        if data.jacobian is None:
+            msg = (
+                f"There is no recorded jacobian for block {block}: it is "
+                "only recorded in case the solution of the block fails."
+            )
+            raise hlp.TESPyNetworkError(msg)
+
+        expected = np.zeros(data.jacobian.shape, dtype=bool)
+        for i, eq in enumerate(data.equations):
+            declared = set(self._incidence_matrix.get(eq, []))
+            for j, col in enumerate(data.variables):
+                expected[i, j] = col in declared
+
+        return {
+            "equations": [
+                f"{lbl}.{self.format_eq_name(name)}"
+                for lbl, name in data.equation_labels
+            ],
+            "variables": list(data.variable_labels),
+            "jacobian": data.jacobian.copy(),
+            "residual": data.residual.copy(),
+            "expected": expected,
+            "values": list(data.variable_values),
+        }
+
+    def get_block_states(self, block, at="current") -> list:
+        """Get the states of the connections a block touches.
+
+        The properties of every connection involved in the block's
+        equations and variables. What is reported comes from the
+        connection classes, e.g. mass flow, pressure, enthalpy, temperature
+        and phase for fluid connections. With :code:`at="current"` the
+        states are evaluated from the current variable values - while the
+        solution process is paused at the block this is its entry state,
+        including any modification made in between. :code:`at="failure"`
+        returns the states as recorded in the failing iteration of the
+        block's last solution attempt, only available for blocks whose
+        solution failed.
+        """
+        blocks = {b.id: b for b in self.decompose().blocks}
+        if block not in blocks:
+            msg = f"There is no block with id {block}."
+            raise KeyError(msg)
+
+        if at == "current":
+            return self._connection_states(blocks[block])
+        elif at == "failure":
+            data = blocks[block]
+            if data.connection_states is None:
+                msg = (
+                    f"There are no recorded states for block {block}: they "
+                    "are only recorded in case the solution of the block "
+                    "fails."
+                )
+                raise hlp.TESPyNetworkError(msg)
+            return [dict(state) for state in data.connection_states]
+        else:
+            msg = "The at parameter must either be 'current' or 'failure'."
+            raise ValueError(msg)
+
+    def _connection_states(self, block):
+        """Collect the state of every connection the block touches."""
+        columns = set(block.variables)
+        objects = [self._equation_obj_lookup[eq] for eq in block.equations]
+        for col in block.variables:
+            for sm_col in self.variables_dict[col]["_represents"]:
+                objects.append(self._variable_lookup[sm_col]["object"])
+
+        states = []
+        seen = set()
+        for obj in objects:
+            if isinstance(obj, ConnectionBase):
+                connections = [obj]
+            else:
+                connections = (
+                    getattr(obj, "inl", []) + getattr(obj, "outl", [])
+                )
+            for c in connections:
+                if not isinstance(c, ConnectionBase) or c.label in seen:
+                    continue
+                seen.add(c.label)
+                state = {"label": c.label, "block_variables": []}
+                for prop, value, container in c._debug_state():
+                    state[prop] = value
+                    if container is None:
+                        continue
+                    try:
+                        if container.is_var and container.J_col in columns:
+                            state["block_variables"].append(prop)
+                    except ValueError:
+                        pass
+                states.append(state)
+        return states
+
     def set_variable_value(self, obj, prop, value):
         """Set the SI value of a variable through any of the linearly
         dependent variables it represents.
@@ -1853,6 +2091,21 @@ class Problem:
         if obj not in lookup or prop not in lookup[obj]:
             msg = f"The object {obj.label} does not have a variable {prop}."
             raise KeyError(msg)
+
+        if self._paused_driver is not None:
+            block = self._paused_driver.paused_block
+            allowed = {
+                sm_col for col in block.variables
+                for sm_col in self.variables_dict[col]["_represents"]
+            }
+            if lookup[obj][prop] not in allowed:
+                var_str = ", ".join(block.variable_labels)
+                msg = (
+                    f"The solution process is paused at block {block.id}: "
+                    "only the variables of that block can be modified "
+                    f"({var_str})."
+                )
+                raise hlp.TESPyNetworkError(msg)
 
         container = obj.get_attr(prop)
         if prop == "fluid":

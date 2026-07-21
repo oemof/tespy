@@ -2325,7 +2325,8 @@ class Network:
     def solve(self, mode, init_path=None, design_path=None,
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
-              oscillation_damping=False, block_solve=True):
+              oscillation_damping=False, block_solve=True,
+              pause_on_block_failure=False):
         r"""
         Solve the network.
 
@@ -2399,6 +2400,19 @@ class Network:
             bracketing fallback on oscillation. Experimental, default:
             :code:`False`.
 
+        pause_on_block_failure : boolean
+            Pause the block-wise solution process at the first block that
+            does not converge instead of escalating to the coupled solution
+            stages, default: :code:`False`. The variable space stays loaded
+            (:code:`status` is 20), the variables of the failed block can
+            be inspected with
+            :py:meth:`~tespy.networks.network.Network.print_variable_values`
+            and modified with
+            :py:meth:`~tespy.networks.network.Network.set_variable_value`,
+            and
+            :py:meth:`~tespy.networks.network.Network.solve_continue`
+            retries the block and continues the solution process.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -2416,7 +2430,8 @@ class Network:
             max_iter=max_iter, min_iter=min_iter, use_cuda=use_cuda,
             print_results=print_results, robust_relax=robust_relax,
             skip_postprocess=skip_postprocess,
-            oscillation_damping=oscillation_damping, block_solve=block_solve
+            oscillation_damping=oscillation_damping, block_solve=block_solve,
+            pause_on_block_failure=pause_on_block_failure
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2457,6 +2472,9 @@ class Network:
             determined problems can be inspected.
         """
         self.status = 99
+        if self._problem is not None and self._problem.paused:
+            self._problem._release_pause()
+            self._problem.unload_variables()
         self.new_design = False
         if self.design_path == design_path and design_path is not None:
             for c in self.conns['object']:
@@ -2508,7 +2526,7 @@ class Network:
     def solve_continue(self, max_iter=50, min_iter=2, use_cuda=False,
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
-                       block_solve=True):
+                       block_solve=True, pause_on_block_failure=None):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2517,8 +2535,16 @@ class Network:
         modification of variable values made in between. The solver
         parameters correspond to the ones of
         :py:meth:`~tespy.networks.network.Network.solve`.
+
+        When the solution process is paused at a failed block, the block is
+        retried with the current variable values and the solution process
+        continues from there. :code:`pause_on_block_failure` defaults to
+        keeping the value of the initiating solve call, passing
+        :code:`False` explicitly hands a still failing block over to the
+        standard escalation stages instead.
         """
-        if self._problem is None or not self._presolve_pending:
+        if self._problem is None or not (
+                self._presolve_pending or self._problem.paused):
             msg = (
                 "There is no prepared problem to continue from. Call "
                 "Network.presolve or Network.solve first."
@@ -2551,16 +2577,23 @@ class Network:
                 robust_relax=robust_relax,
                 oscillation_damping=oscillation_damping,
                 iterinfo=self.iterinfo, print_results=print_results,
-                block_solve=block_solve
+                block_solve=block_solve,
+                pause_on_block_failure=pause_on_block_failure
             )
         except ValueError as e:
             self.status = 99
             msg = f"Simulation crashed due to an unexpected error:\n{e}"
             logger.exception(msg)
+            self._problem._release_pause()
             self._problem.unload_variables()
             return
 
         self.status = self._problem.status
+        if self._problem.paused:
+            # the variable space stays loaded for inspection and
+            # modification of the failed block's variables
+            return
+
         self._problem.unload_variables()
 
         if self.status == 3:

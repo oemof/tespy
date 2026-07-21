@@ -36,6 +36,11 @@ class Block:
     variable_labels: list = field(default_factory=list)
     status: int = None
     residual_history: list = field(default_factory=list)
+    failure_cause: str = None
+    jacobian: np.ndarray = None
+    residual: np.ndarray = None
+    variable_values: list = None
+    connection_states: list = None
 
 
 @dataclass
@@ -101,6 +106,7 @@ def dulmage_mendelsohn(incidence, num_variables, coupled_variables=None):
         for col in dependents:
             var_eqs.setdefault(col, set()).add(eq)
 
+    # the incidence again, as the sparse matrix scipy's matching requires
     rows = [eq for eq, dependents in eq_vars.items() for _ in dependents]
     cols = [col for dependents in eq_vars.values() for col in dependents]
     matrix = csr_matrix(

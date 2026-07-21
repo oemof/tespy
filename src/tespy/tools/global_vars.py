@@ -12,9 +12,16 @@ import CoolProp as CP
 
 ERR = 1e-6
 # convergence acceptance thresholds of the solver, the block wise and the
-# simultaneous solution share these definitions
+# simultaneous solution share these definitions. The scaled tolerances
+# apply to residuals divided by their per equation scale (the response of
+# the equation to order one relative changes of its variables) and to
+# increments relative to the variable magnitudes. The scaled residual
+# tolerance must stay well above the relative noise floor of the mixture
+# property inversions (tol_rel of newton_with_kwargs)
 RESIDUAL_TOLERANCE = ERR ** 0.5
 INCREMENT_TOLERANCE = ERR ** 0.25
+SCALED_RESIDUAL_TOLERANCE = 1e-7
+SCALED_INCREMENT_TOLERANCE = 1e-7
 GAS_CONSTANT_UNI = 8.314462618
 GRAVITY = 9.80665
 

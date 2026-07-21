@@ -242,7 +242,7 @@ class Network:
         if kwargs:
             msg = (
                 "The set_attr method of Network is deprecated and will be "
-                "removed in the next major release. Please explicitly call "
+                "removed in version 0.12. Please explicitly call "
                 "the respective set methods for specification of value "
                 "ranges, units or iterinfo."
             )
@@ -261,8 +261,8 @@ class Network:
             if key in kwargs:
                 msg = (
                     "Setting variable ranges through the Network.set_attr "
-                    f"is deprecated. Please use Network.set_{key} in the "
-                    "future."
+                    f"is deprecated and will stop working in version 0.12. "
+                    f"Please use Network.{key} = [min, max] instead."
                 )
                 warnings.warn(msg, FutureWarning)
                 logger.warning(msg)
@@ -276,9 +276,9 @@ class Network:
         self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
         if "iterinfo" in kwargs:
             msg = (
-                "Setting iterinfo through the Network.set_attr is deprecated. "
-                "Please directly specify Network.iterinfo=True/False in the "
-                "future."
+                "Setting iterinfo through the Network.set_attr is deprecated "
+                "and will stop working in version 0.12. Please directly "
+                "specify Network.iterinfo=True/False instead."
             )
             warnings.warn(msg, FutureWarning)
             logger.warning(msg)
@@ -371,7 +371,7 @@ class Network:
         """
         msg = (
             "The Network.get_attr method is deprecated and will be removed "
-            "in the next major release."
+            "in version 0.12."
         )
         warnings.warn(msg, FutureWarning)
         logger.warning(msg)
@@ -3284,7 +3284,16 @@ def _construct_components(target_class, data, nw):
     for cp, cp_data in data.items():
         instances[cp] = target_class(cp)
         for param, param_data in cp_data.items():
-            container = instances[cp].get_attr(param)
+            try:
+                container = instances[cp].get_attr(param)
+            except KeyError:
+                msg = (
+                    f"The parameter {param} of component {cp} is not "
+                    "available anymore, ignoring the data from the file. "
+                    "The file may originate from an older version of tespy."
+                )
+                logger.warning(msg)
+                continue
             if isinstance(container, dc):
                 if "char_func" in param_data:
                     if isinstance(container, dc_cc):

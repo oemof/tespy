@@ -140,9 +140,6 @@ class SimpleHeatExchanger(Component):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    power_connector_location : str
-        Description missing.
-
     pr : float, dict
         Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
         Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
@@ -279,17 +276,6 @@ class SimpleHeatExchanger(Component):
 
         return constraints
 
-    def set_attr(self, **kwargs):
-        if 'power_connector_location' in kwargs:
-            warnings.warn(
-                "The parameter 'power_connector_location' is deprecated and has no "
-                "effect. Connect the component directly on either the inlet or outlet "
-                "side without prior declaration.",
-                FutureWarning,
-                stacklevel=2,
-            )
-        super().set_attr(**kwargs)
-
     def _calc_Q(self):
         return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
 
@@ -309,7 +295,6 @@ class SimpleHeatExchanger(Component):
 
     def get_parameters(self):
         return {
-            'power_connector_location': dc_simple(dtype="str"),
             'Q': dc_cp(
                 num_eq_sets=1,
                 func=self.energy_balance_func,

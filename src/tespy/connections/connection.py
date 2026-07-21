@@ -278,6 +278,18 @@ class ConnectionBase:
     def _presolve(self):
         return []
 
+    def _debug_state(self):
+        """Properties reported in the solver debugging output.
+
+        Returns a list of tuples of property name, SI value and the
+        container in case the property is part of the variable space,
+        None for derived values.
+        """
+        return [
+            (prop, container.val_SI, container)
+            for prop, container in self.get_variables().items()
+        ]
+
     def _seed_starting_values(self, units):
         return []
 
@@ -1588,6 +1600,18 @@ class Connection(ConnectionBase):
 
     def get_variables(self):
         return {"m": self.m, "p": self.p, "h": self.h}
+
+    def _debug_state(self):
+        state = super()._debug_state()
+        try:
+            state.append(("T", self.calc_T(), None))
+        except Exception:
+            state.append(("T", None, None))
+        try:
+            state.append(("phase", self.calc_phase(), None))
+        except Exception:
+            state.append(("phase", None, None))
+        return state
 
     def get_parameters(self):
         return {

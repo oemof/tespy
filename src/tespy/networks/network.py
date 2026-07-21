@@ -1892,12 +1892,19 @@ class Network:
         if rows:
             print(tabulate(rows, headers=["#", "Property", "Represents"], tablefmt="simple"))
 
-    def get_variable_values(self) -> dict:
+    def get_variable_values(self, block=None) -> dict:
         """Get the current values of all variables of the presolved problem.
 
         Every variable is listed with all of the original variables it
         represents and their individual SI values, which can differ through
         the affine relation between linearly dependent variables.
+
+        Parameters
+        ----------
+        block : int
+            Restrict the result to the variables of the block with the
+            given id of the block decomposition, default: :code:`None`
+            (all variables).
 
         Returns
         -------
@@ -1905,12 +1912,19 @@ class Network:
             Variable number and property with the list of represented
             variables as tuples of object label, property and SI value.
         """
-        return self.problem.get_variable_values()
+        return self.problem.get_variable_values(block=block)
 
-    def print_variable_values(self):
-        """Print a formatted table of the current variable values."""
-        variables = self.get_variable_values()
-        print(f"Current variable values ({len(variables)} total):")
+    def print_variable_values(self, block=None):
+        """Print a formatted table of the current variable values,
+        optionally restricted to the variables of a single block."""
+        variables = self.get_variable_values(block=block)
+        if block is not None:
+            print(
+                f"Current variable values of block {block} "
+                f"({len(variables)} total):"
+            )
+        else:
+            print(f"Current variable values ({len(variables)} total):")
         rows = [
             (var_idx, var_type, f"{lbl} ({prop})", value)
             for (var_idx, var_type), represents in variables.items()
@@ -2138,24 +2152,148 @@ class Network:
                 tablefmt="simple",
             ))
 
+    def get_block_jacobian(self, block) -> dict:
+        """Get the linear system of a failed block at its state of failure.
+
+        The jacobian and the residual vector restricted to the block's
+        equations and variables, recorded as evaluated in the failing
+        iteration of the block's last solution attempt. Only available for
+        blocks whose solution failed.
+
+        Parameters
+        ----------
+        block : int
+            Id of the block of the block decomposition.
+
+        Returns
+        -------
+        dict
+            Formatted equation and variable labels together with the
+            jacobian matrix and the residual vector of the block.
+        """
+        return self.problem.get_block_jacobian(block)
+
+    def print_block_jacobian(self, block):
+        """Print the jacobian and residual of a failed block at its state
+        of failure.
+
+        Entries the incidence matrix does not declare are left blank, a
+        derivative that evaluated to zero although its dependency is
+        declared is marked as :code:`missing`.
+        """
+        data = self.get_block_jacobian(block)
+        print(f"Jacobian of block {block} at the state of failure:")
+        rows = [(
+            "(variable values)",
+            *(f"{value:.6e}" for value in data["values"]),
+            ""
+        )]
+        for i, equation in enumerate(data["equations"]):
+            cells = []
+            for j in range(len(data["variables"])):
+                value = data["jacobian"][i, j]
+                if value == 0.0 and data["expected"][i, j]:
+                    cells.append("missing")
+                elif value == 0.0:
+                    cells.append("")
+                else:
+                    cells.append(f"{value:.6e}")
+            rows.append((equation, *cells, f"{data['residual'][i]:.6e}"))
+        print(tabulate(
+            rows,
+            headers=["Equation"] + data["variables"] + ["Residual"],
+            tablefmt="simple",
+        ))
+
+    def get_block_states(self, block, at="current") -> list:
+        """Get the states of the connections a block touches.
+
+        The properties of every connection involved in the block's
+        equations and variables. What is reported comes from the connection
+        classes, e.g. mass flow, pressure, enthalpy, temperature and phase
+        for fluid connections, the energy flow for power connections.
+
+        Parameters
+        ----------
+        block : int
+            Id of the block of the block decomposition.
+
+        at : str
+            :code:`"current"` (default) evaluates the states from the
+            current variable values - while the solution process is paused
+            at the block this is its entry state, including any
+            modification made in between. :code:`"failure"` returns the
+            states as recorded in the failing iteration of the block's
+            last solution attempt, only available for blocks whose
+            solution failed.
+
+        Returns
+        -------
+        list
+            One dict per connection with its label, the reported properties
+            and the list of properties that are variables of the block.
+        """
+        return self.problem.get_block_states(block, at=at)
+
+    def print_block_states(self, block, at="current"):
+        """Print the states of the connections a block touches, either at
+        the current variable values or as recorded in the failing
+        iteration (:code:`at="failure"`)."""
+        states = self.get_block_states(block, at=at)
+        props = []
+        for state in states:
+            for prop in state:
+                if prop in ("label", "block_variables") or prop in props:
+                    continue
+                props.append(prop)
+        rows = []
+        for state in states:
+            cells = [state["label"]]
+            for prop in props:
+                value = state.get(prop)
+                if value is None or (
+                        isinstance(value, float) and np.isnan(value)):
+                    cells.append("")
+                elif isinstance(value, str):
+                    cells.append(value)
+                else:
+                    mark = " *" if prop in state["block_variables"] else ""
+                    cells.append(f"{value:.6e}{mark}")
+            rows.append(cells)
+        if at == "failure":
+            reference = "at the state of failure"
+        else:
+            reference = "at the current variable values"
+        print(
+            f"States of the connections of block {block} {reference} "
+            "(*: variable of the block):"
+        )
+        print(tabulate(
+            rows, headers=["Connection"] + props, tablefmt="simple"
+        ))
+
     def print_residuals(self):
         """Print a formatted table of equation residuals, sorted by magnitude."""
         if self._problem is None or self._problem.residual is None:
             print("Residuals are not available before the first solve call.")
             return
         equations = self.problem.get_equations()
+        scaled = self.problem.scaled_residual()
         rows = []
         for eq_idx in self.problem.get_sorted_residual_index():
             label, eq_name = equations[eq_idx]
             rows.append((
                 eq_idx, label, self.problem.format_eq_name(eq_name),
-                self.problem.residual[eq_idx]
+                scaled[eq_idx], self.problem.residual[eq_idx]
             ))
-        print(f"Residuals per equation ({len(rows)} total, sorted by magnitude):")
+        print(
+            f"Residuals per equation ({len(rows)} total, sorted by scaled "
+            "magnitude):"
+        )
         if rows:
             print(tabulate(
                 rows,
-                headers=["Eq#", "Object", "Equation", "Residual"],
+                headers=["Eq#", "Object", "Equation", "Scaled", "Residual"],
                 tablefmt="simple",
                 floatfmt=".3e",
             ))

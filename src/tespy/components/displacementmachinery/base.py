@@ -132,8 +132,15 @@ class DisplacementMachine(Component):
                 o.mixing_rule
             )
         except (ValueError, KeyError, IndexError, NotImplementedError):
-            return []
+            T_in = T_out = float("nan")
         if np.isnan(T_in) or np.isnan(T_out):
+            state = self.initial_state('in1')
+            if state is not None and state.get("phase") == "liquid":
+                # liquid compression is near isothermal regardless of the
+                # unknown state, so the temperature level carries across
+                # the machine even when no pressure exists yet to evaluate
+                # the state based estimate
+                return [(i, o, 0.0, 5.0)]
             return []
         return [(i, o, T_out - T_in, 5.0)]
 

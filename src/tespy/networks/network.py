@@ -3110,6 +3110,28 @@ class Network:
         dict
             Parametrization and structure of the Network instance.
         """
+        # a plain numeric specification means "in the network's default
+        # units". The unit is only attached to the containers when the
+        # network is transformed to SI for solving: exporting before that
+        # would serialize such values with the global default units,
+        # misinterpreting them on import
+        containers = [
+            c.get_attr(key)
+            for c in self.conns["object"] for key in c.property_data
+        ] + [
+            cp.get_attr(key)
+            for cp in self.comps["object"] for key in cp.parameters
+        ]
+        for container in containers:
+            if not isinstance(container, dc_prop) or not container.is_set:
+                continue
+            if container._val_is_quantity or container.quantity is None:
+                continue
+            try:
+                container._assign_default_unit_to_val(self.units)
+            except KeyError:
+                continue
+
         export = {}
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()

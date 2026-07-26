@@ -118,29 +118,50 @@ class Problem:
                 ]
         return self._decomposition
 
-    def _structural_report(self):
-        report = ""
+    def get_structural_analysis(self):
+        """Get the over- and under-determined parts of the problem.
+
+        Returns
+        -------
+        list
+            One dictionary per defective part of the maximum matching of
+            the incidence with its kind (:code:`"overdetermined"` or
+            :code:`"underdetermined"`), the equations as tuples of object
+            label and equation name and the short variable labels. An empty
+            list means the problem is structurally sound.
+        """
+        return [
+            {
+                "kind": block.kind,
+                "equations": list(block.equation_labels),
+                "variables": list(block.variable_labels),
+            }
+            for block in self.decompose().defective_blocks
+        ]
+
+    def _structural_summary(self):
+        parts = []
         for block in self.decompose().defective_blocks:
-            eq_str = ", ".join(
-                f"{lbl}.{self.format_eq_name(eq_name)}"
-                for lbl, eq_name in block.equation_labels
-            )
-            var_str = ", ".join(block.variable_labels)
+            num_eq = len(block.equations)
+            num_var = len(block.variables)
+            eq_word = "equation" if num_eq == 1 else "equations"
+            var_word = "variable" if num_var == 1 else "variables"
             if block.kind == "overdetermined":
-                report += (
-                    "\nStructural analysis - the following equations "
-                    "over-determine the problem:\n"
-                    f"  Equations: {eq_str}\n"
-                    f"  Involved variables: {var_str}"
+                parts.append(
+                    f"an over-determined part ({num_eq} {eq_word} competing "
+                    f"for {num_var} {var_word})"
                 )
             else:
-                report += (
-                    "\nStructural analysis - the following variables are "
-                    "under-determined:\n"
-                    f"  Variables: {var_str}\n"
-                    f"  Involved equations: {eq_str}"
+                parts.append(
+                    f"an under-determined part ({num_var} {var_word} "
+                    f"constrained by {num_eq} {eq_word})"
                 )
-        return report
+        if not parts:
+            return ""
+        return (
+            "\nStructural analysis - the problem contains "
+            f"{' and '.join(parts)}."
+        )
 
     def build(self):
         """Construct the problem from the prepared network.
@@ -1150,11 +1171,14 @@ class Problem:
     def check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
         _hint = (
-            "\nUse nw.print_variables() and nw.print_equations() to inspect "
-            "which variables and equations are present, "
-            "nw.print_equations_with_dependents() to see which variables each "
-            "equation depends on, or nw.print_incidence_matrix() for a compact "
-            "overview."
+            "\nInspect the problem with\n"
+            "  - nw.print_structural_analysis() for the over- or "
+            "under-determined part of the model,\n"
+            "  - nw.print_variables() and nw.print_equations() for the "
+            "variables and equations that are present,\n"
+            "  - nw.print_equations_with_dependents() for the variables "
+            "each equation depends on,\n"
+            "  - nw.print_incidence_matrix() for a compact overview."
         )
         n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
         _reduction = (
@@ -1168,7 +1192,7 @@ class Problem:
             msg = (
                 f"You have provided too many parameters: {self.variable_counter} "
                 f"required, {n} supplied. Aborting calculation!{_reduction}"
-                f"{_hint}{self._structural_report()}"
+                f"{self._structural_summary()}{_hint}"
             )
             logger.error(msg)
             self.status = 12
@@ -1177,7 +1201,7 @@ class Problem:
             msg = (
                 f"You have not provided enough parameters: {self.variable_counter} "
                 f"required, {n} supplied. Aborting calculation!{_reduction}"
-                f"{_hint}{self._structural_report()}"
+                f"{self._structural_summary()}{_hint}"
             )
             logger.error(msg)
             self.status = 11
@@ -1567,13 +1591,14 @@ class Problem:
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""
         if self.iter == 0:
-            report = self._structural_report()
-            if report != "":
+            summary = self._structural_summary()
+            if summary != "":
                 self.singularity_msg = (
                     "Detected singularity in Jacobian matrix. This "
                     "singularity is caused by the structure of your problem "
                     "and NOT a numerical issue. Double check your setup."
-                    f"{report}\n"
+                    f"{summary}\nUse nw.print_structural_analysis() for the "
+                    "affected equations and variables.\n"
                 )
                 self._find_linear_dependencies(self.jacobian)
                 return

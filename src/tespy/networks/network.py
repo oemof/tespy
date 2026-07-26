@@ -2152,6 +2152,55 @@ class Network:
                 tablefmt="simple",
             ))
 
+    def get_structural_analysis(self) -> list:
+        """Get the over- and under-determined parts of the problem.
+
+        Returns
+        -------
+        list
+            One dictionary per defective part of the maximum matching of
+            the incidence with its kind (:code:`"overdetermined"` or
+            :code:`"underdetermined"`), the equations as tuples of object
+            label and equation name and the short variable labels. An empty
+            list means the problem is structurally sound.
+        """
+        return self.problem.get_structural_analysis()
+
+    def print_structural_analysis(self):
+        """Print the over- and under-determined parts of the problem.
+
+        In an over-determined part more equations compete for the involved
+        variables than the variables can satisfy - one of the underlying
+        specifications must be removed. In an under-determined part the
+        involved equations cannot determine all of the variables - a
+        specification is missing. Prints that the problem is structurally
+        sound in case neither exists.
+        """
+        analysis = self.get_structural_analysis()
+        if not analysis:
+            print("The problem is structurally sound.")
+            return
+        for part in analysis:
+            eq_str = ", ".join(
+                f"{lbl}.{self._problem.format_eq_name(name)}"
+                for lbl, name in part["equations"]
+            )
+            var_str = ", ".join(part["variables"])
+            if part["kind"] == "overdetermined":
+                print(
+                    "Over-determined part - the following equations compete "
+                    "for the involved variables:"
+                )
+                print(f"  Equations: {eq_str}")
+                print(f"  Involved variables: {var_str}")
+            else:
+                print(
+                    "Under-determined part - the following variables cannot "
+                    "be determined by the involved equations:"
+                )
+                print(f"  Variables: {var_str}")
+                print(f"  Involved equations: {eq_str}")
+
     def get_block_jacobian(self, block) -> dict:
         """Get the linear system of a failed block at its state of failure.
 

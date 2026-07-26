@@ -537,7 +537,12 @@ class BlockDriver:
         if decomposition.defective_blocks:
             problem.singularity_msg = (
                 "The problem is structurally singular, block-wise solving "
-                f"is not possible.{problem._structural_report()}"
+                f"is not possible.{problem._structural_summary()}"
+                "\nUse nw.print_structural_analysis() for the affected "
+                "equations and variables. If the structural defect stems "
+                "from an incomplete dependency declaration of a custom "
+                "equation, the simultaneous solution can still be attempted "
+                "with nw.solve(mode, block_solve=False)."
             )
             problem.status = 3
             return

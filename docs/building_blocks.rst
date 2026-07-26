@@ -21,10 +21,10 @@ Building Blocks
         :link: modules_solver_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/building_blocks/network.svg
+        .. image:: /_static/images/thumbnails/building_blocks/solver.svg
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/building_blocks/network_darkmode.svg
+        .. image:: /_static/images/thumbnails/building_blocks/solver_darkmode.svg
             :class: only-dark
 
     .. grid-item-card::  Components

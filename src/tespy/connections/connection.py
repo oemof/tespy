@@ -2250,14 +2250,15 @@ class Connection(ConnectionBase):
                     upper = min(upper, wrapper._p_crit * 0.999)
                 # a port on the saturation line by a component equation
                 # requires a subcritical pressure for the saturation
-                # properties to exist
+                # properties to exist; the margin is kept tiny so
+                # legitimate near-critical condensation stays feasible
                 for comp, port in (
                         (self.source, self.source_id),
                         (self.target, self.target_id)
                     ):
                     claim = comp.initial_state(port)
                     if claim is not None and claim.get("saturated"):
-                        upper = min(upper, wrapper._p_crit * 0.95)
+                        upper = min(upper, wrapper._p_crit * 0.999)
                 return lower, upper
 
             elif prop == "h":

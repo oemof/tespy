@@ -8,6 +8,8 @@ existing models and custom components.
 
 API Changes
 ###########
+- Everything deprecated with a :code:`FutureWarning` in this release will be
+  removed or changed in version 0.12; each warning names its replacement.
 - The solver state of the :py:class:`~tespy.networks.network.Network` class
   has moved to the new :py:class:`~tespy.solver.problem.Problem` class. A
   fresh instance is created with every call of
@@ -115,6 +117,11 @@ Bug Fixes
 - :py:meth:`~tespy.networks.network.Network.set_attr` now actually emits
   its :code:`FutureWarning`: the deprecation notice existed but was never
   raised.
+- Value ranges (:code:`m_range`, :code:`p_range`, :code:`h_range`) are
+  exported in the network's default units now. Files exported with earlier
+  versions hold raw SI magnitudes, which are reinterpreted in the default
+  units on load - check or re-export old files carrying range
+  specifications.
 
 Other Changes
 #############

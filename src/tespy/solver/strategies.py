@@ -123,7 +123,7 @@ def search_reducing_step(problem, row, col):
     produces a sign change in the residual, which guarantees a root in
     the bracket [x0, x0±d] by the IVT, and refines its location with
     Brent's method. If both sides bracket a root, the tighter one
-    (smaller |r| at the probe point) is used. Falls back to a secant
+    (smaller :code:`abs(residual)` at the probe point) is used. Falls back to a secant
     step if brentq raises, and to the lower-magnitude heuristic when
     neither side yields a sign change.
 

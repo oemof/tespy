@@ -139,13 +139,15 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         :code:`temperature_difference`.
 
     ttd_l : float, dict
-        Terminal temperature difference at hot side outlet to cold side inlet.
-        Quantity: :code:`temperature_difference`.
+        Terminal temperature difference between the two inlets (the maximum
+        temperature difference in parallel flow). Quantity:
+        :code:`temperature_difference`.
         Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_l_func>`.
 
     ttd_u : float, dict
-        Terminal temperature difference at hot side inlet to cold side outlet.
-        Quantity: :code:`temperature_difference`.
+        Terminal temperature difference between the two outlets (the minimum
+        temperature difference in parallel flow). Quantity:
+        :code:`temperature_difference`.
         Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_u_func>`.
 
     UA : float, dict
@@ -280,6 +282,22 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         del params["eff_cold"]
         del params["eff_max"]
         return params
+
+    def _initial_temperature_edges(self):
+        # the inherited relations describe counter flow terminal
+        # temperature differences (hot inlet vs cold outlet), in parallel
+        # flow both terminal differences connect same ends: the inlets at
+        # the upper and the outlets at the lower temperature difference
+        ttd_upper = self.ttd_u.val_SI if self.ttd_u.is_set else 10.0
+        weight_upper = 5.0 if self.ttd_u.is_set else 0.3
+        ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
+        weight_lower = 5.0 if self.ttd_l.is_set else 0.3
+        return [
+            (self.inl[0], self.outl[0], 0.0, 1.0),
+            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.outl[1], self.outl[0], ttd_upper, weight_upper),
+            (self.inl[1], self.inl[0], ttd_lower, weight_lower),
+        ]
 
     def _calc_ttd_u(self):
         return self.outl[0].T.val_SI - self.outl[1].T.val_SI

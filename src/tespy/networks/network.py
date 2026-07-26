@@ -1797,20 +1797,6 @@ class Network:
             "components": components,
         }
 
-    def get_mass_flow_branches(self) -> list:
-        """Get the branches of equal mass flow given by the network topology.
-
-        Mass flow links imposed by specifications (e.g. referenced mass flow)
-        do not merge physically separate branches. The problem has to be
-        prepared, e.g. by solving with :code:`init_only=True`.
-
-        Returns
-        -------
-        list
-            List of lists of connection labels per branch.
-        """
-        return self.problem.get_mass_flow_branches()
-
     def get_linear_dependent_variables(self) -> list:
         """Get a list with sublists containing linear dependent variables
 

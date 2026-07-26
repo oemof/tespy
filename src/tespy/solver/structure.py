@@ -261,52 +261,6 @@ class StructureGraph:
 
         return variables_factors_offsets
 
-    def mass_flow_branches(self):
-        """Find the branches of equal mass flow given by the topology.
-
-        Only mass flow equalities originating from mandatory component
-        constraints are followed. Mass flow edges imposed by specifications
-        (e.g. referenced mass flow) do not merge physically separate
-        branches. Connections without any topological mass flow link form a
-        branch of their own.
-
-        Returns
-        -------
-        list
-            List of sets of structural variable numbers of the mass flow
-            variables per branch.
-        """
-        m_cols = {
-            col for col, data in self._variable_lookup.items()
-            if data["property"] == "m"
-        }
-        adjacency = {col: [] for col in m_cols}
-        for (col1, col2), row in self.edge_eq_idx.items():
-            if (
-                    col1 in m_cols and col2 in m_cols
-                    and self._equation_set_origin[row] == "topology"
-                ):
-                adjacency[col1].append(col2)
-                adjacency[col2].append(col1)
-
-        branches = []
-        visited = set()
-        for col in m_cols:
-            if col in visited:
-                continue
-            branch = set()
-            stack = [col]
-            while stack:
-                current = stack.pop()
-                if current in branch:
-                    continue
-                branch.add(current)
-                stack += adjacency[current]
-            visited |= branch
-            branches.append(branch)
-
-        return branches
-
     def attach_solver_incidence(self, incidence_matrix, variables_dict):
         """Attach the incidence of the iterated solver equations.
 

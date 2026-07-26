@@ -145,11 +145,11 @@ class Problem:
     def build(self):
         """Construct the problem from the prepared network.
 
-        - Assemble the structure matrix and the structure graph and reduce
-          the variable space by the affine linear dependencies.
+        - Assemble the structure matrix and the structure graph and reduce the
+          variable space by the affine linear dependencies.
         - Presolve fluid vectors and fluid properties iteratively.
-        - Assign the solver variable space and collect the equations and
-          their incidence.
+        - Assign the solver variable space and collect the equations and their
+          incidence.
         """
         self._create_structure_matrix()
 
@@ -184,6 +184,16 @@ class Problem:
         logger.debug(msg)
 
     def _create_structure_matrix(self):
+        """Assemble the structural equations and eliminate affine groups.
+
+        Enumerates all potential variables, collects the structural (symbolic
+        linear) equation rows of every connection, component and user defined
+        equation, and derives the affine variable groups from the resulting
+        graph. Every group receives one shared reference container the members
+        attach to with their :code:`factor` and :code:`offset`. The equations
+        consumed by this elimination are recorded in
+        :code:`self._presolved_equations`.
+        """
         self._structure_matrix = {}
         self._rhs = {}
         self._variable_lookup = {}
@@ -214,6 +224,10 @@ class Problem:
             var for linear_dependents in _linear_dependencies
             for var in linear_dependents["variables"]
         ]
+        # variables without any affine partner become singleton groups
+        # referencing themselves: every variable owns a reference
+        # container this way and no consumer has to distinguish grouped
+        # from ungrouped variables
         _missing_variables = [
             {
                 "variables": [var],
@@ -278,7 +292,10 @@ class Problem:
                 container._factor = linear_dependents["factors"][variable]
                 container._offset = linear_dependents["offsets"][variable]
 
-        # impose set values in the reference containers
+        # the user specifications were written to the local containers
+        # before the reference containers existed: push them through the
+        # affine relation now, so a value specified on any member of a
+        # group reaches the shared reference
         for conn in self.network.conns["object"]:
             for prop, container in conn.get_variables().items():
                 if conn.get_attr(prop).is_set:
@@ -292,6 +309,19 @@ class Problem:
         ]
 
     def _prepare_variables(self):
+        """Assign a structural column to every potential variable.
+
+        Scalar connection properties, one column per fluid composition
+        vector (the fractions are only split into individual solver
+        variables later, after the vector groups are resolved) and the
+        component variables. The :code:`_potential_var` flag marks what
+        is not directly specified.
+
+        Returns
+        -------
+        int
+            Number of structural variables.
+        """
         num_vars = 0
         for conn in self.network.conns["object"]:
             for prop, container in conn.get_variables().items():
@@ -339,12 +369,38 @@ class Problem:
         return num_vars
 
     def _reassign_ude_objects(self):
+        """Re-point user defined equations to this network's objects.
+
+        The user may have created the equation with objects of a
+        different network instance, e.g. after loading a network from
+        file: the labels identify the objects, the instances are looked
+        up here.
+        """
         for ude in self.network.user_defined_eq.values():
             ude.conns = [self.network.get_conn(c.label) for c in ude.conns]
             ude.comps = [self.network.get_comp(c.label) for c in ude.comps]
 
     def _preprocess_network_parts(self, parts, eq_counter):
+        """Collect the structural equation rows of a group of objects.
 
+        Every object writes its rows against a global row numbering
+        starting at :code:`eq_counter`; the rows, right hand sides and
+        the equation set lookups are merged into the problem level
+        dictionaries and every equation set is classified by its origin.
+
+        Parameters
+        ----------
+        parts : iterable
+            Connection, component or user defined equation objects.
+
+        eq_counter : int
+            Global structural row number to continue from.
+
+        Returns
+        -------
+        int
+            Structural row number after the group's equations.
+        """
         for obj in parts:
             obj._preprocess(eq_counter)
             self._structure_matrix.update(obj._structure_matrix)
@@ -369,13 +425,25 @@ class Problem:
         return eq_counter
 
     def _presolve(self):
-        # handle the fluid vector variables
+        """Determine variables from specifications in fixpoint rounds.
+
+        After the fluid vectors are resolved and the user specifications
+        are imposed on the affine groups, the connections check whether
+        their specifications determine further variables (e.g. a
+        temperature at known pressure fixes the enthalpy). The rounds
+        are event driven: a group of variables that became known only
+        triggers a recheck of the connections actually holding one of
+        its members, until nothing new is determined.
+        """
         self._presolve_fluid_vectors()
 
         # impose the user specifications on the affine groups first, so the
         # first round of connection presolving already sees them as known
         self._presolve_linear_dependents()
 
+        # only scalar references are tracked: the fluid vectors were
+        # fully resolved above and their is_var holds a set of fraction
+        # names, not a boolean
         known_references = set()
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
@@ -422,11 +490,18 @@ class Problem:
         logger.debug(msg)
 
     def _presolve_fluid_vectors(self):
+        """Resolve the fluid composition of every fluid vector group.
 
-        # right now, this ignores potential factors and offsets between the
-        # fluids.
-        # On top of that, branches of constant fluid composition are not
-        # caught, if they only consist of a single connection!
+        Per affine group of fluid vectors the specified mass fractions
+        of all members are combined: fully determined compositions are
+        imposed, otherwise the unspecified fractions become solver
+        variables and are registered in the variable space (one column
+        per variable fraction).
+
+        Limitations: factors and offsets between the vectors of a group
+        are ignored, and a branch of constant composition consisting of
+        a single connection is not detected as constant.
+        """
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
 
@@ -517,8 +592,10 @@ class Problem:
                 reference_container.val.update(fixed_fractions)
                 reference_container.is_set = {f for f in fixed_fractions}
                 reference_container.is_var = variable
-                # this seems to be a problem in some cases, e.g. the basic
-                # gas turbine tutorial
+                # the remaining share is split evenly as starting value,
+                # user provided starting fractions override the split.
+                # NOTE: that override has caused convergence issues in
+                # some models, e.g. the basic gas turbine tutorial
                 num_var = len(variable)
                 for f in variable:
                     reference_container.val[f] = (1 - mass_fraction_sum) / num_var
@@ -536,6 +613,13 @@ class Problem:
                 self.variable_counter += 1
 
     def _presolve_linear_dependents(self):
+        """Impose user specifications on their affine groups.
+
+        A group with exactly one specified member is known: its
+        reference stops being a variable. More than one specification
+        inside a group over-determines the group and raises, naming the
+        involved variables.
+        """
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
 
@@ -572,6 +656,13 @@ class Problem:
                 reference_container.is_var = False
 
     def _prepare_for_solver(self):
+        """Assign the solver variable space and collect the equations.
+
+        Every reference that is still a variable after presolving
+        receives a solver column, the network parts contribute their
+        iterated equations and incidence, and the solver incidence is
+        attached to the structure graph.
+        """
         for variable in self._variable_dependencies:
             reference = self._variable_lookup[variable["reference"]]
             represents = variable["variables"]
@@ -597,6 +688,28 @@ class Problem:
         )
 
     def _prepare_network_parts(self, parts, eq_counter):
+        """Collect the iterated equations and incidence of a group of
+        objects.
+
+        Every object numbers its remaining equations against the global
+        counter, skipping the equation sets consumed by the affine
+        elimination and the presolving
+        (:code:`self._presolved_equations`). The incidence rows are
+        assembled from the declared scalar and vector dependents.
+
+        Parameters
+        ----------
+        parts : iterable
+            Connection, component or user defined equation objects.
+
+        eq_counter : int
+            Global solver equation number to continue from.
+
+        Returns
+        -------
+        int
+            Solver equation number after the group's equations.
+        """
         for obj in parts:
             eq_counter = obj._prepare_for_solver(self._presolved_equations, eq_counter)
             eq_map = {
@@ -632,6 +745,21 @@ class Problem:
         return eq_counter
 
     def _assign_variable_space(self, reference, represents):
+        """Register a variable reference container in the solver space.
+
+        The container receives its jacobian column and the entry records
+        which structural variables the column represents.
+
+        Parameters
+        ----------
+        reference : dict
+            Entry of :code:`self._variable_lookup` for the group's
+            reference variable, holding the owning object and the
+            property name.
+
+        represents : list
+            Structural variable numbers the solver column represents.
+        """
         container = reference["object"].get_attr(reference["property"])._reference_container
         if container.is_var:
             container.J_col = self.variable_counter
@@ -644,6 +772,12 @@ class Problem:
             self.variable_counter += 1
 
     def unload_variables(self):
+        """Detach all containers from their reference containers.
+
+        Detaching writes the final value (through factor and offset)
+        back into every member container, so the results remain after
+        the shared references are released.
+        """
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
                 variable_dict = self._variable_lookup[variable_num]
@@ -1641,10 +1775,23 @@ class Problem:
             for data in self.variables_dict.values():
                 if type(data["obj"]) == dc_vecvar:
                     total_mass_fractions = sum(data["obj"].val.values())
+                    # renormalizing an already normalized vector would
+                    # rewrite the fractions in their last bits and flag a
+                    # modification, vetoing the convergence acceptance
+                    if abs(total_mass_fractions - 1) < 1e-12:
+                        continue
                     for fluid in data["obj"].is_var:
                         data["obj"]._val[fluid] /= total_mass_fractions
 
-        if norm(self.increment) > 1e-1:
+        # gate the heuristics on the scaled increment: an absolute norm
+        # over mixed units opens the gate for meaningless steps, e.g.
+        # sub-watt energy flow increments on a megawatt scale plant at a
+        # warm started solution
+        increment_moving = (
+            np.abs(self.increment) / self.variable_weights
+        ).max() > 1e-6
+
+        if increment_moving:
             self._apply_property_bounds(connections)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
@@ -1658,7 +1805,7 @@ class Problem:
         # - only in design case
         if (
                 self.iter < 3
-                and norm(self.increment) > 1e-1
+                and increment_moving
                 and self.network.mode == "design"
             ):
             for cp in components:
@@ -1667,8 +1814,18 @@ class Problem:
             self._apply_property_bounds(connections)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
-        # detect if any heuristic modifications were applied
-        return not np.array_equal(values_before, self._variable_values())
+        # detect if any heuristic modifications were applied. Changes
+        # below the solver's resolution do not count: e.g. the mass
+        # fraction renormalization and the converged solution can disagree
+        # by less than the acceptance tolerance indefinitely - such a
+        # rewrite must not veto the convergence acceptance
+        if self.variable_counter == 0:
+            return False
+        relative_change = (
+            np.abs(self._variable_values() - values_before)
+            / self.variable_weights
+        )
+        return bool(relative_change.max() > SCALED_RESIDUAL_TOLERANCE)
 
     def _apply_property_bounds(self, connections):
         """Clamp variables to the tightest bounds of their represented ones.
@@ -1874,16 +2031,6 @@ class Problem:
             label = obj.label if hasattr(obj, "label") else str(obj)
             return f" ({label}: {self.format_eq_name(name)})"
         return ""
-
-    def get_mass_flow_branches(self) -> list:
-        """Get the mass flow branch connection labels per branch."""
-        return [
-            sorted(
-                self._variable_lookup[col]["object"].label
-                for col in branch
-            )
-            for branch in self.structure_graph.mass_flow_branches()
-        ]
 
     def get_linear_dependent_variables(self) -> list:
         """Get the sets of linearly dependent variables by label."""

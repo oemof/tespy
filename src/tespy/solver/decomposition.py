@@ -65,6 +65,9 @@ class Decomposition:
 def dulmage_mendelsohn(incidence, num_variables, coupled_variables=None):
     r"""Compute the Dulmage-Mendelsohn decomposition of an incidence.
 
+    For the application of the decomposition to the analysis of equation
+    oriented process models see :cite:`Parker2023`.
+
     Parameters
     ----------
     incidence : dict

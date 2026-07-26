@@ -806,7 +806,7 @@ class SimpleHeatExchanger(Component):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
+            Starting value for pressure in SI units, 0 for no information.
 
             .. math::
 
@@ -839,7 +839,7 @@ class SimpleHeatExchanger(Component):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
+            Starting value for pressure in SI units, 0 for no information.
 
             .. math::
 

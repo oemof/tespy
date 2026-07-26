@@ -117,6 +117,13 @@ Bug Fixes
 - :py:meth:`~tespy.networks.network.Network.set_attr` now actually emits
   its :code:`FutureWarning`: the deprecation notice existed but was never
   raised.
+- The postprocessing limit checks are noise aware now: a parameter value
+  beyond its declared bound by less than a relative tolerance - related to
+  the magnitude of the parameter itself or of a declared reference
+  parameter, e.g. the thermal input for the heat dissipation of a
+  combustion chamber - is snapped onto the bound instead of being
+  reported. Converged solutions are no longer flagged with
+  :code:`status = 1` for numerical noise on exact bounds.
 - Value ranges (:code:`m_range`, :code:`p_range`, :code:`h_range`) are
   exported in the network's default units now. Files exported with earlier
   versions hold raw SI magnitudes, which are reinterpreted in the default

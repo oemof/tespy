@@ -312,12 +312,17 @@ values - specified, calculated or set as variable - are checked against their
 :code:`min_val` and :code:`max_val` in postprocessing. A violation does not
 fail the calculation: a warning names the parameter and the network's
 :code:`status` is set to 1 instead of 0, so a solution operating outside the
-component's validity is flagged to the user. The parameter will only be
-implemented as a postprocessing result. For this a :code:`calc` method on the
-:code:`dc_cp` is declared. The base class dispatches the method automatically
-after convergence. The corresponding :code:`_calc_td_minimal` method computes
-the internal maximum temperature in the compressor and returns the temperature difference to the
-cooling fluid outlet.
+component's validity is flagged to the user. Values beyond a bound by less
+than the numerical noise of the converged solution relative to the parameter's
+magnitude or to the parameter named in :code:`limit_scale` are snapped onto the
+bound instead.
+
+The parameter here will only be implemented as a postprocessing result. For
+this a :code:`calc` method on the :code:`dc_cp` is declared. The base class
+dispatches the method automatically after convergence. The corresponding
+:code:`_calc_td_minimal` method computes the internal maximum temperature in
+the compressor and returns the temperature difference to the cooling fluid
+outlet.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python

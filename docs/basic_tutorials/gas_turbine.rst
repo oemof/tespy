@@ -152,10 +152,9 @@ compressor, generator and the electricity grid, we can add instances of
 Since we deleted the connection 2 and 3, all specifications for those
 connections have to be added again. The air fluid composition is specified on
 connection 1 with ambient pressure and temperature. The compressor pressure
-ratio is set to 15 bar. Finally, set the gas turbine outlet pressure to ambient
-pressure as well as the compressor's and turbine's efficiency. We start with
-a simulation specifying a fixed value for the flue gas mass flow. After that,
-the turbine inlet temperature is set to 1200 °C.
+ratio is set to 15. Finally, set the turbine inlet temperature to 1200 °C and
+the gas turbine outlet pressure to ambient pressure as well as the compressor's
+and turbine's efficiency.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python

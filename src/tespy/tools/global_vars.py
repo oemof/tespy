@@ -22,6 +22,10 @@ RESIDUAL_TOLERANCE = ERR ** 0.5
 INCREMENT_TOLERANCE = ERR ** 0.25
 SCALED_RESIDUAL_TOLERANCE = 1e-7
 SCALED_INCREMENT_TOLERANCE = 1e-7
+# relative tolerance of the postprocessing limit checks: a value beyond a
+# declared bound by less than this fraction of its scale is numerical noise
+# of the converged solution and snapped onto the bound instead of reported
+LIMIT_RTOL = 1e-6
 GAS_CONSTANT_UNI = 8.314462618
 GRAVITY = 9.80665
 

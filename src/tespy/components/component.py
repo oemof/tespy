@@ -30,6 +30,7 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
@@ -1005,12 +1006,27 @@ class Component:
             dc.val_SI = dc.calc(**dc.calc_params)
 
     def check_parameter_bounds(self):
-        r"""Check parameter value limits."""
+        r"""Check parameter value limits.
+
+        The check is relative to the magnitude of the parameter itself or -
+        where a value is small by construction, e.g. a heat loss compared to
+        the thermal input - to the magnitude of the parameter named in
+        :code:`limit_scale`. A value beyond a bound by less than
+        :code:`LIMIT_RTOL` times that scale is numerical noise of the
+        converged solution: it is snapped onto the bound instead of being
+        reported as a violation.
+        """
         _no_limit_violated = True
         for p in self.parameters.keys():
             data = self.get_attr(p)
             if isinstance(data, dc_cp):
-                if data.val_SI > data.max_val + ERR:
+                scale = max(abs(data.val_SI), 1.0)
+                if data.limit_scale is not None:
+                    reference = self.get_attr(data.limit_scale).val_SI
+                    if reference is not None and not np.isnan(reference):
+                        scale = max(scale, abs(reference))
+                tolerance = LIMIT_RTOL * scale
+                if data.val_SI > data.max_val + tolerance:
                     msg = (
                         f"Invalid value for {p}: {p} = {data.val_SI} above "
                         f"maximum value ({data.max_val}) at component "
@@ -1019,7 +1035,7 @@ class Component:
                     logger.warning(msg)
                     _no_limit_violated = False
 
-                elif data.val_SI < data.min_val - ERR:
+                elif data.val_SI < data.min_val - tolerance:
                     msg = (
                         f"Invalid value for {p}: {p} = {data.val_SI} below "
                         f"minimum value ({data.min_val}) at component "
@@ -1027,6 +1043,12 @@ class Component:
                     )
                     logger.warning(msg)
                     _no_limit_violated = False
+
+                elif data.val_SI > data.max_val:
+                    data.val_SI = data.max_val
+
+                elif data.val_SI < data.min_val:
+                    data.val_SI = data.min_val
 
             elif isinstance(data, dc_cc) and data.is_set:
                 if data.param is not None:

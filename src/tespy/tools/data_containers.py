@@ -541,6 +541,7 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "is_result": False,
             "min_val": -1e12,
             "max_val": 1e12,
+            "limit_scale": None,
             "d": 1e-4,
             "_unit": None,
             "is_set": False,

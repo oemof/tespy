@@ -224,3 +224,58 @@ def test_block_solve_sequential_precedence():
     assert any(deps for deps in decomposition.precedence.values())
     for block_id, prerequisites in decomposition.precedence.items():
         assert all(dep < block_id for dep in prerequisites)
+
+
+def test_structural_analysis_sound():
+    nw = _splitter_merge_network()
+    nw.presolve("design")
+    assert nw.get_structural_analysis() == []
+    nw.print_structural_analysis()
+
+
+def test_structural_analysis_overdetermined():
+    nw = _splitter_merge_network()
+    nw.get_conn("c3").set_attr(T=350)
+    with raises(TESPyNetworkError):
+        nw.solve("design")
+    assert nw.status == 12
+
+    analysis = nw.get_structural_analysis()
+    assert len(analysis) == 1
+    assert analysis[0]["kind"] == "overdetermined"
+    # the temperature specification itself is consumed by presolving, the
+    # heat specification is left over competing for the same enthalpy
+    equations = [
+        f"{lbl}.{nw.problem.format_eq_name(name)}"
+        for lbl, name in analysis[0]["equations"]
+    ]
+    assert equations == ["heater 1.Q"]
+    nw.print_structural_analysis()
+
+
+def test_structural_analysis_underdetermined():
+    nw = _splitter_merge_network()
+    nw.get_comp("heater 2").set_attr(Q=None)
+    with raises(TESPyNetworkError):
+        nw.solve("design")
+    assert nw.status == 11
+
+    analysis = nw.get_structural_analysis()
+    assert len(analysis) == 1
+    assert analysis[0]["kind"] == "underdetermined"
+    assert len(analysis[0]["variables"]) > 0
+    nw.print_structural_analysis()
+
+
+def test_structural_analysis_balanced_defect():
+    # equation and variable count match but no assignment of equations to
+    # variables exists: block-wise solving reports the structural defect
+    nw = _splitter_merge_network()
+    nw.get_comp("heater 2").set_attr(Q=None)
+    nw.get_conn("c3").set_attr(T=350)
+    nw.solve("design")
+    assert nw.status == 3
+    assert "block_solve=False" in nw.problem.singularity_msg
+
+    kinds = {part["kind"] for part in nw.get_structural_analysis()}
+    assert kinds == {"overdetermined", "underdetermined"}

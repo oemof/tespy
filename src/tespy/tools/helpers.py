@@ -382,6 +382,21 @@ def solve(obj, increment_filter):
         _solve_jacobian(obj, data, increment_filter, eq_num)
 
 
+def get_variable_value(data):
+    """Current value of a variable entry of :code:`Problem.variables_dict`."""
+    if data["variable"] == "fluid":
+        return data["obj"].val[data["fluid"]]
+    return data["obj"]._val_SI
+
+
+def set_variable_value(data, value):
+    """Set the value of a variable entry of :code:`Problem.variables_dict`."""
+    if data["variable"] == "fluid":
+        data["obj"].val[data["fluid"]] = value
+    else:
+        data["obj"]._val_SI = value
+
+
 def solve_residuals(obj):
     """Calculate residuals of a component without recomputing derivatives."""
     for data in obj.equations.values():
@@ -599,7 +614,7 @@ def newton_with_kwargs(
         # relaxation to help convergence in case of jumping
         if iteration == 5:
             relax = 0.75
-            max_iter = 12
+            max_iter = max(max_iter, 12)
 
         if iteration > max_iter:
             msg = (

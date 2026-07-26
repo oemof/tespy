@@ -125,27 +125,62 @@ class HAConnection(Connection):
 
     mixing_rule = property(_get_mixing_rule, _set_mixing_rule)
 
-    def _guess_starting_values(self, units):
+    def _temperature_hint(self):
+        if self.T.is_set:
+            return self.T.val_SI
+        return None
+
+    def _apply_temperature_field(self, field, covered, seeded):
+        h_sources = []
+        if self not in field or not self.h.is_var:
+            return h_sources
+        reference = self.h._reference_container
+        if reference in covered:
+            return h_sources
+        try:
+            w = self.calc_w()
+            h = HAPropsSI("H", "P", self.p.val_SI, "T", field[self], "W", w)
+        except ValueError:
+            return h_sources
+        self.h.set_reference_val_SI(h)
+        covered.add(reference)
+        h_sources.append(reference)
+        return h_sources
+
+    def _guess_starting_values(self, units, covered):
+        h_sources = []
         if self.h.is_var and not self.good_starting_values:
-            value = seeded_random(self.label)
-            T_rand = 280 + value * (300 - 280)
-            h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
-            self.h.set_reference_val_SI(h)
-            self._precalc_guess_values()
+            reference = self.h._reference_container
+            if reference not in covered:
+                value = seeded_random(self.label)
+                T_rand = 280 + value * (300 - 280)
+                h = fp.h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
+                self.h.set_reference_val_SI(h)
+                covered.add(reference)
+                h_sources.append(reference)
+            if self._precalc_guess_values():
+                covered.add(reference)
+                if reference not in h_sources:
+                    h_sources.append(reference)
+        return h_sources
 
     def _precalc_guess_values(self):
-        if not self.h.is_var:
-            return
+        if not self.h.is_var or self.good_starting_values:
+            return False
 
-        if not self.good_starting_values:
-            if self.T.is_set:
-                try:
-                    w = self.calc_w()
-                    self.h.set_reference_val_SI(
-                        HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
-                    )
-                except ValueError:
-                    pass
+        if self.T.is_set:
+            try:
+                w = self.calc_w()
+                self.h.set_reference_val_SI(
+                    HAPropsSI("H", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
+                )
+                return True
+            except ValueError:
+                pass
+        return False
+
+    def _refine_two_phase_guess(self, has_value=True):
+        return False
 
     def _precalc_guess_values_for_references(self):
         """precalculate starting values for specified temperature
@@ -184,6 +219,23 @@ class HAConnection(Connection):
         ]
         return presolved_equations
 
+    def _property_bounds(self, prop, nw):
+        if prop == "p":
+            return 101, 99e5
+
+        elif prop == "h":
+            # TODO: check minimum temperature how it matches minimum humidity ratio
+            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
+            # TODO: where to get reasonable hmax from?!
+            hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
+            d = self.h._reference_container._d
+            delta = min(
+                max(abs(self.h.val_SI * d), d) * 5, (hmax - hmin) / 100
+            )
+            return hmin + delta, hmax - delta
+
+        return None
+
     def _adjust_to_property_limits(self, nw):
 
         if self.r.is_set and self.it < 5:
@@ -197,27 +249,6 @@ class HAConnection(Connection):
             if water_alias in self.fluid.is_var:
                 if self.fluid.val[water_alias] > 0.2:
                     self.fluid.set_reference_val(water_alias, 0.05)
-
-        if self.p.is_var:
-            if self.p.val_SI < 100:
-                self.p.val_SI = 101
-            elif self.p.val_SI > 100e5:
-                self.p.val_SI = 99e5
-
-        if self.h.is_var:
-            # TODO: check minimum temperature how it matches minimum humidity ratio
-            d = self.h._reference_container._d
-            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
-            if self.h.val_SI < hmin:
-                delta = max(abs(self.h.val_SI * d), d) * 5
-                self.h.set_reference_val_SI(hmin + delta)
-
-            else:
-                # TODO: where to get reasonable hmax from?!
-                hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
-                if self.h.val_SI > hmax:
-                    delta = max(abs(self.h.val_SI * d), d) * 5
-                    self.h.set_reference_val_SI(hmax - delta)
 
     @classmethod
     def _result_attributes(cls):
@@ -240,10 +271,12 @@ class HAConnection(Connection):
 
     def r_dependents(self):
         water_alias = _get_fluid_alias("water", self.fluid_data)
-        # water alias is already a set
+        air_alias = _get_fluid_alias("air", self.fluid_data)
+        # the humidity ratio relates the water to the air mass fraction, so
+        # the equation depends on both
         return {
             "scalars": [self.p, self.h],
-            "vectors": [{self.fluid: water_alias}]
+            "vectors": [{self.fluid: water_alias | air_alias}]
         }
 
     def calc_w(self):

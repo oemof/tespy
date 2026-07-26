@@ -157,6 +157,14 @@ class Splitter(NodeBase):
             })
         }
 
+    def _initial_affine_edges(self):
+        edges = super()._initial_affine_edges()
+        num_out = len(self.outl)
+        edges += [
+            (self.inl[0].m, o.m, 1.0 / num_out, 0.0) for o in self.outl
+        ]
+        return edges
+
     @staticmethod
     def inlets():
         return ['in1']

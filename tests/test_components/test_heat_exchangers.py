@@ -1008,7 +1008,7 @@ class TestHeatExchangers:
         instance = MovingBoundaryHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)
 
-        # T found be trial and error
+        # T found by trial and error
         self.c1.set_attr(fluid={"water": 1}, T=20, p=1)
         self.c2.set_attr(T=10)
         self.c3.set_attr(fluid={"NH3": 1}, x=1.0)

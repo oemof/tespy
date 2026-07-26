@@ -72,10 +72,8 @@ c1.set_attr(
     p=1, T=20,
     fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
 )
-c3.set_attr(m=30)
+c3.set_attr(T=1200)
 c4.set_attr(p=Ref(c1, 1, 0))
-nw.solve("design")
-c3.set_attr(m=None, T=1200)
 nw.solve("design")
 nw.print_results()
 # %%[sec_10]

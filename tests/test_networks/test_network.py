@@ -102,10 +102,12 @@ class TestNetworks:
         )
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
-        self.nw.solve('design', max_iter=2)
+        # the block solver converges this problem within two iterations, the
+        # maximum iteration stop is a mechanism of the simultaneous solution
+        self.nw.solve('design', max_iter=2, block_solve=False)
         assert self.nw.status == 2
         msg = 'Test must result in the itercount being equal to max_iter.'
-        assert self.nw.max_iter == self.nw.iter + 1, msg
+        assert self.nw.problem.max_iter == self.nw.problem.iter + 1, msg
 
     def test_Network_delete_conns(self):
         """Test deleting a network's connection."""
@@ -428,7 +430,7 @@ class TestNetworkPreprocessing:
         self.nwk.assert_convergence()
         variables = [
             data["obj"].get_attr(data["variable"])
-            for data in self.nwk.variables_dict.values()
+            for data in self.nwk.problem.variables_dict.values()
         ]
         # no variable at all, everything must have been presolved
         assert c1.m not in variables
@@ -520,7 +522,7 @@ def test_use_cuda_without_it_being_installed():
     c1.set_attr(m=1, p=1e5, T=300, fluid={"INCOMP::Water": 1})
     nw.solve("design", use_cuda=True)
     nw.assert_convergence()
-    assert not nw.use_cuda
+    assert not nw.problem.use_cuda
 
 
 def test_component_not_found():
@@ -705,13 +707,7 @@ def test_cyclic_linear_dependent_variables():
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
 
-    adjacency_list, _, _, _ = (
-        nw._build_graph(nw._structure_matrix, nw._rhs)
-    )
-    # Detect cycles (to check for circular dependencies)
-    cycle = nw._find_cycles_in_graph(
-        {k: [x[0] for x in v] for k, v in adjacency_list.items()}
-    )
+    cycle = nw.problem.structure_graph.find_cycle()
     # checksum for the variable numbers
     assert sum(cycle) == 19
 
@@ -746,13 +742,7 @@ def test_cyclic_linear_dependent_with_merge_and_split():
     with raises(TESPyNetworkError):
         nw.solve("design", init_only=True)
 
-    adjacency_list, _, _, _ = (
-        nw._build_graph(nw._structure_matrix, nw._rhs)
-    )
-    # Detect cycles (to check for circular dependencies)
-    cycle = nw._find_cycles_in_graph(
-        {k: [x[0] for x in v] for k, v in adjacency_list.items()}
-    )
+    cycle = nw.problem.structure_graph.find_cycle()
     # checksum for the variable numbers
     assert sum(cycle) == 45
 
@@ -844,7 +834,10 @@ def test_two_phase_in_supercritical_pressure_non_convergence():
     heater.set_attr(Q=0)
 
     nw.solve("design")
-    assert nw.status == 99
+    # the two phase specification bounds the pressure below the critical
+    # point, so instead of crashing on the property call (status 99) the
+    # solver stalls at the bound without progress
+    assert nw.status == 2
 
 
 def test_postprocessing_supercritical():
@@ -920,7 +913,7 @@ def test_nonconverged_simulation_does_not_overwrite_component_specification_2():
     instance.set_attr(Tamb=20, UA=500, pr=1)
     nw.solve("design")
 
-    assert nw.residual < 1e-3  # residual shows convergence
+    assert nw.problem.residual < 1e-3  # residual shows convergence
     assert nw.status == 2  # status shows non-convergence
 
     assert np.isnan(instance.UA.val_SI)  # calculated SI value is not equal to inputted value
@@ -1251,6 +1244,37 @@ def test_export_creates_nonexistent_directory(tmp_path):
     assert design_path.exists()
 
 
+def test_export_before_solve_keeps_network_units(tmp_path):
+    """Plain numeric specifications mean the network's default units.
+
+    Exporting a never solved network used to serialize them with the
+    global default units instead (T=200 under degC defaults became
+    200 K on import).
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        temperature="°C", pressure="bar", pressure_difference="bar",
+        heat="kW"
+    )
+    nw.iterinfo = False
+    pipe = Pipe("pipe", pr=1, Q=0)
+    c1 = Connection(Source("source"), "out1", pipe, "in1", label="c1")
+    c2 = Connection(pipe, "out1", Sink("sink"), "in1", label="c2")
+    nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"water": 1}, T=200, p=10, m=1)
+
+    export_path = tmp_path / "network.json"
+    nw.export(str(export_path))
+
+    imported = Network.from_json(str(export_path))
+    imported.iterinfo = False
+    imported.solve("design")
+    imported.assert_convergence()
+    assert imported.get_conn("c1").T.val_SI == approx(473.15)
+    assert imported.get_conn("c1").p.val_SI == approx(10e5)
+    assert imported.get_comp("pipe").Q.val_SI == approx(0.0)
+
+
 class TestBackwardsCompatibility:
     """Verify that save/export files written by v0.9.x are still readable."""
 
@@ -1273,3 +1297,38 @@ class TestBackwardsCompatibility:
         nw.save_csv(tmp_path)
         assert (tmp_path / "Component" / "TurboCompressor.csv").exists()
         assert (tmp_path / "Connection" / "Connection.csv").exists()
+
+    def test_solver_state_shim_warns_and_delegates(self):
+        """Legacy solver-state attributes on Network forward to nw.problem."""
+        nw = Network(iterinfo=False)
+        so = Source("source")
+        si = Sink("sink")
+        pi = Pipe("pipe", pr=0.98, Q=0)
+        c1 = Connection(so, "out1", pi, "in1", label="1")
+        c2 = Connection(pi, "out1", si, "in1", label="2")
+        nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"water": 1}, m=1, p=2e5, T=313.15)
+        nw.solve("design")
+        nw.assert_convergence()
+
+        for name in Network._PROBLEM_ATTRIBUTES:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                value = getattr(nw, name)
+            assert len(caught) == 1
+            assert issubclass(caught[0].category, FutureWarning)
+            if callable(value):
+                assert value.__self__ is nw.problem
+            else:
+                reference = getattr(nw.problem, name)
+                assert value is reference or value == reference
+
+        with raises(AttributeError):
+            nw.not_an_attribute
+
+    def test_problem_access_before_solve_raises(self):
+        nw = Network()
+        with raises(TESPyNetworkError):
+            nw.problem
+        with raises(AttributeError):
+            nw.residual

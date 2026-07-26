@@ -482,8 +482,14 @@ the standard escalation stages instead.
 
 Debugging
 ---------
-In this section we show you how you can debug your models and list common
-mistakes.
+In this section we show you how you can debug your models. Problems surface
+in the same order as the stages of the solve process: the topology check, the
+problem reduction, the determination check and the solution process itself.
+Each stage has its own inspection tools. Two worked tutorials complement this
+section: the :ref:`debugging tutorial <tutorial_debugging_label>` covers
+specification errors and information extraction, the
+:ref:`advanced debugging tutorial <tutorial_advanced_debugging_label>`
+covers the solution process.
 
 **Topology**
 
@@ -492,7 +498,7 @@ an error, if it is not, and provide you with information, which components
 are missing connections. Usually, this is the case, when you forgot to add
 the connections to the network.
 
-**Presolving**
+**Problem reduction**
 
 In the first part of the presolving phase, the variable space reduction is
 performed. TESPy will prompt errors, in case the parameter specifications in
@@ -524,55 +530,73 @@ This can be, for example
   fraction determines the saturation pressure and therefore we end up with
   two pressure values fixed.
 
-**Solving**
+The error names the variables involved. To see, which variables form a
+linearly dependent group and which specifications were consumed by the
+reduction, use the
+:ref:`inspection methods of the reduction <solver_reduction_label>`, e.g.
+:code:`print_presolved_variables` and :code:`print_variables`.
 
-After the presolving is complete, a check will be carried out, if you
+**Determination check**
+
+After the reduction is complete, a check will be carried out, if you
 specified a sufficient number of parameters, meaning the exact number
 matching the number of equations imposed to the problem. TESPy will prompt an
 error, if you did not provide enough or if you provide too many parameters
 for your calculation. The structural analysis names the specific variables
-and equations of the under- or over-determined part of the model.
+and equations of the under- or over-determined part of the model. Since the
+solver does not run in this case, solve with :code:`init_only=True` to use
+the inspection methods while you iterate on the specifications.
 
 .. note::
 
     Always keep in mind, that the system has to find a value for mass flow,
     pressure, enthalpy and the fluid mass fractions. Try to build up your
-    network step by step and have in mind, what parameters will be determined
-    by adding a component without any parametrisation. This way, you can
-    easily determine, which parameters are still to be specified.
+    network step by step. This way, you can easily determine, which parameters
+    are still to be specified.
 
-The inspection methods presented in the sections above - solved with
-:code:`init_only=True` if the parameter count does not match yet - together
-with the block decomposition views and the pause workflow are the toolbox
-for narrowing down problems. See the
-:ref:`debugging tutorial <tutorial_debugging_label>` for a worked example on
-specification errors and the
-:ref:`advanced debugging tutorial <tutorial_advanced_debugging_label>` for
-the solution process itself.
+See the :ref:`debugging tutorial <tutorial_debugging_label>` for a worked
+example on specification errors.
 
-If you have the correct number of specifications and run the simulation, it
-can still happen that the calculation crashes after or even before the first
-iteration. There might be a couple of reasons for that:
+**Failures during solving**
 
-- Sometimes, the fluid property database does not find a specific fluid
-  property in the initialisation process, have you specified the values in
-  the correct unit?
-- A linear dependency in the Jacobian matrix due to bad parameter settings
-  stops the calculation (over-determining one variable, while missing out on
-  another).
-- A linear dependency in the Jacobian matrix due to bad starting values
-  stops the calculation.
+With the correct number of specifications the solution process can still
+fail, which the :code:`status` attribute reports:
 
-The first reason can be eliminated by carefully choosing the parametrisation.
-**A linear dependency due to bad starting values is often more difficult to**
-**resolve, and it may require some experience.** Apart from over-determining
-one variable while under-determining another, typical reasons for a linear
-dependency are mostly bad starting values in combination with equations that
-require the **calculation of a temperature**, e.g. specifying a temperature
-at some point of the network with unknown pressure, or terminal temperature
-differences at heat exchangers, etc.. In this case, **the starting enthalpy**
-**and pressure should be adjusted in a way, that the fluid's state is**
-**within the expected region (liquid, two-phase or vapor).**
+- Status 2 - the iterations completed without convergence. The residual
+  development can be inspected with :code:`nw.print_residuals()`. The reason
+  often lies in variables driven to the boundaries of their validity or Newton
+  producing nearly linear-dependent Jacobian matrices, which induce extremely
+  small increments.
+- Status 3 - a linear dependency in the Jacobian matrix. Either the values
+  of your specifications over-determine one variable while missing out on
+  another or the starting values are bad. Typically, this happens in
+  combination with equations that require the **calculation of a temperature**,
+  e.g. specifying a temperature at some point of the network with unknown
+  pressure, or terminal temperature differences at heat exchangers. The
+  singularity diagnosis names the suspect equations and variables in the log.
+- Status 99 - the calculation crashed, most often because a fluid property
+  cannot be evaluated. If this happens in the very first iterations, check
+  whether you have specified all values in the correct unit.
+
+To narrow such failures down, the following tools are available:
+
+- The block-wise solution process localizes the failure: the log names the
+  first block that did not converge together with its equations and
+  variables.
+- Passing :code:`pause_on_block_failure=True` freezes the solver in exactly
+  that state, so you can inspect the block's residuals, Jacobian and fluid
+  states, as shown in the section on
+  :ref:`interacting with the solver <solver_interaction_label>`.
+- The starting values can be inspected before any iteration is run:
+  :code:`nw.presolve(mode)` followed by :code:`nw.print_variable_values()`
+  shows the generated initial guesses. The most common root cause is a
+  starting point in the wrong region of the fluid - liquid, two-phase or
+  vapor - on connections involved in temperature equations. Correct such
+  values through the :code:`val0` attributes or with
+  :code:`set_variable_value` and continue with :code:`solve_continue`.
+
+The :ref:`advanced debugging tutorial <tutorial_advanced_debugging_label>`
+walks through this workflow on a concrete model.
 
 Calculation speed improvement
 -----------------------------

@@ -67,8 +67,8 @@ As always, we start by importing the necessary TESPy classes.
     :end-before: [sec_2]
 
 Then, we can build the network by defining components and connections. The
-working fluid will be set with the variable `wf`, `"NH3"` is used in the first
-setup. This way, we will be able to change the working fluid in a flexible
+working fluid will be set with the variable `wf`, `"R290"` is used in the
+first setup. This way, we will be able to change the working fluid in a flexible
 way.
 
 .. dropdown:: Click to expand to code section
@@ -99,67 +99,94 @@ following way:
     .. literalinclude:: /../tutorial/advanced/starting_values.py
         :language: python
         :start-after: [sec_3]
-        :end-before: [sec_4]
+        :end-before: [sec_3_end]
 
-The system should be well defined with the parameter settings, however no
-solution can be found. We might run in some error, like
-
-.. error::
-
-    .. code-block:: bash
-
-        ERROR:root:Singularity in jacobian matrix, calculation aborted! Make
-        sure your network does not have any linear dependencies in the
-        parametrisation. Other reasons might be
-
-        -> given temperature with given pressure in two phase region, try
-        setting enthalpy instead or provide accurate starting value for
-        pressure.
-
-        -> given logarithmic temperature differences or UA-values for heat
-        exchangers,
-
-        -> support better starting values.
-
-        -> bad starting value for fuel mass flow of combustion chamber, provide
-        small (near to zero, but not zero) starting value.
-
-or simply not making progress in the convergence
+The system should be well defined with the parameter settings, however the
+solver does not find a solution from the automatically generated starting
+values. It isolates the part of the problem it fails on and reports it:
 
 .. error::
 
-    .. code-block:: bash
+    .. code-block:: text
 
-        WARNING:root:The solver does not seem to make any progress, aborting
-        calculation. Residual value is 7.43e+05. This frequently happens, if
-        the solver pushes the fluid properties out of their feasible range.
+        Block 5 did not converge, solving the remaining 2 blocks simultaneously.
+          Cause: no acceptance within the iteration budget of 50 iterations,
+          the last scaled residual is 1.86e-02
+          Equations: Compressor.eta_s,
+          Heat Sink Condenser.energy_balance_constraints,
+          Heat Source Evaporator.ttd_l,
+          Internal Heat Exchanger.energy_balance_constraints, 1.x, 2.td_dew
+          Variables: h0, h1, h4, m6, h7, p11
+        The remaining system did not converge either, restarting with the
+        simultaneous solution of the full system from its initial state.
+        The solver does not seem to make any progress, aborting calculation.
+        Scaled residual value is 1.86e-02 (1: x)
+        Possible reasons include:
+         - fluid properties moving outside the valid range of the property
+           database (consider adjusting p_range or h_range),
+         - an impossible constraint that can never be satisfied
+         - bad starting values causing the Newton solver to diverge.
+        Use nw.print_residuals() to identify which equations have the largest
+        residuals.
+
+The messages already narrow the failure down: the equation system was
+:ref:`decomposed into blocks <solver_decomposition_label>` and every block
+solved fine except one. The group of six coupled equations determining the
+evaporation side of the cycle failed. Neither solving the remaining blocks in
+one coupled system nor restarting with the full system finds the solution, so
+the calculation ends with :code:`nw.status == 2`.
+
+.. tip::
+
+    To investigate such a failure interactively, the solver can pause at
+    the failing block instead of escalating:
+
+    .. code-block:: python
+
+        nw.solve("design", pause_on_block_failure=True)
+        nw.print_block_states(block=5, at="failure")
+        nw.print_block_jacobian(block=5)
+
+    The state tables show the fluid states the newton algorithm diverged to,
+    the variable values of the failed block can be modified and the solution
+    process continued with :code:`nw.solve_continue()`. The section on
+    :ref:`interacting with the solver <solver_interaction_label>` describes the
+    workflow in detail.
 
 Fixing the errors
 ^^^^^^^^^^^^^^^^^
 
-To generate good starting values for the simulation, it is recommended to set
-pressure and enthalpy values instead of temperature differences. In this
-example, fixed points can be identified with the help of the logph diagram
-which you can see in the figure below.
+All equations of the failed block are tied to the pressure and enthalpy levels
+of the evaporation side of the cycle, so this is where better starting values
+are required. To provide them, it is recommended to fix the saturation levels
+of the cycle directly instead of the temperature differences in a first
+calculation. In this example, the fixed points can be identified with the help
+of the logph diagram which you can see in the figure below.
 
 .. figure:: /_static/images/tutorials/heat_pump_starting_values/logph.svg
     :align: center
+    :alt: Logph diagram of propane
+    :figclass: only-light
 
-    Figure: Logph diagram of ammonia
+    Figure: Logph diagram of propane
 
-A rough estimation of the evaporation and condensation pressure can be
-obtained and will be used to replace the temperature differences at the
-evaporator and the condenser for the starting value generator. After
-condensation, the working fluid is in saturated liquid state. We can retrieve
-the condensation pressure corresponding to a temperature slightly below the
-heat sink temperature by using the CoolProp `PropsSI` interface with the
-respective inputs. The same step can be carried out on the heat source side.
-For the internal heat exchanger, an enthalpy value is specified instead of the
-temperature difference to the boiling point as well. It is important to note
-that the PropertySI function (PropsSI) is used with SI units, which differ
-from the units defined in the network.
+.. figure:: /_static/images/tutorials/heat_pump_starting_values/logph_darkmode.svg
+    :align: center
+    :alt: Logph diagram of propane
+    :figclass: only-dark
 
-The temperature difference values are unset and pressure and enthalpy values
+    Figure: Logph diagram of propane
+
+A rough estimation of the evaporation and condensation temperature can be
+obtained from the temperature levels of the heat source and the heat sink.
+Evaporation takes place a few Kelvin below the heat source backflow
+temperature, condensation a few Kelvin above the consumer feed flow
+temperature. These estimates can be imposed directly through the dew line
+temperature :code:`T_dew` at the evaporator outlet and the bubble line
+temperature :code:`T_bubble` at the condenser outlet. Each of them fixes the
+pressure of its saturation state.
+
+The terminal temperature differences are unset and the saturation temperatures
 are set instead.
 
 .. literalinclude:: /../tutorial/advanced/starting_values.py

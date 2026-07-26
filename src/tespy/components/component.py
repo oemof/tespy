@@ -852,6 +852,19 @@ class Component:
             ]
         return []
 
+    def _separate_flat_enthalpy_starts(self, seeded):
+        r"""
+        Impose a minimum enthalpy difference on the starting values.
+
+        Called after the starting value generation is complete. Components
+        whose energy balance couples an unknown mass flow to an enthalpy
+        difference override this: a difference of exactly zero removes the
+        mass flow from the balance's derivatives and renders the Jacobian
+        singular at the starting point. Returns the number of modified
+        values.
+        """
+        return 0
+
     def initialise_source(self, c, key):
         r"""
         Return a generic pressure starting value at the outlet.

@@ -1663,6 +1663,12 @@ class Network:
         # levels and branch ratios exactly with respect to the field
         num_propagated += self._problem.presolve_flow_variables(seeded)
 
+        # only after the flow presolve: an exactly zero enthalpy difference
+        # self-guards its energy balance rows there, while a small one would
+        # imply arbitrarily large mass flows
+        for cp in self.comps["object"]:
+            num_propagated += cp._separate_flat_enthalpy_starts(seeded)
+
         # here reference values can be updated, e.g. a reference temperature
         # if the starting value of the reference connection is not yet updated
         # then the calculation of the reference can cause issues, therefore:

@@ -1031,6 +1031,30 @@ class HeatExchanger(Component):
             (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
         ]
 
+    def _separate_flat_enthalpy_starts(self, seeded):
+        # a side starting with equal enthalpies removes its mass flow from
+        # the energy balance derivatives: nudge the free port apart in the
+        # physical direction of the heat transfer. The delta must dominate
+        # the numerical derivative step of the enthalpy containers
+        delta = 1e3
+        num = 0
+        for i, o, sign in (
+                (self.inl[0], self.outl[0], -1),
+                (self.inl[1], self.outl[1], 1)
+            ):
+            if i.h._reference_container is o.h._reference_container:
+                continue
+            if abs(o.h.val_SI - i.h.val_SI) >= delta:
+                continue
+            if o.h.is_var and o.h._reference_container not in seeded:
+                o.h.set_reference_val_SI(i.h.val_SI + sign * delta)
+            elif i.h.is_var and i.h._reference_container not in seeded:
+                i.h.set_reference_val_SI(o.h.val_SI - sign * delta)
+            else:
+                continue
+            num += 1
+        return num
+
     def initialise_source(self, c, key):
         r"""
         Return a generic pressure starting value at the outlet.

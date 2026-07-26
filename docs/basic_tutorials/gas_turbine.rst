@@ -30,9 +30,10 @@ Download the full script here:
 Setting up the Combustion Chamber
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We are setting up our system step by step. Especially for larger systems, it
-is recommended you follow this approach, since TESPy highly relies on a set of
-good starting values for good convergence. You can learn more about it in the
-:ref:`advanced tutorial <advanced_tutorials_label>` section of the online
+is recommended you follow this approach, since it allows you to validate
+every part of your model separately. You can learn how the solver generates
+starting values automatically in the
+:ref:`solver section <solver_starting_values_label>` of the online
 documentation.
 
 .. note::
@@ -153,9 +154,8 @@ connections have to be added again. The air fluid composition is specified on
 connection 1 with ambient pressure and temperature. The compressor pressure
 ratio is set to 15 bar. Finally, set the gas turbine outlet pressure to ambient
 pressure as well as the compressor's and turbine's efficiency. We start with
-simulation which specifies a fixed value for the flue gas mass flow to generate
-good starting values. After that, the turbine inlet temperature is set to
-1200 °C.
+a simulation specifying a fixed value for the flue gas mass flow. After that,
+the turbine inlet temperature is set to 1200 °C.
 
 .. literalinclude:: /../tutorial/basics/gas_turbine.py
     :language: python

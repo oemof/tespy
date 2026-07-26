@@ -206,7 +206,9 @@ application to the analysis of process models):
 1. A **maximum bipartite matching** assigns every equation one variable it is
    responsible for determining. If that assignment is impossible, the
    unmatched equations and variables delimit the over- or under-determined
-   part of the model. This is reported and can be useful in debugging.
+   part of the model, which
+   :py:meth:`~tespy.networks.network.Network.print_structural_analysis`
+   reports for debugging.
 2. Equations whose assignments depend on each other in a cycle can not be
    ordered. In that way they form a **block** that must be solved
    simultaneously.
@@ -538,14 +540,24 @@ reduction, use the
 
 **Determination check**
 
-After the reduction is complete, a check will be carried out, if you
-specified a sufficient number of parameters, meaning the exact number
-matching the number of equations imposed to the problem. TESPy will prompt an
-error, if you did not provide enough or if you provide too many parameters
-for your calculation. The structural analysis names the specific variables
-and equations of the under- or over-determined part of the model. Since the
+After the reduction is complete, a check will be carried out, if you specified
+a sufficient number of parameters, meaning the exact number matching the number
+of equations imposed to the problem. TESPy will prompt an error, if you did not
+provide enough or if you provide too many parameters for your calculation. The
+structural analysis helps locating the defects:
+:py:meth:`~tespy.networks.network.Network.print_structural_analysis` names
+the specific variables and equations of the under- or over-determined part
+of the model and remains available after the error was raised. Since the
 solver does not run in this case, solve with :code:`init_only=True` to use
-the inspection methods while you iterate on the specifications.
+the other inspection methods while you iterate on the specifications.
+
+A specification error can also hide behind a matching parameter count: if
+one part of the model is over-determined while another is under-determined,
+the counts balance but no assignment of equations to variables exists.
+Block-wise solving is not possible then. In case the structural defect stems
+from an incomplete dependency declaration of a custom equation rather than from
+the specifications, the simultaneous solution can still be attempted with
+:code:`nw.solve(mode, block_solve=False)`.
 
 .. note::
 

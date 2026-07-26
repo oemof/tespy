@@ -2,24 +2,27 @@
 
 How to Generate Stable Starting Values
 --------------------------------------
-Applying numerical algorithms and methods, the starting value of a variable
-is the value used for the first iteration. With more complex TESPy models
-it can happen that the simulation does not converge easily due to a
-combination of "bad" starting values. The solver is especially vulnerable if
-the specified parameters trigger complex equations with respect to the primary
-variables.
+Applying numerical algorithms and methods, the starting value of a variable is
+the value used for the first iteration. TESPy generates starting values for all
+variables automatically: known values propagate through the components,
+temperature levels are estimated and phase consistent enthalpies and saturation
+pressures are derived from them. The full process is described in the
+:ref:`starting values section <solver_starting_values_label>` of the solver
+documentation. With this machinery most models converge without any help from
+the user.
 
-The primary variables of TESPy are mass flow, pressure, enthalpy and fluid
-composition. If such a value is directly specified by the user, the solver has
-a solution for this value before starting the first iteration. Therefore,
-specifying a set of parameters largely including primary variables will
-improve the convergence significantly. Based on the converged solution of a
-initial simulation, it is then possible to adjust the parameters, for example,
-unsetting pressure values and specifying efficiencies instead.
+With more complex models it can still happen, that the simulation does not
+converge from the automatically generated values. In that case, the strategy is
+to solve the model with a simpler but robust set of specifications first, for
+example directly imposing the saturation temperature levels of a heat pump
+cycle instead of terminal temperature differences. Since the solver starts from
+the previous solution, the actual specifications can then be imposed in a
+second solve: primary variables that hold a solved value do not need to be
+guessed anymore.
 
-Here we provide a short tutorial for you to better understand, how this
-process could look like at the example of a subcritical heat pump with
-different working fluids.
+Here we provide a short tutorial for you to better understand, how this process
+could look like at the example of a subcritical heat pump with different
+working fluids.
 
 .. note::
 

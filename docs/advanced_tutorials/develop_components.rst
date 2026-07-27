@@ -131,6 +131,23 @@ we can hardcode that usable share in the equation with the variable
     :start-after: [sec_5]
     :end-before: [sec_6]
 
+.. attention::
+
+    The list of dependents is not only used to build the Jacobian matrix,
+    it also declares the incidence of the equation, based on which the
+    solver decomposes the system of equations into blocks (see the
+    :ref:`decomposition section <solver_decomposition_label>`). An
+    incomplete list can therefore render the problem structurally singular
+    for block-wise solving or make blocks fail unexpectedly. You can
+    verify your declarations on a test model:
+
+    .. code-block:: python
+
+        nw.solve("design", init_only=True)
+        nw.print_equations_with_dependents()
+        nw.print_incidence_matrix()
+        nw.print_blocks()
+
 As in the first step, it is recommended to test the new code in between.
 
 .. dropdown:: Display source code for testing the model
@@ -290,13 +307,22 @@ Further expansion of parameter definition
 
 The next step is to define the parameter for the minimum temperature difference
 :code:`td_minimal` between the compressor and the cooling medium. The attribute
-:code:`min_val=0` means that this value must not be negative - a warning is
-issued in postprocessing automatically if it is. The parameter will only be
-implemented as a postprocessing result. For this a :code:`calc` method on the
-:code:`dc_cp` is declared. The base class dispatches the method automatically
-after convergence. The corresponding :code:`_calc_td_minimal` method computes
-the internal maximum temperature in the compressor and returns the temperature difference to the
-cooling fluid outlet.
+:code:`min_val=0` means that this value must not be negative. All parameter
+values - specified, calculated or set as variable - are checked against their
+:code:`min_val` and :code:`max_val` in postprocessing. A violation does not
+fail the calculation: a warning names the parameter and the network's
+:code:`status` is set to 1 instead of 0, so a solution operating outside the
+component's validity is flagged to the user. Values beyond a bound by less
+than the numerical noise of the converged solution relative to the parameter's
+magnitude or to the parameter named in :code:`limit_scale` are snapped onto the
+bound instead.
+
+The parameter here will only be implemented as a postprocessing result. For
+this a :code:`calc` method on the :code:`dc_cp` is declared. The base class
+dispatches the method automatically after convergence. The corresponding
+:code:`_calc_td_minimal` method computes the internal maximum temperature in
+the compressor and returns the temperature difference to the cooling fluid
+outlet.
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
@@ -363,7 +389,56 @@ After checking that everything is correct, it's time to pat ourselves on the
 back, because we have implemented a :code:`PolynomialCompressorWithCooling` in
 TESPy.
 
-5. Further tasks
+5. Support the starting value generation
+----------------------------------------
+
+The solver generates starting values for all variables automatically, see
+the :ref:`starting values section <solver_starting_values_label>` for the
+full process. Components contribute information to that machinery through
+a set of hooks:
+
+- :py:meth:`~tespy.components.component.Component._initial_affine_edges`
+  returns approximate relations of the form
+  :code:`outlet = factor * inlet + offset` for pressure and enthalpy.
+  Known values propagate along these relations through the network.
+- :py:meth:`~tespy.components.component.Component._initial_temperature_edges`
+  returns approximate temperature differences between ports, which are
+  reconciled into one starting temperature per connection.
+- :py:meth:`~tespy.components.component.Component.initial_state` declares
+  the expected phase at a port. Where the phase is known, the starting
+  temperature is turned into saturation pressure anchors and phase
+  consistent enthalpies.
+
+The defaults of the base class cover components with a single inlet and a
+single outlet. Our component inherits the working fluid ports'
+contributions from the :code:`PolynomialCompressor`: the pressure ratio
+and isentropic enthalpy edges from :code:`in1` to :code:`out1` and the
+gas phase declaration on both ports. The cooling ports however are
+unknown to the parent class, so no information travels across them. We
+can extend the affine edges with a simple pass-through of pressure and
+enthalpy for the cooling side:
+
+.. code-block:: python
+
+        def _initial_affine_edges(self):
+            return super()._initial_affine_edges() + [
+                (self.inl[1].p, self.outl[1].p, 1.0, 0.0),
+                (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
+            ]
+
+Without this override the model still solves - the remaining values are
+filled by generic fallbacks - but a pressure specified on one side of the
+cooling port does not inform the starting value on the other side.
+
+.. note::
+
+    The methods :code:`initialise_source` and :code:`initialise_target`
+    known from older versions of TESPy are only consulted as a last
+    fallback for a generic pressure value. Enthalpy starting values come
+    from the automatic machinery exclusively, so there is no need to
+    implement these methods for new components.
+
+6. Further tasks
 ----------------
 
 Once implementation is complete, the hard work begins. Docstrings make your

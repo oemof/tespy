@@ -281,7 +281,8 @@ robustness compared to solving everything at once.
 .. note::
 
     Currently, networks with variable fluid composition are always solved
-    simultaneously. The simultaneous solution can also be enforced with
+    simultaneously; block-wise solving for them is planned for a future
+    release. The simultaneous solution can also be enforced with
     :code:`nw.solve(mode, block_solve=False)`.
 
 Newton-Raphson method

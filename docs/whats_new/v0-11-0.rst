@@ -71,7 +71,9 @@ New Features
   simultaneous solution of the full system from its initial state, which
   reproduces the behavior of previous versions exactly - the block phase can
   therefore never degrade robustness. The simultaneous solution can be enforced
-  with :code:`nw.solve(mode, block_solve=False)`. See the
+  with :code:`nw.solve(mode, block_solve=False)`. Networks with variable
+  fluid composition are always solved simultaneously for now, block-wise
+  solving for them is planned for a future release. See the
   :ref:`decomposition <solver_decomposition_label>` and
   :ref:`solving <networks_solving_label>` sections.
 - Under- and over-determination errors and structural singularities name the

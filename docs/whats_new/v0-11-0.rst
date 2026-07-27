@@ -87,6 +87,12 @@ New Features
   first failing block (:code:`status` 20) for interactive debugging of that
   exact state. See the section on
   :ref:`interacting with the solver <solver_interaction_label>`.
+- Starting values can be provided as temperature and vapor quality guesses
+  now, e.g. :code:`conn.set_attr(T0=75, x0=0.5)`: the temperature guess
+  anchors the starting temperature estimation and both are converted into
+  enthalpy and saturation pressure starting values. The guesses override
+  values of a previous solution and are consumed by a successful solve
+  (`#622 <https://github.com/oemof/tespy/issues/622>`__).
 - New inspection methods report the mathematical structure of the
   problem: the variable space reduction and the provenance of presolved
   values (:py:meth:`~tespy.networks.network.Network.print_presolved_variables`),
@@ -117,6 +123,13 @@ Bug Fixes
 - :py:meth:`~tespy.networks.network.Network.set_attr` now actually emits
   its :code:`FutureWarning`: the deprecation notice existed but was never
   raised.
+- Solver runs are bit-exact reproducible now. Two defects injected run to
+  run varying floating point noise into the Jacobian: the numeric
+  derivatives restored the perturbed value by arithmetic (leaving one ulp
+  sized residues that depended on the evaluation order) and the evaluation
+  order itself followed the per process iteration order of sets. Marginal
+  models could converge in one run and fail in the next; results and
+  iteration counts are now identical across repeated runs.
 - The postprocessing limit checks are noise aware now: a parameter value
   beyond its declared bound by less than a relative tolerance - related to
   the magnitude of the parameter itself or of a declared reference

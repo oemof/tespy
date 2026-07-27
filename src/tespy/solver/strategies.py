@@ -342,8 +342,16 @@ class NewtonStrategy:
             for sm_col in problem.variables_dict[col]["_represents"]:
                 objects.add(problem._variable_lookup[sm_col]["object"])
 
-        connections = [o for o in objects if isinstance(o, ConnectionBase)]
-        components = [o for o in objects if isinstance(o, Component)]
+        # the value heuristics applied to these objects can interact
+        # through shared values - iterate them in the deterministic
+        # network order, not in the per process id order of the set
+        network = problem.network
+        connections = [
+            o for o in network.conns["object"] if o in objects
+        ]
+        components = [
+            o for o in network.comps["object"] if o in objects
+        ]
         equation_objects = [
             problem._equation_obj_lookup[eq] for eq in equations
         ]

@@ -427,7 +427,12 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             **data.func_params
         )
     else:
-        all_scalar_deps = set().union(*data._scalar_dependents)
+        # deterministic evaluation order: the set iterates in the per
+        # process id order, which must not leak into the numerics
+        all_scalar_deps = sorted(
+            set().union(*data._scalar_dependents),
+            key=lambda dep: dep.J_col if dep.is_var else -1
+        )
         for dependent in all_scalar_deps:
             result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
             if result is None:
@@ -443,7 +448,7 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             for var, dxs in eq_vec_deps.items():
                 all_vector_deps.setdefault(var, set()).update(dxs)
         for var, dxs in all_vector_deps.items():
-            for dx in dxs:
+            for dx in sorted(dxs):
                 result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
                 if result is None:
                     continue
@@ -515,14 +520,18 @@ def _numeric_deriv(variable, func, **kwargs):
             \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     d = variable.d
-    tol = max(variable.val_SI * d, d)
-    variable.val_SI += tol
+    original = variable.val_SI
+    tol = max(original * d, d)
+    # restore the original value bit-exact: the arithmetic roundtrip
+    # x + tol - 2 tol + tol leaves one-ulp residues, which make the
+    # jacobian depend on the evaluation order of the dependents
+    variable.val_SI = original + tol
     upper = np.asarray(func(**kwargs))
 
-    variable.val_SI -= 2 * tol
+    variable.val_SI = original - tol
     lower = np.asarray(func(**kwargs))
 
-    variable.val_SI += tol
+    variable.val_SI = original
     result = (upper - lower) / (2 * tol)
     return result.item() if result.ndim == 0 else result
 

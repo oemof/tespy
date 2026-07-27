@@ -123,6 +123,13 @@ Bug Fixes
 - :py:meth:`~tespy.networks.network.Network.set_attr` now actually emits
   its :code:`FutureWarning`: the deprecation notice existed but was never
   raised.
+- Solver runs are bit-exact reproducible now. Two defects injected run to
+  run varying floating point noise into the Jacobian: the numeric
+  derivatives restored the perturbed value by arithmetic (leaving one ulp
+  sized residues that depended on the evaluation order) and the evaluation
+  order itself followed the per process iteration order of sets. Marginal
+  models could converge in one run and fail in the next; results and
+  iteration counts are now identical across repeated runs.
 - The postprocessing limit checks are noise aware now: a parameter value
   beyond its declared bound by less than a relative tolerance - related to
   the magnitude of the parameter itself or of a declared reference

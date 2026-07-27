@@ -16,8 +16,8 @@ from pytest import approx
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
-from tespy.networks import Network
 from tespy.connections import Connection
+from tespy.networks import Network
 
 
 def _single_connection_network():

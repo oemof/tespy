@@ -1,4 +1,4 @@
-v0.11.0 - Rankine's Renaissance (July, 26, 2026)
+v0.11.0 - Rankine's Renaissance (July, 27, 2026)
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
 The solver was restructured from the ground up for this release. The new

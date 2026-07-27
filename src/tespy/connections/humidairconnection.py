@@ -8,6 +8,7 @@ available from its original location tespy/connections/humidairconnection.py
 
 SPDX-License-Identifier: MIT
 """
+import numpy as np
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools import fluid_properties as fp
@@ -127,6 +128,9 @@ class HAConnection(Connection):
 
     def _temperature_hint(self):
         if self.T.is_set:
+            return self.T.val_SI
+        if not np.isnan(self.T.val0):
+            # holds the SI converted temperature guess from the seed pass
             return self.T.val_SI
         return None
 
@@ -287,6 +291,8 @@ class HAConnection(Connection):
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)
         self.fluid.val0 = self.fluid.val.copy()
+        # the temperature guess is one-shot, see Connection.calc_results
+        self.T.val0 = np.nan
 
         if skip_postprocess:
             return True

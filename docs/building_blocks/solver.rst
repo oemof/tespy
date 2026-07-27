@@ -153,7 +153,14 @@ generated from the following sources:
 1. **User values and previous solutions**: starting values specified through
    the :code:`val0` attributes, the result of a previous solve (unless
    :code:`init_previous=False`) and values loaded from an :code:`init_path`
-   are imposed first and are never overwritten be the subsequent steps.
+   are imposed first and are never overwritten by the subsequent steps.
+   Temperature and vapor quality guesses (e.g.
+   :code:`conn.set_attr(T0=75, x0=0.5)`) are translated by the machinery:
+   the temperature guess anchors the temperature reconciliation and both
+   are converted into enthalpy and saturation pressure information at the
+   guessed pressure. These guesses override the enthalpy of a previous
+   solution and are one-shot: a successful solve consumes them, a failed
+   solve keeps them for the next attempt.
 2. **Propagation**: Starting from specifications, presolved values and existing
    initial guesses are taken as starting points from which approximate
    component relations (e.g. a generic pressure ratio across a compressor) fill

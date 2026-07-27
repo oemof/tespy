@@ -87,6 +87,12 @@ New Features
   first failing block (:code:`status` 20) for interactive debugging of that
   exact state. See the section on
   :ref:`interacting with the solver <solver_interaction_label>`.
+- Starting values can be provided as temperature and vapor quality guesses
+  now, e.g. :code:`conn.set_attr(T0=75, x0=0.5)`: the temperature guess
+  anchors the starting temperature estimation and both are converted into
+  enthalpy and saturation pressure starting values. The guesses override
+  values of a previous solution and are consumed by a successful solve
+  (`#622 <https://github.com/oemof/tespy/issues/622>`__).
 - New inspection methods report the mathematical structure of the
   problem: the variable space reduction and the provenance of presolved
   values (:py:meth:`~tespy.networks.network.Network.print_presolved_variables`),

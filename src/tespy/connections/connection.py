@@ -950,6 +950,14 @@ class Connection(ConnectionBase):
                     variable.set_SI_from_val0(units)
                     variable.set_reference_val_SI(variable._val_SI)
                     seeded.append(variable._reference_container)
+        # temperature and quality guesses are consumed by the automatic
+        # starting value machinery, the unit system is only at hand here;
+        # an explicitly set guess is newer information than a previous
+        # solution and overrides it until unset
+        for name in ("T", "x"):
+            prop = self.property_data.get(name)
+            if prop is not None and not prop.is_set and not np.isnan(prop.val0):
+                prop.set_SI_from_val0(units)
         return seeded
 
     def _declared_state(self):
@@ -1050,9 +1058,12 @@ class Connection(ConnectionBase):
         return value, lower, upper
 
     def _temperature_hint(self):
-        """Temperature of this connection as far as the specifications and
-        presolved values determine it, or None."""
+        """Temperature of this connection as far as the specifications,
+        presolved values or a user provided guess determine it, or None."""
         if self.T.is_set:
+            return self.T.val_SI
+        if not np.isnan(self.T.val0):
+            # holds the SI converted temperature guess from the seed pass
             return self.T.val_SI
         try:
             if not self.h.is_var and not self.p.is_var:
@@ -1099,7 +1110,7 @@ class Connection(ConnectionBase):
         two_phase = (
             (state is not None and state["phase"] == "two-phase")
             or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set
-            or self.state.is_set
+            or self.state.is_set or not np.isnan(self.x.val0)
         )
         if two_phase and self.p.is_var:
             reference = self.p._reference_container
@@ -1323,22 +1334,46 @@ class Connection(ConnectionBase):
         Precalculate the enthalpy value of the connection.
 
         Precalculation is performed only if temperature or vapor mass
-        fraction is specified. Returns whether a value was assigned, the
-        assigned enthalpy acts as a source of the enthalpy propagation.
+        fraction is specified or provided as a guess (:code:`T0`,
+        :code:`x0`). Returns whether a value was assigned, the assigned
+        enthalpy acts as a source of the enthalpy propagation.
         """
-        if not self.h.is_var or self.good_starting_values:
+        if not self.h.is_var:
             return False
 
+        # specifications only generate a value on cold starts, an explicit
+        # guess overrides the enthalpy of a previous solution as well
+        x_active = (
+            (self.x.is_set and not self.good_starting_values)
+            or not np.isnan(self.x.val0)
+        )
+        T_active = (
+            (self.T.is_set and not self.good_starting_values)
+            or not np.isnan(self.T.val0)
+        )
+
         assigned = False
-        if self.x.is_set:
+        if x_active:
             fluid = fp.single_fluid(self.fluid_data)
-            if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
-            self.h.set_reference_val_SI(
-                fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
-            )
-            assigned = True
-        if self.T.is_set:
+            if fluid is not None:
+                # a specified quality forces the solution below the critical
+                # pressure, so a supercritical guess is corrected; a quality
+                # guess must not override a user provided pressure guess -
+                # the property call below fails and the guess is dropped
+                if (
+                        self.p.is_var
+                        and (self.x.is_set or np.isnan(self.p.val0))
+                        and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit
+                    ):
+                    self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
+                try:
+                    self.h.set_reference_val_SI(
+                        fp.h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule)
+                    )
+                    assigned = True
+                except ValueError:
+                    pass
+        if T_active:
             try:
                 self.h.set_reference_val_SI(
                     fp.h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
@@ -2073,6 +2108,13 @@ class Connection(ConnectionBase):
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)
         self.fluid.val0 = self.fluid.val.copy()
+        # temperature and quality guesses are one-shot: consumed by this
+        # solve, the next warm start continues from the solution; a failed
+        # solve does not reach this point and keeps them for the retry
+        for name in ("T", "x"):
+            prop = self.property_data.get(name)
+            if prop is not None:
+                prop.val0 = np.nan
 
         if skip_postprocess:
             return True

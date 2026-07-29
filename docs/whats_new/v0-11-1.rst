@@ -7,7 +7,8 @@ New Features
   solver variable that is not attached to any connection or component. It is
   referenced from the function and dependents of a
   :py:class:`~tespy.tools.helpers.UserDefinedEquation`, which closes the degree
-  of freedom the variable adds
+  of freedom the variable adds. See the
+  :ref:`user defined variables section <udv_label>` for an example
   (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
 
 Other Changes

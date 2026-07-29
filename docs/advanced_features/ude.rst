@@ -1,12 +1,14 @@
 .. _ude_label:
 
-User defined equations
-======================
+User defined equations and variables
+====================================
 User defined functions provide a powerful tool to the user as they enable
 the definition of generic and individual equations that can be applied to your
 TESPy model. In order to implement this functionality in your model you will
 use the :py:class:`tespy.tools.helpers.UserDefinedEquation`. The API
 documentation provides you with an interesting example application, too.
+Complementary, the :py:class:`tespy.tools.helpers.UserDefinedVariable` adds
+custom variables to the solver, see the :ref:`respective section <udv_label>`.
 
 Getting started
 ---------------
@@ -474,3 +476,119 @@ relative to the evaporator outlet pressure.
     >>> nw.solve('design')
     >>> round(rc1b.calc_T() - T_dew_p(rc1.p.val_SI, rc1.fluid_data), 1)
     10.0
+
+.. _udv_label:
+
+User defined variables
+----------------------
+
+Equations consume degrees of freedom, variables provide them. With the
+:py:class:`tespy.tools.helpers.UserDefinedVariable` class you can add a
+standalone variable to the solver, which is not attached to any connection or
+component. It can be referenced from the function and dependents of a
+:code:`UserDefinedEquation`. Instead of specifying a parameter of your
+relation, you can also solve for it. And, more than a single equation can refer
+to that one variable as well.
+
+Consider a valve with a custom flow characteristic, relating the mass flow to
+the pressure difference and the density at the inlet through a flow
+coefficient:
+
+.. math::
+
+    0 = \dot{m} - C \cdot \sqrt{\Delta p \cdot \rho_\text{in}}
+
+.. note::
+
+    For the standard liquid sizing convention the :code:`Valve` component
+    provides the flow coefficient through its :code:`Kv`, :code:`Kv_char` and
+    :code:`Kv_analytical` parameters, including the identified value as
+    postprocessing result. The relation here stands for any custom
+    characteristic with an unknown parameter, e.g. a different sizing
+    convention or your own correlation.
+
+We express the characteristic with a :code:`UserDefinedEquation`. From a
+measured operating point the flow coefficient is the unknown of the relation:
+
+.. code-block:: python
+
+    >>> from tespy.components import Valve
+    >>> from tespy.tools import UserDefinedVariable
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     pressure='bar', pressure_difference='bar', temperature='degC'
+    ... )
+
+    >>> so = Source('source')
+    >>> va = Valve('valve')
+    >>> si = Sink('sink')
+
+    >>> c1 = Connection(so, 'out1', va, 'in1', label='c1')
+    >>> c2 = Connection(va, 'out1', si, 'in1', label='c2')
+    >>> nw.add_conns(c1, c2)
+
+    >>> c1.set_attr(fluid={'water': 1}, T=20, p=10, m=5)
+    >>> c2.set_attr(p=8)
+
+The variable takes a unique label and a starting value in SI units, optionally
+also value limits (:code:`min_val`, :code:`max_val`) applied during solving. In
+the equation its current value is accessed through :code:`val_SI`, the
+dependents reference the underlying container through the :code:`variable`
+attribute.
+
+.. code-block:: python
+
+    >>> kv = UserDefinedVariable('kv', val0=1e-3)
+
+    >>> def kv_func(ude):
+    ...     c_in, c_out = ude.conns
+    ...     dp = c_in.p.val_SI - c_out.p.val_SI
+    ...     rho = 1 / c_in.calc_vol()
+    ...     return c_in.m.val_SI - ude.params['kv'].val_SI * (dp * rho) ** 0.5
+
+    >>> def kv_dependents(ude):
+    ...     c_in, c_out = ude.conns
+    ...     return [c_in.m, c_in.p, c_in.h, c_out.p, ude.params['kv'].variable]
+
+Variables are registered on the network with :code:`add_udv` and we include it
+in the user defined equation.
+
+.. code-block:: python
+
+    >>> kv_ude = UserDefinedEquation(
+    ...     'flow coefficient', kv_func, kv_dependents,
+    ...     conns=[c1, c2], params={'kv': kv}
+    ... )
+    >>> nw.add_udv(kv)
+    >>> nw.add_ude(kv_ude)
+    >>> nw.solve('design')
+    >>> round(kv.val_SI * 1e4, 3)
+    3.538
+
+The identified flow coefficient now characterizes the valve. With
+:code:`set_attr(is_var=False)` the variable turns into a constant used in the
+equation: together with unsetting the mass flow, the same relation now predicts
+the flow at any other pressure difference.
+
+.. code-block:: python
+
+    >>> kv.set_attr(is_var=False)
+    >>> c1.set_attr(m=None)
+    >>> c2.set_attr(p=6)
+    >>> nw.solve('design')
+    >>> round(c1.m.val, 3)
+    7.071
+
+.. note::
+
+    The value of a :code:`UserDefinedVariable` does not carry a unit, its
+    meaning is defined by the equations using it.
+
+Like equations, variables are retrieved by their unique label with
+:code:`get_udv` and removed with :code:`del_udv`.
+
+.. code-block:: python
+
+    >>> nw.get_udv('kv') is kv
+    True

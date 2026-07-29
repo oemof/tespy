@@ -367,6 +367,87 @@ class UserDefinedEquation:
             self.jacobian[eq_num, var.J_col[dx]] = result
 
 
+class UserDefinedVariable:
+    r"""
+    A UserDefinedVariable adds a standalone variable to the solver.
+
+    The variable is not attached to any connection or component. It is
+    referenced from the function and dependents of a
+    :py:class:`UserDefinedEquation`, which closes the degree of freedom the
+    variable adds - a typical use case is solving for an unknown parameter
+    of a user specified relation instead of specifying it.
+
+    Parameters
+    ----------
+    label : str
+        Label of the variable, must be unique within a network.
+
+    val0 : float
+        Starting value in SI units.
+
+    min_val : float, optional
+        Lower limit for the value during solving.
+
+    max_val : float, optional
+        Upper limit for the value during solving.
+
+    d : float, optional
+        Step size for the numeric derivatives, by default 1e-4.
+
+    Note
+    ----
+    The value is accessed in SI units through :code:`val_SI`, e.g. from
+    within the function of a :code:`UserDefinedEquation`. The dependents of
+    the equation reference the underlying container through the
+    :code:`variable` attribute. With :code:`set_attr(is_var=False)` the
+    variable turns into a plain constant read by the equation, removing it
+    from the variable space of the solver.
+    """
+
+    def __init__(self, label: str, val0: float, min_val: float=None, max_val: float=None, d: float=1e-4):
+        if not isinstance(label, str):
+            msg = "UserDefinedVariable label must be of type str."
+            logger.error(msg)
+            raise TypeError(msg)
+        self.label = label
+        kwargs = {
+            "is_set": True, "_is_var": True, "_potential_var": True,
+            "_val_SI": val0, "d": d
+        }
+        if min_val is not None:
+            kwargs["min_val"] = min_val
+        if max_val is not None:
+            kwargs["max_val"] = max_val
+        self.variable = dc_cp(**kwargs)
+
+    def get_variables(self):
+        if self.variable.is_var:
+            return {"variable": self.variable}
+        return {}
+
+    def get_attr(self, key):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        msg = f"UserDefinedVariable has no attribute {key}."
+        logger.error(msg)
+        raise KeyError(msg)
+
+    def set_attr(self, val=None, is_var=None, min_val=None, max_val=None):
+        if val is not None:
+            self.variable.val_SI = val
+        if is_var is not None:
+            self.variable.is_var = is_var
+            self.variable._potential_var = is_var
+        if min_val is not None:
+            self.variable.min_val = min_val
+        if max_val is not None:
+            self.variable.max_val = max_val
+
+    @property
+    def val_SI(self):
+        return self.variable.val_SI
+
+
 def solve(obj, increment_filter):
     """
     Solve equations and calculate partial derivatives of a component.
@@ -711,16 +792,25 @@ def _get_vector_dependents(variable_list):
 
 
 def _get_dependents(variable_list):
+    # every variable container of an object that is part of the network
+    # receives a reference container during the affine elimination. A
+    # container with the variable flag but no reference belongs to an
+    # object outside of the network, e.g. a UserDefinedVariable that was
+    # removed while an equation still lists it as dependent: it is no
+    # unknown of this problem and must not enter the incidence - the
+    # determination check then reports the surplus equation
     if isinstance(variable_list[0], list):
         return [set(
             var._reference_container
-            for var in sublist if var.is_var
+            for var in sublist
+            if var.is_var and var._reference_container is not None
         ) for sublist in variable_list
     ]
     else:
         return [set(
             var._reference_container
-            for var in variable_list if var.is_var
+            for var in variable_list
+            if var.is_var and var._reference_container is not None
         )]
 
 

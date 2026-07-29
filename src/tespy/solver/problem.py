@@ -387,6 +387,20 @@ class Problem:
                 self._object_to_variable_lookup[comp].update(
                     {prop: container.sm_col}
                 )
+
+        for udv in self.network.user_defined_var.values():
+            for prop, container in udv.get_variables().items():
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": udv, "property": prop
+                }
+                if udv not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[udv] = {}
+                self._object_to_variable_lookup[udv].update(
+                    {prop: container.sm_col}
+                )
         return num_vars
 
     def _reassign_ude_objects(self):

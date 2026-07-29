@@ -81,6 +81,7 @@ class Problem:
 
         self.num_original_variables = 0
         self.num_original_equations = 0
+        self.num_specified_variables = 0
 
     def decompose(self):
         """Get the Dulmage-Mendelsohn decomposition of the solver incidence.
@@ -186,10 +187,27 @@ class Problem:
 
         self._presolve()
 
+        # counted only now: during the structure matrix assembly the
+        # specification and variable flags of the containers are transient,
+        # e.g. propagated fluid compositions read as set while their
+        # variable fractions are only marked during the presolving
+        self.num_specified_variables = 0
+        for data in self._variable_lookup.values():
+            container = data["object"].get_attr(data["property"])
+            if data["property"] == "fluid":
+                if len(container.is_set) == len(container.val):
+                    self.num_specified_variables += 1
+            elif container.is_set and not container.is_var:
+                # is_set alone does not suffice: component variables and
+                # user defined variables carry the flag together with the
+                # variable flag
+                self.num_specified_variables += 1
+
         msg = (
             "Fluid property presolving consumed "
             f"{len(self._presolved_equations) - num_affine} further "
-            "equations."
+            f"equations. {self.num_specified_variables} of the original "
+            "variables were directly specified."
         )
         logger.debug(msg)
 
@@ -1197,7 +1215,8 @@ class Problem:
         n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
         _reduction = (
             f"\nThe original problem holds {self.num_original_variables} "
-            f"variables and {self.num_original_equations} equations. "
+            f"variables, {self.num_specified_variables} directly specified, "
+            f"and {self.num_original_equations} equations. "
             f"Presolving consumed {len(self._presolved_equations)} equations "
             f"and reduced the problem to {self.variable_counter} variables "
             f"and {n} equations."

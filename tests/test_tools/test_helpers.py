@@ -11,6 +11,9 @@ SPDX-License-Identifier: MIT
 """
 from pytest import approx
 
+from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ScalarVariable as dc_scavar
+from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import newton_with_kwargs
 
 
@@ -59,3 +62,21 @@ def test_newton_bounds():
            'The value ' + str(round(result, 1)) + ' was found, but the '
            'algorithm should have found the upper boundary of -10.0.')
     assert -10.0 == approx(result), msg
+
+
+def test_get_dependents_excludes_dangling_containers():
+    """A container with the variable flag but without a reference container
+    belongs to an object outside of the network, e.g. a UserDefinedVariable
+    that was removed while an equation still lists it as dependent. It must
+    not enter the incidence."""
+    reference = dc_scavar(_is_var=True)
+    attached = dc_cp(_is_var=True)
+    attached._reference_container = reference
+    dangling = dc_cp(_is_var=True)
+    not_a_variable = dc_cp(_is_var=False)
+
+    flat = _get_dependents([attached, dangling, not_a_variable])
+    assert flat == [{reference}]
+
+    nested = _get_dependents([[attached], [dangling, not_a_variable]])
+    assert nested == [{reference}, set()]

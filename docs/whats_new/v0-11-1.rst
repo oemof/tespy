@@ -10,6 +10,11 @@ New Features
   of freedom the variable adds. See the
   :ref:`user defined variables section <udv_label>` for an example
   (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
+- The :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`
+  reports the required hot-side heat transfer area :code:`area_hot` as a result,
+  in case :code:`area_ratio`, :code:`R_cond` and the alpha values of all phases
+  occurring in the solution are set
+  (`PR #1035 <https://github.com/oemof/tespy/pull/1035>`__).
 
 Other Changes
 #############

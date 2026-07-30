@@ -59,3 +59,4 @@ def test_newton_bounds():
            'The value ' + str(round(result, 1)) + ' was found, but the '
            'algorithm should have found the upper boundary of -10.0.')
     assert -10.0 == approx(result), msg
+

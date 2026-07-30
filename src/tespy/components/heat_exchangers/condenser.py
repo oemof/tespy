@@ -415,25 +415,11 @@ class Condenser(HeatExchanger):
             if o.p.val_SI > p_crit:
                 o.p.set_reference_val_SI(p_crit * 0.9)
 
-    def initialise_source(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-        """
-        if c.source_id == 'out1':
-            if key == 'h':
-                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data, c.mixing_rule)
-
-        return super().initialise_source(c, key)
+    def initial_state(self, port):
+        if port == 'in1':
+            return {"phase": "gas"}
+        elif port == 'out1':
+            # the outlet is on the bubble line by the subcooling equation,
+            # which also means the condensing side must start subcritical
+            return {"phase": "liquid", "saturated": True}
+        return None

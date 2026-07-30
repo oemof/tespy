@@ -48,6 +48,29 @@ warnings.showwarning = FutureWarningHandler(logger)
 
 # Create a bunch of shorthand functions, this is mostly
 # copied straight from the logging module.
+def console_logging_enabled(level=TESPY_PROGRESS_LOG_LEVEL):
+    r"""Check whether a console handler emits messages of the given level.
+
+    Used to avoid double console output where messages are both printed and
+    logged.
+
+    Returns
+    -------
+    boolean
+        True in case a stream handler writing to stdout or stderr is
+        attached to the logger with a level at or below the given level.
+    """
+    log = get_logger()
+    for handler in log.handlers:
+        if (
+                isinstance(handler, logging.StreamHandler)
+                and getattr(handler, "stream", None) in (sys.stdout, sys.stderr)
+                and handler.level <= level
+        ):
+            return True
+    return False
+
+
 def get_logger():
     return logger
 

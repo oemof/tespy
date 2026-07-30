@@ -1,5 +1,5 @@
-v0.10.2 (Under Development)
-++++++++++++++++++++++++++++
+v0.10.2 - Rankine's Renaissance (July, 15, 2026)
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############
@@ -26,7 +26,15 @@ Bug Fixes
   of classes inherit the `DEFAULT` characteristic lines and maps of parent
   classes if there is no own `DEFAULT`
   (`3e65ba3 <https://github.com/oemof/tespy/commit/3e65ba3168aa99bd7afc7d1812fadcbe424fdab8>`__).
+- Network deserialization wrongly activated serialized but inactive
+  :py:class:`~tespy.connections.connection.Ref` specifications. The
+  :code:`is_set` flags are now restored as exported
+  (`PR #1024 <https://github.com/oemof/tespy/pull/1024>`__).
+- Fix some typos in the
+  :ref:`heat exchanger tutorial <tutorial_heat_exchanger_label>`
+  (`PR #1025 <https://github.com/oemof/tespy/pull/1025>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@n-arth <https://github.com/n-arth>`__

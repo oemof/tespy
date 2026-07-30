@@ -243,6 +243,7 @@ class DiabaticCombustionChamber(CombustionChamber):
             ),
             'Qloss': dc_cp(
                 max_val=0, is_result=True, quantity="heat",
+                limit_scale="ti",
                 description="heat dissipation",
                 calc=self._calc_Qloss, calc_deps=['ti', 'eta']
             )

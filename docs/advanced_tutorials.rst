@@ -51,6 +51,16 @@ you!
         .. image:: /_static/images/thumbnails/advanced_tutorials/debugging_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Debugging the solution process
+        :link: tutorial_advanced_debugging_label
+        :link-type: ref
+
+        .. image:: /_static/images/tutorials/orc/flowsheet.svg
+            :class: only-light
+
+        .. image:: /_static/images/tutorials/orc/flowsheet_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card::  Make use of PowerConnection
         :link: tutorial_powerconnection_label
         :link-type: ref
@@ -98,6 +108,7 @@ you!
     advanced_tutorials/heat_pump_steps.rst
     advanced_tutorials/starting_values.rst
     advanced_tutorials/debugging.ipynb
+    advanced_tutorials/advanced_debugging.ipynb
     advanced_tutorials/powerconnections.rst
     advanced_tutorials/heat_pump_exergy.rst
     advanced_tutorials/humid_air.ipynb

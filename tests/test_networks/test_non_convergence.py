@@ -1,4 +1,8 @@
 
+import json
+import os
+
+from pytest import approx
 from pytest import mark
 
 from tespy.components import Compressor
@@ -12,6 +16,25 @@ from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
+
+# solutions of these models generated with tespy 0.10.2 from PyPI: on top
+# of convergence the models must keep reproducing the same physical
+# solution, so a solver change silently converging to a different root of
+# a multi-root system is caught
+with open(
+    os.path.join(os.path.dirname(__file__), "_non_convergence_reference_results.json")
+) as _f:
+    REFERENCE_RESULTS = json.load(_f)
+
+
+def assert_reference_results(nw, name):
+    reference = REFERENCE_RESULTS[name]
+    for label, properties in reference.items():
+        c = nw.get_conn(label)
+        for prop, value in properties.items():
+            assert c.get_attr(prop).val_SI == approx(value, rel=1e-4, abs=1e-9), (
+                f"{name}: {label}.{prop} deviates from the 0.10.2 solution"
+            )
 
 
 def test_R601_converges():
@@ -58,6 +81,7 @@ def test_R601_converges():
 
     orc.solve('design', oscillation_damping=True)
     assert orc.status == 0
+    assert_reference_results(orc, "test_R601_converges")
 
 
 def test_two_compressors_side_stream_bypass():
@@ -93,6 +117,7 @@ def test_two_compressors_side_stream_bypass():
 
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_two_compressors_side_stream_bypass")
 
 
 def _make_single_compressor_bypass():
@@ -123,6 +148,7 @@ def test_single_compressor_bypass_ref_bypass_to_outlet():
     c04.set_attr(m=Ref(c03, 0.01, 0))
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_single_compressor_bypass_ref_bypass_to_outlet")
 
 
 def test_single_compressor_bypass_ref_bypass_to_outlet_with_m0():
@@ -130,6 +156,7 @@ def test_single_compressor_bypass_ref_bypass_to_outlet_with_m0():
     c04.set_attr(m=Ref(c03, 0.01, 0), m0=0.01)
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_single_compressor_bypass_ref_bypass_to_outlet_with_m0")
 
 
 def test_single_compressor_bypass_ref_outlet_to_comp_outlet():
@@ -137,6 +164,7 @@ def test_single_compressor_bypass_ref_outlet_to_comp_outlet():
     c06.set_attr(m=Ref(c03, 0.1, 0))
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_single_compressor_bypass_ref_outlet_to_comp_outlet")
 
 
 def test_single_compressor_bypass_ref_outlet_to_comp_outlet_with_m0():
@@ -144,6 +172,7 @@ def test_single_compressor_bypass_ref_outlet_to_comp_outlet_with_m0():
     c06.set_attr(m=Ref(c03, 0.1, 0), m0=1)
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_single_compressor_bypass_ref_outlet_to_comp_outlet_with_m0")
 
 
 def test_single_compressor_bypass_ref_comp_outlet_to_outlet():
@@ -151,3 +180,4 @@ def test_single_compressor_bypass_ref_comp_outlet_to_outlet():
     c03.set_attr(m=Ref(c06, 1 / 0.1, 0))
     nw.solve("design")
     assert nw.status == 0
+    assert_reference_results(nw, "test_single_compressor_bypass_ref_comp_outlet_to_outlet")

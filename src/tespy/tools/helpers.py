@@ -447,6 +447,16 @@ class UserDefinedVariable:
     def val_SI(self):
         return self.variable.val_SI
 
+    # forwarded so the object itself can be listed as dependent of an
+    # equation, consistent with how connection containers are used
+    @property
+    def is_var(self):
+        return self.variable.is_var
+
+    @property
+    def _reference_container(self):
+        return self.variable._reference_container
+
 
 def solve(obj, increment_filter):
     """

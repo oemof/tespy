@@ -532,10 +532,10 @@ measured operating point the flow coefficient is the unknown of the relation:
     >>> c2.set_attr(p=8)
 
 The variable takes a unique label and a starting value in SI units, optionally
-also value limits (:code:`min_val`, :code:`max_val`) applied during solving. In
-the equation its current value is accessed through :code:`val_SI`, the
-dependents reference the underlying container through the :code:`variable`
-attribute.
+also value limits (:code:`min_val`, :code:`max_val`) applied during solving. It
+is used in the equation and the dependents exactly like a connection property:
+the current value is accessed through :code:`val_SI`, the dependents list the
+object itself.
 
 .. code-block:: python
 
@@ -549,7 +549,7 @@ attribute.
 
     >>> def kv_dependents(ude):
     ...     c_in, c_out = ude.conns
-    ...     return [c_in.m, c_in.p, c_in.h, c_out.p, ude.params['kv'].variable]
+    ...     return [c_in.m, c_in.p, c_in.h, c_out.p, ude.params['kv']]
 
 Variables are registered on the network with :code:`add_udv` and we include it
 in the user defined equation.

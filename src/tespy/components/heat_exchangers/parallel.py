@@ -139,15 +139,13 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         :code:`temperature_difference`.
 
     ttd_l : float, dict
-        Terminal temperature difference between the two inlets (the maximum
-        temperature difference in parallel flow). Quantity:
-        :code:`temperature_difference`.
+        Terminal temperature difference at hot side outlet to cold side inlet.
+        Quantity: :code:`temperature_difference`.
         Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_l_func>`.
 
     ttd_u : float, dict
-        Terminal temperature difference between the two outlets (the minimum
-        temperature difference in parallel flow). Quantity:
-        :code:`temperature_difference`.
+        Terminal temperature difference at hot side inlet to cold side outlet.
+        Quantity: :code:`temperature_difference`.
         Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_u_func>`.
 
     UA : float, dict
@@ -281,6 +279,14 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         del params["eff_hot"]
         del params["eff_cold"]
         del params["eff_max"]
+        params["ttd_u"].description = (
+            "terminal temperature difference at hot side outlet to cold side "
+            "outlet"
+        )
+        params["ttd_l"].description = (
+            "terminal temperature difference at hot side inlet to cold side "
+            "inlet"
+        )
         return params
 
     def _initial_temperature_edges(self):

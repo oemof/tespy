@@ -17,6 +17,7 @@ from scipy.optimize import brentq
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.tools import logger
 from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
@@ -102,12 +103,15 @@ class SectionedHeatExchanger(HeatExchanger):
         ratio. Quantity: :code:`ratio`.
 
     area_hot : float, dict
-        Hot-side heat exchange area. Quantity: :code:`area`.
+        Hot-side heat exchange area; if not set, it is computed as a result
+        after each solve, in case :code:`area_ratio`, :code:`R_cond` and the
+        alpha values of all phases occurring in the solution are set. Quantity:
+        :code:`area`.
 
     area_ratio : float, dict
         Heat transfer area ratio; previously defined as secondary to refrigerant
-        side ratio, will be defined as hot to cold side ratio in a future
-        version. Quantity: :code:`ratio`.
+        side ratio, will be defined as hot to cold side ratio in version 0.12.
+        Quantity: :code:`ratio`.
 
     area_zones : GroupedComponentProperties
         Bell (2015) area-based heat exchanger constraint. All elements must be
@@ -786,7 +790,12 @@ class SectionedHeatExchanger(HeatExchanger):
             ),
             'area_hot': dc_cp(
                 min_val=0, quantity="area",
-                description="hot-side heat exchange area"
+                description="hot-side heat exchange area; if not set, it is "
+                "computed as a result after each solve, in case "
+                ":code:`area_ratio`, :code:`R_cond` and the alpha values of "
+                "all phases occurring in the solution are set",
+                calc=self._calc_area_hot,
+                calc_deps=[]
             ),
             'area_zones': dc_gcp(
                 elements=[
@@ -1222,6 +1231,63 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def _calc_UA_from_sections(self):
         return float(sum(self.Q_per_section.val_SI / self.lmtd_per_section.val_SI))
+
+    def _calc_area_hot(self):
+        r"""Calculate the required hot-side area from the converged solution.
+
+        The Bell (2015) area residual is linear in the hot-side area
+        :math:`A_h`, so it can be solved for directly:
+
+        .. math::
+
+            A_h = \frac{
+                \sum_j \frac{\dot Q_j}{\text{LMTD}_j} \cdot \left(
+                    \frac{1}{\alpha_{h,j}}
+                    + \frac{1}{\alpha_{c,j} \cdot f_A}
+                \right)
+            }{1 - R_k \cdot \sum_j \frac{\dot Q_j}{\text{LMTD}_j}}
+
+        with :math:`f_A` the :code:`area_ratio` and :math:`R_k` the wall
+        conduction resistance :code:`R_cond`. Only the alpha values of phases
+        actually occurring in the solution are required. If a prerequisite
+        parameter is not set, :code:`nan` is returned.
+        """
+        if self.area_hot.is_set:
+            return self.area_hot.val_SI
+
+        phases_hot = self.phase_hot_per_section.val_SI.astype(int)
+        phases_cold = self.phase_cold_per_section.val_SI.astype(int)
+        alpha1 = [self.alpha1_l, self.alpha1_tp, self.alpha1_g, self.alpha1_sc]
+        alpha2 = [self.alpha2_l, self.alpha2_tp, self.alpha2_g, self.alpha2_sc]
+        required = (
+            [alpha1[ph] for ph in set(phases_hot)]
+            + [alpha2[ph] for ph in set(phases_cold)]
+            + [self.area_ratio, self.R_cond]
+        )
+        if not all(p.is_set for p in required):
+            return np.nan
+
+        UA_per_section = np.abs(
+            self.Q_per_section.val_SI / self.lmtd_per_section.val_SI
+        )
+        resistance = sum(
+            UA_j * (
+                1 / alpha1[ph1].val_SI
+                + 1 / (alpha2[ph2].val_SI * self.area_ratio.val_SI)
+            )
+            for UA_j, ph1, ph2 in zip(UA_per_section, phases_hot, phases_cold)
+        )
+        denominator = 1 - self.R_cond.val_SI * sum(UA_per_section)
+        if denominator <= 0:
+            msg = (
+                f"The wall conduction resistance R_cond of component "
+                f"{self.label} is larger than the total thermal resistance "
+                "implied by the converged solution (R_cond * UA >= 1). No "
+                "positive heat transfer area exists for this specification."
+            )
+            logger.warning(msg)
+            return np.nan
+        return float(resistance / denominator)
 
     def _calc_td_pinch(self):
         return float(min(self.T_hot_sections.val_SI - self.T_cold_sections.val_SI))

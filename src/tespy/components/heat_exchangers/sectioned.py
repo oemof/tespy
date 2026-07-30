@@ -1252,7 +1252,9 @@ class SectionedHeatExchanger(HeatExchanger):
         actually occurring in the solution are required. If a prerequisite
         parameter is not set, :code:`nan` is returned.
         """
-        if self.area_hot.is_set:
+        if self.area_hot.is_set and not self.area_zones.is_set:
+            # if area_hot is set and the area_zones equation is inactive we
+            # return in place value
             return self.area_hot.val_SI
 
         phases_hot = self.phase_hot_per_section.val_SI.astype(int)

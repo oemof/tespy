@@ -15,6 +15,9 @@ New Features
   in case :code:`area_ratio`, :code:`R_cond` and the alpha values of all phases
   occurring in the solution are set
   (`PR #1035 <https://github.com/oemof/tespy/pull/1035>`__).
+- New :py:class:`~tespy.components.nodes.equilibrium_separator.EquilibriumSeparator`
+  component: a phase separator that also handles single phase inlet states
+  (`PR #1036 <https://github.com/oemof/tespy/pull/1036>`__).
 
 Other Changes
 #############

@@ -34,9 +34,9 @@ from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
-from tespy.tools.helpers import _validate_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import _validate_dependents
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 

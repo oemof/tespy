@@ -25,9 +25,9 @@ class EquilibriumSeparator(DropletSeparator):
     In contrast to the
     :class:`DropletSeparator <tespy.components.nodes.droplet_separator.DropletSeparator>`
     this component also handles single phase inlet states: The full mass flow
-    then leaves through the outlet matching the inlet phase without a change
-    of state, while the other outlet sees zero mass flow at saturated state.
-    For two-phase inlets the behavior is identical to the parent component.
+    then leaves through the outlet matching the inlet phase without a change of
+    state, while the other outlet sees zero mass flow at saturated state. For
+    two-phase inlets the behavior is identical to the parent component.
 
     .. image:: /api/_images/components/DropletSeparator.svg
        :alt: flowsheet of the equilibriumseparator
@@ -51,8 +51,8 @@ class EquilibriumSeparator(DropletSeparator):
     - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
     - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.equilibrium_separator.EquilibriumSeparator.energy_balance_func>`
     - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
-    - outlet 0 state constraint: :py:meth:`outlet_state_func <tespy.components.nodes.equilibrium_separator.EquilibriumSeparator.outlet_state_func>`
-    - outlet 1 state constraint: :py:meth:`outlet_state_func <tespy.components.nodes.equilibrium_separator.EquilibriumSeparator.outlet_state_func>`
+    - outlet 0 liquid state constraint: :py:meth:`outlet_state_func <tespy.components.nodes.equilibrium_separator.EquilibriumSeparator.outlet_state_func>`
+    - outlet 1 gas state constraint: :py:meth:`outlet_state_func <tespy.components.nodes.equilibrium_separator.EquilibriumSeparator.outlet_state_func>`
     - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
 
     Parameters
@@ -128,14 +128,14 @@ class EquilibriumSeparator(DropletSeparator):
             'dependents': self.outlet_state_dependents,
             'num_eq_sets': 1,
             'func_params': {'outconn': 0, 'phase': 'l'},
-            'description': 'outlet 0 state constraint'
+            'description': 'outlet 0 liquid state constraint'
         })
         constraints['outlet_constraint_gas'] = dc_cmc(**{
             'func': self.outlet_state_func,
             'dependents': self.outlet_state_dependents,
             'num_eq_sets': 1,
             'func_params': {'outconn': 1, 'phase': 'g'},
-            'description': 'outlet 1 state constraint'
+            'description': 'outlet 1 gas state constraint'
         })
         return constraints
 
@@ -144,9 +144,9 @@ class EquilibriumSeparator(DropletSeparator):
         Calculate energy balance.
 
         For a two-phase inlet the energy balance is applied. For a single
-        phase inlet it is replaced by a zero mass flow condition on the
-        outlet opposite of the inlet phase, the energy balance is then
-        implied by the outlet state equations.
+        phase inlet it is replaced by a zero mass flow condition on the outlet
+        opposite of the inlet phase, the energy balance is then implied by the
+        outlet state equations.
 
         Returns
         -------

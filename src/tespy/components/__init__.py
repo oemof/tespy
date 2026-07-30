@@ -23,6 +23,7 @@ from .heat_exchangers.simple import SimpleHeatExchanger  # noqa: F401
 from .heat_exchangers.solar_collector import SolarCollector  # noqa: F401
 from .nodes.droplet_separator import DropletSeparator  # noqa: F401
 from .nodes.drum import Drum  # noqa: F401
+from .nodes.equilibrium_separator import EquilibriumSeparator  # noqa: F401
 from .nodes.merge import Merge  # noqa: F401
 from .nodes.node import Node  # noqa: F401
 from .nodes.separator import Separator  # noqa: F401

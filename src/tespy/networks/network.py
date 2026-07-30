@@ -190,6 +190,7 @@ class Network:
         self.comps = pd.DataFrame(columns=list(dtypes.keys())).astype(dtypes)
         # user defined function dictionary for fast access
         self.user_defined_eq = {}
+        self.user_defined_var = {}
         self.subsystems = {}
         # results and specification dictionary
         self.results = {}
@@ -698,6 +699,69 @@ class Network:
                 stacklevel=2,
             )
             return None
+
+    def add_udv(self, *args):
+        r"""
+        Add a user defined variable to the network.
+
+        Parameters
+        ----------
+        c : tespy.tools.helpers.UserDefinedVariable
+            The objects to be added to the network, UserDefinedVariable
+            objects ci :code:`add_udv(c1, c2, c3, ...)`.
+        """
+        for c in args:
+            if not isinstance(c, hlp.UserDefinedVariable):
+                msg = (
+                    'Must provide tespy.tools.helpers.UserDefinedVariable '
+                    'objects as parameters.'
+                )
+                logger.error(msg)
+                raise TypeError(msg)
+
+            elif c.label in self.user_defined_var:
+                msg = (
+                    'There is already a UserDefinedVariable with the label '
+                    f'{c.label} . The UserDefinedVariable labels must be '
+                    'unique within a network'
+                )
+                logger.error(msg)
+                raise ValueError(msg)
+
+            self.user_defined_var[c.label] = c
+            msg = f"Added UserDefinedVariable {c.label} to network."
+            logger.debug(msg)
+
+    def del_udv(self, *args):
+        """
+        Remove a user defined variable from the network.
+
+        Parameters
+        ----------
+        c : tespy.tools.helpers.UserDefinedVariable
+            The objects to be deleted from the network,
+            UserDefinedVariable objects ci :code:`del_udv(c1, c2, c3, ...)`.
+        """
+        for c in args:
+            del self.user_defined_var[c.label]
+            msg = f"Deleted UserDefinedVariable {c.label} from network."
+            logger.debug(msg)
+
+    def get_udv(self, label):
+        r"""
+        Get UserDefinedVariable via label.
+
+        Parameters
+        ----------
+        label : str
+            Label of the UserDefinedVariable object.
+
+        Returns
+        -------
+        c : tespy.tools.helpers.UserDefinedVariable
+            UserDefinedVariable object with specified label.
+        """
+        return self.user_defined_var[label]
 
     def assert_convergence(self):
         """Check convergence status of a simulation."""
@@ -1686,6 +1750,12 @@ class Network:
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
+        for udv in self.user_defined_var.values():
+            for key, variable in udv.get_variables().items():
+                # user defined variables are SI only, the local container
+                # always holds a value
+                variable.set_reference_val_SI(variable._val_SI)
+
         msg = (
             f"Starting values: {num_init_path} connections from init_path, "
             f"{num_previous} from a previous solution, {num_generic} generic, "
@@ -1971,8 +2041,13 @@ class Network:
             obj = self.conns.loc[label, "object"]
         elif label in self.comps.index:
             obj = self.comps.loc[label, "object"]
+        elif label in self.user_defined_var:
+            obj = self.user_defined_var[label]
         else:
-            msg = f"There is no connection or component with label {label}."
+            msg = (
+                f"There is no connection, component or user defined variable "
+                f"with label {label}."
+            )
             raise KeyError(msg)
 
         self.problem.set_variable_value(obj, prop, value)

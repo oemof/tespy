@@ -7,7 +7,7 @@ Advanced Features
 .. grid:: 1 2 3 3
     :gutter: 1
 
-    .. grid-item-card:: UserDefinedEquations
+    .. grid-item-card:: UserDefinedEquations and Variables
         :link: ude_label
         :link-type: ref
 

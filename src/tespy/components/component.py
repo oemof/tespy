@@ -34,6 +34,7 @@ from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
+from tespy.tools.helpers import _validate_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.units import _UNITS
@@ -501,6 +502,9 @@ class Component:
             vector_dependents = [{} for _ in range(data.num_eq)]
         else:
             dependents = data.dependents(**data.func_params)
+            _validate_dependents(
+                dependents, f"equation {value} of component {self.label}"
+            )
             if type(dependents) == list:
                 scalar_dependents = _get_dependents(dependents)
                 vector_dependents = [{} for _ in range(data.num_eq)]

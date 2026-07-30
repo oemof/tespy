@@ -77,7 +77,7 @@ Instability, Errors and Debugging
         from a saved simulation through the :code:`init_path`. Find a more
         thorough description about how the solving process is implemented and
         configured in TESPy in the respective chapter in the
-        :ref:`Network documentation <networks_solving_label>`.
+        :ref:`solver documentation <networks_solving_label>`.
         It also contains a comprehensive section about
         :ref:`convergence stability <module_convergence_label>`.
 

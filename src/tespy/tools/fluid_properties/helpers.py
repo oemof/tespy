@@ -72,12 +72,17 @@ def inverse_temperature_mixture(p=None, target_value=None, fluid_data=None, T0=N
         "p": p, "fluid_data": fluid_data, "T": T0,
         "function": f, "parameter": "T" , "delta": 0.001
     }
+    # the inversion tolerance bounds the relative noise floor of every
+    # residual evaluation chaining through mixture properties - it must
+    # stay well below the scaled convergence tolerances of the solver
     return newton_with_kwargs(
         central_difference,
         target_value,
         val0=T0,
         valmin=valmin,
         valmax=valmax,
+        tol_rel=1e-9,
+        max_iter=20,
         **function_kwargs
     )
 

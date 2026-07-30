@@ -33,9 +33,10 @@ divides the plant in three sections: The consumer part, the valve and the
 evaporator and the compressor as last element. Each new section will be
 appended to the existing ones.
 
-The system will be built up in a way, that independent of what working fluid
-we use, we will be able to generate stable starting values. After achieving
-that, the final parameters are specified instead of the initial values.
+The system will be built up with simple specifications first, which work
+independent of the working fluid used. This way, every section can be solved
+and checked directly after adding it. After the full system has been set up,
+the final parameters are specified instead of the initial values.
 
 Set up a Network
 ^^^^^^^^^^^^^^^^
@@ -139,11 +140,11 @@ decides the overall mass flow in the systems.
 
 .. tip::
 
-    In this tutorial we will first build the system with parameters that
-    ensure stable starting values for a simulation, which in the end will be
-    switched to reasonable values for the individual parts of the system. For
-    example, instead of the evaporation pressure we will use the pinch
-    temperature difference at the condenser instead.
+    In this tutorial we will first build the system with simple and robust
+    specifications, which in the end will be switched to the actual design
+    specifications of the individual parts of the system. For example, the
+    directly specified condensation temperature will be replaced by the
+    pinch temperature difference at the condenser.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -297,8 +298,8 @@ state of the incoming fluid at the superheater's hot side.
 Solve
 +++++
 We can again run a simulation after adding these parts. This step is not
-required, but in larger, more complex networks, it is recommended to achieve
-better convergence.
+required, but it is recommended, since it allows us to check the plausibility
+of the results of every section directly after adding it.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python
@@ -365,12 +366,11 @@ and add them again.
 Parametrization
 +++++++++++++++
 For the first compressor we set the pressure ratio to the square root of the
-full pressure ration between condensation and evaporation. In the first step,
-we do not set the isentropic efficiency, because the respective equations are
-quite sensitive to good starting value. We will set these values after the
-full system has been calculated. The pump's isentropic efficiency value is not
-as critical, therefore we set this value. The intermittent cooling causes
-pressure losses on both sides.
+full pressure ratio between condensation and evaporation, so both compressors
+share the same pressure ratio. The isentropic efficiencies of the compressors
+are specified together with the other final specifications, after the full
+system has been set up. For the pump we set the isentropic efficiency
+directly. The intermittent cooling causes pressure losses on both sides.
 
 .. literalinclude:: /../tutorial/advanced/stepwise.py
     :language: python

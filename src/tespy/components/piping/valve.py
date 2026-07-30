@@ -227,6 +227,17 @@ class Valve(Component):
 
     _parameter_aliases = {'zeta': 'zeta_d4'}
 
+    def _initial_affine_edges(self):
+        return [
+            (self.inl[0].p, self.outl[0].p, 0.5, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
+        ]
+
+    def _initial_temperature_edges(self):
+        # the temperature drops with the flashing expansion, the isenthalpic
+        # relation in enthalpy space carries the information instead
+        return []
+
     def get_parameters(self):
         return {
             'pr': dc_cp(

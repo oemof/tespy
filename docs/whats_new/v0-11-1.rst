@@ -1,0 +1,28 @@
+v0.11.1 - Under development
++++++++++++++++++++++++++++
+
+New Features
+############
+- New :py:class:`~tespy.tools.helpers.UserDefinedVariable` class: a standalone
+  solver variable that is not attached to any connection or component. It is
+  referenced from the function and dependents of a
+  :py:class:`~tespy.tools.helpers.UserDefinedEquation`, which closes the degree
+  of freedom the variable adds. See the
+  :ref:`user defined variables section <udv_label>` for an example
+  (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
+- The :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`
+  reports the required hot-side heat transfer area :code:`area_hot` as a result,
+  in case :code:`area_ratio`, :code:`R_cond` and the alpha values of all phases
+  occurring in the solution are set
+  (`PR #1035 <https://github.com/oemof/tespy/pull/1035>`__).
+
+Other Changes
+#############
+- The determination error and debug messages on the problem reduction report
+  the number of directly specified variables, so the difference between the
+  original and the reduced problem size becomes traceable
+  (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

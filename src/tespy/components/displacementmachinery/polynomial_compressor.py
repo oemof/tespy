@@ -365,8 +365,8 @@ class PolynomialCompressor(DisplacementMachine):
         if self.rpm.is_set or self.rpm.is_var:
             msg = (
                 f"The 'rpm' parameter of component {self.label} of type "
-                f"{self.__class__.__name__} will be deprecated with the next "
-                "major release. Please use 'frequency' instead. Note, to "
+                f"{self.__class__.__name__} is deprecated and will be "
+                "removed in version 0.12. Please use 'frequency' instead. Note, to "
                 "specify the rounds per minute use the unit 1/min as 'rpm' "
                 "is '1/min' divided by 2π in the unit conversion framework."
             )
@@ -382,7 +382,8 @@ class PolynomialCompressor(DisplacementMachine):
                 else:
                     msg = (
                         f"The 'rpm_displacement' key in 'reference_state' of "
-                        f"component {self.label} is deprecated. Use "
+                        f"component {self.label} is deprecated and will be "
+                        "removed in version 0.12. Use "
                         "'frequency_displacement' in Hz (1/s) together with "
                         "'displacement' in m³/h, or provide 'swept_volume' "
                         "directly in m³. See swept_volume_from_displacement()."
@@ -394,7 +395,8 @@ class PolynomialCompressor(DisplacementMachine):
             if "frequency_poly" not in rs and "rpm_poly" in rs:
                 msg = (
                     f"The 'rpm_poly' key in 'reference_state' of component "
-                    f"{self.label} is deprecated. Use 'frequency_poly' in Hz "
+                    f"{self.label} is deprecated and will be removed in version "
+                    "0.12. Use 'frequency_poly' in Hz "
                     "(1/s) instead: frequency_poly = rpm_poly / 60."
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=2)

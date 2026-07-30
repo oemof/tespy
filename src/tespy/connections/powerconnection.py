@@ -68,7 +68,7 @@ class PowerConnection(ConnectionBase):
                 logger.error(msg)
                 raise KeyError(msg)
 
-    def _guess_starting_values(self, units):
+    def _guess_starting_values(self, units, covered):
         if self.E.is_var:
             if not self.good_starting_values:
                 self.E.set_reference_val_SI(0.0)
@@ -81,6 +81,7 @@ class PowerConnection(ConnectionBase):
                 # every solve call after the first, discarding the warm
                 # start even when good_starting_values is True.
                 self.E.set_reference_val_SI(self.E._val_SI)
+        return []
 
     def get_variables(self):
         return {"E": self.E}

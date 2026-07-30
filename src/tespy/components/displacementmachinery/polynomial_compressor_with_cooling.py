@@ -405,6 +405,12 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     def outlets():
         return ['out1', 'out2']
 
+    def _initial_affine_edges(self):
+        return super()._initial_affine_edges() + [
+            (self.inl[1].p, self.outl[1].p, 1.0, 0.0),
+            (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
+        ]
+
     def get_mandatory_constraints(self) -> dict:
         constraints = super().get_mandatory_constraints()
         # this is a dictionary

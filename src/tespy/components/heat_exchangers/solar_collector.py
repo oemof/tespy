@@ -133,9 +133,6 @@ class SolarCollector(SimpleHeatExchanger):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
-    power_connector_location : str
-        Description missing.
-
     pr : float, dict
         Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
         Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.

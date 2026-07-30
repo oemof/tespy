@@ -327,6 +327,9 @@ class UserDefinedEquation:
             vector_dependents = [{} for _ in range(data.num_eq)]
         else:
             dependents = data.dependents(**data.func_params)
+            _validate_dependents(
+                dependents, f"the UserDefinedEquation {self.label}"
+            )
             if type(dependents) == list:
                 scalar_dependents = _get_dependents(dependents)
                 vector_dependents = [{} for _ in range(data.num_eq)]
@@ -801,26 +804,66 @@ def _get_vector_dependents(variable_list):
         ]
 
 
+def _validate_dependents(dependents, context):
+    """Raise on dependents that cannot enter the incidence.
+
+    Every variable container of a network object receives a reference container
+    during the affine elimination. A dependent without one is either a variable
+    of an object outside of the network or a property that can never be a
+    variable of the solver. Both silently disappear from the incidence
+    otherwise, leaving the equation with incomplete dependency information.
+    """
+    candidates = (
+        dependents["scalars"] if isinstance(dependents, dict)
+        else dependents
+    )
+    flat = []
+    for item in candidates:
+        if isinstance(item, list):
+            flat.extend(item)
+        else:
+            flat.append(item)
+    for dependent in flat:
+        if getattr(dependent, "_reference_container", None) is not None:
+            continue
+        if dependent.is_var:
+            msg = (
+                f"The dependents of {context} reference a variable that is "
+                "not part of the network's variable space, e.g. a "
+                "UserDefinedVariable that has not been added to the network "
+                "or has been removed from it."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+        elif (
+                getattr(dependent, "func", None) is not None
+                and not isinstance(dependent, dc_cp)
+            ):
+            # component parameters are exempt: listing one that is not switched
+            # to a variable is the established pattern for conditional
+            # dependents, e.g. the specific energy of the reactor components
+            msg = (
+                f"The dependents of {context} reference a property that is "
+                "never a variable of the solver, e.g. a temperature "
+                "container. List the variables the property is calculated "
+                "from instead, e.g. pressure and enthalpy in case of the "
+                "temperature."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+
+
 def _get_dependents(variable_list):
-    # every variable container of an object that is part of the network
-    # receives a reference container during the affine elimination. A
-    # container with the variable flag but no reference belongs to an
-    # object outside of the network, e.g. a UserDefinedVariable that was
-    # removed while an equation still lists it as dependent: it is no
-    # unknown of this problem and must not enter the incidence - the
-    # determination check then reports the surplus equation
     if isinstance(variable_list[0], list):
         return [set(
             var._reference_container
-            for var in sublist
-            if var.is_var and var._reference_container is not None
+            for var in sublist if var.is_var
         ) for sublist in variable_list
     ]
     else:
         return [set(
             var._reference_container
-            for var in variable_list
-            if var.is_var and var._reference_container is not None
+            for var in variable_list if var.is_var
         )]
 
 

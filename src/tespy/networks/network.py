@@ -1750,6 +1750,12 @@ class Network:
                 variable.set_SI_from_val(self.units)
                 variable.set_reference_val_SI(variable._val_SI)
 
+        for udv in self.user_defined_var.values():
+            for key, variable in udv.get_variables().items():
+                # user defined variables are SI only, the local container
+                # always holds a value
+                variable.set_reference_val_SI(variable._val_SI)
+
         msg = (
             f"Starting values: {num_init_path} connections from init_path, "
             f"{num_previous} from a previous solution, {num_generic} generic, "

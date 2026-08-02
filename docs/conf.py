@@ -527,3 +527,7 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
 # Notebook execution
 nb_execution_allow_errors = True
 nb_execution_in_temp = True
+nb_execution_timeout = 300
+# notebooks check this to shorten expensive cells; the kernel spawned by
+# myst-nb inherits the environment of the sphinx process
+os.environ["TESPY_DOCS_BUILD"] = "true"

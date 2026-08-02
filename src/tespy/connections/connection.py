@@ -276,6 +276,7 @@ class ConnectionBase:
                 self.get_attr(var).is_set = False
 
     def _presolve(self):
+        self._presolve_determinations = []
         return []
 
     def _debug_state(self):
@@ -1480,6 +1481,7 @@ class Connection(ConnectionBase):
             self.h.set_reference_val_SI(h)
 
     def _presolve(self):
+        self._presolve_determinations = []
         if len(self.fluid.is_var) > 0:
             return []
 
@@ -1517,6 +1519,9 @@ class Connection(ConnectionBase):
                 self.p._potential_var = False
                 if "T_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["T_dew"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T_dew'], "requires": []}
+                )
                 msg = f"Determined p by specified T_dew at {self.label}."
                 logger.debug(msg)
 
@@ -1525,6 +1530,9 @@ class Connection(ConnectionBase):
                 self.p._potential_var = False
                 if "T_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["T_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T_bubble'], "requires": []}
+                )
                 msg = f"Determined p by specified T_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1534,6 +1542,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and T at {self.label}."
                 logger.debug(msg)
 
@@ -1548,6 +1559,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['td_bubble'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and td_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1562,6 +1576,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['td_dew'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and td_dew at {self.label}."
                 logger.debug(msg)
 
@@ -1570,6 +1587,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['x'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and x at {self.label}."
                 logger.debug(msg)
 
@@ -1583,6 +1603,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'x'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'x'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and x at {self.label}."
                 logger.debug(msg)
 
@@ -1598,6 +1624,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'td_bubble'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'td_bubble'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and td_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1613,6 +1645,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'td_dew'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'td_dew'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and td_dew at {self.label}."
                 logger.debug(msg)
 

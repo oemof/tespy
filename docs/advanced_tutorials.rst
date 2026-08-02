@@ -41,7 +41,7 @@ you!
         .. image:: /_static/images/thumbnails/advanced_tutorials/heat_pump_starting_values_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Debug your models efficiently
+    .. grid-item-card::  Debug your model building
         :link: tutorial_debugging_label
         :link-type: ref
 
@@ -51,7 +51,7 @@ you!
         .. image:: /_static/images/thumbnails/advanced_tutorials/debugging_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Debugging the solution process
+    .. grid-item-card::  Debug the solution process
         :link: tutorial_advanced_debugging_label
         :link-type: ref
 

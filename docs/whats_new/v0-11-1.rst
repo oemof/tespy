@@ -31,8 +31,8 @@ Other Changes
 
 Documentation
 #############
-- New advanced tutorial on a CO2 transcritical booster refrigeration system
-  of the kind used in supermarkets. The model is implemented on top of the
+- New advanced tutorial on a CO2 transcritical booster refrigeration system of
+  the kind used in supermarkets. The model is implemented on top of the
   :py:class:`~tespy.models.template.ModelTemplate` class and demonstrates
   log(p)-h and QT diagram plotting, a sensitivity analysis of the gas cooler
   pressure and the optimization of the COP with pymoo. See the

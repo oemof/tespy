@@ -114,14 +114,16 @@ class SolutionConnection(Connection):
 
     def _precalc_guess_values(self):
         if not self.h.is_var:
-            return
+            return False
         if not self.good_starting_values and self.T.is_set:
             try:
                 self.h.set_reference_val_SI(
                     h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule)
                 )
+                return True
             except Exception:
                 pass
+        return False
 
     def _adjust_to_property_limits(self, nw):
         ref = self.fluid._reference_container
@@ -133,17 +135,21 @@ class SolutionConnection(Connection):
                 ref.val["H2O"] = 1.0 - xi_clipped
         super()._adjust_to_property_limits(nw)
 
-    def _guess_starting_values(self, units):
-        super()._guess_starting_values(units)
+    def _guess_starting_values(self, units, covered):
+        h_sources = super()._guess_starting_values(units, covered)
         if self.h.is_var and not self.good_starting_values:
-            rand = seeded_random(self.label)
-            T_rand = 310 + rand * (420 - 310)
-            try:
-                h = h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
-                self.h.set_reference_val_SI(h)
-            except Exception:
-                pass
-            self._precalc_guess_values()
+            reference = self.h._reference_container
+            if reference not in covered:
+                rand = seeded_random(self.label)
+                T_rand = 310 + rand * (420 - 310)
+                try:
+                    h = h_mix_pT(1e5, T_rand, self.fluid_data, self.mixing_rule)
+                    self.h.set_reference_val_SI(h)
+                    covered.add(reference)
+                    h_sources.append(reference)
+                except Exception:
+                    pass
+        return h_sources
 
     def calc_xi(self):
         """Return solved LiBr mass fraction from fluid composition."""

@@ -37,7 +37,9 @@ from .power.source import PowerSource  # noqa: F401
 from .reactors.fuel_cell import FuelCell  # noqa: F401
 from .reactors.water_electrolyzer import WaterElectrolyzer  # noqa: F401
 from .sorption.sorption import Absorber  # noqa: F401
+from .sorption.sorption import CooledAbsorber  # noqa: F401
 from .sorption.sorption import Desorber  # noqa: F401
+from .sorption.sorption import HeatedDesorber  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401

@@ -37,6 +37,10 @@ class SubsystemInterface(Component):
 
     - Fluid inlets: in1, in2, ... (variable, count set by :code:`num_inter`)
     - Fluid outlets: out1, out2, ... (variable, count set by :code:`num_inter`)
+    - Power inlets: power_in1, power_in2, ... (variable, count set by :code:`num_power_inter`)
+    - Power outlets: power_out1, power_out2, ... (variable, count set by :code:`num_power_inter`)
+    - Heat inlets: heat_in1, heat_in2, ... (variable, count set by :code:`num_heat_inter`)
+    - Heat outlets: heat_out1, heat_out2, ... (variable, count set by :code:`num_heat_inter`)
 
     Mandatory Equations
     -------------------
@@ -67,8 +71,14 @@ class SubsystemInterface(Component):
     local_offdesign : bool
         Treat this component in offdesign mode in a design calculation.
 
+    num_heat_inter : int
+        Number of heat interfacing connections.
+
     num_inter : int
         Number of interfacing connections.
+
+    num_power_inter : int
+        Number of power interfacing connections.
 
     offdesign : list
         List containing offdesign parameters (stated as String).

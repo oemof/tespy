@@ -224,7 +224,7 @@ def test_td_dew_convergence_helper(simple_test_network):
 
     nw.solve("design")
     nw.assert_convergence()
-    assert nw.iter < 10
+    assert nw.problem.iter < 10
 
 
 def test_td_bubble_convergence_helper(simple_test_network):
@@ -243,7 +243,7 @@ def test_td_bubble_convergence_helper(simple_test_network):
 
     nw.solve("design")
     nw.assert_convergence()
-    assert nw.iter < 10
+    assert nw.problem.iter < 10
 
 
 @mark.skipif(

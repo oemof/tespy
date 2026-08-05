@@ -90,12 +90,15 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         ratio. Quantity: :code:`ratio`.
 
     area_hot : float, dict
-        Hot-side heat exchange area. Quantity: :code:`area`.
+        Hot-side heat exchange area; if not set, it is computed as a result
+        after each solve, in case :code:`area_ratio`, :code:`R_cond` and the
+        alpha values of all phases occurring in the solution are set. Quantity:
+        :code:`area`.
 
     area_ratio : float, dict
         Heat transfer area ratio; previously defined as secondary to refrigerant
-        side ratio, will be defined as hot to cold side ratio in a future
-        version. Quantity: :code:`ratio`.
+        side ratio, will be defined as hot to cold side ratio in version 0.12.
+        Quantity: :code:`ratio`.
 
     area_zones : GroupedComponentProperties
         Bell (2015) area-based heat exchanger constraint. All elements must be
@@ -279,7 +282,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     UA_cecchinato_hc : GroupedComponentProperties
         Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in the next major version
+        explicit hot/cold Reynolds exponents; in version 0.12
         :code:`UA_cecchinato` will adopt the hot/cold convention of
         :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.

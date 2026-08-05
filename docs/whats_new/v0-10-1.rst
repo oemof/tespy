@@ -1,4 +1,4 @@
-v0.10.0 - Rankine's Renaissance (June, 14, 2026)
+v0.10.1 - Rankine's Renaissance (June, 14, 2026)
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
 API Changes

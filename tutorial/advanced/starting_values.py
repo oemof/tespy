@@ -9,7 +9,7 @@ from tespy.components import (
 
 from tespy.connections import Connection, PowerConnection, HeatConnection
 # %%[sec_2]
-wf = "NH3"
+wf = "R290"
 
 # network
 nw = Network()
@@ -74,7 +74,7 @@ nw.add_conns(c21, c22, c23, c24)
 T_hs_bf = 10
 T_hs_ff = 15
 T_cons_bf = 50
-T_cons_ff = 90
+T_cons_ff = 70
 
 # consumer cycle
 c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1})
@@ -113,36 +113,31 @@ try:
 except ValueError as e:
     print(e)
 
+# %%[sec_3_end]
+# the tutorial narrative relies on this first attempt failing
+assert not nw.converged
 # %%[sec_4]
-import CoolProp.CoolProp as CP
-
 # evaporation point
-p_eva = CP.PropsSI("P", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-5
-c1.set_attr(p=p_eva)
+c1.set_attr(T_dew=T_hs_bf - 5)
 heatsource_evaporator.set_attr(ttd_l=None)
 
 # condensation point
-p_cond = CP.PropsSI("P", "Q", 0, "T", T_cons_ff + 5 + 273.15, wf) * 1e-5
-c4.set_attr(p=p_cond)
+c4.set_attr(T_bubble=T_cons_ff + 5)
 condenser.set_attr(ttd_u=None)
-
-# internal heat exchanger to compressor enthalpy
-h_evap = CP.PropsSI("H", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-3
-c2.set_attr(td_dew=None, h=h_evap * 1.01)
 
 # solve the network again
 nw.solve("design")
 # %%[sec_5]
 # evaporation point
-c1.set_attr(p=None)
+c1.set_attr(T_dew=None)
 heatsource_evaporator.set_attr(ttd_l=5)
 
 # condensation point
-c4.set_attr(p=None)
+c4.set_attr(T_bubble=None)
 condenser.set_attr(ttd_u=5)
 
 # internal heat exchanger superheating
-c2.set_attr(td_dew=5, h=None)
+c2.set_attr(td_dew=5)
 
 # solve the network again
 nw.solve("design")
@@ -158,7 +153,8 @@ def generate_network_with_starting_values(wf):
     # network
     nw = Network(iterinfo=False)
     nw.units.set_defaults(
-        temperature="degC", pressure="bar", enthalpy="kJ/kg"
+        temperature="degC", pressure="bar", enthalpy="kJ/kg", power="MW",
+        heat="MW", pressure_difference="bar"
     )
 
     # components
@@ -216,7 +212,7 @@ def generate_network_with_starting_values(wf):
     T_hs_bf = 10
     T_hs_ff = 15
     T_cons_bf = 50
-    T_cons_ff = 90
+    T_cons_ff = 70
 
     # consumer cycle
     c23.set_attr(T=T_cons_ff, p=10, fluid={"water": 1})
@@ -242,19 +238,16 @@ def generate_network_with_starting_values(wf):
     int_heatex.set_attr(pr1=0.98, pr2=0.98)
 
     # evaporation point
-    p_eva = CP.PropsSI("P", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-5
-    c1.set_attr(p=p_eva)
+    c1.set_attr(T_dew=T_hs_bf - 5)
 
     # condensation point
-    p_cond = CP.PropsSI("P", "Q", 0, "T", T_cons_ff + 5 + 273.15, wf) * 1e-5
-    c4.set_attr(p=p_cond)
+    c4.set_attr(T_bubble=T_cons_ff + 5)
 
-    # internal heat exchanger to compressor enthalpy
-    h_evap = CP.PropsSI("H", "Q", 1, "T", T_hs_bf - 5 + 273.15, wf) * 1e-3
-    c2.set_attr(h=h_evap * 1.01)
+    # internal heat exchanger superheating
+    c2.set_attr(td_dew=5)
 
     # consumer heat demand
-    cons_heatsink.set_attr(Q=-1)
+    cons_heatsink.set_attr(Q=-1.0)
 
     grid = PowerSource("grid")
     electricity = PowerBus("electricity distribution", num_in=1, num_out=3)
@@ -270,18 +263,16 @@ def generate_network_with_starting_values(wf):
     nw.solve("design")
 
     # evaporation point
-    c1.set_attr(p=None)
+    c1.set_attr(T_dew=None)
     heatsource_evaporator.set_attr(ttd_l=5)
 
     # condensation point
-    c4.set_attr(p=None)
+    c4.set_attr(T_bubble=None)
     condenser.set_attr(ttd_u=5)
-
-    # internal heat exchanger superheating
-    c2.set_attr(td_dew=5, h=None)
 
     # solve the network again
     nw.solve("design")
+    nw.assert_convergence()
 
     return nw
 # %%[sec_7]

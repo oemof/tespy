@@ -57,6 +57,22 @@ class NodeBase(Component):
     def get_bypass_constraints():
         return {}
 
+    def _initial_affine_edges(self):
+        connections = self.inl + self.outl
+        first = connections[0]
+        edges = []
+        for c in connections[1:]:
+            edges += [
+                (first.p, c.p, 1.0, 0.0),
+                (first.h, c.h, 1.0, 0.0),
+            ]
+        return edges
+
+    def _initial_temperature_edges(self):
+        connections = self.inl + self.outl
+        first = connections[0]
+        return [(first, c, 0.0, 1.0) for c in connections[1:]]
+
     def mass_flow_func(self):
         r"""
         Calculate the residual value for mass flow balance equation.

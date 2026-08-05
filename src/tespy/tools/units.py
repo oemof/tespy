@@ -80,6 +80,32 @@ class Units:
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
+        self._from_SI = {}
+
+    def value_from_SI(self, value_SI, base_unit, target_unit):
+        """Convert a value in SI units to its magnitude in the target unit.
+
+        Unit conversions are affine, so factor and offset are computed once
+        per unit pair and cached, bypassing the pint conversion machinery
+        for every subsequent value.
+        """
+        try:
+            factor, offset = self._from_SI[(base_unit, target_unit)]
+        except KeyError:
+            offset = self.ureg.Quantity(0.0, base_unit).m_as(target_unit)
+            # probe at a large power of two: the division is exact and the
+            # cancellation error of the offset subtraction becomes negligible
+            probe = 2.0 ** 20
+            factor = (
+                self.ureg.Quantity(probe, base_unit).m_as(target_unit) - offset
+            ) / probe
+            self._from_SI[(base_unit, target_unit)] = (factor, offset)
+        return value_SI * factor + offset
+
+    def quantity_from_SI(self, value_SI, base_unit, target_unit):
+        return self.ureg.Quantity(
+            self.value_from_SI(value_SI, base_unit, target_unit), target_unit
+        )
 
     def set_defaults(self, **kwargs):
         """Set the default units
@@ -137,7 +163,7 @@ class Units:
             msg = (
                 "Setting the 'pressure' unit currently also sets the "
                 "'pressure_difference' unit for backwards compatibility. "
-                "In a future release this will no longer happen. Please "
+                "In version 0.12 this will no longer happen. Please "
                 "explicitly set 'pressure_difference' in "
                 "Network.units.set_defaults() to silence this warning."
             )

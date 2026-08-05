@@ -29,6 +29,16 @@ Other Changes
   original and the reduced problem size becomes traceable
   (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
 
+Documentation
+#############
+- New advanced tutorial on a CO2 transcritical booster refrigeration system
+  of the kind used in supermarkets. The model is implemented on top of the
+  :py:class:`~tespy.models.template.ModelTemplate` class and demonstrates
+  log(p)-h and QT diagram plotting, a sensitivity analysis of the gas cooler
+  pressure and the optimization of the COP with pymoo. See the
+  :ref:`tutorial <tutorial_co2_refrigeration_label>` for details.
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- Francesco D'Ettorre (`@dk-teknologisk-FDE <https://github.com/dk-teknologisk-FDE>`__)

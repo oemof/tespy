@@ -11,8 +11,11 @@ SPDX-License-Identifier: MIT
 """
 import math
 
+import numpy as np
+
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.tools.fluid_properties import T_mix_ph
 
 
 @component_registry
@@ -341,3 +344,45 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         if round(ttd_u, 6) == round(ttd_l, 6):
             return ttd_l
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+
+    def _get_T_at_steps(self, steps):
+        """Calculate hot- and cold-side temperatures at each step.
+
+        In parallel flow the hot side outlet shares its physical position
+        with the cold side outlet, the inherited pairing of the section
+        machinery describes counterflow. The cold side steps therefore run
+        from outlet to inlet, aligning both temperature profiles on the
+        cumulative heat axis.
+        """
+        h_steps_hot = self._assign_to_steps(
+            self.outl[0].h.val_SI, self.inl[0].h.val_SI, steps
+        )
+        p_steps_hot = self._assign_to_steps(
+            self.outl[0].p.val_SI, self.inl[0].p.val_SI, steps
+        )
+        h_steps_cold = self._assign_to_steps(
+            self.outl[1].h.val_SI, self.inl[1].h.val_SI, steps
+        )
+        p_steps_cold = self._assign_to_steps(
+            self.outl[1].p.val_SI, self.inl[1].p.val_SI, steps
+        )
+
+        T_steps_hot = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_hot, h_steps_hot)):
+            key = (p, h)
+            if key not in self._T_cache_hot:
+                self._T_cache_hot[key] = T_mix_ph(
+                    p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule,
+                )
+            T_steps_hot[i] = self._T_cache_hot[key]
+
+        T_steps_cold = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_cold, h_steps_cold)):
+            key = (p, h)
+            if key not in self._T_cache_cold:
+                self._T_cache_cold[key] = T_mix_ph(
+                    p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule,
+                )
+            T_steps_cold[i] = self._T_cache_cold[key]
+
+        return T_steps_hot, T_steps_cold

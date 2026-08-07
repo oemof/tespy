@@ -22,6 +22,17 @@ New Features
   determination resolved transitively
   (`PR #1040 <https://github.com/oemof/tespy/pull/1040>`__).
 
+Bug Fixes
+#########
+- The section result arrays of the
+  :py:class:`~tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger`
+  (:code:`T_hot_sections`, :code:`T_cold_sections`, :code:`Q_sections`,
+  :code:`lmtd_per_section`) paired the temperature profiles in counterflow
+  orientation. Both profiles now run from the common inlet end (maximum
+  temperature difference at zero heat transferred) to the common outlet end,
+  aligned on the cumulative heat axis of the parallel flow configuration
+  (`PR #1043 <https://github.com/oemof/tespy/pull/1043>`__).
+
 Other Changes
 #############
 - The determination error and debug messages on the problem reduction report

@@ -876,12 +876,15 @@ class TestHeatExchangers:
         self.nw.solve("design")
         self.nw.assert_convergence()
 
-        # index 0 sits at the hot outlet end, in parallel flow the cold
-        # outlet shares that physical position
-        assert approx(instance.T_hot_sections.val_SI[0]) == self.c2.T.val_SI
-        assert approx(instance.T_cold_sections.val_SI[0]) == self.c4.T.val_SI
-        assert approx(instance.T_hot_sections.val_SI[-1]) == self.c1.T.val_SI
-        assert approx(instance.T_cold_sections.val_SI[-1]) == self.c3.T.val_SI
+        # index 0 sits at the common inlet end with the maximum temperature
+        # difference and zero heat transferred, the last index at the
+        # outlets with the temperatures having come closer
+        assert approx(instance.T_hot_sections.val_SI[0]) == self.c1.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[0]) == self.c3.T.val_SI
+        assert approx(instance.T_hot_sections.val_SI[-1]) == self.c2.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[-1]) == self.c4.T.val_SI
+        assert instance.Q_sections.val_SI[0] == 0
+        assert approx(instance.Q_sections.val_SI[-1]) == -instance.Q.val_SI
 
         # the section lmtd applies the parallel flow terminal temperature
         # differences

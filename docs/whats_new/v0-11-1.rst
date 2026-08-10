@@ -22,7 +22,8 @@ New Features
   determination resolved transitively
   (`PR #1040 <https://github.com/oemof/tespy/pull/1040>`__).
 - The cycle diagram handling of the
-  :py:class:`~tespy.models.template.ModelTemplate` class can be customized now:
+  :py:class:`~tespy.models.template.ModelTemplate` class can be customized now
+  (`PR #1046 <https://github.com/oemof/tespy/pull/1046>`__):
 
   - The new :py:meth:`~tespy.models.template.ModelTemplate.create_diagram`
     method is a public hook for diagram creation. Override it to adjust e.g.

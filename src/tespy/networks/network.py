@@ -23,7 +23,6 @@ import pandas as pd
 from tabulate import tabulate
 
 from tespy.components.component import component_registry
-
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem

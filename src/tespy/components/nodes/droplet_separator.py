@@ -278,10 +278,26 @@ class DropletSeparator(NodeBase):
             if o.p.val_SI > p_crit:
                 o.p.set_reference_val_SI(p_crit * 0.9)
 
+    def _initial_affine_edges(self):
+        # the enthalpy jumps to the bubble and dew line at the outlets, only
+        # the pressure relation is a usable guess
+        connections = self.inl + self.outl
+        first = connections[0]
+        return [(first.p, c.p, 1.0, 0.0) for c in connections[1:]]
+
+    def initial_state(self, port):
+        # every port sits on or inside the dome, so all pressures must be
+        # subcritical
+        if port == 'out1':
+            return {"phase": "liquid", "saturated": True}
+        elif port == 'out2':
+            return {"phase": "gas", "saturated": True}
+        return {"phase": "two-phase", "saturated": True}
+
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Return a starting value for pressure and enthalpy at outlet.
+        Return a starting value for pressure at outlet.
 
         Parameters
         ----------
@@ -294,21 +310,17 @@ class DropletSeparator(NodeBase):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
+            Starting value for pressure in SI units.
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             return c.fluid.wrapper[fluid]._p_crit / 2
-        elif key == 'h':
-            if c.source_id == 'out1':
-                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
-            else:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Return a starting value for pressure and enthalpy at inlet.
+        Return a starting value for pressure at inlet.
 
         Parameters
         ----------
@@ -321,20 +333,12 @@ class DropletSeparator(NodeBase):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=0.5 \right) & \text{key = 'h' at inlet 1}
-                \end{cases}
+            Starting value for pressure in SI units.
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             return c.fluid.wrapper[fluid]._p_crit / 2
-        elif key == 'h':
-            return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
+        return 0
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.

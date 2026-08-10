@@ -320,25 +320,7 @@ class Desuperheater(HeatExchanger):
             self.outl[0].h
         ]
 
-    def initialise_source(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at outlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-        """
-        if c.source_id == 'out1':
-            if key == 'h':
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data, c.mixing_rule)
-
-        return super().initialise_source(c, key)
+    def initial_state(self, port):
+        if port == 'out1':
+            return {"phase": "gas"}
+        return None

@@ -118,8 +118,8 @@ obviously does not make any sense.
     ways of parameter specifications, please go to the
     :ref:`building blocks section <building_blocks_label>`.
 
-    Another frequent reason for such errors are bad starting values. We have a
-    tutorial specifically dedicated to this topic
+    Such errors can also stem from bad starting values. We have a tutorial
+    specifically dedicated to this topic
     :ref:`here <tutorial_starting_values_label>`.
 
 Parametric Analysis of COP

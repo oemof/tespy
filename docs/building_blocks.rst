@@ -17,6 +17,16 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/network_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Solver
+        :link: modules_solver_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/solver.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/solver_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card::  Components
         :link: modules_components_label
         :link-type: ref
@@ -62,6 +72,7 @@ Building Blocks
     :hidden:
 
     building_blocks/networks
+    building_blocks/solver
     building_blocks/components
     building_blocks/connections
     building_blocks/subsystems

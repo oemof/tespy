@@ -591,8 +591,10 @@ def load_custom_char(name, char_type):
         return obj
 
     else:
-        msg = ('The file containing your custom charactersitics could not be '
-               'found on your system. The path should be ' + path + '. Please '
-               'make sure the .tespy/data path exists in your home directory.')
+        msg = (
+            "The file containing your custom characteristics could not be "
+            f"found on your system. The path should be {path}. Please make "
+            "sure the .tespy/data path exists in your home directory."
+        )
         logger.error(msg)
         raise FileNotFoundError(msg)

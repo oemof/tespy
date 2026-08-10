@@ -11,10 +11,15 @@ tespy/components/turbomachinery/base.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _numeric_deriv
 
@@ -23,6 +28,9 @@ from tespy.tools.helpers import _numeric_deriv
 class Turbomachine(Component):
     _p_in_adj = 0.9   # factor relative to o.p for priority-2 i.p adjustment
     _p_out_adj = 1.1  # factor relative to i.p for priority-3 o.p adjustment
+    _initial_pr_guess = 1.0
+    _initial_dh_fallback = 0.0
+    _initial_eta_guess = 0.9
     r"""
     Parent class for compressor, pump and turbine.
 
@@ -149,6 +157,90 @@ class Turbomachine(Component):
     @staticmethod
     def outlets():
         return ['out1']
+
+    def _initial_affine_edges(self):
+        # the state based enthalpy change is more trustworthy than the
+        # constant guesses of e.g. heat exchangers, its weight makes those
+        # absorb the closure residual of guess cycles
+        return [
+            (self.inl[0].p, self.outl[0].p, self._initial_pr_guess, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, self._initial_dh_guess(), 10.0),
+        ]
+
+    def _initial_temperature_edges(self):
+        # the state based temperature change of the machine, consistent
+        # with the enthalpy edge - for pumps this is close to zero, so the
+        # temperature level carries across them
+        i, o = self.inl[0], self.outl[0]
+        try:
+            h_in = i.h.val_SI
+            # 0 is the placeholder of unset enthalpies during the starting
+            # value assignment, evaluating the state there is meaningless
+            if np.isnan(h_in) or h_in == 0:
+                state = self.initial_state('in1')
+                result = i._h_for_state(state) if state is not None else None
+                if result is None:
+                    # mixtures and undeclared inlets: ambient temperature
+                    # as representative state
+                    h_in = h_mix_pT(
+                        i.p.val_SI, 293.15, i.fluid_data, i.mixing_rule
+                    )
+                else:
+                    h_in = result[0]
+            p_out = o.p.val_SI
+            if np.isnan(p_out) or p_out <= 0:
+                p_out = i.p.val_SI * self._initial_pr_guess
+            T_in = T_mix_ph(i.p.val_SI, h_in, i.fluid_data, i.mixing_rule)
+            T_out = T_mix_ph(
+                p_out, h_in + self._initial_dh_guess(), o.fluid_data,
+                o.mixing_rule
+            )
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            T_in = T_out = float("nan")
+        if np.isnan(T_in) or np.isnan(T_out):
+            state = self.initial_state('in1')
+            if state is not None and state.get("phase") == "liquid":
+                # liquid compression is near isothermal regardless of the
+                # unknown state, so the temperature level carries across
+                # the machine even when no pressure exists yet to evaluate
+                # the state based estimate
+                return [(i, o, 0.0, 5.0)]
+            return []
+        return [(i, o, T_out - T_in, 5.0)]
+
+    def _initial_dh_guess(self):
+        """Enthalpy change of an isentropic state change to the outlet
+        pressure with a generic efficiency, evaluated at the inlet state or
+        the inlet phase expectation of the component class."""
+        i, o = self.inl[0], self.outl[0]
+        try:
+            h_in = i.h.val_SI
+            # 0 is the placeholder of unset enthalpies during the starting
+            # value assignment, evaluating the state there is meaningless
+            if np.isnan(h_in) or h_in == 0:
+                state = self.initial_state('in1')
+                result = i._h_for_state(state) if state is not None else None
+                if result is None:
+                    # mixtures and undeclared inlets: ambient temperature
+                    # as representative state
+                    h_in = h_mix_pT(
+                        i.p.val_SI, 293.15, i.fluid_data, i.mixing_rule
+                    )
+                else:
+                    h_in = result[0]
+            p_out = o.p.val_SI
+            if np.isnan(p_out) or p_out <= 0:
+                p_out = i.p.val_SI * self._initial_pr_guess
+            dh_s = isentropic(
+                i.p.val_SI, h_in, p_out, i.fluid_data, i.mixing_rule
+            ) - h_in
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return self._initial_dh_fallback
+        if np.isnan(dh_s):
+            return self._initial_dh_fallback
+        if dh_s > 0:
+            return dh_s / self._initial_eta_guess
+        return dh_s * self._initial_eta_guess
 
     def energy_balance_func(self):
         r"""

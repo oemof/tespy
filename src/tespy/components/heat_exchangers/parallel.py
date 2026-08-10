@@ -11,8 +11,11 @@ SPDX-License-Identifier: MIT
 """
 import math
 
+import numpy as np
+
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.tools.fluid_properties import T_mix_ph
 
 
 @component_registry
@@ -279,7 +282,31 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         del params["eff_hot"]
         del params["eff_cold"]
         del params["eff_max"]
+        params["ttd_u"].description = (
+            "terminal temperature difference at hot side outlet to cold side "
+            "outlet"
+        )
+        params["ttd_l"].description = (
+            "terminal temperature difference at hot side inlet to cold side "
+            "inlet"
+        )
         return params
+
+    def _initial_temperature_edges(self):
+        # the inherited relations describe counter flow terminal
+        # temperature differences (hot inlet vs cold outlet), in parallel
+        # flow both terminal differences connect same ends: the inlets at
+        # the upper and the outlets at the lower temperature difference
+        ttd_upper = self.ttd_u.val_SI if self.ttd_u.is_set else 10.0
+        weight_upper = 5.0 if self.ttd_u.is_set else 0.3
+        ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
+        weight_lower = 5.0 if self.ttd_l.is_set else 0.3
+        return [
+            (self.inl[0], self.outl[0], 0.0, 1.0),
+            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.outl[1], self.outl[0], ttd_upper, weight_upper),
+            (self.inl[1], self.inl[0], ttd_lower, weight_lower),
+        ]
 
     def _calc_ttd_u(self):
         return self.outl[0].T.val_SI - self.outl[1].T.val_SI
@@ -317,3 +344,84 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         if round(ttd_u, 6) == round(ttd_l, 6):
             return ttd_l
         return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+
+    def _get_Q_cumsum_steps(self, steps):
+        """Return cumulative heat transferred from the common inlet end up
+        to each step, starting from zero.
+
+        In parallel flow both fluids enter at the same physical end, the
+        heat axis of the section results runs from the inlets (maximum
+        temperature difference at zero) to the outlets.
+
+        Parameters
+        ----------
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps
+            <tespy.components.heat_exchangers.base.HeatExchanger._assign_steps>`.
+
+        Returns
+        -------
+        numpy.ndarray
+            Cumulative heat values with a leading zero, length
+            :code:`len(steps)`.
+        """
+        start = self.inl[0].h.val_SI
+        end = self.outl[0].h.val_SI
+
+        h_steps_hot = self._assign_to_steps(start, end, steps)
+        Q_sections_hot = self._get_Q_sections(h_steps_hot, self.inl[0].m.val_SI)
+        return np.insert(np.cumsum(-Q_sections_hot), 0, 0.0)
+
+    def _get_T_at_steps(self, steps):
+        """Calculate hot- and cold-side temperatures at each step.
+
+        In parallel flow both fluids enter at the same physical end, the
+        inherited pairing of the section machinery describes counterflow.
+        Both sides therefore run from inlet to outlet, aligning the
+        temperature profiles on the cumulative heat axis with the maximum
+        temperature difference at zero heat transferred.
+
+        Parameters
+        ----------
+        steps : numpy.ndarray
+            Normalized step fractions in [0, 1] from :py:meth:`_assign_steps
+            <tespy.components.heat_exchangers.base.HeatExchanger._assign_steps>`.
+
+        Returns
+        -------
+        tuple
+            :code:`(T_steps_hot, T_steps_cold)` as numpy arrays, length
+            :code:`len(steps)`.
+        """
+        h_steps_hot = self._assign_to_steps(
+            self.inl[0].h.val_SI, self.outl[0].h.val_SI, steps
+        )
+        p_steps_hot = self._assign_to_steps(
+            self.inl[0].p.val_SI, self.outl[0].p.val_SI, steps
+        )
+        h_steps_cold = self._assign_to_steps(
+            self.inl[1].h.val_SI, self.outl[1].h.val_SI, steps
+        )
+        p_steps_cold = self._assign_to_steps(
+            self.inl[1].p.val_SI, self.outl[1].p.val_SI, steps
+        )
+
+        T_steps_hot = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_hot, h_steps_hot)):
+            key = (p, h)
+            if key not in self._T_cache_hot:
+                self._T_cache_hot[key] = T_mix_ph(
+                    p, h, self.inl[0].fluid_data, self.inl[0].mixing_rule,
+                )
+            T_steps_hot[i] = self._T_cache_hot[key]
+
+        T_steps_cold = np.empty(len(steps))
+        for i, (p, h) in enumerate(zip(p_steps_cold, h_steps_cold)):
+            key = (p, h)
+            if key not in self._T_cache_cold:
+                self._T_cache_cold[key] = T_mix_ph(
+                    p, h, self.inl[1].fluid_data, self.inl[1].mixing_rule,
+                )
+            T_steps_cold[i] = self._T_cache_cold[key]
+
+        return T_steps_hot, T_steps_cold

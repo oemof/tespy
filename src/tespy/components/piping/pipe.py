@@ -165,9 +165,6 @@ class Pipe(SimpleHeatExchanger):
     pipe_thickness : float, dict
         Wall thickness of pipe. Quantity: :code:`length`.
 
-    power_connector_location : str
-        Description missing.
-
     pr : float, dict
         Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
         Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.

@@ -21,6 +21,45 @@ New Features
   records in order of occurrence, with the originating specifications of each
   determination resolved transitively
   (`PR #1040 <https://github.com/oemof/tespy/pull/1040>`__).
+- New :py:class:`~tespy.components.heat_exchangers.ntu.NTUHeatExchanger`
+  component: the heat transfer coefficient :code:`UA` is linked to the heat
+  transferred through the effectiveness-NTU relation of a specifiable
+  :code:`flow_arrangement` (counterflow, parallelflow, crossflow with any
+  mixing combination and shell and tube with an arbitrary number of shell
+  passes). :code:`eps`, :code:`NTU` and the capacity rate ratio :code:`C_r`
+  are reported as results
+  (`PR #1045 <https://github.com/oemof/tespy/pull/1045>`__).
+- The cycle diagram handling of the
+  :py:class:`~tespy.models.template.ModelTemplate` class can be customized now
+  (`PR #1046 <https://github.com/oemof/tespy/pull/1046>`__):
+
+  - The new :py:meth:`~tespy.models.template.ModelTemplate.create_diagram`
+    method is a public hook for diagram creation. Override it to adjust e.g.
+    the isoline ranges to the operating envelope of your model.
+  - Pre-configured diagrams can be registered per fluid with
+    :py:meth:`~tespy.models.template.ModelTemplate.register_diagram` or passed
+    directly to the plotting methods via the new :code:`diagram` keyword,
+    which is especially useful in interactive sessions.
+  - Fluids not supported by fluprodia (mixtures, incompressibles or fluids
+    outside the default isoline range) no longer raise an error in the plotting
+    methods. Instead a warning is logged and the plot falls back to showing the
+    state points only. An is raised if :code:`strict=True` is passed to the
+    respective method.
+
+Bug Fixes
+#########
+- The enthalpy to temperature inversion of the
+  :py:class:`~tespy.tools.fluid_properties.wrappers.IncompressibleFluidWrapper`
+  returned wrong temperatures for (nearly) constant heat capacity data. The
+  quadratic formula is now evaluated in its numerically stable form.
+- The section result arrays of the
+  :py:class:`~tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger`
+  (:code:`T_hot_sections`, :code:`T_cold_sections`, :code:`Q_sections`,
+  :code:`lmtd_per_section`) paired the temperature profiles in counterflow
+  orientation. Both profiles now run from the common inlet end (maximum
+  temperature difference at zero heat transferred) to the common outlet end,
+  aligned on the cumulative heat axis of the parallel flow configuration
+  (`PR #1043 <https://github.com/oemof/tespy/pull/1043>`__).
 
 Other Changes
 #############

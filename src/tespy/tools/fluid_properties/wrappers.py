@@ -609,17 +609,19 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return fig, ax
 
     def T_ph(self, p, h):
-        # Inverse function of h_pT, using quadratic formula with adding the
-        # root
+        # Inverse function of h_pT, using the quadratic formula in its
+        # numerically stable conjugate form: the standard form divides by
+        # the polynomial slope A, which suffers catastrophic cancellation
+        # for (near-)constant heat capacity data with A close to zero
         return (
-            (
-                -self._heat_capacity["B"]
+            2 * (h + self._h_ref)
+            / (
+                self._heat_capacity["B"]
                 + (
                     self._heat_capacity["B"] ** 2
-                    - 4 * 0.5 * self._heat_capacity["A"] * - (h + self._h_ref)
+                    + 2 * self._heat_capacity["A"] * (h + self._h_ref)
                 ) ** 0.5
             )
-            / (2 * 0.5 * self._heat_capacity["A"])
         )
 
     def h_pT(self, p, T):

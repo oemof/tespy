@@ -865,6 +865,35 @@ class TestHeatExchangers:
             instance.Q.val, instance.td_log.val
         )
 
+    def test_ParallelFlowHeatExchanger_sections_alignment(self):
+        instance = ParallelFlowHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+        self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
+        instance.set_attr(dp1=0, dp2=0, ttd_u=15)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        # index 0 sits at the common inlet end with the maximum temperature
+        # difference and zero heat transferred, the last index at the
+        # outlets with the temperatures having come closer
+        assert approx(instance.T_hot_sections.val_SI[0]) == self.c1.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[0]) == self.c3.T.val_SI
+        assert approx(instance.T_hot_sections.val_SI[-1]) == self.c2.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[-1]) == self.c4.T.val_SI
+        assert instance.Q_sections.val_SI[0] == 0
+        assert approx(instance.Q_sections.val_SI[-1]) == -instance.Q.val_SI
+
+        # the section lmtd applies the parallel flow terminal temperature
+        # differences
+        ttd_u = self.c2.T.val_SI - self.c4.T.val_SI
+        ttd_l = self.c1.T.val_SI - self.c3.T.val_SI
+        assert approx(
+            instance.lmtd_per_section.val_SI[0]
+        ) == _calc_td_log(ttd_u, ttd_l)
+
     def test_ParallelFlowHeatExchanger_offdesign(self):
         instance = ParallelFlowHeatExchanger("heat exchanger")
         self.setup_HeatExchanger_network(instance)

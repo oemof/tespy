@@ -238,8 +238,8 @@ class TesypPinchAnalysis():
 
     # adding a heat pump in the GCC (by referencing evaporator and condenser)  
     def show_heat_pump_in_gcc(self, evaporator, condenser):
-        from tespy.components import SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger, HeatExchanger
-        
+        from tespy.components import (SimpleHeatExchanger, MovingBoundaryHeatExchanger, SectionedHeatExchanger, HeatExchanger,
+                                      ParallelFlowHeatExchanger, Desuperheater, Condenser)
         # create GCC diagram, if not done before
         try:
             # get the GCC
@@ -259,12 +259,19 @@ class TesypPinchAnalysis():
             condenser_Q_vals = [0, abs(condenser.Q.val)]
             condenser_T_vals = [condenser.outl[0].T.val,condenser.inl[0].T.val]
             # TODO: include a warning, if there is at least one change between to or from a latent stream
-        elif isinstance(condenser, SectionedHeatExchanger) or isinstance(condenser, MovingBoundaryHeatExchanger) or isinstance(condenser, HeatExchanger):
+        elif (
+        isinstance(condenser, SectionedHeatExchanger)
+        or isinstance(condenser, MovingBoundaryHeatExchanger)
+        or isinstance(condenser, HeatExchanger)
+        or isinstance(condenser, ParallelFlowHeatExchanger)
+        or isinstance(condenser, Desuperheater)
+        or isinstance(condenser,Condenser)
+        ):
             # get the data for the hot stream (refrigerant side) of condenser
             condenser_T_vals = [T - 273.17 for T in condenser.T_hot_sections.val_SI]
             condenser_Q_vals = [Q / 1000 for Q in condenser.Q_sections.val_SI]
         else:
-            raise ValueError("The component type is not implemented as a condenser.")
+            raise ValueError(f"The component type {condenser.__class__} is not implemented as a condenser in pinch analysis.")
        
         # evaporators
         if isinstance(evaporator,SimpleHeatExchanger):
@@ -272,14 +279,17 @@ class TesypPinchAnalysis():
             evaporator_Q_vals = [0, abs(evaporator.Q.val)]         
             evaporator_T_vals = [evaporator.inl[0].T.val,evaporator.outl[0].T.val]
             # TODO: include a warning, if there is at least one change between to or from a latent stream
-        elif isinstance(evaporator, SectionedHeatExchanger) or isinstance(evaporator, MovingBoundaryHeatExchanger) or isinstance(evaporator, HeatExchanger):
+        elif (
+        isinstance(evaporator, SectionedHeatExchanger)
+        or isinstance(evaporator, MovingBoundaryHeatExchanger)
+        or isinstance(evaporator, HeatExchanger)
+        or isinstance(evaporator, ParallelFlowHeatExchanger)):
             # get the data for the cold stream (refrigerant side) of evaporator
             evaporator_T_vals = [T - 273.17 for T in evaporator.T_cold_sections.val_SI]
             evaporator_Q_vals = [Q / 1000 for Q in evaporator.Q_sections.val_SI]
         else:
-            raise ValueError("The component type is not implemented as an evaporator.")
-
-        # add: expand these conditions in future for other types: ParallelFlowHeatExchanger, Desuperheater, Condenser
+            raise ValueError(f"The component type {evaporator.__class__} is not implemented as an evaporator in pinch analysis.")
+        
 
         # shift the evaporator / condenser by the half the minimal temperature difference as cold / hot streams
         # hot stream shifted downwards

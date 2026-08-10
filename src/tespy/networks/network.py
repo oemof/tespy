@@ -1919,6 +1919,18 @@ class Network:
         if rows:
             print(tabulate(rows, headers=["Object", "Property"], tablefmt="simple"))
 
+    def get_presolve_log(self) -> list:
+        """Get the presolve determinations with the original
+        specifications that enabled them.
+
+        Returns
+        -------
+        list
+            List of determination records, see
+            :code:`Problem.get_presolve_log`.
+        """
+        return self.problem.get_presolve_log()
+
     def get_presolved_variables(self) -> list:
         """Get the list of presolved variables with their respective parent
         object and property.

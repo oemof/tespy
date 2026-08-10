@@ -27,8 +27,8 @@ New Features
   :code:`flow_arrangement` (counterflow, parallelflow, crossflow with any
   mixing combination and shell and tube with an arbitrary number of shell
   passes). :code:`eps`, :code:`NTU` and the capacity rate ratio :code:`C_r`
-  are reported as results, an isothermal side (phase change of a pure fluid)
-  is handled through the capacity rate ratio zero limit of the relations.
+  are reported as results
+  (`PR #1045 <https://github.com/oemof/tespy/pull/1045>`__).
 
 Bug Fixes
 #########

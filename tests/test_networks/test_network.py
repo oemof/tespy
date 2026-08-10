@@ -23,6 +23,7 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Pipe
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
@@ -34,6 +35,7 @@ from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -327,6 +329,58 @@ class TestNetworks:
         data["Connection"] = {}
 
         self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_power_connection_section_in_design_path(self):
+        """Test a design file missing the PowerConnection section."""
+        cp = Compressor("compressor", eta_s=0.8)
+        grid = PowerSource("grid")
+        a = Connection(
+            self.source, "out1", cp, "in1", m=1, p=1, T=25, fluid={"air": 1}
+        )
+        b = Connection(cp, "out1", self.sink, "in1", p=5)
+        e = PowerConnection(grid, "power", cp, "power")
+        self.nw.add_conns(a, b, e)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        del data["Connection"]["PowerConnection"]
+
+        self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_connection_section_local_offdesign(self):
+        """Test an individual design file missing the Connection section."""
+        pi = Pipe("pipe", Q=0, pr=0.95, design=["pr"], offdesign=["zeta"])
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        b.set_attr(local_offdesign=True, design_path=data)
+        with raises(TESPyNetworkError):
+            self.nw.solve("design")
+
+    def test_Network_missing_connection_section_in_init_path(self):
+        """Test an init file missing the Connection section is tolerated."""
+        pi = Pipe("pipe", Q=0, pr=0.95)
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        self.nw.solve("design", init_path=data)
+        self.nw.assert_convergence()
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""

@@ -1249,7 +1249,9 @@ class Network:
                 for var in c.offdesign:
                     c.get_attr(var).is_set = True
 
-                entries = self._load_network_state(path)[c.__class__.__name__]
+                entries = self._load_network_state(path).get(
+                    c.__class__.__name__, {}
+                )
                 # write data to connections
                 self._write_design_state_to_connection(c, entries)
 
@@ -1453,7 +1455,7 @@ class Network:
         state = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         for _, row in df_comps.iterrows():
-            entries = state[row["comp_type"]]
+            entries = state.get(row["comp_type"], {})
             comp = row["object"]
             path = comp.design_path
             # in offdesign mode any individually specified design_path is used
@@ -1461,7 +1463,7 @@ class Network:
             # local_offdesign
             if path is not None:
                 _individual_design = self._load_network_state(path)
-                data = _individual_design[row["comp_type"]]
+                data = _individual_design.get(row["comp_type"], {})
                 label = self._find_isolated_comp_label(comp, data)
                 self._write_design_state_to_component(comp, data, label)
                 # write adjacent connections design state from individual
@@ -1492,11 +1494,11 @@ class Network:
         # iter through connections
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
-            entries = state[conn_type]
+            entries = state.get(conn_type, {})
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
-                entries = self._load_network_state(path)[conn_type]
+                entries = self._load_network_state(path).get(conn_type, {})
 
             self._write_design_state_to_connection(c, entries)
 
@@ -1517,8 +1519,9 @@ class Network:
             return next(iter(comp_entries))
         msg = (
             f"Could not unambiguously resolve the label for component "
-            f"'{comp.label}' in the isolated design file: multiple entries "
-            f"exist ({', '.join(comp_entries)}) and none match exactly."
+            f"'{comp.label}' in the isolated design file: "
+            f"{len(comp_entries)} entries of this component type exist "
+            "and none match exactly."
         )
         raise hlp.TESPyNetworkError(msg)
 
@@ -1675,7 +1678,7 @@ class Network:
         num_generic = 0
         for c in self.conns['object']:
             if self.init_path is not None and self._write_starting_values_to_connection(
-                    c, state[c.__class__.__name__]
+                    c, state.get(c.__class__.__name__, {})
                 ):
                 num_init_path += 1
             elif c.good_starting_values:
@@ -1798,14 +1801,8 @@ class Network:
             return {col: np.nan if val is None else val for col, val in d.items()}
 
         state = {}
-        # TODO: Let this somehow run through connection-registry and not hardcoded names
-        if any(k in data["Connection"] for k in ("Connection", "PowerConnection", "HeatConnection")):
-            for key, value in data["Connection"].items():
-                state[key] = {str(k): _row(v) for k, v in value.items()}
-        # TODO: deprecate
-        # this is for compatibility of older savestates
-        else:
-            state["Connection"] = {str(k): _row(v) for k, v in data["Connection"].items()}
+        for key, value in data["Connection"].items():
+            state[key] = {str(k): _row(v) for k, v in value.items()}
 
         for key, value in data["Component"].items():
             state[key] = {str(k): _row(v) for k, v in value.items()}
@@ -3016,33 +3013,26 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data, nw))
+            comps.update(_construct_components(target_class, data, nw.units))
 
         msg = 'Created network components.'
         logger.info(msg)
 
         conns = {}
         # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
+        for connection, data in network_data["Connection"].items():
+            if connection not in connection_registry.items:
+                msg = (
+                    f"A class {connection} is not available through the "
+                    "tespy.connections.connection.connection_registry "
+                    "decorator. If you are using a custom connection make "
+                    "sure to decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
 
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
+            target_class = connection_registry.items[connection]
+            conns.update(_construct_connections(target_class, data, comps))
 
         # add connections to network
         for c in conns.values():
@@ -3413,17 +3403,23 @@ class Network:
 
         return components
 
-def _construct_components(target_class, data, nw):
+def _construct_components(target_class, data, units=None):
     r"""
     Create TESPy component from class name and set parameters.
 
     Parameters
     ----------
-    component : str
-        Name of the component class to be constructed.
+    target_class : class
+        Class of the components to be constructed.
 
     data : dict
         Dictionary with component information.
+
+    units : tespy.tools.units.Units, optional
+        Unit context to bind values with units to. If not provided, values
+        are kept plain together with their unit string, so they can be
+        interpreted through the unit registry of the network they will be
+        part of.
 
     Returns
     -------
@@ -3452,8 +3448,9 @@ def _construct_components(target_class, data, nw):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
 
                 if "val" in param_data:
-                    if "unit" in param_data and param_data["unit"] is not None:
-                        param_data["val"] = nw.units.ureg.Quantity(
+                    if (units is not None and "unit" in param_data
+                            and param_data["unit"] is not None):
+                        param_data["val"] = units.ureg.Quantity(
                             param_data["val"], param_data["unit"]
                         )
                     if "val0" in param_data:

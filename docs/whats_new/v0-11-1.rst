@@ -32,6 +32,10 @@ New Features
 
 Bug Fixes
 #########
+- The enthalpy to temperature inversion of the
+  :py:class:`~tespy.tools.fluid_properties.wrappers.IncompressibleFluidWrapper`
+  returned wrong temperatures for (nearly) constant heat capacity data. The
+  quadratic formula is now evaluated in its numerically stable form.
 - The section result arrays of the
   :py:class:`~tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger`
   (:code:`T_hot_sections`, :code:`T_cold_sections`, :code:`Q_sections`,

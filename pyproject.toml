@@ -74,6 +74,7 @@ dev = [
     "flit",
     "fluprodia>=4",
     "furo",
+    "ht",
     "iapws",
     "isort",
     "myst-nb",

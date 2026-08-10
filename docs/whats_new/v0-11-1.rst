@@ -21,6 +21,14 @@ New Features
   records in order of occurrence, with the originating specifications of each
   determination resolved transitively
   (`PR #1040 <https://github.com/oemof/tespy/pull/1040>`__).
+- New :py:class:`~tespy.components.heat_exchangers.ntu.NTUHeatExchanger`
+  component: the heat transfer coefficient :code:`UA` is linked to the heat
+  transferred through the effectiveness-NTU relation of a specifiable
+  :code:`flow_arrangement` (counterflow, parallelflow, crossflow with any
+  mixing combination and shell and tube with an arbitrary number of shell
+  passes). :code:`eps`, :code:`NTU` and the capacity rate ratio :code:`C_r`
+  are reported as results, an isothermal side (phase change of a pure fluid)
+  is handled through the capacity rate ratio zero limit of the relations.
 
 Bug Fixes
 #########

@@ -1390,6 +1390,215 @@ class TestBackwardsCompatibility:
             nw.residual
 
 
+class TestSaveClearRestoreSpecifications:
+
+    def setup_method(self):
+        self.nw = Network()
+        self.nw.iterinfo = False
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
+
+        self.pipe = Pipe("pipe")
+        c1 = Connection(Source("source 1"), "out1", self.pipe, "in1", label="c1")
+        c2 = Connection(self.pipe, "out1", Sink("sink 1"), "in1", label="c2")
+
+        self.valve = Valve("valve")
+        c3 = Connection(Source("source 2"), "out1", self.valve, "in1", label="c3")
+        c4 = Connection(self.valve, "out1", Sink("sink 2"), "in1", label="c4")
+
+        self.nw.add_conns(c1, c2, c3, c4)
+
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=1.9)
+        self.pipe.set_attr(Q=0, D="var", ks=0.00005, L=100)
+
+        c3.set_attr(fluid={"N2": 0.8, "O2": 0.2}, T=25, p=10, m=Ref(c1, 2, -0.5))
+        self.valve.set_attr(dp_char={
+            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1e5] * 4),
+            "is_set": True
+        })
+
+        self.udv = UserDefinedVariable("myvar", val0=1.0)
+
+        def ude_func(ude):
+            return (
+                ude.params["udv"].variable.val_SI
+                - 2 * ude.conns[0].m.val_SI
+            )
+
+        def ude_dependents(ude):
+            return [ude.conns[0].m, ude.params["udv"].variable]
+
+        self.ude = UserDefinedEquation(
+            "myude", ude_func, ude_dependents,
+            conns=[c1], params={"udv": self.udv}
+        )
+        self.nw.add_ude(self.ude)
+        self.nw.add_udv(self.udv)
+
+    def _solve_and_collect_results(self):
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        return {
+            c.label: (c.m.val_SI, c.p.val_SI, c.h.val_SI)
+            for c in self.nw.conns["object"]
+        }
+
+    def test_save_clear_restore_round_trip(self):
+        results = self._solve_and_collect_results()
+        D_design = self.pipe.D.val
+        specs = self.nw.save_specifications()
+
+        assert specs["Connection"]["c3"]["m_ref"]["conn"] == "c1"
+        assert specs["Component"]["pipe"]["D"]["is_var"]
+        assert specs["Connection"]["c1"]["T"]["val"] == 25
+        assert specs["Connection"]["c1"]["T"]["unit"] == "degree_Celsius"
+        assert specs["UserDefinedEquation"]["myude"]["is_set"]
+        assert specs["UserDefinedVariable"]["myvar"]["is_var"]
+
+        self.nw.clear_specifications()
+        for c in self.nw.conns["object"]:
+            for container in c.property_data.values():
+                assert not container.is_set
+        for cp in self.nw.comps["object"]:
+            for container in cp.parameters.values():
+                assert not container.is_set
+        assert not self.pipe.D.is_var
+        assert not self.valve.dp_char.is_set
+        assert not self.ude.is_set
+        assert not self.udv.variable.is_var
+
+        self.nw.restore_specifications(specs)
+        restored_results = self._solve_and_collect_results()
+        assert approx(D_design) == self.pipe.D.val
+        assert approx(self.udv.variable.val_SI) == 2
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_save_restore_from_file(self, tmp_path):
+        results = self._solve_and_collect_results()
+        path = os.path.join(tmp_path, "specs.json")
+        self.nw.save_specifications(path)
+
+        self.nw.clear_specifications()
+        self.nw.restore_specifications(path)
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_restore_after_specification_change(self):
+        results = self._solve_and_collect_results()
+        specs = self.nw.save_specifications()
+
+        c1 = self.nw.get_conn("c1")
+        c1.set_attr(T=None, h=c1.h.val, m=0.7)
+        self.pipe.set_attr(Q=-1e4)
+        self._solve_and_collect_results()
+        assert not c1.T.is_set
+        assert c1.h.is_set
+
+        self.nw.restore_specifications(specs)
+        assert c1.T.is_set
+        assert not c1.h.is_set
+        assert self.pipe.Q.val == 0
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_restore_after_fluid_change(self):
+        results = self._solve_and_collect_results()
+        specs = self.nw.save_specifications()
+
+        c3 = self.nw.get_conn("c3")
+        c3.set_attr(fluid={"N2": 0.6, "O2": 0.4})
+        self._solve_and_collect_results()
+
+        self.nw.restore_specifications(specs)
+        assert approx(c3.fluid.val["N2"]) == 0.8
+        assert approx(c3.fluid.val["O2"]) == 0.2
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+
+class TestSaveRestoreFluidVariability:
+
+    def setup_method(self):
+        self.nw = Network()
+        self.nw.iterinfo = False
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
+
+        merge = Merge("merge", num_in=2)
+        self.c1 = Connection(Source("source 1"), "out1", merge, "in1", label="c1")
+        self.c2 = Connection(Source("source 2"), "out1", merge, "in2", label="c2")
+        self.c3 = Connection(merge, "out1", Sink("sink"), "in1", label="c3")
+        self.nw.add_conns(self.c1, self.c2, self.c3)
+
+    def _set_state_a(self):
+        # composition on c3 fixed, mass flow of c2 is a variable
+        self.c1.set_attr(fluid={"N2": 1}, m=1, p=1, T=25)
+        self.c2.set_attr(fluid={"O2": 1}, T=25)
+        self.c3.set_attr(fluid={"N2": 0.5, "O2": 0.5})
+
+    def _set_state_b(self):
+        # mass flows fixed, composition on c3 is a variable
+        self.c1.set_attr(fluid={"N2": 1}, m=1, p=1, T=25)
+        self.c2.set_attr(fluid={"O2": 1}, m=1, T=25)
+
+    def test_fluid_fixed_and_variable_round_trip(self):
+        self._set_state_a()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c2.m.val_SI) == 1
+        specs_a = self.nw.save_specifications()
+
+        self.nw.clear_specifications()
+        self._set_state_b()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c3.fluid.val["N2"]) == 0.5
+        specs_b = self.nw.save_specifications()
+
+        self.nw.restore_specifications(specs_a)
+        assert self.c3.fluid.is_set == {"N2", "O2"}
+        assert not self.c2.m.is_set
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c2.m.val_SI) == 1
+
+        self.nw.restore_specifications(specs_b)
+        assert self.c3.fluid.is_set == set()
+        assert self.c2.m.is_set
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c3.fluid.val["N2"]) == 0.5
+        assert approx(self.c3.fluid.val["O2"]) == 0.5
+
+    def test_restore_into_structurally_identical_clone(self):
+        self._set_state_a()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        clone = Network.from_dict(self.nw.export())
+        clone.iterinfo = False
+
+        self.c1.set_attr(m=2)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        specs = self.nw.save_specifications()
+
+        clone.restore_specifications(specs)
+        clone.solve("design")
+        clone.assert_convergence()
+        assert approx(clone.get_conn("c1").m.val_SI) == 2
+        assert approx(clone.get_conn("c2").m.val_SI) == self.c2.m.val_SI
+
+
 class TestSharedObjectsBetweenNetworks:
 
     class PipeSubsystem(Subsystem):

@@ -307,6 +307,39 @@ class Component:
             "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
+    def _save_specifications(self):
+        specs = {}
+        for key, container in self.parameters.items():
+            if not container.is_set:
+                continue
+            if isinstance(container, dc_cp):
+                specs[key] = {
+                    "val": container.val,
+                    "unit": container.unit,
+                    "is_set": True,
+                    "is_var": container.is_var
+                }
+            elif isinstance(container, (dc_cc, dc_cm)):
+                specs[key] = {
+                    k: v for k, v in container._serialize().items()
+                    if k != "char_func"
+                }
+            elif isinstance(container, dc_gcp):
+                specs[key] = {"is_set": True}
+            else:
+                specs[key] = {"val": container.val, "is_set": True}
+        return specs
+
+    def _clear_specifications(self):
+        for container in self.parameters.values():
+            container.is_set = False
+            if isinstance(container, dc_cp):
+                container.is_var = False
+
+    def _restore_specifications(self, data):
+        for key, param_data in data.items():
+            self.get_attr(key).set_attr(**param_data)
+
     def _get_result_attributes(self):
         return [
             key for key, p in self.parameters.items() if isinstance(p, dc_cp)

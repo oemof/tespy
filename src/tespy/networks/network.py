@@ -3265,27 +3265,7 @@ class Network:
         dict
             Parametrization and structure of the Network instance.
         """
-        # a plain numeric specification means "in the network's default
-        # units". The unit is only attached to the containers when the
-        # network is transformed to SI for solving: exporting before that
-        # would serialize such values with the global default units,
-        # misinterpreting them on import
-        containers = [
-            c.get_attr(key)
-            for c in self.conns["object"] for key in c.property_data
-        ] + [
-            cp.get_attr(key)
-            for cp in self.comps["object"] for key in cp.parameters
-        ]
-        for container in containers:
-            if not isinstance(container, dc_prop) or not container.is_set:
-                continue
-            if container._val_is_quantity or container.quantity is None:
-                continue
-            try:
-                container._assign_default_unit_to_val(self.units)
-            except KeyError:
-                continue
+        self._attach_default_units_to_specifications()
 
         export = {}
         export["Network"] = self._export_network()
@@ -3350,6 +3330,165 @@ class Network:
         os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
+
+    def _attach_default_units_to_specifications(self):
+        # a plain numeric specification means "in the network's default
+        # units". The unit is only attached to the containers when the
+        # network is transformed to SI for solving: serializing before that
+        # would attach the global default units, misinterpreting the values
+        # when reapplied
+        containers = [
+            c.get_attr(key)
+            for c in self.conns["object"] for key in c.property_data
+        ] + [
+            cp.get_attr(key)
+            for cp in self.comps["object"] for key in cp.parameters
+        ]
+        for container in containers:
+            if not isinstance(container, dc_prop) or not container.is_set:
+                continue
+            if container._val_is_quantity or container.quantity is None:
+                continue
+            try:
+                container._assign_default_unit_to_val(self.units)
+            except KeyError:
+                continue
+
+    def save_specifications(self, json_file_path=None):
+        r"""
+        Save the currently set specifications of the network.
+
+        The result holds all specified values of connections, components,
+        activity of :code:`UserDefinedEquation` and state of
+        :code:`UserDefinedVariable` objects. It can be reapplied to the
+        topologically unchanged network with :py:meth:`restore_specifications`.
+
+        Parameters
+        ----------
+        json_file_path : str, optional
+            Path for exporting to filesystem. If path is None, the data are
+            only returned and not written to the filesystem, by default None.
+
+        Returns
+        -------
+        dict
+            Currently set specifications of the network.
+
+        Example
+        -------
+        Save the specifications of a network, clear them and restore them
+        afterwards.
+
+        >>> from tespy.components import Pipe, Sink, Source
+        >>> from tespy.connections import Connection
+        >>> from tespy.networks import Network
+        >>> nw = Network()
+        >>> nw.iterinfo = False
+        >>> so = Source('source')
+        >>> pi = Pipe('pipe', pr=1, Q=0)
+        >>> si = Sink('sink')
+        >>> c1 = Connection(so, 'out1', pi, 'in1')
+        >>> c2 = Connection(pi, 'out1', si, 'in1')
+        >>> nw.add_conns(c1, c2)
+        >>> c1.set_attr(fluid={'water': 1}, m=1, p=1e5, T=300)
+        >>> specs = nw.save_specifications()
+        >>> nw.clear_specifications()
+        >>> c1.m.is_set or pi.pr.is_set
+        False
+        >>> nw.restore_specifications(specs)
+        >>> c1.m.is_set and pi.pr.is_set
+        True
+        """
+        self._attach_default_units_to_specifications()
+
+        specs = {
+            "Connection": {}, "Component": {},
+            "UserDefinedEquation": {}, "UserDefinedVariable": {}
+        }
+        for c in self.conns["object"]:
+            data = c._save_specifications()
+            if data:
+                specs["Connection"][c.label] = data
+        for cp in self.comps["object"]:
+            data = cp._save_specifications()
+            if data:
+                specs["Component"][cp.label] = data
+        for label, ude in self.user_defined_eq.items():
+            specs["UserDefinedEquation"][label] = {"is_set": ude.is_set}
+        for label, udv in self.user_defined_var.items():
+            specs["UserDefinedVariable"][label] = {
+                "val": udv.variable.val_SI, "is_var": udv.variable.is_var
+            }
+
+        # decouple mutable values (e.g. dict or list type specifications)
+        # from the live containers, so the snapshot is unaffected by later
+        # in-place modifications
+        specs = deepcopy(specs)
+
+        if json_file_path:
+            os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
+            with open(json_file_path, "w") as f:
+                json.dump(specs, f, indent=2)
+
+        return specs
+
+    def clear_specifications(self):
+        r"""
+        Unset all specifications of the network.
+
+        Unsets every connection and component specification, deactivates all
+        :code:`UserDefinedEquation` objects and turns all
+        :code:`UserDefinedVariable` objects into constants. The network
+        topology, fluid property engines, design/offdesign setup and starting
+        values remain untouched.
+        """
+        for c in self.conns["object"]:
+            c._clear_specifications()
+        for cp in self.comps["object"]:
+            cp._clear_specifications()
+        for ude in self.user_defined_eq.values():
+            ude.is_set = False
+        for udv in self.user_defined_var.values():
+            udv.set_attr(is_var=False)
+
+    def restore_specifications(self, data):
+        r"""
+        Restore a set of specifications saved with
+        :py:meth:`save_specifications`.
+
+        All current specifications are cleared first, then the saved ones are
+        reapplied. The network must be topologically unchanged, i.e. all
+        labels in the saved data must still resolve to the same connections,
+        components, :code:`UserDefinedEquation` and
+        :code:`UserDefinedVariable` objects.
+
+        Parameters
+        ----------
+        data : dict, str
+            Specification data from :py:meth:`save_specifications` or path to a
+            json file holding them.
+        """
+        if not isinstance(data, dict):
+            with open(data, "r") as f:
+                data = json.load(f)
+        else:
+            data = deepcopy(data)
+
+        self.clear_specifications()
+
+        all_connections = {c.label: c for c in self.conns["object"]}
+        for label, specs in data.get("Connection", {}).items():
+            all_connections[label]._restore_specifications(
+                specs, all_connections
+            )
+        for label, specs in data.get("Component", {}).items():
+            self.get_comp(label)._restore_specifications(specs)
+        for label, specs in data.get("UserDefinedEquation", {}).items():
+            self.user_defined_eq[label].is_set = specs["is_set"]
+        for label, specs in data.get("UserDefinedVariable", {}).items():
+            self.user_defined_var[label].set_attr(
+                val=specs["val"], is_var=specs["is_var"]
+            )
 
     def save_csv(self, folder_path):
         """Export the results in multiple csv files in a folder structure

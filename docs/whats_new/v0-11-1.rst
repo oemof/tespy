@@ -81,6 +81,12 @@ Other Changes
   the number of directly specified variables, so the difference between the
   original and the reduced problem size becomes traceable
   (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
+- Adding a connection or component, which is already part of a different
+  network, now raises an error. To use the same model in a second network,
+  create an independent copy of it, e.g. with
+  :py:meth:`~tespy.networks.network.Network.export` and
+  :py:meth:`~tespy.networks.network.Network.from_json`
+  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
 
 Documentation
 #############

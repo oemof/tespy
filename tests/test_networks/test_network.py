@@ -27,9 +27,9 @@ from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
-from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
+from tespy.components import Subsystem
 from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
@@ -38,11 +38,13 @@ from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
+from tespy.tools.helpers import UserDefinedVariable
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -1386,3 +1388,84 @@ class TestBackwardsCompatibility:
             nw.problem
         with raises(AttributeError):
             nw.residual
+
+
+class TestSharedObjectsBetweenNetworks:
+
+    class PipeSubsystem(Subsystem):
+
+        def __init__(self, label):
+            self.num_in = 1
+            self.num_out = 1
+            super().__init__(label)
+
+        def create_network(self):
+            pipe = Pipe("pipe")
+            c1 = Connection(self.inlet, "out1", pipe, "in1", label="s1")
+            c2 = Connection(pipe, "out1", self.outlet, "in1", label="s2")
+            self.add_conns(c1, c2)
+
+    def test_subsystem_in_second_network_raises(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        nw1.add_subsystems(sub)
+
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_subsystems(sub)
+
+    def test_component_in_second_network_raises(self):
+        pipe = Pipe("pipe")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", pipe, "in1", label="c11")
+        c12 = Connection(pipe, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", pipe, "in1", label="c21")
+        c22 = Connection(pipe, "out1", Sink("sink 2"), "in1", label="c22")
+        with raises(TESPyNetworkError):
+            nw2.add_conns(c21, c22)
+
+    def test_moving_objects_after_deletion_works(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", sub, "in1", label="c11")
+        c12 = Connection(sub, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+        nw1.add_subsystems(sub)
+
+        nw1.del_conns(c11, c12)
+        nw1.del_subsystems(sub)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", sub, "in1", label="c21")
+        c22 = Connection(sub, "out1", Sink("sink 2"), "in1", label="c22")
+        nw2.add_conns(c21, c22)
+        nw2.add_subsystems(sub)
+        nw2.check_topology()
+
+    def test_ude_in_second_network_raises(self):
+        ude = UserDefinedEquation("myude", lambda ude: 0, lambda ude: [])
+        nw1 = Network()
+        nw1.add_ude(ude)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_ude(ude)
+
+        nw1.del_ude(ude)
+        nw2.add_ude(ude)
+
+    def test_udv_in_second_network_raises(self):
+        udv = UserDefinedVariable("myvar", val0=1)
+        nw1 = Network()
+        nw1.add_udv(udv)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_udv(udv)
+
+        nw1.del_udv(udv)
+        nw2.add_udv(udv)

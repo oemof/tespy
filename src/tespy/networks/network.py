@@ -16,6 +16,8 @@ import importlib
 import json
 import os
 import warnings
+import weakref
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -45,6 +47,29 @@ try:
     import cupy as cu
 except ModuleNotFoundError:
     cu = None
+
+# track which network a connection or component belongs to without attaching
+# state to the objects themselves, keeping them picklable and making
+# (deep)copies of a network independent of the original
+_network_ownership = weakref.WeakKeyDictionary()
+
+
+def _claim_ownership(obj, network):
+    owner = _network_ownership.get(obj)
+    owner = owner() if owner is not None else None
+    if owner is not None and owner is not network:
+        msg = (
+            f"The {obj.__class__.__name__} {obj.label} is already part of a "
+            "different network. Sharing objects between networks is not "
+            "supported, because their specifications, results and design "
+            "point data would be a single shared state. To use the same "
+            "model in a second network create an independent copy of it, e.g. "
+            "by exporting and reloading the topology with Network.export() "
+            "and Network.from_json()."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+    _network_ownership[obj] = weakref.ref(network)
 
 
 class Network:
@@ -524,6 +549,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             c.good_starting_values = False
 
             conn_type = c.__class__.__name__
@@ -553,6 +580,7 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
+            _network_ownership.pop(c, None)
             if c.__class__.__name__ in self.results:
                 self.results[c.__class__.__name__].drop(
                     c.label, inplace=True, errors="ignore"
@@ -595,6 +623,8 @@ class Network:
                     )
                     raise hlp.TESPyNetworkError(msg)
 
+            _claim_ownership(comp, self)
+
             comp_type = comp.__class__.__name__
             self.comps.loc[comp.label, 'comp_type'] = comp_type
             self.comps.loc[comp.label, 'object'] = comp
@@ -619,6 +649,7 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
+                _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
                 if comp_type in self.results:
                     self.results[comp_type].drop(
@@ -655,6 +686,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_eq[c.label] = c
             msg = f"Added UserDefinedEquation {c.label} to network."
             logger.debug(msg)
@@ -671,6 +704,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_eq[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
 
@@ -728,6 +762,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_var[c.label] = c
             msg = f"Added UserDefinedVariable {c.label} to network."
             logger.debug(msg)
@@ -744,6 +780,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_var[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedVariable {c.label} from network."
             logger.debug(msg)
 

@@ -165,13 +165,6 @@ class Component:
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
-        self.num_i = len(self.inlets())
-        self.num_o = len(self.outlets())
-        self.num_power_i = len(self.powerinlets())
-        self.num_power_o = len(self.poweroutlets())
-        self.num_heat_i = len(self.heatinlets())
-        self.num_heat_o = len(self.heatoutlets())
-
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.
@@ -669,6 +662,30 @@ class Component:
     @staticmethod
     def heatoutlets():
         return []
+
+    @property
+    def num_i(self):
+        return len(self.inlets())
+
+    @property
+    def num_o(self):
+        return len(self.outlets())
+
+    @property
+    def num_power_i(self):
+        return len(self.powerinlets())
+
+    @property
+    def num_power_o(self):
+        return len(self.poweroutlets())
+
+    @property
+    def num_heat_i(self):
+        return len(self.heatinlets())
+
+    @property
+    def num_heat_o(self):
+        return len(self.heatoutlets())
 
     @property
     def all_connections(self):

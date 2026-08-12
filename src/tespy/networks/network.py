@@ -952,15 +952,11 @@ class Network:
                 source_mask, target_mask,
                 comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
             )
-            comp.num_power_i = len(comp.powerinlets())
-            comp.num_power_o = len(comp.poweroutlets())
 
             comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
                 source_mask, target_mask,
                 comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
             )
-            comp.num_heat_i = len(comp.heatinlets())
-            comp.num_heat_o = len(comp.heatoutlets())
 
             # set up results and specification dataframes
             comp_type = comp.__class__.__name__

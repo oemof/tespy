@@ -197,10 +197,42 @@ class TestNetworks:
         imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
-            'If the network import was successful the network check '
-            'should have been successful, too, but it is not.'
+            "If the network import was successful the network check should "
+            "have been successful, too, but it is not."
         )
         assert imported_nwk.checked, msg
+
+    def test_Network_variable_port_count_modified_later(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter")
+        splitter.set_attr(num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        self.nw.check_topology()
+        assert self.nw.checked
+
+    def test_Network_from_dict_with_variable_port_count(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter", num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        imported_nwk = Network.from_dict(self.nw.export())
+        imported_nwk.check_topology()
+        assert imported_nwk.checked
 
     def test_Network_import_with_component_parameter_as_variable(self):
         """Test if component variables are retained after import."""

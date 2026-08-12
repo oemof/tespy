@@ -29,6 +29,13 @@ New Features
   passes). :code:`eps`, :code:`NTU` and the capacity rate ratio :code:`C_r`
   are reported as results
   (`PR #1045 <https://github.com/oemof/tespy/pull/1045>`__).
+- The specifications of a network can be saved, cleared and restored with the
+  new methods :py:meth:`~tespy.networks.network.Network.save_specifications`,
+  :py:meth:`~tespy.networks.network.Network.clear_specifications` and
+  :py:meth:`~tespy.networks.network.Network.restore_specifications`. This
+  allows switching between different parametrizations of a topologically
+  unchanged network
+  (`PR #1047 <https://github.com/oemof/tespy/pull/1047>`__).
 - The cycle diagram handling of the
   :py:class:`~tespy.models.template.ModelTemplate` class can be customized now
   (`PR #1046 <https://github.com/oemof/tespy/pull/1046>`__):
@@ -51,7 +58,13 @@ New Features
   :py:meth:`~tespy.components.subsystem.Subsystem.from_network` method. The
   boundary components of the `Network` instance, e.g. :code:`Source` and
   :code:`Sink`, are automatically by the `SubsystemInterface` to allow
-  embedding the subsystem into another network
+  embedding the subsystem into another network. The :code:`keep` parameter
+  controls which state is carried into the subsystem instance:
+
+  - full parametrization (:code:`"specifications"`, default),
+  - starting values only (:code:`"starting_values"`)
+  - nothing (:code:`"nothing"`)
+
   (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
 
 Bug Fixes

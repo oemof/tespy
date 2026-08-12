@@ -1,4 +1,6 @@
+import numpy as np
 from pytest import approx
+from pytest import mark
 from pytest import raises
 
 from tespy.components import Compressor
@@ -102,7 +104,7 @@ def test_power_interface():
 
     nw = Network()
     nw.units.set_defaults(
-        temperature="°C", pressure="bar"
+        temperature="°C", pressure="bar", pressure_difference="bar"
     )
     source = Source("source")
     sink = Sink("sink")
@@ -146,7 +148,7 @@ def test_heat_interface():
             self.add_conns(c1, c2, h1)
 
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     source = Source("source")
     sink = Sink("sink")
     hs = HeatSource("heat_source")
@@ -171,7 +173,7 @@ def test_heat_interface():
 
 def _compressor_network():
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     so = Source("air inlet")
     cp = Compressor("compressor")
     si = Sink("air outlet")
@@ -213,7 +215,7 @@ def test_subsystem_from_network():
     # the boundary conditions travel with the subsystem, so the external
     # connections stay unspecified
     nw2 = Network(iterinfo=False)
-    nw2.units.set_defaults(pressure="bar", temperature="degC")
+    nw2.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     so = Source("source")
     si = Sink("sink")
     ps = PowerSource("power source")
@@ -250,7 +252,7 @@ def test_subsystem_from_network_structure_only():
     }
 
     nw2 = Network(iterinfo=False)
-    nw2.units.set_defaults(pressure="bar", temperature="degC")
+    nw2.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     so = Source("source")
     si = Sink("sink")
     ps = PowerSource("power source")
@@ -352,3 +354,96 @@ def test_del_subsystems():
     assert "c_in" in nw.conns.index
     assert "c_out1" in nw.conns.index
     assert "c_out2" in nw.conns.index
+
+
+def _embed_and_solve_compressor_subsystem(sub, fluid=None):
+    if fluid is None:
+        fluid = {"air": 1}
+    nw2 = Network(iterinfo=False)
+    nw2.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
+    so = Source("source")
+    si = Sink("sink")
+    ps = PowerSource("power source")
+
+    c_in = Connection(so, "out1", sub.inlet, "in1", label="c_in")
+    c_out = Connection(sub.outlet, "out1", si, "in1", label="c_out")
+    p_in = PowerConnection(ps, "power", sub.inlet, "power_in1", label="p_in")
+    nw2.add_conns(c_in, c_out, p_in)
+    nw2.add_subsystems(sub)
+
+    c_in.set_attr(fluid=fluid, T=20, p=1, m=1)
+    c_out.set_attr(p=5)
+    sub.get_comp("compressor").set_attr(eta_s=0.8)
+
+    nw2.solve("design")
+    nw2.assert_convergence()
+    return p_in
+
+
+def test_subsystem_from_network_keep_starting_values():
+    nw = _compressor_network()
+    nw.solve("design")
+    nw.assert_convergence()
+    p2 = nw.get_conn("2").p.val
+
+    sub = Subsystem.from_network("block", nw, keep="starting_values")
+
+    for c in sub.conns.values():
+        for key in c.property_data:
+            assert not c.get_attr(key).is_set
+    for cp in sub.comps.values():
+        if cp in (sub.inlet, sub.outlet):
+            continue
+        for key in cp.parameters:
+            assert not cp.get_attr(key).is_set
+
+    assert sub.get_conn("1").p.val0 == approx(1)
+    assert sub.get_conn("1").T.val0 == approx(20)
+    assert sub.get_conn("2").p.val0 == approx(p2)
+    assert sub.get_conn("1").fluid.val0 == {"air": 1.0}
+    # the source network keeps its specifications
+    assert nw.get_conn("1").T.is_set
+
+    p_in = _embed_and_solve_compressor_subsystem(sub)
+    assert p_in.E.val_SI == approx(nw.get_conn("p1").E.val_SI)
+
+
+def test_subsystem_from_network_keep_nothing():
+    nw = _compressor_network()
+    nw.solve("design")
+    nw.assert_convergence()
+
+    sub = Subsystem.from_network("block", nw, keep="nothing")
+
+    c1 = sub.get_conn("1")
+    assert not c1.p.is_set
+    assert np.isnan(c1.p.val)
+    assert np.isnan(c1.p.val0)
+    assert c1.fluid.val0 == {}
+    # the fluid composition information stays for the wrapper setup
+    assert set(c1.fluid.val.keys()) == {"air"}
+    assert not sub.get_comp("compressor").eta_s.is_set
+
+    p_in = _embed_and_solve_compressor_subsystem(sub)
+    assert p_in.E.val_SI == approx(nw.get_conn("p1").E.val_SI)
+
+
+def test_subsystem_from_network_invalid_keep():
+    nw = _compressor_network()
+    with raises(ValueError):
+        Subsystem.from_network("block", nw, keep="everything")
+
+
+@mark.parametrize("keep", ["starting_values", "nothing"])
+def test_subsystem_from_network_keep_modes_with_changed_fluid(keep):
+    """The carried over fluid information yields to a newly specified fluid."""
+    nw = _compressor_network()
+    nw.solve("design")
+    nw.assert_convergence()
+
+    sub = Subsystem.from_network("block", nw, keep=keep)
+    p_in = _embed_and_solve_compressor_subsystem(sub, fluid={"N2": 1})
+
+    for label in ("1", "2"):
+        assert sub.get_conn(label).fluid.val == {"N2": 1.0}
+    assert p_in.E.val_SI > 0

@@ -470,6 +470,53 @@ class ConnectionBase:
             else:
                 self.set_attr(**{arg: data[arg]})
 
+    def _save_specifications(self):
+        specs = {}
+        for key, container in self.property_data.items():
+            if not container.is_set:
+                continue
+            if isinstance(container, dc_ref):
+                specs[key] = container._serialize()
+            elif isinstance(container, dc_flu):
+                specs[key] = {
+                    "val": {f: container.val[f] for f in container.is_set},
+                    "is_set": list(container.is_set)
+                }
+            elif isinstance(container, dc_prop):
+                specs[key] = {
+                    "val": container.val,
+                    "unit": container.unit,
+                    "is_set": True
+                }
+            else:
+                specs[key] = {"val": container.val, "is_set": True}
+        return specs
+
+    def _clear_specifications(self):
+        for container in self.property_data.values():
+            if isinstance(container, dc_flu):
+                container.is_set = set()
+            else:
+                container.is_set = False
+
+    def _restore_specifications(self, data, all_connections):
+        for key, param_data in data.items():
+            container = self.get_attr(key)
+            if isinstance(container, dc_ref):
+                ref = Ref(
+                    all_connections[param_data["conn"]],
+                    param_data["factor"],
+                    param_data["delta"]
+                )
+                container.set_attr(
+                    ref=ref, is_set=True, unit=param_data["unit"]
+                )
+            elif isinstance(container, dc_flu):
+                container.val.update(param_data["val"])
+                container.is_set = set(param_data["is_set"])
+            else:
+                container.set_attr(**param_data)
+
 
 @connection_registry
 class Connection(ConnectionBase):

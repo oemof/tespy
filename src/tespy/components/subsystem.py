@@ -376,7 +376,7 @@ class Subsystem:
         return sub
 
     @classmethod
-    def from_network(cls, label, nw, interface_exceptions=None):
+    def from_network(cls, label, nw, interface_exceptions=None, keep="specifications"):
         r"""
         Convert a network into a subsystem.
 
@@ -405,6 +405,22 @@ class Subsystem:
         interface_exceptions : list, optional
             Labels of boundary components to keep inside the subsystem instead
             of converting them to interface ports.
+
+        keep : str, optional
+            Which state of the network to carry into the subsystem, default
+            :code:`"specifications"`.
+
+            - :code:`"specifications"`: all specifications and values are
+              carried over unchanged.
+            - :code:`"starting_values"`: all specifications are deactivated,
+              the current values of the variables become starting values for
+              the next solve.
+            - :code:`"nothing"`: all specifications are deactivated and no
+              values are carried over.
+
+            Model data, e.g. characteristic lines, polynomial coefficients or
+            reference definitions, as well as the design/offdesign setup stay
+            on the objects in all modes, only their activation state is cleared
 
         Returns
         -------
@@ -442,11 +458,56 @@ class Subsystem:
 
         >>> sub.get_conn("1").T.is_set
         True
+
+        With the :code:`keep` parameter the specifications can be deactivated
+        instead, turning the network's values into starting values for the
+        next solve, or dropping them altogether.
+
+        >>> sub2 = Subsystem.from_network(
+        ...     "heating block 2", nw, keep="starting_values"
+        ... )
+        >>> sub2.get_conn("1").T.is_set
+        False
+        >>> sub2.get_conn("1").p.val0
+        1.0
+        >>> sub3 = Subsystem.from_network("heating block 3", nw, keep="nothing")
+        >>> sub3.get_conn("1").p.val0
+        nan
         """
         if interface_exceptions is None:
             interface_exceptions = []
+        if keep not in ("specifications", "starting_values", "nothing"):
+            msg = (
+                "The keep parameter must be one of 'specifications', "
+                "'starting_values' or 'nothing'."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
 
         nw_dict = nw.export()
+
+        if keep != "specifications":
+            for section in ("Connection", "Component"):
+                for class_data in nw_dict[section].values():
+                    for obj_data in class_data.values():
+                        for param_data in obj_data.values():
+                            if not isinstance(param_data, dict):
+                                continue
+                            if "engine" in param_data:
+                                param_data["is_set"] = []
+                                if keep == "starting_values":
+                                    param_data["val0"] = dict(param_data["val"])
+                                continue
+                            if "is_set" in param_data:
+                                param_data["is_set"] = False
+                            if "is_var" in param_data:
+                                param_data["is_var"] = False
+                            if "val" in param_data and "unit" in param_data:
+                                if keep == "starting_values":
+                                    param_data["val0"] = param_data["val"]
+                                else:
+                                    param_data.pop("val")
+                                    param_data.pop("val_SI", None)
 
         for comps in nw_dict["Component"].values():
             for reserved in ("inlet", "outlet"):

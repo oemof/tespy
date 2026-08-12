@@ -381,3 +381,44 @@ class TestPolynomialCompressor:
             abs((instance.P.val - power_data.loc[50, 0.0]))
             / power_data.loc[50, 0.0] <= 1e-2
         )
+
+    def test_specifications_round_trip(self, power_data, cooling_data, reference_state):
+        """Restoring saved specifications recovers polynomials and reference state."""
+        instance = PolynomialCompressor('compressor')
+        self.setup_network(instance)
+
+        fl = {'R134a': 1}
+        self.c1.set_attr(fluid=fl, td_dew=reference_state["T_sh"], T=20)
+        self.c2.set_attr(T_dew=50)
+        eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
+            power_data, cooling_data, "R134a", reference_state
+        )
+        instance.set_attr(
+            eta_vol_poly=eta_vol_poly, frequency=reference_state["frequency_poly"],
+            eta_s_poly=eta_s_poly, dissipation_ratio=0,
+            reference_state=reference_state
+        )
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        results = (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
+        specs = self.nw.save_specifications()
+
+        # in-place changes of mutable specification values must not leak into
+        # the saved snapshot
+        original_displacement = reference_state["displacement"]
+        instance.reference_state.val["displacement"] = original_displacement * 0.9
+        instance.set_attr(eta_s_poly=eta_s_poly * 0.95, frequency=40.0)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert results != pytest.approx(
+            (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
+        )
+
+        self.nw.restore_specifications(specs)
+        assert instance.reference_state.val["displacement"] == original_displacement
+        np.testing.assert_allclose(instance.eta_s_poly.val, eta_s_poly)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert results == pytest.approx(
+            (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
+        )

@@ -245,3 +245,73 @@ The same pattern applies for heat ports: set :code:`num_heat_in` or
 :code:`num_heat_out` and use a
 :py:class:`~tespy.connections.heatconnection.HeatConnection` with port names
 :code:`heat_in{n}` and :code:`heat_out{n}`.
+
+.. _subsystems_from_network_label:
+
+Create a subsystem from a network
+---------------------------------
+
+You can convert any existing network to subsystem as well using
+:py:meth:`~tespy.components.subsystem.Subsystem.from_network`. See the
+docstring for all specification options possible. Components bounding the
+network (i.e. :code:`Source`, :code:`Sink`, :code:`PowerSource`, etc.) are
+replaced by the subsystem inlets and outlets so you can integrate your
+subsystem into a network. The :code:`interface_map` attribute indicates which
+which port replaces which of those components.
+
+The example shows a two-stage compressor with intermediate cooling injection:
+
+.. code-block:: python
+
+    >>> from tespy.components import Compressor, Merge, Sink, Source, Subsystem
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
+    >>> so = Source("air inlet")
+    >>> inj = Source("injection")
+    >>> cp1 = Compressor("compressor 1")
+    >>> me = Merge("merge")
+    >>> cp2 = Compressor("compressor 2")
+    >>> si = Sink("air outlet")
+
+    >>> c1 = Connection(so, "out1", cp1, "in1", label="1")
+    >>> c2 = Connection(cp1, "out1", me, "in1", label="2")
+    >>> c3 = Connection(inj, "out1", me, "in2", label="3")
+    >>> c4 = Connection(me, "out1", cp2, "in1", label="4")
+    >>> c5 = Connection(cp2, "out1", si, "in1", label="5")
+    >>> nw.add_conns(c1, c2, c3, c4, c5)
+
+    >>> sub = Subsystem.from_network("compression", nw)
+    >>> sub.interface_map
+    {'in1': 'air inlet', 'in2': 'injection', 'out1': 'air outlet'}
+
+The subsystem can be integrated into another network now.
+
+.. code-block:: python
+
+    >>> nw2 = Network(iterinfo=False)
+    >>> nw2.units.set_defaults(temperature="degC", pressure="bar")
+    >>> so = Source("main air")
+    >>> inj = Source("cold gas")
+    >>> si = Sink("discharge")
+
+    >>> c_in = Connection(so, "out1", sub.inlet, "in1", label="main")
+    >>> c_inj = Connection(inj, "out1", sub.inlet, "in2", label="cold")
+    >>> c_out = Connection(sub.outlet, "out1", si, "in1", label="discharge")
+    >>> nw2.add_conns(c_in, c_inj, c_out)
+    >>> nw2.add_subsystems(sub)
+
+    >>> c_in.set_attr(fluid={"air": 1}, T=25, p=1, m=1)
+    >>> c_inj.set_attr(fluid={"air": 1}, T=15, m=0.1)
+    >>> sub.get_comp("compressor 1").set_attr(eta_s=0.8, pr=3)
+    >>> sub.get_comp("compressor 2").set_attr(eta_s=0.8, pr=3)
+
+    >>> nw2.solve("design")
+    >>> nw2.assert_convergence()
+
+    >>> sub.get_conn("4").T.val < sub.get_conn("2").T.val
+    True

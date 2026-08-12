@@ -46,6 +46,14 @@ New Features
     state points only. An is raised if :code:`strict=True` is passed to the
     respective method.
 
+- A :py:class:`~tespy.networks.network.Network` can be converted into a
+  :py:class:`~tespy.components.subsystem.Subsystem` with the new
+  :py:meth:`~tespy.components.subsystem.Subsystem.from_network` method. The
+  boundary components of the `Network` instance, e.g. :code:`Source` and
+  :code:`Sink`, are automatically by the `SubsystemInterface` to allow
+  embedding the subsystem into another network
+  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
+
 Bug Fixes
 #########
 - The enthalpy to temperature inversion of the
@@ -63,10 +71,22 @@ Bug Fixes
 
 Other Changes
 #############
+- Support for importing networks exported with tespy v0.8 or earlier through
+  :py:meth:`~tespy.networks.network.Network.from_json` has been removed. The
+  same applies to design and initialisation state files written with tespy v0.9
+  or earlier. To migrate such files, load and re-save them with an intermediate
+  tespy version, e.g. v0.10.0
+  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
 - The determination error and debug messages on the problem reduction report
   the number of directly specified variables, so the difference between the
   original and the reduced problem size becomes traceable
   (`PR #1034 <https://github.com/oemof/tespy/pull/1034>`__).
+- Adding a connection or component, which is already part of a different
+  network, now raises an error. To use the same model in a second network,
+  create an independent copy of it, e.g. with
+  :py:meth:`~tespy.networks.network.Network.export` and
+  :py:meth:`~tespy.networks.network.Network.from_json`
+  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
 
 Documentation
 #############
@@ -81,3 +101,4 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Francesco D'Ettorre (`@dk-teknologisk-FDE <https://github.com/dk-teknologisk-FDE>`__)
+- Hannes Schneider (`@HaSchneider <https://github.com/HaSchneider>`__)

@@ -23,24 +23,28 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Pipe
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
-from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
+from tespy.components import Subsystem
 from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
+from tespy.tools.helpers import UserDefinedVariable
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -193,10 +197,42 @@ class TestNetworks:
         imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
-            'If the network import was successful the network check '
-            'should have been successful, too, but it is not.'
+            "If the network import was successful the network check should "
+            "have been successful, too, but it is not."
         )
         assert imported_nwk.checked, msg
+
+    def test_Network_variable_port_count_modified_later(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter")
+        splitter.set_attr(num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        self.nw.check_topology()
+        assert self.nw.checked
+
+    def test_Network_from_dict_with_variable_port_count(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter", num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        imported_nwk = Network.from_dict(self.nw.export())
+        imported_nwk.check_topology()
+        assert imported_nwk.checked
 
     def test_Network_import_with_component_parameter_as_variable(self):
         """Test if component variables are retained after import."""
@@ -327,6 +363,58 @@ class TestNetworks:
         data["Connection"] = {}
 
         self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_power_connection_section_in_design_path(self):
+        """Test a design file missing the PowerConnection section."""
+        cp = Compressor("compressor", eta_s=0.8)
+        grid = PowerSource("grid")
+        a = Connection(
+            self.source, "out1", cp, "in1", m=1, p=1, T=25, fluid={"air": 1}
+        )
+        b = Connection(cp, "out1", self.sink, "in1", p=5)
+        e = PowerConnection(grid, "power", cp, "power")
+        self.nw.add_conns(a, b, e)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        del data["Connection"]["PowerConnection"]
+
+        self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_connection_section_local_offdesign(self):
+        """Test an individual design file missing the Connection section."""
+        pi = Pipe("pipe", Q=0, pr=0.95, design=["pr"], offdesign=["zeta"])
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        b.set_attr(local_offdesign=True, design_path=data)
+        with raises(TESPyNetworkError):
+            self.nw.solve("design")
+
+    def test_Network_missing_connection_section_in_init_path(self):
+        """Test an init file missing the Connection section is tolerated."""
+        pi = Pipe("pipe", Q=0, pr=0.95)
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        self.nw.solve("design", init_path=data)
+        self.nw.assert_convergence()
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""
@@ -1332,3 +1420,84 @@ class TestBackwardsCompatibility:
             nw.problem
         with raises(AttributeError):
             nw.residual
+
+
+class TestSharedObjectsBetweenNetworks:
+
+    class PipeSubsystem(Subsystem):
+
+        def __init__(self, label):
+            self.num_in = 1
+            self.num_out = 1
+            super().__init__(label)
+
+        def create_network(self):
+            pipe = Pipe("pipe")
+            c1 = Connection(self.inlet, "out1", pipe, "in1", label="s1")
+            c2 = Connection(pipe, "out1", self.outlet, "in1", label="s2")
+            self.add_conns(c1, c2)
+
+    def test_subsystem_in_second_network_raises(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        nw1.add_subsystems(sub)
+
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_subsystems(sub)
+
+    def test_component_in_second_network_raises(self):
+        pipe = Pipe("pipe")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", pipe, "in1", label="c11")
+        c12 = Connection(pipe, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", pipe, "in1", label="c21")
+        c22 = Connection(pipe, "out1", Sink("sink 2"), "in1", label="c22")
+        with raises(TESPyNetworkError):
+            nw2.add_conns(c21, c22)
+
+    def test_moving_objects_after_deletion_works(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", sub, "in1", label="c11")
+        c12 = Connection(sub, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+        nw1.add_subsystems(sub)
+
+        nw1.del_conns(c11, c12)
+        nw1.del_subsystems(sub)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", sub, "in1", label="c21")
+        c22 = Connection(sub, "out1", Sink("sink 2"), "in1", label="c22")
+        nw2.add_conns(c21, c22)
+        nw2.add_subsystems(sub)
+        nw2.check_topology()
+
+    def test_ude_in_second_network_raises(self):
+        ude = UserDefinedEquation("myude", lambda ude: 0, lambda ude: [])
+        nw1 = Network()
+        nw1.add_ude(ude)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_ude(ude)
+
+        nw1.del_ude(ude)
+        nw2.add_ude(ude)
+
+    def test_udv_in_second_network_raises(self):
+        udv = UserDefinedVariable("myvar", val0=1)
+        nw1 = Network()
+        nw1.add_udv(udv)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_udv(udv)
+
+        nw1.del_udv(udv)
+        nw2.add_udv(udv)

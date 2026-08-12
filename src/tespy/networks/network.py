@@ -16,6 +16,8 @@ import importlib
 import json
 import os
 import warnings
+import weakref
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -45,6 +47,29 @@ try:
     import cupy as cu
 except ModuleNotFoundError:
     cu = None
+
+# track which network a connection or component belongs to without attaching
+# state to the objects themselves, keeping them picklable and making
+# (deep)copies of a network independent of the original
+_network_ownership = weakref.WeakKeyDictionary()
+
+
+def _claim_ownership(obj, network):
+    owner = _network_ownership.get(obj)
+    owner = owner() if owner is not None else None
+    if owner is not None and owner is not network:
+        msg = (
+            f"The {obj.__class__.__name__} {obj.label} is already part of a "
+            "different network. Sharing objects between networks is not "
+            "supported, because their specifications, results and design "
+            "point data would be a single shared state. To use the same "
+            "model in a second network create an independent copy of it, e.g. "
+            "by exporting and reloading the topology with Network.export() "
+            "and Network.from_json()."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+    _network_ownership[obj] = weakref.ref(network)
 
 
 class Network:
@@ -524,6 +549,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             c.good_starting_values = False
 
             conn_type = c.__class__.__name__
@@ -553,6 +580,7 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
+            _network_ownership.pop(c, None)
             if c.__class__.__name__ in self.results:
                 self.results[c.__class__.__name__].drop(
                     c.label, inplace=True, errors="ignore"
@@ -595,6 +623,8 @@ class Network:
                     )
                     raise hlp.TESPyNetworkError(msg)
 
+            _claim_ownership(comp, self)
+
             comp_type = comp.__class__.__name__
             self.comps.loc[comp.label, 'comp_type'] = comp_type
             self.comps.loc[comp.label, 'object'] = comp
@@ -619,6 +649,7 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
+                _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
                 if comp_type in self.results:
                     self.results[comp_type].drop(
@@ -655,6 +686,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_eq[c.label] = c
             msg = f"Added UserDefinedEquation {c.label} to network."
             logger.debug(msg)
@@ -671,6 +704,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_eq[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
 
@@ -728,6 +762,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_var[c.label] = c
             msg = f"Added UserDefinedVariable {c.label} to network."
             logger.debug(msg)
@@ -744,6 +780,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_var[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedVariable {c.label} from network."
             logger.debug(msg)
 
@@ -915,15 +952,11 @@ class Network:
                 source_mask, target_mask,
                 comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
             )
-            comp.num_power_i = len(comp.powerinlets())
-            comp.num_power_o = len(comp.poweroutlets())
 
             comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
                 source_mask, target_mask,
                 comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
             )
-            comp.num_heat_i = len(comp.heatinlets())
-            comp.num_heat_o = len(comp.heatoutlets())
 
             # set up results and specification dataframes
             comp_type = comp.__class__.__name__
@@ -1248,7 +1281,9 @@ class Network:
                 for var in c.offdesign:
                     c.get_attr(var).is_set = True
 
-                entries = self._load_network_state(path)[c.__class__.__name__]
+                entries = self._load_network_state(path).get(
+                    c.__class__.__name__, {}
+                )
                 # write data to connections
                 self._write_design_state_to_connection(c, entries)
 
@@ -1452,7 +1487,7 @@ class Network:
         state = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         for _, row in df_comps.iterrows():
-            entries = state[row["comp_type"]]
+            entries = state.get(row["comp_type"], {})
             comp = row["object"]
             path = comp.design_path
             # in offdesign mode any individually specified design_path is used
@@ -1460,7 +1495,7 @@ class Network:
             # local_offdesign
             if path is not None:
                 _individual_design = self._load_network_state(path)
-                data = _individual_design[row["comp_type"]]
+                data = _individual_design.get(row["comp_type"], {})
                 label = self._find_isolated_comp_label(comp, data)
                 self._write_design_state_to_component(comp, data, label)
                 # write adjacent connections design state from individual
@@ -1491,11 +1526,11 @@ class Network:
         # iter through connections
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
-            entries = state[conn_type]
+            entries = state.get(conn_type, {})
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
-                entries = self._load_network_state(path)[conn_type]
+                entries = self._load_network_state(path).get(conn_type, {})
 
             self._write_design_state_to_connection(c, entries)
 
@@ -1516,8 +1551,9 @@ class Network:
             return next(iter(comp_entries))
         msg = (
             f"Could not unambiguously resolve the label for component "
-            f"'{comp.label}' in the isolated design file: multiple entries "
-            f"exist ({', '.join(comp_entries)}) and none match exactly."
+            f"'{comp.label}' in the isolated design file: "
+            f"{len(comp_entries)} entries of this component type exist "
+            "and none match exactly."
         )
         raise hlp.TESPyNetworkError(msg)
 
@@ -1674,7 +1710,7 @@ class Network:
         num_generic = 0
         for c in self.conns['object']:
             if self.init_path is not None and self._write_starting_values_to_connection(
-                    c, state[c.__class__.__name__]
+                    c, state.get(c.__class__.__name__, {})
                 ):
                 num_init_path += 1
             elif c.good_starting_values:
@@ -1797,14 +1833,8 @@ class Network:
             return {col: np.nan if val is None else val for col, val in d.items()}
 
         state = {}
-        # TODO: Let this somehow run through connection-registry and not hardcoded names
-        if any(k in data["Connection"] for k in ("Connection", "PowerConnection", "HeatConnection")):
-            for key, value in data["Connection"].items():
-                state[key] = {str(k): _row(v) for k, v in value.items()}
-        # TODO: deprecate
-        # this is for compatibility of older savestates
-        else:
-            state["Connection"] = {str(k): _row(v) for k, v in data["Connection"].items()}
+        for key, value in data["Connection"].items():
+            state[key] = {str(k): _row(v) for k, v in value.items()}
 
         for key, value in data["Component"].items():
             state[key] = {str(k): _row(v) for k, v in value.items()}
@@ -3015,33 +3045,26 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data, nw))
+            comps.update(_construct_components(target_class, data, nw.units))
 
         msg = 'Created network components.'
         logger.info(msg)
 
         conns = {}
         # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
+        for connection, data in network_data["Connection"].items():
+            if connection not in connection_registry.items:
+                msg = (
+                    f"A class {connection} is not available through the "
+                    "tespy.connections.connection.connection_registry "
+                    "decorator. If you are using a custom connection make "
+                    "sure to decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
 
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
+            target_class = connection_registry.items[connection]
+            conns.update(_construct_connections(target_class, data, comps))
 
         # add connections to network
         for c in conns.values():
@@ -3412,18 +3435,23 @@ class Network:
 
         return components
 
-
-def _construct_components(target_class, data, nw):
+def _construct_components(target_class, data, units=None):
     r"""
     Create TESPy component from class name and set parameters.
 
     Parameters
     ----------
-    component : str
-        Name of the component class to be constructed.
+    target_class : class
+        Class of the components to be constructed.
 
     data : dict
         Dictionary with component information.
+
+    units : tespy.tools.units.Units, optional
+        Unit context to bind values with units to. If not provided, values
+        are kept plain together with their unit string, so they can be
+        interpreted through the unit registry of the network they will be
+        part of.
 
     Returns
     -------
@@ -3452,8 +3480,9 @@ def _construct_components(target_class, data, nw):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
 
                 if "val" in param_data:
-                    if "unit" in param_data and param_data["unit"] is not None:
-                        param_data["val"] = nw.units.ureg.Quantity(
+                    if (units is not None and "unit" in param_data
+                            and param_data["unit"] is not None):
+                        param_data["val"] = units.ureg.Quantity(
                             param_data["val"], param_data["unit"]
                         )
                     if "val0" in param_data:

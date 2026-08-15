@@ -14,6 +14,7 @@ from pint import UnitRegistry
 from pytest import approx
 from pytest import fixture
 from pytest import raises
+from pytest import warns
 
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
@@ -108,3 +109,76 @@ def test_pressure_difference_unit_independent_from_pressure_unit(pipe_network):
     assert p_diff_bar != approx(pipe.dp.val)
     # but the underlying SI values must agree: 1 bar = 100 000 Pa
     assert approx(c1.p.val_SI - c2.p.val_SI) == pipe.dp.val_SI
+
+
+def _solve_pipe_network_in_degC(nw):
+    c1 = nw.get_conn("c1")
+    pipe = nw.get_comp("pipe")
+    nw.units.set_defaults(
+        temperature="degC", pressure="bar", pressure_difference="bar"
+    )
+    c1.set_attr(fluid={"water": 1}, m=1, T=20, p=5)
+    pipe.set_attr(Q=0, dp=1)
+    nw.solve("design")
+
+
+def test_set_defaults_no_warning_before_solve(pipe_network):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        pipe_network.units.set_defaults(temperature="degF")
+
+
+def test_set_defaults_after_solve_warns(pipe_network):
+    nw = pipe_network
+    _solve_pipe_network_in_degC(nw)
+    with warns(UserWarning, match="changing default units"):
+        nw.units.set_defaults(temperature="degF")
+
+
+def test_default_change_preserves_physical_values(pipe_network):
+    nw = pipe_network
+    _solve_pipe_network_in_degC(nw)
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    T_spec_SI = c1.T.val_SI
+    T_result_SI = c2.T.val_SI
+
+    with warns(UserWarning):
+        nw.units.set_defaults(temperature="degF")
+    nw.solve("design")
+
+    assert c1.T.unit == "degree_Fahrenheit"
+    assert c1.T.val == approx(68.0)
+    assert c1.T.val_SI == approx(T_spec_SI)
+    assert c2.T.unit == "degree_Fahrenheit"
+    assert c2.T.val_SI == approx(T_result_SI)
+
+
+def test_respecified_uses_new_defaults(pipe_network):
+    nw = pipe_network
+    _solve_pipe_network_in_degC(nw)
+    c1 = nw.get_conn("c1")
+
+    with warns(UserWarning):
+        nw.units.set_defaults(temperature="degF")
+    c1.set_attr(T=68)
+    nw.solve("design")
+
+    assert c1.T.unit == "degree_Fahrenheit"
+    assert c1.T.val_SI == approx(293.15)
+
+
+def test_specified_quantity_keeps_unit_on_default_change(pipe_network):
+    nw = pipe_network
+    _solve_pipe_network_in_degC(nw)
+    c1, c2 = nw.get_conn(["c1", "c2"])
+    c1.set_attr(T=nw.units.ureg.Quantity(20, "degC"))
+    nw.solve("design")
+
+    with warns(UserWarning):
+        nw.units.set_defaults(temperature="degF")
+    nw.solve("design")
+
+    assert c1.T.unit == "degree_Celsius"
+    assert c1.T.val == approx(20.0)
+    assert c1.T.val_SI == approx(293.15)
+    assert c2.T.unit == "degree_Fahrenheit"

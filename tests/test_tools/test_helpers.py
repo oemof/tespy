@@ -39,24 +39,31 @@ def test_newton_bounds():
     """
     kwargs = {"function": func, "parameter": "x"}
     result = newton_with_kwargs(deriv, 0, valmin=-10, valmax=10, val0=0, **kwargs)
-    msg = ('The newton algorithm should find the zero crossing at 4.0. ' +
-           str(round(result, 1)) + ' was found instead.')
+    msg = (
+        "The newton algorithm should find the zero crossing at 4.0. "
+        f"{round(result, 1)} was found instead."
+    )
     assert 4.0 == approx(result), msg
 
     result = newton_with_kwargs(deriv, 0, valmin=-10, valmax=10, val0=-10, **kwargs)
-    msg = ('The newton algorithm should find the zero crossing at -5.0. ' +
-           str(round(result, 1)) + ' was found instead.')
+    msg = (
+        "The newton algorithm should find the zero crossing at -5.0. "
+        f"{round(result, 1)} was found instead."
+    )
     assert -5.0 == approx(result), msg
 
     result = newton_with_kwargs(deriv, 0, valmin=-4, valmax=-2, val0=-3, **kwargs)
-    msg = ('The newton algorithm should not be able to find a zero crossing. '
-           'The value ' + str(round(result, 1)) + ' was found, but the '
-           'algorithm should have found the lower boundary of -4.0.')
+    msg = (
+        "The newton algorithm should not be able to find a zero crossing. The "
+        f"value {round(result, 1)} was found, but the algorithm should "
+        "have found the lower boundary of -4.0."
+    )
     assert -4.0 == approx(result), msg
 
     result = newton_with_kwargs(deriv, 0, valmin=-20, valmax=-10, val0=-10, **kwargs)
-    msg = ('The newton algorithm should not be able to find a zero crossing. '
-           'The value ' + str(round(result, 1)) + ' was found, but the '
-           'algorithm should have found the upper boundary of -10.0.')
+    msg = (
+        "The newton algorithm should not be able to find a zero crossing. The "
+        f"value {round(result, 1)} was found, but the algorithm should "
+        "have found the upper boundary of -10.0."
+    )
     assert -10.0 == approx(result), msg
-

@@ -2,7 +2,7 @@
 
 """Module for testing reading charactersitic lines.
 
-This file is part of project TESPy (github.com/oemof/tespy). It"s copyrighted
+This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
 tests/test_tools/test_characteristics.py

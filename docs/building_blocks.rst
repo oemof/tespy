@@ -67,6 +67,16 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/fluid_properties_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  General Configurations
+        :link: general_configuration_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/building_blocks/configuration.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/building_blocks/configuration_darkmode.svg
+            :class: only-dark
+
 ..  toctree::
     :maxdepth: 1
     :hidden:
@@ -77,3 +87,4 @@ Building Blocks
     building_blocks/connections
     building_blocks/subsystems
     building_blocks/fluprodia
+    building_blocks/configuration

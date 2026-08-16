@@ -23,24 +23,28 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Pipe
+from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
-from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
+from tespy.components import Subsystem
 from tespy.components import SubsystemInterface
 from tespy.components import Turbine
 from tespy.components import Valve
 from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
+from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
+from tespy.tools.helpers import UserDefinedVariable
 from tespy.tools.helpers import _numeric_deriv
 
 
@@ -193,10 +197,42 @@ class TestNetworks:
         imported_nwk = Network.from_dict(serialization)
         imported_nwk.solve('design', init_only=True)
         msg = (
-            'If the network import was successful the network check '
-            'should have been successful, too, but it is not.'
+            "If the network import was successful the network check should "
+            "have been successful, too, but it is not."
         )
         assert imported_nwk.checked, msg
+
+    def test_Network_variable_port_count_modified_later(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter")
+        splitter.set_attr(num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        self.nw.check_topology()
+        assert self.nw.checked
+
+    def test_Network_from_dict_with_variable_port_count(self):
+        """Port counts must be correctly (de)serialization."""
+        splitter = Splitter("splitter", num_out=3)
+        c1 = Connection(self.source, "out1", splitter, "in1", label="c1")
+        self.nw.add_conns(c1)
+        for i in range(3):
+            s = Sink(f"sink {i}")
+            c = Connection(
+                splitter, f"out{i + 1}", s, "in1", label=f"c{i + 2}"
+            )
+            self.nw.add_conns(c)
+
+        imported_nwk = Network.from_dict(self.nw.export())
+        imported_nwk.check_topology()
+        assert imported_nwk.checked
 
     def test_Network_import_with_component_parameter_as_variable(self):
         """Test if component variables are retained after import."""
@@ -327,6 +363,58 @@ class TestNetworks:
         data["Connection"] = {}
 
         self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_power_connection_section_in_design_path(self):
+        """Test a design file missing the PowerConnection section."""
+        cp = Compressor("compressor", eta_s=0.8)
+        grid = PowerSource("grid")
+        a = Connection(
+            self.source, "out1", cp, "in1", m=1, p=1, T=25, fluid={"air": 1}
+        )
+        b = Connection(cp, "out1", self.sink, "in1", p=5)
+        e = PowerConnection(grid, "power", cp, "power")
+        self.nw.add_conns(a, b, e)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        del data["Connection"]["PowerConnection"]
+
+        self.offdesign_TESPyNetworkError(design_path=data)
+
+    def test_Network_missing_connection_section_local_offdesign(self):
+        """Test an individual design file missing the Connection section."""
+        pi = Pipe("pipe", Q=0, pr=0.95, design=["pr"], offdesign=["zeta"])
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        b.set_attr(local_offdesign=True, design_path=data)
+        with raises(TESPyNetworkError):
+            self.nw.solve("design")
+
+    def test_Network_missing_connection_section_in_init_path(self):
+        """Test an init file missing the Connection section is tolerated."""
+        pi = Pipe("pipe", Q=0, pr=0.95)
+        a = Connection(
+            self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
+            fluid={"water": 1}
+        )
+        b = Connection(pi, "out1", self.sink, "in1")
+        self.nw.add_conns(a, b)
+        self.nw.solve("design")
+        data = self.nw.save(as_dict=True)
+
+        data["Connection"] = {}
+
+        self.nw.solve("design", init_path=data)
+        self.nw.assert_convergence()
 
     def test_Network_get_comp_without_connections_added(self):
         """Test if components are found prior to initialization."""
@@ -1332,3 +1420,293 @@ class TestBackwardsCompatibility:
             nw.problem
         with raises(AttributeError):
             nw.residual
+
+
+class TestSaveClearRestoreSpecifications:
+
+    def setup_method(self):
+        self.nw = Network()
+        self.nw.iterinfo = False
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
+
+        self.pipe = Pipe("pipe")
+        c1 = Connection(Source("source 1"), "out1", self.pipe, "in1", label="c1")
+        c2 = Connection(self.pipe, "out1", Sink("sink 1"), "in1", label="c2")
+
+        self.valve = Valve("valve")
+        c3 = Connection(Source("source 2"), "out1", self.valve, "in1", label="c3")
+        c4 = Connection(self.valve, "out1", Sink("sink 2"), "in1", label="c4")
+
+        self.nw.add_conns(c1, c2, c3, c4)
+
+        c1.set_attr(fluid={"H2O": 1}, m=1, T=25, p=2)
+        c2.set_attr(p=1.9)
+        self.pipe.set_attr(Q=0, D="var", ks=0.00005, L=100)
+
+        c3.set_attr(fluid={"N2": 0.8, "O2": 0.2}, T=25, p=10, m=Ref(c1, 2, -0.5))
+        self.valve.set_attr(dp_char={
+            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1e5] * 4),
+            "is_set": True
+        })
+
+        self.udv = UserDefinedVariable("myvar", val0=1.0)
+
+        def ude_func(ude):
+            return (
+                ude.params["udv"].variable.val_SI
+                - 2 * ude.conns[0].m.val_SI
+            )
+
+        def ude_dependents(ude):
+            return [ude.conns[0].m, ude.params["udv"].variable]
+
+        self.ude = UserDefinedEquation(
+            "myude", ude_func, ude_dependents,
+            conns=[c1], params={"udv": self.udv}
+        )
+        self.nw.add_ude(self.ude)
+        self.nw.add_udv(self.udv)
+
+    def _solve_and_collect_results(self):
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        return {
+            c.label: (c.m.val_SI, c.p.val_SI, c.h.val_SI)
+            for c in self.nw.conns["object"]
+        }
+
+    def test_save_clear_restore_round_trip(self):
+        results = self._solve_and_collect_results()
+        D_design = self.pipe.D.val
+        specs = self.nw.save_specifications()
+
+        assert specs["Connection"]["c3"]["m_ref"]["conn"] == "c1"
+        assert specs["Component"]["pipe"]["D"]["is_var"]
+        assert specs["Connection"]["c1"]["T"]["val"] == 25
+        assert specs["Connection"]["c1"]["T"]["unit"] == "degree_Celsius"
+        assert specs["UserDefinedEquation"]["myude"]["is_set"]
+        assert specs["UserDefinedVariable"]["myvar"]["is_var"]
+
+        self.nw.clear_specifications()
+        for c in self.nw.conns["object"]:
+            for container in c.property_data.values():
+                assert not container.is_set
+        for cp in self.nw.comps["object"]:
+            for container in cp.parameters.values():
+                assert not container.is_set
+        assert not self.pipe.D.is_var
+        assert not self.valve.dp_char.is_set
+        assert not self.ude.is_set
+        assert not self.udv.variable.is_var
+
+        self.nw.restore_specifications(specs)
+        restored_results = self._solve_and_collect_results()
+        assert approx(D_design) == self.pipe.D.val
+        assert approx(self.udv.variable.val_SI) == 2
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_save_restore_from_file(self, tmp_path):
+        results = self._solve_and_collect_results()
+        path = os.path.join(tmp_path, "specs.json")
+        self.nw.save_specifications(path)
+
+        self.nw.clear_specifications()
+        self.nw.restore_specifications(path)
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_restore_after_specification_change(self):
+        results = self._solve_and_collect_results()
+        specs = self.nw.save_specifications()
+
+        c1 = self.nw.get_conn("c1")
+        c1.set_attr(T=None, h=c1.h.val, m=0.7)
+        self.pipe.set_attr(Q=-1e4)
+        self._solve_and_collect_results()
+        assert not c1.T.is_set
+        assert c1.h.is_set
+
+        self.nw.restore_specifications(specs)
+        assert c1.T.is_set
+        assert not c1.h.is_set
+        assert self.pipe.Q.val == 0
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+    def test_restore_after_fluid_change(self):
+        results = self._solve_and_collect_results()
+        specs = self.nw.save_specifications()
+
+        c3 = self.nw.get_conn("c3")
+        c3.set_attr(fluid={"N2": 0.6, "O2": 0.4})
+        self._solve_and_collect_results()
+
+        self.nw.restore_specifications(specs)
+        assert approx(c3.fluid.val["N2"]) == 0.8
+        assert approx(c3.fluid.val["O2"]) == 0.2
+        restored_results = self._solve_and_collect_results()
+        for label, values in results.items():
+            assert approx(values) == restored_results[label]
+
+
+class TestSaveRestoreFluidVariability:
+
+    def setup_method(self):
+        self.nw = Network()
+        self.nw.iterinfo = False
+        self.nw.units.set_defaults(**{
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC"
+        })
+
+        merge = Merge("merge", num_in=2)
+        self.c1 = Connection(Source("source 1"), "out1", merge, "in1", label="c1")
+        self.c2 = Connection(Source("source 2"), "out1", merge, "in2", label="c2")
+        self.c3 = Connection(merge, "out1", Sink("sink"), "in1", label="c3")
+        self.nw.add_conns(self.c1, self.c2, self.c3)
+
+    def _set_state_a(self):
+        # composition on c3 fixed, mass flow of c2 is a variable
+        self.c1.set_attr(fluid={"N2": 1}, m=1, p=1, T=25)
+        self.c2.set_attr(fluid={"O2": 1}, T=25)
+        self.c3.set_attr(fluid={"N2": 0.5, "O2": 0.5})
+
+    def _set_state_b(self):
+        # mass flows fixed, composition on c3 is a variable
+        self.c1.set_attr(fluid={"N2": 1}, m=1, p=1, T=25)
+        self.c2.set_attr(fluid={"O2": 1}, m=1, T=25)
+
+    def test_fluid_fixed_and_variable_round_trip(self):
+        self._set_state_a()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c2.m.val_SI) == 1
+        specs_a = self.nw.save_specifications()
+
+        self.nw.clear_specifications()
+        self._set_state_b()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c3.fluid.val["N2"]) == 0.5
+        specs_b = self.nw.save_specifications()
+
+        self.nw.restore_specifications(specs_a)
+        assert self.c3.fluid.is_set == {"N2", "O2"}
+        assert not self.c2.m.is_set
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c2.m.val_SI) == 1
+
+        self.nw.restore_specifications(specs_b)
+        assert self.c3.fluid.is_set == set()
+        assert self.c2.m.is_set
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert approx(self.c3.fluid.val["N2"]) == 0.5
+        assert approx(self.c3.fluid.val["O2"]) == 0.5
+
+    def test_restore_into_structurally_identical_clone(self):
+        self._set_state_a()
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        clone = Network.from_dict(self.nw.export())
+        clone.iterinfo = False
+
+        self.c1.set_attr(m=2)
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        specs = self.nw.save_specifications()
+
+        clone.restore_specifications(specs)
+        clone.solve("design")
+        clone.assert_convergence()
+        assert approx(clone.get_conn("c1").m.val_SI) == 2
+        assert approx(clone.get_conn("c2").m.val_SI) == self.c2.m.val_SI
+
+
+class TestSharedObjectsBetweenNetworks:
+
+    class PipeSubsystem(Subsystem):
+
+        def __init__(self, label):
+            self.num_in = 1
+            self.num_out = 1
+            super().__init__(label)
+
+        def create_network(self):
+            pipe = Pipe("pipe")
+            c1 = Connection(self.inlet, "out1", pipe, "in1", label="s1")
+            c2 = Connection(pipe, "out1", self.outlet, "in1", label="s2")
+            self.add_conns(c1, c2)
+
+    def test_subsystem_in_second_network_raises(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        nw1.add_subsystems(sub)
+
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_subsystems(sub)
+
+    def test_component_in_second_network_raises(self):
+        pipe = Pipe("pipe")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", pipe, "in1", label="c11")
+        c12 = Connection(pipe, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", pipe, "in1", label="c21")
+        c22 = Connection(pipe, "out1", Sink("sink 2"), "in1", label="c22")
+        with raises(TESPyNetworkError):
+            nw2.add_conns(c21, c22)
+
+    def test_moving_objects_after_deletion_works(self):
+        sub = self.PipeSubsystem("sub")
+
+        nw1 = Network()
+        c11 = Connection(Source("source 1"), "out1", sub, "in1", label="c11")
+        c12 = Connection(sub, "out1", Sink("sink 1"), "in1", label="c12")
+        nw1.add_conns(c11, c12)
+        nw1.add_subsystems(sub)
+
+        nw1.del_conns(c11, c12)
+        nw1.del_subsystems(sub)
+
+        nw2 = Network()
+        c21 = Connection(Source("source 2"), "out1", sub, "in1", label="c21")
+        c22 = Connection(sub, "out1", Sink("sink 2"), "in1", label="c22")
+        nw2.add_conns(c21, c22)
+        nw2.add_subsystems(sub)
+        nw2.check_topology()
+
+    def test_ude_in_second_network_raises(self):
+        ude = UserDefinedEquation("myude", lambda ude: 0, lambda ude: [])
+        nw1 = Network()
+        nw1.add_ude(ude)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_ude(ude)
+
+        nw1.del_ude(ude)
+        nw2.add_ude(ude)
+
+    def test_udv_in_second_network_raises(self):
+        udv = UserDefinedVariable("myvar", val0=1)
+        nw1 = Network()
+        nw1.add_udv(udv)
+        nw2 = Network()
+        with raises(TESPyNetworkError):
+            nw2.add_udv(udv)
+
+        nw1.del_udv(udv)
+        nw2.add_udv(udv)

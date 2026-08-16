@@ -81,6 +81,7 @@ class Problem:
 
         self.num_original_variables = 0
         self.num_original_equations = 0
+        self.num_specified_variables = 0
 
     def decompose(self):
         """Get the Dulmage-Mendelsohn decomposition of the solver incidence.
@@ -186,10 +187,27 @@ class Problem:
 
         self._presolve()
 
+        # counted only now: during the structure matrix assembly the
+        # specification and variable flags of the containers are transient,
+        # e.g. propagated fluid compositions read as set while their
+        # variable fractions are only marked during the presolving
+        self.num_specified_variables = 0
+        for data in self._variable_lookup.values():
+            container = data["object"].get_attr(data["property"])
+            if data["property"] == "fluid":
+                if len(container.is_set) == len(container.val):
+                    self.num_specified_variables += 1
+            elif container.is_set and not container.is_var:
+                # is_set alone does not suffice: component variables and
+                # user defined variables carry the flag together with the
+                # variable flag
+                self.num_specified_variables += 1
+
         msg = (
             "Fluid property presolving consumed "
             f"{len(self._presolved_equations) - num_affine} further "
-            "equations."
+            f"equations. {self.num_specified_variables} of the original "
+            "variables were directly specified."
         )
         logger.debug(msg)
 
@@ -222,6 +240,9 @@ class Problem:
         self._equation_set_lookup = {}
         self._equation_set_origin = {}
         self._presolved_equations = []
+        self._presolve_log = []
+        self._presolve_logged_refs = set()
+        self._presolve_round = 0
         self._reference_container_lookup = {}
 
         num_vars = self._prepare_variables()
@@ -387,6 +408,20 @@ class Problem:
                 self._object_to_variable_lookup[comp].update(
                     {prop: container.sm_col}
                 )
+
+        for udv in self.network.user_defined_var.values():
+            for prop, container in udv.get_variables().items():
+                container.sm_col = num_vars
+                num_vars += 1
+
+                self._variable_lookup[container.sm_col] = {
+                    "object": udv, "property": prop
+                }
+                if udv not in self._object_to_variable_lookup:
+                    self._object_to_variable_lookup[udv] = {}
+                self._object_to_variable_lookup[udv].update(
+                    {prop: container.sm_col}
+                )
         return num_vars
 
     def _reassign_ude_objects(self):
@@ -482,8 +517,21 @@ class Problem:
         rounds = 0
         while to_check:
             rounds += 1
+            self._presolve_round = rounds
             for c in to_check:
+                # cleared here, not in _presolve: custom connection classes are
+                # not required to know about the log
+                c._presolve_determinations = []
                 self._presolved_equations += c._presolve()
+                for determination in c._presolve_determinations:
+                    self._presolve_log.append({
+                        "round": rounds,
+                        "kind": "combination",
+                        "object": c.label,
+                        "property": determination["property"],
+                        "via": determination["via"],
+                        "requires": determination["requires"],
+                    })
             self._presolve_linear_dependents()
 
             newly_known = []
@@ -675,14 +723,136 @@ class Problem:
                     reference_data["property"]
                 )._reference_container
                 reference_container.is_var = False
+                if id(reference_container) not in self._presolve_logged_refs:
+                    self._presolve_logged_refs.add(id(reference_container))
+                    cause_var = next(
+                        var for var, container in zip(
+                            linear_dependents["variables"], all_containers
+                        ) if not container._potential_var
+                    )
+                    self._record_group_determination(
+                        linear_dependents, cause_var
+                    )
+
+    def _record_group_determination(self, linear_dependents, cause_var):
+        """Log that an affine group left the variable space.
+
+        The record names the member whose specification or presolved value
+        determined the group and the variables the group represents. A debug
+        message prints it to the solver log.
+
+        Parameters
+        ----------
+        linear_dependents : dict
+            Affine group entry from :code:`self._variable_dependencies`.
+
+        cause_var : int
+            Structural column of the member variable that determined the group.
+        """
+        cause = self._variable_lookup[cause_var]
+        cause_container = cause["object"].get_attr(cause["property"])
+        represents = [
+            (
+                self._variable_lookup[var]["object"].label,
+                self._variable_lookup[var]["property"],
+            )
+            for var in linear_dependents["variables"]
+        ]
+        kind = "specification" if cause_container.is_set else "derived"
+        self._presolve_log.append({
+            "round": self._presolve_round,
+            "kind": kind,
+            "object": cause["object"].label,
+            "property": cause["property"],
+            "represents": represents,
+        })
+        members = ", ".join(f"{lbl} ({prop})" for lbl, prop in represents)
+        source = kind if kind == "specification" else "presolved value"
+        msg = (
+            f"Presolved {cause['property']} of {members} through the "
+            f"{source} at {cause['object'].label}."
+        )
+        logger.debug(msg)
+
+    def get_presolve_log(self) -> list:
+        """Get the presolve determinations in order of occurrence.
+
+        Every record names
+
+        - :code:`round`
+        - :code:`kind`:
+
+          - :code:`specification`: a user specification determines its affine
+            group,
+          - :code:`derived`: a presolved value does
+          - :code:`combination`: a connection determines a property from
+            specified property combinations),
+
+        - :code:`object`
+        - :code:`property`
+        - :code:`origins`: the original specifications as (label, parameter)
+          pairs that enabled the determination.
+
+        Group records additionally list the member variables :code:`represents`
+
+        Returns
+        -------
+        list
+            List of determination records.
+        """
+        combination = {}
+        group_of = {}
+        for record in self._presolve_log:
+            if record["kind"] == "combination":
+                combination[(record["object"], record["property"])] = record
+            else:
+                for member in record["represents"]:
+                    group_of[member] = record
+
+        def combination_origins(record, seen):
+            result = {
+                (record["object"], spec) for spec in record["via"]
+            }
+            for required in record["requires"]:
+                result |= member_origins(
+                    (record["object"], required), seen
+                )
+            return result
+
+        def member_origins(member, seen):
+            if member in seen:
+                return set()
+            seen = seen | {member}
+            group = group_of.get(member)
+            if group is None:
+                return {member}
+            cause = (group["object"], group["property"])
+            if group["kind"] == "specification":
+                return {cause}
+            if cause in combination:
+                return combination_origins(combination[cause], seen)
+            return {cause}
+
+        resolved = []
+        for record in self._presolve_log:
+            entry = dict(record)
+            if record["kind"] == "combination":
+                origins = combination_origins(record, set())
+            else:
+                origins = member_origins(
+                    (record["object"], record["property"]), set()
+                )
+            entry["origins"] = sorted(origins)
+            resolved.append(entry)
+        return resolved
 
     def _prepare_for_solver(self):
         """Assign the solver variable space and collect the equations.
 
-        Every reference that is still a variable after presolving
-        receives a solver column, the network parts contribute their
-        iterated equations and incidence, and the solver incidence is
-        attached to the structure graph.
+        Every reference that is still a variable after presolving receives a
+        solver column, the network parts contribute their iterated equations
+        and incidence, and the solver incidence is attached to the structure
+        graph.
         """
         for variable in self._variable_dependencies:
             reference = self._variable_lookup[variable["reference"]]
@@ -713,10 +883,9 @@ class Problem:
         objects.
 
         Every object numbers its remaining equations against the global
-        counter, skipping the equation sets consumed by the affine
-        elimination and the presolving
-        (:code:`self._presolved_equations`). The incidence rows are
-        assembled from the declared scalar and vector dependents.
+        counter, skipping the equation sets consumed by the affine elimination
+        and the presolving (:code:`self._presolved_equations`). The incidence
+        rows are assembled from the declared scalar and vector dependents.
 
         Parameters
         ----------
@@ -768,15 +937,14 @@ class Problem:
     def _assign_variable_space(self, reference, represents):
         """Register a variable reference container in the solver space.
 
-        The container receives its jacobian column and the entry records
-        which structural variables the column represents.
+        The container receives its jacobian column and the entry records which
+        structural variables the column represents.
 
         Parameters
         ----------
         reference : dict
-            Entry of :code:`self._variable_lookup` for the group's
-            reference variable, holding the owning object and the
-            property name.
+            Entry of :code:`self._variable_lookup` for the group's reference
+            variable, holding the owning object and the property name.
 
         represents : list
             Structural variable numbers the solver column represents.
@@ -795,9 +963,9 @@ class Problem:
     def unload_variables(self):
         """Detach all containers from their reference containers.
 
-        Detaching writes the final value (through factor and offset)
-        back into every member container, so the results remain after
-        the shared references are released.
+        Detaching writes the final value (through factor and offset) back into
+        every member container, so the results remain after the shared
+        references are released.
         """
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
@@ -808,16 +976,19 @@ class Problem:
     def starting_temperature_field(self):
         """Reconcile a temperature per connection for the starting values.
 
-        The components provide approximate temperature relations between
-        their ports, including the terminal temperature differences of
-        heat exchangers - so known temperature levels reach coupled
-        circuits the enthalpy relations cannot connect. The known
-        temperatures - specifications, values derived from saturation
-        specifications and converted fixed states - anchor a least squares
-        problem per connected component of that graph; the temperature
-        hints of the component state expectations act as soft priors.
-        Returns a dict mapping connections to reconciled temperatures,
-        including the known ones.
+        The components provide approximate temperature relations between their
+        ports, including the terminal temperature differences of heat
+        exchangers - so known temperature levels reach coupled circuits the
+        enthalpy relations cannot connect. The known temperatures -
+        specifications, values derived from saturation specifications and
+        converted fixed states - anchor a least squares problem per connected
+        component of that graph; the temperature hints of the component state
+        expectations act as soft priors.
+
+        Returns
+        -------
+        dict
+            Map of connections to reconciled temperatures.
         """
         edges = []
         neighbors = {}
@@ -1183,7 +1354,8 @@ class Problem:
         n = self.num_comp_eq + self.num_conn_eq + self.num_ude_eq
         _reduction = (
             f"\nThe original problem holds {self.num_original_variables} "
-            f"variables and {self.num_original_equations} equations. "
+            f"variables, {self.num_specified_variables} directly specified, "
+            f"and {self.num_original_equations} equations. "
             f"Presolving consumed {len(self._presolved_equations)} equations "
             f"and reduced the problem to {self.variable_counter} variables "
             f"and {n} equations."

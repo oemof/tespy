@@ -14,10 +14,12 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 import pint
+from tabulate import tabulate
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
+from tespy.tools.global_vars import get_display_mode
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
@@ -49,6 +51,26 @@ def _is_numeric(potentially_a_number):
         return True
     except (TypeError, ValueError):
         return False
+
+
+def _display_repr(obj):
+    mode = get_display_mode()
+    if mode != "none":
+        if mode == "extensive" and hasattr(obj, "_repr_extensive"):
+            return obj._repr_extensive()
+        if hasattr(obj, "_repr_compact"):
+            return obj._repr_compact()
+    return object.__repr__(obj)
+
+
+def _format_value(value):
+    if isinstance(value, str):
+        return value
+    if np.isnan(value):
+        return "nan"
+    if value == 0 or 1e-4 <= abs(value) < 1e5:
+        return f"{value:.4f}"
+    return f"{value:.4e}"
 
 
 class _NumEqMixin:
@@ -149,6 +171,11 @@ class DataContainer:
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
 
     def set_attr(self, **kwargs):
         """
@@ -303,6 +330,15 @@ class ComponentCharacteristics(_NumEqMixin, DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
+    def _repr_compact(self):
+        char = None
+        if self.char_func is not None:
+            char = type(self.char_func).__name__
+        return (
+            f"{type(self).__name__}(param={self.param!r}, "
+            f"char_func={char}, is_set={self.is_set})"
+        )
+
     def accept(self, value):
         if value is None:
             self.is_set = False
@@ -371,6 +407,15 @@ class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
+    def _repr_compact(self):
+        char = None
+        if self.char_func is not None:
+            char = type(self.char_func).__name__
+        return (
+            f"{type(self).__name__}(param={self.param!r}, "
+            f"char_func={char}, is_set={self.is_set})"
+        )
+
     def accept(self, value):
         if value is None:
             self.is_set = False
@@ -413,6 +458,12 @@ class ComponentMandatoryConstraints(_NumEqMixin, DataContainer):
             "description": None,
             "result_only": False
         }
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(description={self.description!r}, "
+            f"num_eq_sets={self.num_eq_sets})"
+        )
 
 
 class GroupedComponentProperties(_NumEqMixin, DataContainer):
@@ -473,6 +524,12 @@ class GroupedComponentProperties(_NumEqMixin, DataContainer):
                 f"Expected a bool, dict, or None for a grouped parameter, "
                 f"got {type(value).__name__}."
             )
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(elements={self.elements}, "
+            f"is_set={self.is_set})"
+        )
 
 
 class GroupedComponentCharacteristics(GroupedComponentProperties):
@@ -537,6 +594,7 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "_val_SI": np.nan,
             "_val_is_quantity": False,
             "_val0_is_quantity": False,
+            "_unit_from_network_defaults": False,
             "_is_var": False,
             "is_result": False,
             "min_val": -1e12,
@@ -568,6 +626,34 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
+
+    def _display_unit(self):
+        if self._val_is_quantity:
+            return f"{self._val.units:~}"
+        elif self._unit is not None:
+            return f"{_UNITS.ureg.Unit(self._unit):~}"
+        return ""
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val:.6g}, "
+            f"unit={self._display_unit()!r}, "
+            f"val_SI={self.val_SI:.6g}, is_set={self.is_set})"
+        )
+
+    def _repr_extensive(self):
+        spec = "var" if self.is_var else ("set" if self.is_set else "")
+        rows = [[
+            _format_value(self.val),
+            self._display_unit(),
+            f"{self.val_SI:.4e}",
+            spec
+        ]]
+        return tabulate(
+            rows, headers=["value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("right", "left", "right", "left")
+        )
 
     def accept(self, value):
         if value is None:
@@ -632,12 +718,23 @@ class FluidProperties(_NumEqMixin, DataContainer):
 
     def _assign_default_unit_to_val(self, units):
         ureg = units.ureg
-        default_unit = self._get_default_unit(units)
+        default_unit = units.parsed_unit(self._get_default_unit(units))
         self.val = ureg.Quantity(self._val, default_unit)
+        # flag to mark unit as inherited from network
+        self._unit_from_network_defaults = True
+
+    def _convert_to_default_unit(self, units):
+        default = units.parsed_unit(self._get_default_unit(units))
+        if self._val.units != default:
+            self.val = self._val.to(default)
+            # set_val treats quantity assignment as user-pinned, but this
+            # assignment is internal: restore the flag so the value keeps
+            # following future default changes
+            self._unit_from_network_defaults = True
 
     def _assign_default_unit_to_val0(self, units):
         ureg = units.ureg
-        default_unit = self._get_default_unit(units)
+        default_unit = units.parsed_unit(self._get_default_unit(units))
         self.val0 = ureg.Quantity(self._val0, default_unit)
 
     def _get_default_unit(self, units):
@@ -651,6 +748,8 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_SI_from_val(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
+        elif self._unit_from_network_defaults:
+            self._convert_to_default_unit(units)
         self.val_SI = self._val.m_as(SI_UNITS[self.quantity])
 
     def set_SI_from_val0(self, units):
@@ -661,12 +760,18 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def _get_val_from_SI(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
+        elif self._unit_from_network_defaults:
+            self._convert_to_default_unit(units)
         return units.quantity_from_SI(
             self.val_SI, SI_UNITS[self.quantity], self._val.units
         )
 
     def set_val_from_SI(self, units):
+        from_defaults = (
+            self._unit_from_network_defaults or not self._val_is_quantity
+        )
         self.val = self._get_val_from_SI(units)
+        self._unit_from_network_defaults = from_defaults
 
     def set_val0_from_SI(self, units):
         if not self._val0_is_quantity:
@@ -688,6 +793,7 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
         self._val_is_quantity = isinstance(self._val, pint.Quantity)
+        self._unit_from_network_defaults = False
 
     def get_val0(self):
         return self._val0
@@ -779,6 +885,7 @@ class ComponentArrayProperties(DataContainer):
         return {
             "val": None,
             "val_SI": None,
+            "unit": None,
             "quantity": None,
             "structure_matrix": None,
             "func": None,
@@ -795,9 +902,72 @@ class ComponentArrayProperties(DataContainer):
     def set_val_from_SI(self, units):
         if self.val_SI is None:
             return
+        self.unit = units.default[self.quantity]
         self.val = units.value_from_SI(
-            self.val_SI, SI_UNITS[self.quantity], units.default[self.quantity]
+            self.val_SI, SI_UNITS[self.quantity], self.unit
         )
+
+    def _display_unit(self):
+        if self.unit is not None:
+            return f"{_UNITS.ureg.Unit(self.unit):~}"
+        return ""
+
+    def _repr_compact(self):
+        val = self.val if self.val is not None else self.val_SI
+        if val is not None:
+            val = np.array2string(np.asarray(val), precision=4, threshold=6)
+        return (
+            f"{type(self).__name__}(val={val}, "
+            f"unit={self._display_unit()!r}, quantity={self.quantity!r})"
+        )
+
+    def _repr_extensive(self):
+        val = self.val if self.val is not None else self.val_SI
+        if val is None:
+            return f"{type(self).__name__}: no values"
+        val = np.atleast_1d(val)
+        val_SI = None
+        if self.val_SI is not None:
+            val_SI = np.atleast_1d(self.val_SI)
+        if val.ndim > 1:
+            return self._repr_compact()
+        opts = np.get_printoptions()
+        summarize = len(val) > opts["threshold"]
+        if summarize:
+            edge = opts["edgeitems"]
+            indices = [*range(edge), None, *range(len(val) - edge, len(val))]
+        else:
+            indices = range(len(val))
+        rows = []
+        for i in indices:
+            if i is None:
+                rows.append(["...", "...", "..."])
+            else:
+                rows.append([
+                    str(i),
+                    _format_value(val[i]),
+                    _format_value(val_SI[i]) if val_SI is not None else ""
+                ])
+        lines = []
+        if self.quantity is not None:
+            title = self.quantity
+            unit = self._display_unit()
+            if unit:
+                title += f" in {unit}"
+            si_unit = f"{_UNITS.ureg.Unit(SI_UNITS[self.quantity]):~}"
+            if si_unit:
+                title += f" (SI value in {si_unit})"
+            lines += [title, ""]
+        lines.append(tabulate(
+            rows, headers=["index", "value", "SI value"], tablefmt="simple",
+            disable_numparse=True, colalign=("left", "right", "right")
+        ))
+        if summarize:
+            lines.append(
+                f"({len(val)} values, adjust numpy.set_printoptions or "
+                "access val/val_SI directly to see all)"
+            )
+        return "\n".join(lines)
 
 
 class ComponentProperties(FluidProperties):
@@ -811,6 +981,14 @@ class ComponentProperties(FluidProperties):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit", "is_var"]
         return {k: getattr(self, k) for k in keys}
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val:.6g}, "
+            f"unit={self._display_unit()!r}, "
+            f"val_SI={self.val_SI:.6g}, is_set={self.is_set}, "
+            f"is_var={self.is_var})"
+        )
 
     def accept(self, value):
         if value == "var":
@@ -945,6 +1123,25 @@ class FluidComposition(DataContainer):
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
         export["back_end"] = {k: b for k, b in self.back_end.items()}
         return export
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val}, "
+            f"is_set={sorted(self.is_set)})"
+        )
+
+    def _repr_extensive(self):
+        if not self.val:
+            return "no fluid composition"
+        rows = [
+            [f, _format_value(x), "set" if f in self.is_set else ""]
+            for f, x in self.val.items()
+        ]
+        return tabulate(
+            rows, headers=["fluid", "mass fraction", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left")
+        )
 
     def get_is_var(self):
         reference = self._reference_container
@@ -1120,10 +1317,33 @@ class ReferencedFluidProperties(DataContainer):
             export = {k: self.get_attr(k) for k in keys}
             export["conn"] = self.ref.obj.label
             export["factor"] = self.ref.factor
-            export["delta"] = self.ref.delta
+            if isinstance(self.ref.delta, pint.Quantity):
+                export["delta"] = self.ref.delta.magnitude
+                export["delta_unit"] = str(self.ref.delta.units)
+            else:
+                export["delta"] = self.ref.delta
             return export
         else:
             return {}
+
+    def set_SI_from_val(self, units):
+        ref = self.ref
+        if isinstance(ref.delta, pint.Quantity):
+            ref.delta_SI = ref.delta.m_as(SI_UNITS[self.quantity])
+            return
+        unit = units.default[self.quantity]
+        if ref.delta_SI is not None and ref._delta_unit != unit:
+            ref.delta = units.ureg.Quantity(
+                ref.delta, ref._delta_unit
+            ).m_as(unit)
+        else:
+            ref.delta_SI = units.ureg.Quantity(
+                ref.delta, unit
+            ).m_as(SI_UNITS[self.quantity])
+        ref._delta_unit = unit
+
+    def _repr_compact(self):
+        return f"{type(self).__name__}(ref={self.ref!r}, is_set={self.is_set})"
 
 
 class SimpleDataContainer(_NumEqMixin, DataContainer):
@@ -1169,6 +1389,9 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+    def _repr_compact(self):
+        return f"{type(self).__name__}(val={self.val!r}, is_set={self.is_set})"
 
     def accept(self, value):
         if value is None:

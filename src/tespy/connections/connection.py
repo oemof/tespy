@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import pint
+from tabulate import tabulate
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -20,6 +22,8 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import _display_repr
+from tespy.tools.data_containers import _format_value
 from tespy.tools.data_containers import _is_numeric
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
@@ -54,6 +58,7 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import seeded_random
+from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
 # offset of phase based starting values from the phase boundaries: it must
@@ -68,6 +73,12 @@ def connection_registry(type):
 
 
 connection_registry.items = {}
+
+
+def _deserialize_ref_delta(data):
+    if data.get("delta_unit") is not None:
+        return _UNITS.ureg.Quantity(data["delta"], data["delta_unit"])
+    return data["delta"]
 
 
 class ConnectionBase:
@@ -175,6 +186,63 @@ class ConnectionBase:
             logger.error(msg)
             raise KeyError(msg)
 
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.label!r}, "
+            f"{self.source.label}:{self.source_id} -> "
+            f"{self.target.label}:{self.target_id})"
+        )
+
+    def _repr_extensive(self):
+        title = self._repr_compact()
+        rows = []
+        for key, data in self.property_data.items():
+            if isinstance(data, dc_prop):
+                if not data.is_set and np.isnan(data.val):
+                    # only prints specified values before first solve
+                    continue
+                rows.append([
+                    key,
+                    _format_value(data.val),
+                    data._display_unit(),
+                    f"{data.val_SI:.4e}",
+                    "set" if data.is_set else ""
+                ])
+            elif isinstance(data, dc_ref):
+                if data.is_set:
+                    ref = data.ref
+                    variable = key.removesuffix("_ref")
+                    rows.append([
+                        key,
+                        f"{ref.factor} * {variable}({ref.obj.label!r}) "
+                        f"+ {ref.delta}",
+                        "", "", "set"
+                    ])
+            elif isinstance(data, dc_flu):
+                for fluid, x in data.val.items():
+                    rows.append([
+                        f"{key}[{fluid}]",
+                        _format_value(x),
+                        "", "",
+                        "set" if fluid in data.is_set else ""
+                    ])
+            elif isinstance(data, dc_simple):
+                if data.is_set:
+                    rows.append([key, str(data.val), "", "", "set"])
+        if not rows:
+            return f"{title}\nno specifications or results"
+        table = tabulate(
+            rows, headers=["property", "value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left", "right", "left")
+        )
+        return "\n".join([title, "", table])
+
     def _serialize(self):
         export = {}
         export.update({"source": self.source.label})
@@ -276,6 +344,7 @@ class ConnectionBase:
                 self.get_attr(var).is_set = False
 
     def _presolve(self):
+        self._presolve_determinations = []
         return []
 
     def _debug_state(self):
@@ -468,6 +537,53 @@ class ConnectionBase:
                 container.set_attr(**data[arg])
             else:
                 self.set_attr(**{arg: data[arg]})
+
+    def _save_specifications(self):
+        specs = {}
+        for key, container in self.property_data.items():
+            if not container.is_set:
+                continue
+            if isinstance(container, dc_ref):
+                specs[key] = container._serialize()
+            elif isinstance(container, dc_flu):
+                specs[key] = {
+                    "val": {f: container.val[f] for f in container.is_set},
+                    "is_set": list(container.is_set)
+                }
+            elif isinstance(container, dc_prop):
+                specs[key] = {
+                    "val": container.val,
+                    "unit": container.unit,
+                    "is_set": True
+                }
+            else:
+                specs[key] = {"val": container.val, "is_set": True}
+        return specs
+
+    def _clear_specifications(self):
+        for container in self.property_data.values():
+            if isinstance(container, dc_flu):
+                container.is_set = set()
+            else:
+                container.is_set = False
+
+    def _restore_specifications(self, data, all_connections):
+        for key, param_data in data.items():
+            container = self.get_attr(key)
+            if isinstance(container, dc_ref):
+                ref = Ref(
+                    all_connections[param_data["conn"]],
+                    param_data["factor"],
+                    _deserialize_ref_delta(param_data)
+                )
+                container.set_attr(
+                    ref=ref, is_set=True, unit=param_data["unit"]
+                )
+            elif isinstance(container, dc_flu):
+                container.val.update(param_data["val"])
+                container.is_set = set(param_data["is_set"])
+            else:
+                container.set_attr(**param_data)
 
 
 @connection_registry
@@ -893,7 +1009,7 @@ class Connection(ConnectionBase):
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
-                    data[arg]["delta"]
+                    _deserialize_ref_delta(data[arg])
                 )
                 # do not use set_attr here: it would force is_set to True on
                 # the reference and False on the base property, discarding the
@@ -1480,6 +1596,7 @@ class Connection(ConnectionBase):
             self.h.set_reference_val_SI(h)
 
     def _presolve(self):
+        self._presolve_determinations = []
         if len(self.fluid.is_var) > 0:
             return []
 
@@ -1517,6 +1634,9 @@ class Connection(ConnectionBase):
                 self.p._potential_var = False
                 if "T_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["T_dew"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T_dew'], "requires": []}
+                )
                 msg = f"Determined p by specified T_dew at {self.label}."
                 logger.debug(msg)
 
@@ -1525,6 +1645,9 @@ class Connection(ConnectionBase):
                 self.p._potential_var = False
                 if "T_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["T_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T_bubble'], "requires": []}
+                )
                 msg = f"Determined p by specified T_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1534,6 +1657,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and T at {self.label}."
                 logger.debug(msg)
 
@@ -1548,6 +1674,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['td_bubble'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and td_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1562,6 +1691,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['td_dew'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and td_dew at {self.label}."
                 logger.debug(msg)
 
@@ -1570,6 +1702,9 @@ class Connection(ConnectionBase):
                 self.h._potential_var = False
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['x'], "requires": ['p']}
+                )
                 msg = f"Determined h by known p and x at {self.label}."
                 logger.debug(msg)
 
@@ -1583,6 +1718,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'x'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'x'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and x at {self.label}."
                 logger.debug(msg)
 
@@ -1598,6 +1739,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'td_bubble'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'td_bubble'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and td_bubble at {self.label}."
                 logger.debug(msg)
 
@@ -1613,6 +1760,12 @@ class Connection(ConnectionBase):
                     presolved_equations += ["T"]
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
+                self._presolve_determinations.append(
+                    {"property": "p", "via": ['T', 'td_dew'], "requires": []}
+                )
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ['T', 'td_dew'], "requires": []}
+                )
                 msg = f"Determined h and p by known T and td_dew at {self.label}."
                 logger.debug(msg)
 
@@ -2494,8 +2647,9 @@ class Ref:
     factor : float
         Factor to multiply specified property with.
 
-    delta : float
-        Delta to add after multiplication.
+    delta : float, pint.Quantity
+        Delta to add after multiplication. Plain numeric value uses the
+        network's default unit.
     """
 
     def __init__(self, ref_obj, factor, delta):
@@ -2510,8 +2664,10 @@ class Ref:
             logger.error(msg)
             raise TypeError(msg)
 
-        if not (isinstance(delta, int) or isinstance(delta, float)):
-            msg = 'Third parameter must be of type int or float.'
+        if not isinstance(delta, (int, float, pint.Quantity)):
+            msg = (
+                "Third parameter must be of type int, float or pint.Quantity."
+            )
             logger.error(msg)
             raise TypeError(msg)
 
@@ -2519,12 +2675,24 @@ class Ref:
         self.factor = factor
         self.delta = delta
         self.delta_SI = None
+        self._delta_unit = None
 
         msg = (
             f"Created reference object with factor {self.factor} and delta "
             f"{self.delta} referring to connection {ref_obj.label}"
         )
         logger.debug(msg)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.obj.label!r}, "
+            f"factor={self.factor}, delta={self.delta})"
+        )
 
     def get_attr(self, key):
         r"""

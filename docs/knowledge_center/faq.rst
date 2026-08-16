@@ -33,6 +33,83 @@ Modeling best practices
         We have created an :ref:`overview <tutorial_heat_exchanger_label>` on
         the different 0D and 1D types available and when to use which model.
 
+    .. dropdown:: Can I automatically switch between different sets of specifications?
+
+        You can save, clear and restore saved specifications of your model.
+        This allows to switch between different specifications without needing
+        to keep track of the changes done between multiple model executions.
+        The following methods provide the respective functionalities:
+
+        - :py:meth:`save_specifications <tespy.networks.network.Network.save_specifications>`
+        - :py:meth:`clear_specifications <tespy.networks.network.Network.clear_specifications>`
+        - :py:meth:`restore_specifications <tespy.networks.network.Network.restore_specifications>`
+
+
+        .. code-block:: python
+
+            >>> from tespy.components import Source, Sink, SimpleHeatExchanger
+            >>> from tespy.connections import Connection
+            >>> from tespy.networks import Network
+
+            >>> nw = Network(iterinfo=False)
+            >>> nw.units.set_defaults(
+            ...     temperature="°C",
+            ...     pressure="bar",
+            ...     pressure_difference="bar",
+            ...     heat="kW"
+            ... )
+
+            >>> so = Source("inflow")
+            >>> heater = SimpleHeatExchanger("heater")
+            >>> si = Sink("outflow")
+
+            >>> c1 = Connection(so, "out1", heater, "in1", label="c1")
+            >>> c2 = Connection(heater, "out1", si, "in1", label="c2")
+            >>> nw.add_conns(c1, c2)
+
+            >>> c1.set_attr(fluid={"water": 1}, m=1, p=1, T=20)
+            >>> heater.set_attr(Q=100, dp=0)
+            >>> nw.solve("design")
+            >>> round(c2.T.val, 1)
+            43.9
+
+        Save these specifications and make modifications to your model, e.g.
+        set outlet temperature instead of heat input.
+
+        .. code-block:: python
+
+            >>> specs = nw.save_specifications()
+            >>> c2.set_attr(T=60)
+            >>> heater.set_attr(Q=None)
+            >>> nw.solve("design")
+            >>> round(heater.Q.val, 1)
+            167.2
+
+        We can restore the original specifications:
+
+        .. code-block:: python
+
+            >>> nw.restore_specifications(specs)
+            >>> c2.T.is_set
+            False
+            >>> heater.Q.is_set
+            True
+            >>> nw.solve("design")
+            >>> round(c2.T.val, 1)
+            43.9
+            >>> round(heater.Q.val, 1)
+            100.0
+
+        Clearing specifications unsets everything:
+
+        .. code-block:: python
+
+            >>> nw.clear_specifications()
+            >>> c1.T.is_set or heater.Q.is_set
+            False
+            >>> c1.fluid.is_set
+            set()
+
 .. _faq_errors_label:
 
 Instability, Errors and Debugging

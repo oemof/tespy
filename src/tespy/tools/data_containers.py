@@ -537,6 +537,7 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "_val_SI": np.nan,
             "_val_is_quantity": False,
             "_val0_is_quantity": False,
+            "_unit_from_network_defaults": False,
             "_is_var": False,
             "is_result": False,
             "min_val": -1e12,
@@ -632,12 +633,23 @@ class FluidProperties(_NumEqMixin, DataContainer):
 
     def _assign_default_unit_to_val(self, units):
         ureg = units.ureg
-        default_unit = self._get_default_unit(units)
+        default_unit = units.parsed_unit(self._get_default_unit(units))
         self.val = ureg.Quantity(self._val, default_unit)
+        # flag to mark unit as inherited from network
+        self._unit_from_network_defaults = True
+
+    def _convert_to_default_unit(self, units):
+        default = units.parsed_unit(self._get_default_unit(units))
+        if self._val.units != default:
+            self.val = self._val.to(default)
+            # set_val treats quantity assignment as user-pinned, but this
+            # assignment is internal: restore the flag so the value keeps
+            # following future default changes
+            self._unit_from_network_defaults = True
 
     def _assign_default_unit_to_val0(self, units):
         ureg = units.ureg
-        default_unit = self._get_default_unit(units)
+        default_unit = units.parsed_unit(self._get_default_unit(units))
         self.val0 = ureg.Quantity(self._val0, default_unit)
 
     def _get_default_unit(self, units):
@@ -651,6 +663,8 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_SI_from_val(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
+        elif self._unit_from_network_defaults:
+            self._convert_to_default_unit(units)
         self.val_SI = self._val.m_as(SI_UNITS[self.quantity])
 
     def set_SI_from_val0(self, units):
@@ -661,12 +675,18 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def _get_val_from_SI(self, units):
         if not self._val_is_quantity:
             self._assign_default_unit_to_val(units)
+        elif self._unit_from_network_defaults:
+            self._convert_to_default_unit(units)
         return units.quantity_from_SI(
             self.val_SI, SI_UNITS[self.quantity], self._val.units
         )
 
     def set_val_from_SI(self, units):
+        from_defaults = (
+            self._unit_from_network_defaults or not self._val_is_quantity
+        )
         self.val = self._get_val_from_SI(units)
+        self._unit_from_network_defaults = from_defaults
 
     def set_val0_from_SI(self, units):
         if not self._val0_is_quantity:
@@ -688,6 +708,7 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def set_val(self, value):
         self._val = self._handle_value_with_quantity(value)
         self._val_is_quantity = isinstance(self._val, pint.Quantity)
+        self._unit_from_network_defaults = False
 
     def get_val0(self):
         return self._val0
@@ -1120,10 +1141,30 @@ class ReferencedFluidProperties(DataContainer):
             export = {k: self.get_attr(k) for k in keys}
             export["conn"] = self.ref.obj.label
             export["factor"] = self.ref.factor
-            export["delta"] = self.ref.delta
+            if isinstance(self.ref.delta, pint.Quantity):
+                export["delta"] = self.ref.delta.magnitude
+                export["delta_unit"] = str(self.ref.delta.units)
+            else:
+                export["delta"] = self.ref.delta
             return export
         else:
             return {}
+
+    def set_SI_from_val(self, units):
+        ref = self.ref
+        if isinstance(ref.delta, pint.Quantity):
+            ref.delta_SI = ref.delta.m_as(SI_UNITS[self.quantity])
+            return
+        unit = units.default[self.quantity]
+        if ref.delta_SI is not None and ref._delta_unit != unit:
+            ref.delta = units.ureg.Quantity(
+                ref.delta, ref._delta_unit
+            ).m_as(unit)
+        else:
+            ref.delta_SI = units.ureg.Quantity(
+                ref.delta, unit
+            ).m_as(SI_UNITS[self.quantity])
+        ref._delta_unit = unit
 
 
 class SimpleDataContainer(_NumEqMixin, DataContainer):

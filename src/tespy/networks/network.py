@@ -1235,19 +1235,14 @@ class Network:
 
                 param = c.get_attr(key)
                 if param.is_set:
-                    if "ref" in key:
-                        unit = self.units.default[param.quantity]
-                        param.ref.delta_SI = self.units.ureg.Quantity(
-                            param.ref.delta,
-                            unit
-                        ).m_as(SI_UNITS[param.quantity])
-                    else:
-                        param.set_SI_from_val(self.units)
+                    param.set_SI_from_val(self.units)
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
                 if isinstance(value, dc_prop) and value.is_set:
                     value.set_SI_from_val(self.units)
+
+        self.units._conversions_applied = True
 
     def _prepare_design(self):
         r"""

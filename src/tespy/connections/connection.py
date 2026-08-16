@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import pint
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -54,6 +55,7 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import seeded_random
+from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
 # offset of phase based starting values from the phase boundaries: it must
@@ -68,6 +70,12 @@ def connection_registry(type):
 
 
 connection_registry.items = {}
+
+
+def _deserialize_ref_delta(data):
+    if data.get("delta_unit") is not None:
+        return _UNITS.ureg.Quantity(data["delta"], data["delta_unit"])
+    return data["delta"]
 
 
 class ConnectionBase:
@@ -506,7 +514,7 @@ class ConnectionBase:
                 ref = Ref(
                     all_connections[param_data["conn"]],
                     param_data["factor"],
-                    param_data["delta"]
+                    _deserialize_ref_delta(param_data)
                 )
                 container.set_attr(
                     ref=ref, is_set=True, unit=param_data["unit"]
@@ -941,7 +949,7 @@ class Connection(ConnectionBase):
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
-                    data[arg]["delta"]
+                    _deserialize_ref_delta(data[arg])
                 )
                 # do not use set_attr here: it would force is_set to True on
                 # the reference and False on the base property, discarding the
@@ -2579,8 +2587,9 @@ class Ref:
     factor : float
         Factor to multiply specified property with.
 
-    delta : float
-        Delta to add after multiplication.
+    delta : float, pint.Quantity
+        Delta to add after multiplication. Plain numeric value uses the
+        network's default unit.
     """
 
     def __init__(self, ref_obj, factor, delta):
@@ -2595,8 +2604,10 @@ class Ref:
             logger.error(msg)
             raise TypeError(msg)
 
-        if not (isinstance(delta, int) or isinstance(delta, float)):
-            msg = 'Third parameter must be of type int or float.'
+        if not isinstance(delta, (int, float, pint.Quantity)):
+            msg = (
+                "Third parameter must be of type int, float or pint.Quantity."
+            )
             logger.error(msg)
             raise TypeError(msg)
 
@@ -2604,6 +2615,7 @@ class Ref:
         self.factor = factor
         self.delta = delta
         self.delta_SI = None
+        self._delta_unit = None
 
         msg = (
             f"Created reference object with factor {self.factor} and delta "

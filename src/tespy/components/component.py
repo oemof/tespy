@@ -23,10 +23,12 @@ from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.global_vars import ERR
@@ -1058,6 +1060,53 @@ class Component:
         for k in _topological_sort(calc_items):
             dc = calc_items[k]
             dc.val_SI = dc.calc(**dc.calc_params)
+
+    def calc_results(self, units):
+        r"""Postprocess this component's parameters.
+
+        Calculates the parameter results, checks the value limits and - for
+        fixed input parameters - compares the calculated result against the
+        originally specified value.
+
+        Returns
+        -------
+        tuple
+            Two booleans: no parameter limits violated, all fixed input
+            parameters match their calculated results.
+        """
+        self.calc_parameters()
+        _converged = self.check_parameter_bounds()
+        _specifications_matched = True
+        for key, value in self.parameters.items():
+            if isinstance(value, dc_cap):
+                value.set_val_from_SI(units)
+            elif isinstance(value, dc_prop):
+                if value.is_set and not value.is_var:
+                    if self.bypass:
+                        continue
+                    result = value._get_val_from_SI(units)
+                    if not np.isclose(result.magnitude, value.val, 1e-3, 1e-3):
+                        _specifications_matched = False
+                        msg = (
+                            "The simulation converged but the calculated "
+                            f"result {result} for the fixed input parameter "
+                            f"{key} is not equal to the originally specified "
+                            f"value: {value.val}. Usually, this can happen, "
+                            "when a method internally manipulates the "
+                            "associated equation during iteration in order to "
+                            "allow progress in situations, when the equation "
+                            "is otherwise not well defined for the current"
+                            "values of the variables, e.g. in case a negative "
+                            "root would need to be evaluated.  Often, this "
+                            "can happen during the first iterations and then "
+                            "will resolve itself as convergence progresses. "
+                            "In this case it did not, meaning convergence was "
+                            "not actually achieved."
+                        )
+                        logger.warning(msg)
+                else:
+                    value.set_val_from_SI(units)
+        return _converged, _specifications_matched
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits.

@@ -53,19 +53,21 @@ New Features
     state points only. An is raised if :code:`strict=True` is passed to the
     respective method.
 
+- The :code:`delta` of a :py:class:`~tespy.connections.connection.Ref` can be
+  specified as :code:`pint.Quantity` as well
+  (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__).
 - A :py:class:`~tespy.networks.network.Network` can be converted into a
   :py:class:`~tespy.components.subsystem.Subsystem` with the new
   :py:meth:`~tespy.components.subsystem.Subsystem.from_network` method. The
   boundary components of the `Network` instance, e.g. :code:`Source` and
   :code:`Sink`, are automatically by the `SubsystemInterface` to allow
   embedding the subsystem into another network. The :code:`keep` parameter
-  controls which state is carried into the subsystem instance:
+  controls which state is carried into the subsystem instance
+  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__):
 
   - full parametrization (:code:`"specifications"`, default),
   - starting values only (:code:`"starting_values"`)
   - nothing (:code:`"nothing"`)
-
-  (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
 
 Bug Fixes
 #########
@@ -81,9 +83,29 @@ Bug Fixes
   temperature difference at zero heat transferred) to the common outlet end,
   aligned on the cumulative heat axis of the parallel flow configuration
   (`PR #1043 <https://github.com/oemof/tespy/pull/1043>`__).
+- After solving and a difference in results between the specified input and the
+  calculated property, the component results tables were not updated while the
+  connection results tables were. Both now report the state of the latest solve
+  (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__).
+- The :code:`delta` of a referenced property specification was reinterpreted in
+  the current default units at every solve. Changing the default units between
+  two solves silently changed its value
+  (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__).
 
 Other Changes
 #############
+- Changing the default units through
+  :py:meth:`~tespy.tools.units.Units.set_defaults` after a network has been
+  solved is now well defined and warns about its consequences:
+
+  - Values specified as plain numbers and results are converted from their SI
+    value to the updated default units from the next solve on.
+  - New plain number specifications are interpreted in the new default units.
+  - Values specified as :code:`pint.Quantity` keep their unit.
+
+  Previously, already converted values silently kept their old unit while
+  re-specified values picked up the new one, mixing unit systems within a
+  single network (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__).
 - Support for importing networks exported with tespy v0.8 or earlier through
   :py:meth:`~tespy.networks.network.Network.from_json` has been removed. The
   same applies to design and initialisation state files written with tespy v0.9
@@ -100,6 +122,13 @@ Other Changes
   :py:meth:`~tespy.networks.network.Network.export` and
   :py:meth:`~tespy.networks.network.Network.from_json`
   (`PR #1021 <https://github.com/oemof/tespy/pull/1021>`__).
+- The postprocessing overhead per solve has been reduced
+  (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__):
+
+  - Unit strings are parsed into pint objects only once per unit and registry
+    instead of once per converted value.
+  - The results DataFrames are built lazily on first access of
+    :code:`Network.results`.
 
 Documentation
 #############

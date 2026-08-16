@@ -32,7 +32,6 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -218,7 +217,8 @@ class Network:
         self.user_defined_var = {}
         self.subsystems = {}
         # results and specification dictionary
-        self.results = {}
+        self._results = {}
+        self._results_stale = False
 
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
@@ -581,8 +581,8 @@ class Network:
         for c in args:
             self.conns.drop(c.label, inplace=True)
             _network_ownership.pop(c, None)
-            if c.__class__.__name__ in self.results:
-                self.results[c.__class__.__name__].drop(
+            if c.__class__.__name__ in self._results:
+                self._results[c.__class__.__name__].drop(
                     c.label, inplace=True, errors="ignore"
                 )
             msg = f'Deleted connection {c.label} from network.'
@@ -651,8 +651,8 @@ class Network:
                 self.comps.drop(comp.label, inplace=True)
                 _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
-                if comp_type in self.results:
-                    self.results[comp_type].drop(
+                if comp_type in self._results:
+                    self._results[comp_type].drop(
                         comp.label, inplace=True, errors="ignore"
                     )
                 msg = f"Deleted component {comp.label} from network."
@@ -927,17 +927,17 @@ class Network:
     def _init_connection_result_datastructure(self):
 
         for conn_type in self.conns["conn_type"].unique():
-            if conn_type in self.results:
-                del self.results[conn_type]
+            if conn_type in self._results:
+                del self._results[conn_type]
 
         for conn in self.conns["object"]:
             conn_type = conn.__class__.__name__
             # this will move somewhere else!
             # set up results dataframe for connections
             # this should be done based on the connections
-            if conn_type not in self.results:
+            if conn_type not in self._results:
                 cols = conn._get_result_cols(set(self.all_fluids))
-                self.results[conn_type] = pd.DataFrame(columns=cols, dtype='float64')
+                self._results[conn_type] = pd.DataFrame(columns=cols, dtype='float64')
 
     def _init_components(self):
         r"""Set up necessary component information."""
@@ -960,13 +960,13 @@ class Network:
 
             # set up results and specification dataframes
             comp_type = comp.__class__.__name__
-            if comp_type not in self.results:
+            if comp_type not in self._results:
                 cols = [
                     c for col, data in comp.parameters.items()
                     if isinstance(data, dc_cp)
                     for c in [col, f"{col}_unit"]
                 ]
-                self.results[comp_type] = pd.DataFrame(
+                self._results[comp_type] = pd.DataFrame(
                     columns=cols, dtype='float64'
                 )
 
@@ -2776,6 +2776,9 @@ class Network:
         _converged = self._postprocess_connections()
         _converged = self._postprocess_components() and _converged
 
+        if not self.skip_postprocess:
+            self._results_stale = True
+
         if self.status == 0 and not _converged:
             self.status = 1
 
@@ -2785,69 +2788,47 @@ class Network:
     def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
-        buckets = {}
         for c in self.conns['object']:
             c.good_starting_values = True
             _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
-            if self.skip_postprocess:
-                continue
+        return _converged
+
+    def _postprocess_components(self):
+        """Process the component results."""
+        _converged = True
+        if self.skip_postprocess:
+            return _converged
+
+        for cp in self.comps['object']:
+            _bounds_ok, _specifications_matched = cp.calc_results(self.units)
+            _converged = _converged and _bounds_ok
+            if not _specifications_matched:
+                self.status = 2
+
+        if self.status == 2:
+            return False
+
+        return _converged
+
+    @property
+    def results(self):
+        if self._results_stale:
+            self._build_results()
+        return self._results
+
+    def _build_results(self):
+        """Build the results DataFrames from the last converged solution."""
+        self._results_stale = False
+        buckets = {}
+        for c in self.conns['object']:
             conn_type = c.__class__.__name__
             if conn_type not in buckets:
                 buckets[conn_type] = ([], [])
             buckets[conn_type][0].append(c.label)
             buckets[conn_type][1].append(c.collect_results(self.all_fluids))
         for conn_type, (labels, rows) in buckets.items():
-            cols = self.results[conn_type].columns
-            self.results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
-        return _converged
-
-    def _postprocess_components(self):
-        """Process the component results."""
-        # components
-        _converged = True
-        if self.skip_postprocess:
-            return _converged
-
-        for cp in self.comps['object']:
-            cp.calc_parameters()
-            _converged = _converged and cp.check_parameter_bounds()
-            # this thing could be somewhere else
-            for key, value in cp.parameters.items():
-                if isinstance(value, dc_cap):
-                    value.set_val_from_SI(self.units)
-                elif isinstance(value, dc_prop):
-                    result = value._get_val_from_SI(self.units)
-                    if (
-                        value.is_set
-                        and not value.is_var
-                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
-                        and not cp.bypass
-                    ):
-                        _converged = False
-                        msg = (
-                            "The simulation converged but the calculated "
-                            f"result {result} for the fixed input parameter "
-                            f"{key} is not equal to the originally specified "
-                            f"value: {value.val}. Usually, this can happen, "
-                            "when a method internally manipulates the "
-                            "associated equation during iteration in order to "
-                            "allow progress in situations, when the equation "
-                            "is otherwise not well defined for the current"
-                            "values of the variables, e.g. in case a negative "
-                            "root would need to be evaluated.  Often, this "
-                            "can happen during the first iterations and then "
-                            "will resolve itself as convergence progresses. "
-                            "In this case it did not, meaning convergence was "
-                            "not actually achieved."
-                        )
-                        logger.warning(msg)
-                        self.status = 2
-                    else:
-                        if not value.is_set or value.is_var:
-                            value.set_val_from_SI(self.units)
-
-        if self.status == 2:
-            return False
+            cols = self._results[conn_type].columns
+            self._results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
 
         buckets = {}
         for cp in self.comps['object']:
@@ -2860,10 +2841,8 @@ class Network:
             buckets[key][0].append(cp.label)
             buckets[key][1].append(result)
         for key, (labels, rows) in buckets.items():
-            cols = self.results[key].columns
-            self.results[key] = pd.DataFrame(rows, index=labels, columns=cols)
-
-        return _converged
+            cols = self._results[key].columns
+            self._results[key] = pd.DataFrame(rows, index=labels, columns=cols)
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""Print the calculations results to prompt."""

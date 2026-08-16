@@ -18,6 +18,7 @@ from collections import deque
 
 import numpy as np
 import pandas as pd
+from tabulate import tabulate
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
@@ -31,7 +32,8 @@ from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.global_vars import ERR
+from tespy.tools.data_containers import _display_repr
+from tespy.tools.data_containers import _format_value
 from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
@@ -263,6 +265,44 @@ class Component:
         self.new_design = True
         if key == 'design_path' and value is None:
             self._local_connection_design_state = {}
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return f"{type(self).__name__}({self.label!r})"
+
+    def _repr_extensive(self):
+        title = f"{type(self).__name__}: {self.label}"
+        rows = []
+        for key, data in self.parameters.items():
+            if isinstance(data, dc_cp):
+                if not data.is_set and np.isnan(data.val):
+                    continue
+                spec = "var" if data.is_var else ("set" if data.is_set else "")
+                rows.append([
+                    key,
+                    _format_value(data.val),
+                    data._display_unit(),
+                    f"{data.val_SI:.4e}",
+                    spec
+                ])
+            elif isinstance(data, (dc_cc, dc_cm)):
+                if data.is_set:
+                    rows.append([key, "characteristic", "", "", "set"])
+            elif isinstance(data, (dc_gcp, dc_gcc)):
+                if data.is_set:
+                    rows.append([key, "parameter group", "", "", "set"])
+        if not rows:
+            return f"{title}\nno specifications or results"
+        table = tabulate(
+            rows, headers=["parameter", "value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left", "right", "left")
+        )
+        return "\n".join([title, "", table])
 
     def get_attr(self, key):
         r"""

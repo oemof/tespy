@@ -14,10 +14,12 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 import pint
+from tabulate import tabulate
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
+from tespy.tools.global_vars import get_display_mode
 from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
@@ -49,6 +51,26 @@ def _is_numeric(potentially_a_number):
         return True
     except (TypeError, ValueError):
         return False
+
+
+def _display_repr(obj):
+    mode = get_display_mode()
+    if mode != "none":
+        if mode == "extensive" and hasattr(obj, "_repr_extensive"):
+            return obj._repr_extensive()
+        if hasattr(obj, "_repr_compact"):
+            return obj._repr_compact()
+    return object.__repr__(obj)
+
+
+def _format_value(value):
+    if isinstance(value, str):
+        return value
+    if np.isnan(value):
+        return "nan"
+    if value == 0 or 1e-4 <= abs(value) < 1e5:
+        return f"{value:.4f}"
+    return f"{value:.4e}"
 
 
 class _NumEqMixin:
@@ -149,6 +171,11 @@ class DataContainer:
             self.__dict__.update({key: var[key]})
 
         self.set_attr(**kwargs)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
 
     def set_attr(self, **kwargs):
         """
@@ -303,6 +330,15 @@ class ComponentCharacteristics(_NumEqMixin, DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
+    def _repr_compact(self):
+        char = None
+        if self.char_func is not None:
+            char = type(self.char_func).__name__
+        return (
+            f"{type(self).__name__}(param={self.param!r}, "
+            f"char_func={char}, is_set={self.is_set})"
+        )
+
     def accept(self, value):
         if value is None:
             self.is_set = False
@@ -371,6 +407,15 @@ class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
             export.update({k: self.get_attr(k)})
         return export
 
+    def _repr_compact(self):
+        char = None
+        if self.char_func is not None:
+            char = type(self.char_func).__name__
+        return (
+            f"{type(self).__name__}(param={self.param!r}, "
+            f"char_func={char}, is_set={self.is_set})"
+        )
+
     def accept(self, value):
         if value is None:
             self.is_set = False
@@ -413,6 +458,12 @@ class ComponentMandatoryConstraints(_NumEqMixin, DataContainer):
             "description": None,
             "result_only": False
         }
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(description={self.description!r}, "
+            f"num_eq_sets={self.num_eq_sets})"
+        )
 
 
 class GroupedComponentProperties(_NumEqMixin, DataContainer):
@@ -473,6 +524,12 @@ class GroupedComponentProperties(_NumEqMixin, DataContainer):
                 f"Expected a bool, dict, or None for a grouped parameter, "
                 f"got {type(value).__name__}."
             )
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(elements={self.elements}, "
+            f"is_set={self.is_set})"
+        )
 
 
 class GroupedComponentCharacteristics(GroupedComponentProperties):
@@ -569,6 +626,34 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit"]
         return {k: getattr(self, k) for k in keys}
+
+    def _display_unit(self):
+        if self._val_is_quantity:
+            return f"{self._val.units:~}"
+        elif self._unit is not None:
+            return f"{_UNITS.ureg.Unit(self._unit):~}"
+        return ""
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val:.6g}, "
+            f"unit={self._display_unit()!r}, "
+            f"val_SI={self.val_SI:.6g}, is_set={self.is_set})"
+        )
+
+    def _repr_extensive(self):
+        spec = "var" if self.is_var else ("set" if self.is_set else "")
+        rows = [[
+            _format_value(self.val),
+            self._display_unit(),
+            f"{self.val_SI:.4e}",
+            spec
+        ]]
+        return tabulate(
+            rows, headers=["value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("right", "left", "right", "left")
+        )
 
     def accept(self, value):
         if value is None:
@@ -820,6 +905,52 @@ class ComponentArrayProperties(DataContainer):
             self.val_SI, SI_UNITS[self.quantity], units.default[self.quantity]
         )
 
+    def _repr_compact(self):
+        val = self.val if self.val is not None else self.val_SI
+        if val is not None:
+            val = np.array2string(np.asarray(val), precision=4, threshold=6)
+        return (
+            f"{type(self).__name__}(val={val}, quantity={self.quantity!r})"
+        )
+
+    def _repr_extensive(self):
+        val = self.val if self.val is not None else self.val_SI
+        if val is None:
+            return f"{type(self).__name__}: no values"
+        val = np.atleast_1d(val)
+        val_SI = None
+        if self.val_SI is not None:
+            val_SI = np.atleast_1d(self.val_SI)
+        if val.ndim > 1:
+            return self._repr_compact()
+        opts = np.get_printoptions()
+        summarize = len(val) > opts["threshold"]
+        if summarize:
+            edge = opts["edgeitems"]
+            indices = [*range(edge), None, *range(len(val) - edge, len(val))]
+        else:
+            indices = range(len(val))
+        rows = []
+        for i in indices:
+            if i is None:
+                rows.append(["...", "...", "..."])
+            else:
+                rows.append([
+                    str(i),
+                    _format_value(float(val[i])),
+                    _format_value(float(val_SI[i])) if val_SI is not None else ""
+                ])
+        table = tabulate(
+            rows, headers=["index", "value", "SI value"], tablefmt="simple",
+            disable_numparse=True, colalign=("left", "right", "right")
+        )
+        if summarize:
+            table += (
+                f"\n({len(val)} values, adjust numpy.set_printoptions or "
+                "access val/val_SI directly to see all)"
+            )
+        return table
+
 
 class ComponentProperties(FluidProperties):
 
@@ -832,6 +963,14 @@ class ComponentProperties(FluidProperties):
     def _serialize(self):
         keys = ["val", "val_SI", "is_set", "unit", "is_var"]
         return {k: getattr(self, k) for k in keys}
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val:.6g}, "
+            f"unit={self._display_unit()!r}, "
+            f"val_SI={self.val_SI:.6g}, is_set={self.is_set}, "
+            f"is_var={self.is_var})"
+        )
 
     def accept(self, value):
         if value == "var":
@@ -966,6 +1105,25 @@ class FluidComposition(DataContainer):
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
         export["back_end"] = {k: b for k, b in self.back_end.items()}
         return export
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}(val={self.val}, "
+            f"is_set={sorted(self.is_set)})"
+        )
+
+    def _repr_extensive(self):
+        if not self.val:
+            return "no fluid composition"
+        rows = [
+            [f, _format_value(x), "set" if f in self.is_set else ""]
+            for f, x in self.val.items()
+        ]
+        return tabulate(
+            rows, headers=["fluid", "mass fraction", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left")
+        )
 
     def get_is_var(self):
         reference = self._reference_container
@@ -1166,6 +1324,9 @@ class ReferencedFluidProperties(DataContainer):
             ).m_as(SI_UNITS[self.quantity])
         ref._delta_unit = unit
 
+    def _repr_compact(self):
+        return f"{type(self).__name__}(ref={self.ref!r}, is_set={self.is_set})"
+
 
 class SimpleDataContainer(_NumEqMixin, DataContainer):
     """
@@ -1210,6 +1371,9 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
 
     def _serialize(self):
         return {"val": self.val, "is_set": self.is_set}
+
+    def _repr_compact(self):
+        return f"{type(self).__name__}(val={self.val!r}, is_set={self.is_set})"
 
     def accept(self, value):
         if value is None:

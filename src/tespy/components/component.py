@@ -289,6 +289,10 @@ class Component:
                     f"{data.val_SI:.4e}",
                     spec
                 ])
+            elif isinstance(data, dc_cap):
+                val = data.val if data.val is not None else data.val_SI
+                if val is not None:
+                    rows.append([key, "[...]", data._display_unit(), "", ""])
             elif isinstance(data, (dc_cc, dc_cm)):
                 if data.is_set:
                     rows.append([key, "characteristic", "", "", "set"])

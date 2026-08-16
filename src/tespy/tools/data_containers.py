@@ -885,6 +885,7 @@ class ComponentArrayProperties(DataContainer):
         return {
             "val": None,
             "val_SI": None,
+            "unit": None,
             "quantity": None,
             "structure_matrix": None,
             "func": None,
@@ -901,16 +902,23 @@ class ComponentArrayProperties(DataContainer):
     def set_val_from_SI(self, units):
         if self.val_SI is None:
             return
+        self.unit = units.default[self.quantity]
         self.val = units.value_from_SI(
-            self.val_SI, SI_UNITS[self.quantity], units.default[self.quantity]
+            self.val_SI, SI_UNITS[self.quantity], self.unit
         )
+
+    def _display_unit(self):
+        if self.unit is not None:
+            return f"{_UNITS.ureg.Unit(self.unit):~}"
+        return ""
 
     def _repr_compact(self):
         val = self.val if self.val is not None else self.val_SI
         if val is not None:
             val = np.array2string(np.asarray(val), precision=4, threshold=6)
         return (
-            f"{type(self).__name__}(val={val}, quantity={self.quantity!r})"
+            f"{type(self).__name__}(val={val}, "
+            f"unit={self._display_unit()!r}, quantity={self.quantity!r})"
         )
 
     def _repr_extensive(self):
@@ -937,19 +945,29 @@ class ComponentArrayProperties(DataContainer):
             else:
                 rows.append([
                     str(i),
-                    _format_value(float(val[i])),
-                    _format_value(float(val_SI[i])) if val_SI is not None else ""
+                    _format_value(val[i]),
+                    _format_value(val_SI[i]) if val_SI is not None else ""
                 ])
-        table = tabulate(
+        lines = []
+        if self.quantity is not None:
+            title = self.quantity
+            unit = self._display_unit()
+            if unit:
+                title += f" in {unit}"
+            si_unit = f"{_UNITS.ureg.Unit(SI_UNITS[self.quantity]):~}"
+            if si_unit:
+                title += f" (SI value in {si_unit})"
+            lines += [title, ""]
+        lines.append(tabulate(
             rows, headers=["index", "value", "SI value"], tablefmt="simple",
             disable_numparse=True, colalign=("left", "right", "right")
-        )
+        ))
         if summarize:
-            table += (
-                f"\n({len(val)} values, adjust numpy.set_printoptions or "
+            lines.append(
+                f"({len(val)} values, adjust numpy.set_printoptions or "
                 "access val/val_SI directly to see all)"
             )
-        return table
+        return "\n".join(lines)
 
 
 class ComponentProperties(FluidProperties):

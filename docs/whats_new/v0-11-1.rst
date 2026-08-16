@@ -56,6 +56,16 @@ New Features
 - The :code:`delta` of a :py:class:`~tespy.connections.connection.Ref` can be
   specified as :code:`pint.Quantity` as well
   (`PR #1051 <https://github.com/oemof/tespy/pull/1051>`__).
+- Connections, components and their data containers provide readable
+  :code:`repr` and :code:`print` output now, which can be controlled globally
+  with :code:`tespy.set_display_mode`:
+
+  - :code:`"compact"` (default)
+  - :code:`"extensive"`
+  - :code:`"none"`
+
+  See the :ref:`general configuration <general_configuration_label>` section
+  for an example (`PR #1052 <https://github.com/oemof/tespy/pull/1052>`__).
 - A :py:class:`~tespy.networks.network.Network` can be converted into a
   :py:class:`~tespy.components.subsystem.Subsystem` with the new
   :py:meth:`~tespy.components.subsystem.Subsystem.from_network` method. The

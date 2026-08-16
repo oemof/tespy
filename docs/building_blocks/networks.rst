@@ -25,6 +25,13 @@ The solver will simplify the variable space in a presolving step and then solve
 for the remaining variables. In the following, you will find information on the
 :code:`Network` setup, solving and debugging.
 
+.. tip::
+
+    Some configurations for the behavior printing components or connections and
+    their respective properties can be customized, see
+    :ref:`general configuration <general_configuration_label>`. Further
+    customizations (e.g. predefined unit sets etc.) are planned.
+
 .. _units_label:
 
 Unit specifications

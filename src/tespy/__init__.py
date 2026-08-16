@@ -3,7 +3,7 @@ import importlib.resources
 import os
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = "0.11.0 - Rankine's Renaissance"
+__version__ = "0.11.1 - Rankine's Renaissance"
 
 # tespy data and connections import
 from . import connections  # noqa: F401

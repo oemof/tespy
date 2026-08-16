@@ -27,3 +27,4 @@ from .tools import fluid_properties  # noqa: F401
 from .tools import global_vars  # noqa: F401
 from .tools import helpers  # noqa: F401
 from .tools import logger  # noqa: F401
+from .tools.global_vars import set_display_mode  # noqa: F401

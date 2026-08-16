@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 
 import numpy as np
 import pint
+from tabulate import tabulate
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -21,6 +22,8 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import _display_repr
+from tespy.tools.data_containers import _format_value
 from tespy.tools.data_containers import _is_numeric
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
@@ -182,6 +185,63 @@ class ConnectionBase:
             msg = 'Connection has no attribute \"' + key + '\".'
             logger.error(msg)
             raise KeyError(msg)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.label!r}, "
+            f"{self.source.label}:{self.source_id} -> "
+            f"{self.target.label}:{self.target_id})"
+        )
+
+    def _repr_extensive(self):
+        title = self._repr_compact()
+        rows = []
+        for key, data in self.property_data.items():
+            if isinstance(data, dc_prop):
+                if not data.is_set and np.isnan(data.val):
+                    # only prints specified values before first solve
+                    continue
+                rows.append([
+                    key,
+                    _format_value(data.val),
+                    data._display_unit(),
+                    f"{data.val_SI:.4e}",
+                    "set" if data.is_set else ""
+                ])
+            elif isinstance(data, dc_ref):
+                if data.is_set:
+                    ref = data.ref
+                    variable = key.removesuffix("_ref")
+                    rows.append([
+                        key,
+                        f"{ref.factor} * {variable}({ref.obj.label!r}) "
+                        f"+ {ref.delta}",
+                        "", "", "set"
+                    ])
+            elif isinstance(data, dc_flu):
+                for fluid, x in data.val.items():
+                    rows.append([
+                        f"{key}[{fluid}]",
+                        _format_value(x),
+                        "", "",
+                        "set" if fluid in data.is_set else ""
+                    ])
+            elif isinstance(data, dc_simple):
+                if data.is_set:
+                    rows.append([key, str(data.val), "", "", "set"])
+        if not rows:
+            return f"{title}\nno specifications or results"
+        table = tabulate(
+            rows, headers=["property", "value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left", "right", "left")
+        )
+        return "\n".join([title, "", table])
 
     def _serialize(self):
         export = {}
@@ -2622,6 +2682,17 @@ class Ref:
             f"{self.delta} referring to connection {ref_obj.label}"
         )
         logger.debug(msg)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.obj.label!r}, "
+            f"factor={self.factor}, delta={self.delta})"
+        )
 
     def get_attr(self, key):
         r"""

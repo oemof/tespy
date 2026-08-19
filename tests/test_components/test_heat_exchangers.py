@@ -391,6 +391,12 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert round(instance.Tamb.val - self.c2.T.val, 3) == 0.008
 
+        # an outlet approach below the threshold of the smoothed lmtd cannot
+        # be resolved exactly and is rejected in postprocessing
+        instance.set_attr(UA=4000.0)
+        self.nw.solve("design")
+        assert self.nw.status == 2
+
     def test_SimpleHeatExchanger_lmtd_zero_Q(self):
         """lmtd must be nan when Q=0 (UA=0), not raise ZeroDivisionError."""
         instance = SimpleHeatExchanger("heatexchanger")

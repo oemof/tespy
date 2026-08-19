@@ -465,7 +465,7 @@ class Pipe(SimpleHeatExchanger):
 
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            + area / sum(R_sum) * self._calculate_td_log()
+            + area / sum(R_sum) * self._calculate_lmtd()
         )
 
     def ohc_surface_group_dependents(self):
@@ -535,7 +535,7 @@ class Pipe(SimpleHeatExchanger):
         # we only multiply be length
         return (
             i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-            + 1 / R_soil * self._calculate_td_log() * self.L.val_SI
+            + 1 / R_soil * self._calculate_lmtd() * self.L.val_SI
         )
 
     def ohc_subsurface_group_dependents(self):

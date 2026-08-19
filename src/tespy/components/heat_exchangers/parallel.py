@@ -9,12 +9,12 @@ available from its original location tespy/components/heat_exchangers/parallel.p
 
 SPDX-License-Identifier: MIT
 """
-import math
 
 import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.components.heat_exchangers.base import smoothed_lmtd
 from tespy.tools.fluid_properties import T_mix_ph
 
 
@@ -330,20 +330,12 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     def ttd_u_dependents(self):
         return [var for c in self.outl for var in [c.p, c.h]]
 
-    def calculate_td_log(self):
+    def calculate_lmtd(self):
         T_i1 = self.inl[0].calc_T()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
-
-        ttd_u = T_o1 - T_o2
-        ttd_l = T_i1 - T_i2
-        min_ttd = min(ttd_u, ttd_l)
-        if min_ttd <= 0:
-            return min_ttd
-        if round(ttd_u, 6) == round(ttd_l, 6):
-            return ttd_l
-        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+        return smoothed_lmtd(T_o1 - T_o2, T_i1 - T_i2)
 
     def _get_Q_cumsum_steps(self, steps):
         """Return cumulative heat transferred from the common inlet end up

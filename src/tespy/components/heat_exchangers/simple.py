@@ -18,6 +18,7 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.components.heat_exchangers.base import smoothed_lmtd
 from tespy.tools import logger
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
@@ -286,7 +287,11 @@ class SimpleHeatExchanger(Component):
         ttd_2 = self.outl[0].T.val_SI - self.Tamb.val_SI
         if ttd_1 / ttd_2 < 0:
             return np.nan
-        return abs(self.Q.val_SI / self._calculate_td_log())
+        if round(ttd_1, 6) == round(ttd_2, 6):
+            lmtd = ttd_2
+        else:
+            lmtd = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
+        return abs(self.Q.val_SI / lmtd)
 
     def _calc_lmtd(self):
         if self.UA.val_SI == 0:
@@ -631,12 +636,15 @@ class SimpleHeatExchanger(Component):
             self.outl[0].h,
         ] + [self.get_attr(element) for element in self.hw_group.elements]
 
-    def _calculate_td_log(self):
+    def _calculate_lmtd(self):
         r"""
         Calculation of mean logarithmic temperature difference.
 
-        For numerical stability: If temperature differences have
-        different sign use mean difference to avoid negative logarithm.
+        The logarithmic mean carries the sign of the temperature differences
+        towards ambient. Heating a fluid yields a negative value, cooling it
+        yields a positive value. The calculation is using the following method:
+        :py:func:`smoothed_lmtd
+        <tespy.components.heat_exchangers.base.smoothed_lmtd>`.
 
         Returns
         -------
@@ -645,54 +653,16 @@ class SimpleHeatExchanger(Component):
 
             .. math::
 
-                \Delta T_{log} = \begin{cases}
-                \frac{T_{in}-T_{out}}{\ln{\frac{T_{in}-T_{amb}}
-                {T_{out}-T_{amb}}}} & T_{in} > T_{out} \\
-                \frac{T_{out}-T_{in}}{\ln{\frac{T_{out}-T_{amb}}
-                {T_{in}-T_{amb}}}} & T_{in} < T_{out}\\
-                0 & T_{in} = T_{out}
-                \end{cases}
+                \Delta T_{log} = \frac{T_{in}-T_{out}}
+                {\ln{\frac{T_{in}-T_{amb}}{T_{out}-T_{amb}}}}
 
                 T_{amb}: \text{ambient temperature}
         """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-
-        # For numerical stability: If temperature differences have
-        # different sign use mean difference to avoid negative logarithm.
-        if (ttd_1 / ttd_2) < 0:
-            if ttd_1 > 0:
-                if o.h.is_var and self.it < 10:
-                    h_out = h_mix_pT(
-                        o.p.val_SI,
-                        self.Tamb.val_SI + 0.0001,
-                        o.fluid_data,
-                        o.mixing_rule
-                    )
-                    o.h.set_reference_val_SI(h_out)
-                ttd_2 = 0.1
-            elif ttd_1 < 0:
-                if o.h.is_var and self.it < 10:
-                    h_out = h_mix_pT(
-                        o.p.val_SI,
-                        self.Tamb.val_SI - 0.0001,
-                        o.fluid_data,
-                        o.mixing_rule
-                    )
-                    o.h.set_reference_val_SI(h_out)
-                ttd_2 = -0.1
-
-        if round(ttd_1, 6) == round(ttd_2, 6):
-            td_log = ttd_2
-        elif ttd_1 > ttd_2:
-            td_log = (ttd_1 - ttd_2) / math.log(ttd_1 / ttd_2)
-        else:
-            td_log = (ttd_2 - ttd_1) / math.log(ttd_2 / ttd_1)
-
-        return td_log
+        ttd_1 = self.inl[0].calc_T() - self.Tamb.val_SI
+        ttd_2 = self.outl[0].calc_T() - self.Tamb.val_SI
+        if ttd_1 + ttd_2 >= 0:
+            return smoothed_lmtd(ttd_1, ttd_2)
+        return -smoothed_lmtd(-ttd_1, -ttd_2)
 
     def UA_group_func(self):
         r"""
@@ -711,11 +681,7 @@ class SimpleHeatExchanger(Component):
         i = self.inl[0]
         o = self.outl[0]
         Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
-        ttd_1 = i.calc_T() - self.Tamb.val_SI
-        ttd_2 = o.calc_T() - self.Tamb.val_SI
-        if ttd_1 * ttd_2 <= 0:
-            return Q + self.UA.val_SI * ttd_2
-        return Q + self.UA.val_SI * self._calculate_td_log()
+        return Q + self.UA.val_SI * self._calculate_lmtd()
 
     def UA_group_dependents(self):
         return [
@@ -753,7 +719,7 @@ class SimpleHeatExchanger(Component):
         ttd_2 = o.calc_T() - self.Tamb.val_SI
         if ttd_1 * ttd_2 <= 0:
             return Q + self.UA.design * fkA * ttd_2
-        return Q + self.UA.design * fkA * self._calculate_td_log()
+        return Q + self.UA.design * fkA * self._calculate_lmtd()
 
     def UA_char_group_dependents(self):
         return [

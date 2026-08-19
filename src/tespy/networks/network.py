@@ -3326,6 +3326,16 @@ class Network:
             except KeyError:
                 continue
 
+        for container in conn_containers:
+            if not isinstance(container, dc_prop) or container.quantity is None:
+                continue
+            if container._val0_is_quantity or np.isnan(container._val0):
+                continue
+            try:
+                container._assign_default_unit_to_val0(self.units)
+            except KeyError:
+                continue
+
     def save_specifications(self, json_file_path=None):
         r"""
         Save the currently set specifications of the network.

@@ -22,13 +22,13 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
 FLOW_ARRANGEMENTS = (
-    'counterflow',
-    'parallelflow',
-    'crossflow_both_unmixed',
-    'crossflow_hot_mixed',
-    'crossflow_cold_mixed',
-    'crossflow_both_mixed',
-    'shell_and_tube'
+    "counterflow",
+    "parallelflow",
+    "crossflow_both_unmixed",
+    "crossflow_hot_mixed",
+    "crossflow_cold_mixed",
+    "crossflow_both_mixed",
+    "shell_and_tube"
 )
 _NTU_MAX = 1e4
 
@@ -134,28 +134,28 @@ def calc_epsilon(ntu, C_r, arrangement, num_shell_passes=1):
         return 0.0
     if C_r < 1e-9:
         return 1 - math.exp(-ntu)
-    if arrangement == 'counterflow':
+    if arrangement == "counterflow":
         if C_r > 1 - 1e-9:
             return ntu / (1 + ntu)
         e = math.exp(-ntu * (1 - C_r))
         return (1 - e) / (1 - C_r * e)
-    elif arrangement == 'parallelflow':
+    elif arrangement == "parallelflow":
         return (1 - math.exp(-ntu * (1 + C_r))) / (1 + C_r)
-    elif arrangement == 'crossflow_both_unmixed':
+    elif arrangement == "crossflow_both_unmixed":
         return 1 - math.exp(
             ntu ** 0.22 / C_r * (math.exp(-C_r * ntu ** 0.78) - 1)
         )
-    elif arrangement == 'crossflow_max_mixed':
+    elif arrangement == "crossflow_max_mixed":
         return (1 - math.exp(-C_r * (1 - math.exp(-ntu)))) / C_r
-    elif arrangement == 'crossflow_min_mixed':
+    elif arrangement == "crossflow_min_mixed":
         return 1 - math.exp(-(1 - math.exp(-C_r * ntu)) / C_r)
-    elif arrangement == 'crossflow_both_mixed':
+    elif arrangement == "crossflow_both_mixed":
         return 1 / (
             1 / (1 - math.exp(-ntu))
             + C_r / (1 - math.exp(-C_r * ntu))
             - 1 / ntu
         )
-    elif arrangement == 'shell_and_tube':
+    elif arrangement == "shell_and_tube":
         ntu_1 = ntu / num_shell_passes
         S = (1 + C_r ** 2) ** 0.5
         e = math.exp(-ntu_1 * S)
@@ -207,35 +207,35 @@ def calc_ntu(epsilon, C_r, arrangement, num_shell_passes=1):
     try:
         if C_r < 1e-9:
             return -math.log(1 - epsilon)
-        if arrangement == 'counterflow':
+        if arrangement == "counterflow":
             if C_r > 1 - 1e-9:
                 return epsilon / (1 - epsilon)
             return (
                 math.log((1 - epsilon * C_r) / (1 - epsilon)) / (1 - C_r)
             )
-        elif arrangement == 'parallelflow':
+        elif arrangement == "parallelflow":
             return -math.log(1 - epsilon * (1 + C_r)) / (1 + C_r)
-        elif arrangement == 'crossflow_max_mixed':
+        elif arrangement == "crossflow_max_mixed":
             return -math.log(1 + math.log(1 - epsilon * C_r) / C_r)
-        elif arrangement == 'crossflow_min_mixed':
+        elif arrangement == "crossflow_min_mixed":
             return -math.log(1 + C_r * math.log(1 - epsilon)) / C_r
-        elif arrangement in ('crossflow_both_unmixed', 'crossflow_both_mixed'):
+        elif arrangement in ("crossflow_both_unmixed", "crossflow_both_mixed"):
             def residual(ntu):
                 return calc_epsilon(ntu, C_r, arrangement) - epsilon
 
             # the both mixed relation decreases again beyond its maximum,
             # invert on the ascending branch only
             ntu_upper = _NTU_MAX
-            if arrangement == 'crossflow_both_mixed':
+            if arrangement == "crossflow_both_mixed":
                 res = minimize_scalar(
                     lambda ntu: -calc_epsilon(ntu, C_r, arrangement),
-                    bounds=(1e-12, _NTU_MAX), method='bounded'
+                    bounds=(1e-12, _NTU_MAX), method="bounded"
                 )
                 ntu_upper = res.x
             if residual(ntu_upper) < 0:
                 return np.nan
             return brentq(residual, 1e-12, ntu_upper)
-        elif arrangement == 'shell_and_tube':
+        elif arrangement == "shell_and_tube":
             if num_shell_passes == 1:
                 eps_1 = epsilon
             elif C_r > 1 - 1e-9:
@@ -256,7 +256,7 @@ def calc_ntu(epsilon, C_r, arrangement, num_shell_passes=1):
             msg = f"The flow arrangement '{arrangement}' is not available."
             raise ValueError(msg)
     except (ValueError, ZeroDivisionError) as err:
-        if 'flow arrangement' in str(err):
+        if "flow arrangement" in str(err):
             raise
         return np.nan
 
@@ -316,11 +316,11 @@ class NTUHeatExchanger(HeatExchanger):
         glide and pressure drops exist, e.g. in :cite:`Qiao2025`, but are not
         implemented in tespy yet.
 
-    .. note::
+    .. attention::
 
-        The terminal temperature differences :code:`ttd_u` and
-        :code:`ttd_l` will output the results in the standard counterflow
-        convention independent of flow arrangement specified here.
+        The terminal temperature differences :code:`ttd_u` and :code:`ttd_l`
+        will output the results in the standard counterflow convention
+        independent of flow arrangement specified here.
 
     .. image:: /api/_images/components/HeatExchanger.svg
        :alt: flowsheet of the ntuheatexchanger
@@ -536,25 +536,25 @@ class NTUHeatExchanger(HeatExchanger):
     ...     "pressure": "bar", "pressure_difference": "bar",
     ...     "temperature": "degC", "heat_transfer_coefficient": "kW/K"
     ... })
-    >>> air_in = Source('air inlet')
-    >>> air_out = Sink('air outlet')
-    >>> water_in = Source('water inlet')
-    >>> water_out = Sink('water outlet')
-    >>> he = NTUHeatExchanger('crossflow cooler')
-    >>> he.set_attr(flow_arrangement='crossflow_both_unmixed')
-    >>> c1 = Connection(air_in, 'out1', he, 'in1', label='c1')
-    >>> c2 = Connection(he, 'out1', air_out, 'in1', label='c2')
-    >>> c3 = Connection(water_in, 'out1', he, 'in2', label='c3')
-    >>> c4 = Connection(he, 'out2', water_out, 'in1', label='c4')
+    >>> air_in = Source("air inlet")
+    >>> air_out = Sink("air outlet")
+    >>> water_in = Source("water inlet")
+    >>> water_out = Sink("water outlet")
+    >>> he = NTUHeatExchanger("crossflow cooler")
+    >>> he.set_attr(flow_arrangement="crossflow_both_unmixed")
+    >>> c1 = Connection(air_in, "out1", he, "in1", label="c1")
+    >>> c2 = Connection(he, "out1", air_out, "in1", label="c2")
+    >>> c3 = Connection(water_in, "out1", he, "in2", label="c3")
+    >>> c4 = Connection(he, "out2", water_out, "in1", label="c4")
     >>> nw.add_conns(c1, c2, c3, c4)
-    >>> c1.set_attr(fluid={'air': 1}, m=1, T=85, p=1)
-    >>> c2.set_attr(T=45, design=['T'])
-    >>> c3.set_attr(fluid={'water': 1}, m=3, T=25, p=3)
+    >>> c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+    >>> c2.set_attr(T=45, design=["T"])
+    >>> c3.set_attr(fluid={"water": 1}, m=3, T=25, p=3)
     >>> he.set_attr(
-    ...     pr1=0.98, pr2=0.98, design=['pr1', 'pr2'],
-    ...     offdesign=['zeta1_d4', 'zeta2_d4', 'UA']
+    ...     pr1=0.98, pr2=0.98, design=["pr1", "pr2"],
+    ...     offdesign=["zeta1_d4", "zeta2_d4", "UA"]
     ... )
-    >>> nw.solve('design')
+    >>> nw.solve("design")
     >>> design_state = nw.save(as_dict=True)
     >>> round(he.eps.val, 3)
     0.667
@@ -566,7 +566,7 @@ class NTUHeatExchanger(HeatExchanger):
     decreases.
 
     >>> c1.set_attr(m=0.75)
-    >>> nw.solve('offdesign', design_path=design_state)
+    >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.eps.val, 3) > 0.667
     True
     >>> round(c2.T.val, 1)
@@ -575,61 +575,61 @@ class NTUHeatExchanger(HeatExchanger):
 
     def get_parameters(self):
         params = super().get_parameters()
-        params['flow_arrangement'] = dc_simple(
-            val='counterflow', dtype='str',
+        params["flow_arrangement"] = dc_simple(
+            val="counterflow", dtype="str",
             description=(
-                'flow arrangement for the effectiveness-NTU relation, one '
-                'of ' + ', '.join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
+                "flow arrangement for the effectiveness-NTU relation, one of "
+                + ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
             )
         )
-        params['num_shell_passes'] = dc_simple(
-            val=1, dtype='int',
+        params["num_shell_passes"] = dc_simple(
+            val=1, dtype="int",
             description=(
-                'number of shell passes for the shell and tube flow '
-                'arrangement (with 2, 4, 6, ... tube passes per shell pass)'
+                "number of shell passes for the shell and tube flow "
+                "arrangement (with 2, 4, 6, ... tube passes per shell pass)"
             )
         )
-        params['UA'] = dc_cp(
+        params["UA"] = dc_cp(
             min_val=0, num_eq_sets=1,
             func=self.UA_func,
             dependents=self.UA_dependents,
-            quantity='heat_transfer_coefficient',
+            quantity="heat_transfer_coefficient",
             description=(
-                'heat transfer coefficient linking heat transfer and '
-                'effectiveness through the NTU relation'
+                "heat transfer coefficient linking heat transfer and "
+                "effectiveness through the NTU relation"
             ),
-            calc=self._calc_UA, calc_deps=['Q']
+            calc=self._calc_UA, calc_deps=["Q"]
         )
-        params['UA_char'] = dc_gcc(
-            elements=['UA_char1', 'UA_char2'],
+        params["UA_char"] = dc_gcc(
+            elements=["UA_char1", "UA_char2"],
             num_eq_sets=1,
             func=self.UA_char_func,
             dependents=self.UA_char_dependents,
             description=(
-                'equation for heat transfer based on UA and modification '
-                'factor'
+                "equation for heat transfer based on UA and modification "
+                "factor"
             )
         )
-        params['NTU'] = dc_cp(
+        params["NTU"] = dc_cp(
             min_val=0, is_result=True,
             description=(
-                'number of transfer units :code:`UA` over minimum capacity '
-                'rate'
+                "number of transfer units :code:`UA` over minimum capacity "
+                "rate"
             ),
-            calc=self._calc_NTU, calc_deps=['UA']
+            calc=self._calc_NTU, calc_deps=["UA"]
         )
-        params['C_r'] = dc_cp(
-            min_val=0, max_val=1, is_result=True, quantity='ratio',
-            description='minimum to maximum capacity rate ratio',
+        params["C_r"] = dc_cp(
+            min_val=0, max_val=1, is_result=True, quantity="ratio",
+            description="minimum to maximum capacity rate ratio",
             calc=self._calc_C_r
         )
-        params['eps'] = dc_cp(
-            min_val=0, max_val=1, is_result=True, quantity='efficiency',
+        params["eps"] = dc_cp(
+            min_val=0, max_val=1, is_result=True, quantity="efficiency",
             description=(
-                'heat exchanger effectiveness, heat transfer over maximum '
-                'transferable heat flow at constant capacity rates'
+                "heat exchanger effectiveness, heat transfer over maximum "
+                "transferable heat flow at constant capacity rates"
             ),
-            calc=self._calc_eps, calc_deps=['Q']
+            calc=self._calc_eps, calc_deps=["Q"]
         )
         return params
 
@@ -642,7 +642,7 @@ class NTUHeatExchanger(HeatExchanger):
             )
             raise ValueError(msg)
         if (
-                self.flow_arrangement.val == 'shell_and_tube'
+                self.flow_arrangement.val == "shell_and_tube"
                 and self.num_shell_passes.val < 1
         ):
             msg = (
@@ -688,14 +688,14 @@ class NTUHeatExchanger(HeatExchanger):
 
     def _resolve_arrangement(self, C_hot, C_cold):
         arrangement = self.flow_arrangement.val
-        if arrangement == 'crossflow_hot_mixed':
+        if arrangement == "crossflow_hot_mixed":
             if C_hot <= C_cold:
-                return 'crossflow_min_mixed'
-            return 'crossflow_max_mixed'
-        elif arrangement == 'crossflow_cold_mixed':
+                return "crossflow_min_mixed"
+            return "crossflow_max_mixed"
+        elif arrangement == "crossflow_cold_mixed":
             if C_cold <= C_hot:
-                return 'crossflow_min_mixed'
-            return 'crossflow_max_mixed'
+                return "crossflow_min_mixed"
+            return "crossflow_max_mixed"
         return arrangement
 
     def _ntu_residual(self, UA):

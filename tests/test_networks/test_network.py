@@ -18,6 +18,7 @@ import numpy as np
 from pytest import approx
 from pytest import mark
 from pytest import raises
+from pytest import warns
 
 from tespy.components import Compressor
 from tespy.components import Merge
@@ -1553,6 +1554,89 @@ class TestSaveClearRestoreSpecifications:
         restored_results = self._solve_and_collect_results()
         for label, values in results.items():
             assert approx(values) == restored_results[label]
+
+    def test_restore_after_unit_change(self):
+        results = self._solve_and_collect_results()
+        specs = self.nw.save_specifications()
+
+        with warns(UserWarning):
+            self.nw.units.set_defaults(**{
+                "pressure": "MPa", "pressure_difference": "kPa",
+                "temperature": "K", "enthalpy": "kJ/kg"
+            })
+
+        self.nw.restore_specifications(specs)
+
+        # the starting values are interpreted in stored units
+        c2 = self.nw.get_conn("c2")
+        m_SI, p_SI, h_SI = results["c2"]
+        assert str(c2.p.val0.units) == "bar"
+        assert approx(c2.m.val0.m_as("kg/s")) == m_SI
+        assert approx(c2.p.val0.m_as("Pa")) == p_SI
+        assert approx(c2.h.val0.m_as("J/kg")) == h_SI
+
+    def test_restore_specifications_saved_before_solving(self):
+        specs = self.nw.save_specifications()
+
+        for conn_data in specs["Connection"].values():
+            assert "good_starting_values" not in conn_data
+            for entry in conn_data.values():
+                assert "val0" not in entry
+
+        c1 = self.nw.get_conn("c1")
+        c1.set_attr(T=None, h=1.2e5, m=0.7)
+        self.pipe.set_attr(Q=-1e4)
+        self._solve_and_collect_results()
+
+        self.nw.restore_specifications(specs)
+        assert c1.T.is_set
+        assert not c1.h.is_set
+        # original starting values not present because not so
+        assert not c1.good_starting_values
+        self._solve_and_collect_results()
+        assert approx(c1.T.val_SI) == 25 + 273.15
+        assert approx(self.pipe.Q.val_SI) == 0
+
+
+def test_restore_specifications_preserves_starting_values():
+    nw = Network()
+    nw.iterinfo = False
+    nw.units.set_defaults(**{
+        "pressure": "bar", "pressure_difference": "bar", "temperature": "degC"
+    })
+
+    hx = MovingBoundaryHeatExchanger("condenser")
+    c1 = Connection(Source("hot source"), "out1", hx, "in1", label="c1")
+    c2 = Connection(hx, "out1", Sink("hot sink"), "in1", label="c2")
+    c3 = Connection(Source("cold source"), "out1", hx, "in2", label="c3")
+    c4 = Connection(hx, "out2", Sink("cold sink"), "in1", label="c4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    # condensing hot side with desuperheating and subcooling at very low pinch
+    c1.set_attr(fluid={"NH3": 1}, m=1, td_dew=60, T=120)
+    c2.set_attr(td_bubble=5)
+    c3.set_attr(fluid={"water": 1}, p=1, T=50)
+    hx.set_attr(dp1=0.0, dp2=0.0, td_pinch=0.05)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # UA instead of pinch with good set of starting values converges
+    hx.set_attr(td_pinch=None, UA=hx.UA.val_SI)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # save and change operating point
+    specs = nw.save_specifications()
+    hx.set_attr(UA=None, td_pinch=5)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    # restore and start with saved starting values should converge
+    nw.restore_specifications(specs)
+    nw.solve("design")
+    nw.assert_convergence()
+    assert approx(hx.td_pinch.val_SI, abs=1e-3) == 0.05
 
 
 class TestSaveRestoreFluidVariability:

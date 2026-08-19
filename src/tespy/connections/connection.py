@@ -541,23 +541,38 @@ class ConnectionBase:
     def _save_specifications(self):
         specs = {}
         for key, container in self.property_data.items():
-            if not container.is_set:
-                continue
-            if isinstance(container, dc_ref):
-                specs[key] = container._serialize()
-            elif isinstance(container, dc_flu):
-                specs[key] = {
-                    "val": {f: container.val[f] for f in container.is_set},
-                    "is_set": list(container.is_set)
+            data = {}
+            if container.is_set:
+                if isinstance(container, dc_ref):
+                    data = container._serialize()
+                elif isinstance(container, dc_flu):
+                    data = {
+                        "val": {f: container.val[f] for f in container.is_set},
+                        "is_set": list(container.is_set)
+                    }
+                elif isinstance(container, dc_prop):
+                    data = {
+                        "val": container.val,
+                        "unit": container.unit,
+                        "is_set": True
+                    }
+                else:
+                    data = {"val": container.val, "is_set": True}
+            if (
+                    isinstance(container, dc_prop)
+                    and container._val0_is_quantity
+                    and not np.isnan(container.val0.magnitude)
+                ):
+                data["val0"] = float(container.val0.magnitude)
+                data["val0_unit"] = str(container.val0.units)
+            elif isinstance(container, dc_flu) and container.val0:
+                data["val0"] = {
+                    f: float(x) for f, x in container.val0.items()
                 }
-            elif isinstance(container, dc_prop):
-                specs[key] = {
-                    "val": container.val,
-                    "unit": container.unit,
-                    "is_set": True
-                }
-            else:
-                specs[key] = {"val": container.val, "is_set": True}
+            if data:
+                specs[key] = data
+        if specs and self.good_starting_values:
+            specs["good_starting_values"] = True
         return specs
 
     def _clear_specifications(self):
@@ -567,7 +582,8 @@ class ConnectionBase:
             else:
                 container.is_set = False
 
-    def _restore_specifications(self, data, all_connections):
+    def _restore_specifications(self, data, all_connections, units):
+        self.good_starting_values = data.pop("good_starting_values", False)
         for key, param_data in data.items():
             container = self.get_attr(key)
             if isinstance(container, dc_ref):
@@ -580,10 +596,18 @@ class ConnectionBase:
                     ref=ref, is_set=True, unit=param_data["unit"]
                 )
             elif isinstance(container, dc_flu):
-                container.val.update(param_data["val"])
-                container.is_set = set(param_data["is_set"])
+                if "val" in param_data:
+                    container.val.update(param_data["val"])
+                    container.is_set = set(param_data["is_set"])
+                if "val0" in param_data:
+                    container.val0.update(param_data["val0"])
             else:
-                container.set_attr(**param_data)
+                val0 = param_data.pop("val0", None)
+                val0_unit = param_data.pop("val0_unit", None)
+                if param_data:
+                    container.set_attr(**param_data)
+                if val0 is not None:
+                    container.val0 = units.ureg.Quantity(val0, val0_unit)
 
 
 @connection_registry

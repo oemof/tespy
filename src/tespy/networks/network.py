@@ -3306,15 +3306,17 @@ class Network:
         # units". The unit is only attached to the containers when the
         # network is transformed to SI for solving: serializing before that
         # would attach the global default units, misinterpreting the values
-        # when reapplied
-        containers = [
+        # when reapplied. The same applies to plain numeric starting values
+        # of connections, which are serialized alongside the specifications
+        conn_containers = [
             c.get_attr(key)
             for c in self.conns["object"] for key in c.property_data
-        ] + [
+        ]
+        comp_containers = [
             cp.get_attr(key)
             for cp in self.comps["object"] for key in cp.parameters
         ]
-        for container in containers:
+        for container in conn_containers + comp_containers:
             if not isinstance(container, dc_prop) or not container.is_set:
                 continue
             if container._val_is_quantity or container.quantity is None:
@@ -3449,7 +3451,7 @@ class Network:
         all_connections = {c.label: c for c in self.conns["object"]}
         for label, specs in data.get("Connection", {}).items():
             all_connections[label]._restore_specifications(
-                specs, all_connections
+                specs, all_connections, self.units
             )
         for label, specs in data.get("Component", {}).items():
             self.get_comp(label)._restore_specifications(specs)

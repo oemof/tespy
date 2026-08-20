@@ -386,9 +386,10 @@ class NTUHeatExchanger(HeatExchanger):
     eps : float, dict
         Heat exchanger effectiveness, heat transfer over maximum transferable
         heat flow at constant capacity rates. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eps_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.eps_func>`.
 
     flow_arrangement : str
-        Flow arrangement for the effectiveness-NTU relation, one of
+        Flow arrangement for the effectiveness-NTU relation, mandatory, one of
         :code:`'counterflow'`, :code:`'parallelflow'`,
         :code:`'crossflow_both_unmixed'`, :code:`'crossflow_hot_mixed'`,
         :code:`'crossflow_cold_mixed'`, :code:`'crossflow_both_mixed'`,
@@ -428,6 +429,7 @@ class NTUHeatExchanger(HeatExchanger):
 
     NTU : float, dict
         Number of transfer units :code:`UA` over minimum capacity rate.
+        Equation: :py:meth:`NTU_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.NTU_func>`.
 
     num_shell_passes : int
         Number of shell passes for the shell and tube flow arrangement (with 2,

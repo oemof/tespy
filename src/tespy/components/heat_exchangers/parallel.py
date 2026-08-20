@@ -142,12 +142,12 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         :code:`temperature_difference`.
 
     ttd_l : float, dict
-        Terminal temperature difference at hot side outlet to cold side inlet.
+        Terminal temperature difference at hot side inlet to cold side inlet.
         Quantity: :code:`temperature_difference`.
         Equation: :py:meth:`ttd_l_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_l_func>`.
 
     ttd_u : float, dict
-        Terminal temperature difference at hot side inlet to cold side outlet.
+        Terminal temperature difference at hot side outlet to cold side outlet.
         Quantity: :code:`temperature_difference`.
         Equation: :py:meth:`ttd_u_func <tespy.components.heat_exchangers.parallel.ParallelFlowHeatExchanger.ttd_u_func>`.
 

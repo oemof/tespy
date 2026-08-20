@@ -386,9 +386,10 @@ class NTUHeatExchanger(HeatExchanger):
     eps : float, dict
         Heat exchanger effectiveness, heat transfer over maximum transferable
         heat flow at constant capacity rates. Quantity: :code:`efficiency`.
+        Equation: :py:meth:`eps_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.eps_func>`.
 
     flow_arrangement : str
-        Flow arrangement for the effectiveness-NTU relation, one of
+        Flow arrangement for the effectiveness-NTU relation, mandatory, one of
         :code:`'counterflow'`, :code:`'parallelflow'`,
         :code:`'crossflow_both_unmixed'`, :code:`'crossflow_hot_mixed'`,
         :code:`'crossflow_cold_mixed'`, :code:`'crossflow_both_mixed'`,
@@ -428,6 +429,7 @@ class NTUHeatExchanger(HeatExchanger):
 
     NTU : float, dict
         Number of transfer units :code:`UA` over minimum capacity rate.
+        Equation: :py:meth:`NTU_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.NTU_func>`.
 
     num_shell_passes : int
         Number of shell passes for the shell and tube flow arrangement (with 2,
@@ -523,10 +525,11 @@ class NTUHeatExchanger(HeatExchanger):
 
     Example
     -------
-    Hot air is cooled with water in a crossflow heat exchanger with both
-    fluids unmixed. The air outlet temperature is given in the design case,
-    in offdesign operation the heat transfer coefficient :code:`UA`
-    determines the outlet temperatures.
+    Hot air is cooled with water in a crossflow heat exchanger with both fluids
+    unmixed. In the design case we specify both mass flows as well as both
+    inlet temperatures and the air outlet temperature. The water outflow
+    temperature, :code:`NTU`, effectiveness :code:`eps` and :code:`UA` are
+    results.
 
     >>> from tespy.components import Sink, Source, NTUHeatExchanger
     >>> from tespy.connections import Connection
@@ -548,23 +551,47 @@ class NTUHeatExchanger(HeatExchanger):
     >>> c4 = Connection(he, "out2", water_out, "in1", label="c4")
     >>> nw.add_conns(c1, c2, c3, c4)
     >>> c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
-    >>> c2.set_attr(T=45, design=["T"])
+    >>> c2.set_attr(T=45)
     >>> c3.set_attr(fluid={"water": 1}, m=3, T=25, p=3)
-    >>> he.set_attr(
-    ...     pr1=0.98, pr2=0.98, design=["pr1", "pr2"],
-    ...     offdesign=["zeta1_d4", "zeta2_d4", "UA"]
-    ... )
+    >>> he.set_attr(pr1=0.98, pr2=0.98)
     >>> nw.solve("design")
-    >>> design_state = nw.save(as_dict=True)
+
+    We can check the NTU specific results:
+
     >>> round(he.eps.val, 3)
     0.667
-    >>> round(he.NTU.val, 2)
-    1.15
+    >>> round(he.NTU.val, 4)
+    1.1486
+    >>> round(he.UA.val, 4)
+    1.1581
 
-    With reduced air mass flow the heat exchanger transfers a larger share
-    of the theoretically possible heat flow, the air outlet temperature
-    decreases.
+    Now, we can calculate the heat transfer by specifying any of these three
+    results instead of specifying the air outlet temperature. All three are
+    alternative formulations of the same equation, therefore we achieve
+    identical results:
 
+    >>> c2.set_attr(T=None)
+    >>> he.set_attr(NTU=1.1486)
+    >>> nw.solve("design")
+    >>> round(c2.T.val, 1)
+    45.0
+
+    >>> he.set_attr(NTU=None, eps=0.6667)
+    >>> nw.solve("design")
+    >>> round(c2.T.val, 1)
+    45.0
+
+    >>> he.set_attr(eps=None, UA=1.1581)
+    >>> nw.solve("design")
+    >>> round(c2.T.val, 1)
+    45.0
+
+    For an offdesign calculation :code:`UA` remains specified as input.
+    Consequently, :code:`NTU` and :code:`eps` are results. When reducing air
+    mass flow the air outlet temperature will decrease and the effectiveness
+    will increase.
+
+    >>> design_state = nw.save(as_dict=True)
     >>> c1.set_attr(m=0.75)
     >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.eps.val, 3) > 0.667
@@ -576,9 +603,10 @@ class NTUHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params["flow_arrangement"] = dc_simple(
-            val="counterflow", dtype="str",
+            dtype="str",
             description=(
-                "flow arrangement for the effectiveness-NTU relation, one of "
+                "flow arrangement for the effectiveness-NTU relation, "
+                "mandatory, one of "
                 + ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
             )
         )
@@ -611,7 +639,9 @@ class NTUHeatExchanger(HeatExchanger):
             )
         )
         params["NTU"] = dc_cp(
-            min_val=0, is_result=True,
+            min_val=0, num_eq_sets=1,
+            func=self.NTU_func,
+            dependents=self.UA_dependents,
             description=(
                 "number of transfer units :code:`UA` over minimum capacity "
                 "rate"
@@ -624,7 +654,9 @@ class NTUHeatExchanger(HeatExchanger):
             calc=self._calc_C_r
         )
         params["eps"] = dc_cp(
-            min_val=0, max_val=1, is_result=True, quantity="efficiency",
+            min_val=0, max_val=1, num_eq_sets=1, quantity="efficiency",
+            func=self.eps_func,
+            dependents=self.UA_dependents,
             description=(
                 "heat exchanger effectiveness, heat transfer over maximum "
                 "transferable heat flow at constant capacity rates"
@@ -634,6 +666,14 @@ class NTUHeatExchanger(HeatExchanger):
         return params
 
     def _preprocess(self, row_idx):
+        if not self.flow_arrangement.is_set:
+            msg = (
+                f"The flow arrangement of {self.label} is not specified. The "
+                "effectiveness-NTU relation depends on it, you need to set it "
+                "explicitly. Select from '"
+                + "', '".join(FLOW_ARRANGEMENTS) + "'."
+            )
+            raise ValueError(msg)
         if self.flow_arrangement.val not in FLOW_ARRANGEMENTS:
             msg = (
                 f"The flow arrangement '{self.flow_arrangement.val}' of "
@@ -646,8 +686,8 @@ class NTUHeatExchanger(HeatExchanger):
                 and self.num_shell_passes.val < 1
         ):
             msg = (
-                "The number of shell passes of component "
-                f"{self.label} must be at least 1."
+                f"The number of shell passes of component {self.label} must "
+                "be at least 1."
             )
             raise ValueError(msg)
         super()._preprocess(row_idx)
@@ -698,24 +738,54 @@ class NTUHeatExchanger(HeatExchanger):
             return "crossflow_max_mixed"
         return arrangement
 
-    def _ntu_residual(self, UA):
+    def _ntu_residual(self, UA=None, NTU=None, eps=None):
+        r"""Residual of the heat transfer equation.
+
+        Exactly one of parameter among :code:`UA`, :code:`NTU` and :code:`eps`
+        is passed to this method.
+
+        Parameters
+        ----------
+        UA : float
+            Heat transfer coefficient, by default None
+
+        NTU : float
+            Number of transfer units, by default None
+
+        eps : float
+            Heat exchanger effectiveness, by default None
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+        """
         T_i1, T_i2, C_hot, C_cold = self._calc_capacity_rates()
         Q = (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
         if math.isinf(C_hot) and math.isinf(C_cold):
-            # both sides isothermal: constant temperature difference
-            return Q + UA * (T_i1 - T_i2)
+            if UA is None:  # eps or NTU specified
+                # without a finite capacity rate neither the number of transfer
+                # units nor the effectiveness are defined, duty must be zero
+                return Q
+            else:  # UA specified
+                # both sides isothermal: constant temperature difference
+                return Q + UA * (T_i1 - T_i2)
+
         C_min = min(C_hot, C_cold)
         if C_min == 0:
             return Q
-        C_max = max(C_hot, C_cold)
-        C_r = 0.0 if math.isinf(C_max) else C_min / C_max
-        eps = calc_epsilon(
-            UA / C_min, C_r, self._resolve_arrangement(C_hot, C_cold),
-            self.num_shell_passes.val
-        )
+        if eps is None:  # NTU or UA specified
+            C_max = max(C_hot, C_cold)
+            C_r = 0.0 if math.isinf(C_max) else C_min / C_max
+            if UA is None:  # NTU specified
+                UA = NTU * C_min
+            eps = calc_epsilon(
+                UA / C_min, C_r, self._resolve_arrangement(C_hot, C_cold),
+                self.num_shell_passes.val
+            )
         return Q + eps * C_min * (T_i1 - T_i2)
 
     def UA_func(self):
@@ -737,7 +807,48 @@ class NTUHeatExchanger(HeatExchanger):
                 \text{NTU} = \frac{UA}{C_\text{min}},\;
                 C_r = \frac{C_\text{min}}{C_\text{max}}
         """
-        return self._ntu_residual(self.UA.val_SI)
+        return self._ntu_residual(UA=self.UA.val_SI)
+
+    def NTU_func(self):
+        r"""
+        Calculate heat transfer from the number of transfer units
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1}\right)
+                + \varepsilon \cdot C_\text{min} \cdot
+                \left(T_{in,1} - T_{in,2}\right)
+
+                \varepsilon = f\left(\text{NTU}, C_r\right),\;
+                UA = \text{NTU} \cdot C_\text{min}
+        """
+        return self._ntu_residual(NTU=self.NTU.val_SI)
+
+    def eps_func(self):
+        r"""
+        Calculate heat transfer from the heat exchanger effectiveness.
+
+        :code:`eff_hot` and :code:`eff_cold` relate the heat transferred to the
+        maximum possible enthalpy change, this equation is the effectiveness of
+        the effectiveness-NTU method.
+
+        Returns
+        -------
+        residual : float
+            Residual value of equation.
+
+            .. math::
+
+                0 = \dot{m}_{in,1} \cdot \left(h_{out,1} - h_{in,1}\right)
+                + \varepsilon \cdot C_\text{min} \cdot
+                \left(T_{in,1} - T_{in,2}\right)
+        """
+        return self._ntu_residual(eps=self.eps.val_SI)
 
     def UA_dependents(self):
         return [
@@ -796,7 +907,7 @@ class NTUHeatExchanger(HeatExchanger):
         fUA2 = self.UA_char2.char_func.evaluate(f2)
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
-        return self._ntu_residual(self.UA.design * fUA)
+        return self._ntu_residual(UA=self.UA.design * fUA)
 
     def UA_char_dependents(self):
         return self.UA_dependents()

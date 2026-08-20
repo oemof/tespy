@@ -11,10 +11,10 @@ tespy/components/heat_exchangers/condenser.py
 SPDX-License-Identifier: MIT
 """
 
-import math
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
+from tespy.components.heat_exchangers.base import smoothed_lmtd
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -331,20 +331,12 @@ class Condenser(HeatExchanger):
             self.outl[0].h
         ]
 
-    def calculate_td_log(self):
+    def calculate_lmtd(self):
         T_i1 = self.inl[0].calc_T_dew()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
-
-        ttd_u = T_i1 - T_o2
-        ttd_l = T_o1 - T_i2
-        min_ttd = min(ttd_u, ttd_l)
-        if min_ttd <= 0:
-            return min_ttd
-        if round(ttd_u, 6) == round(ttd_l, 6):
-            return ttd_l
-        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+        return smoothed_lmtd(T_i1 - T_o2, T_o1 - T_i2)
 
     def UA_char_func(self):
         r"""

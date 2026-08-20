@@ -738,24 +738,54 @@ class NTUHeatExchanger(HeatExchanger):
             return "crossflow_max_mixed"
         return arrangement
 
-    def _ntu_residual(self, UA):
+    def _ntu_residual(self, UA=None, NTU=None, eps=None):
+        r"""Residual of the heat transfer equation.
+
+        Exactly one of parameter among :code:`UA`, :code:`NTU` and :code:`eps`
+        is passed to this method.
+
+        Parameters
+        ----------
+        UA : float
+            Heat transfer coefficient, by default None
+
+        NTU : float
+            Number of transfer units, by default None
+
+        eps : float
+            Heat exchanger effectiveness, by default None
+
+        Returns
+        -------
+        float
+            Residual value of equation.
+        """
         T_i1, T_i2, C_hot, C_cold = self._calc_capacity_rates()
         Q = (
             self.inl[0].m.val_SI
             * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
         if math.isinf(C_hot) and math.isinf(C_cold):
-            # both sides isothermal: constant temperature difference
-            return Q + UA * (T_i1 - T_i2)
+            if UA is None:  # eps or NTU specified
+                # without a finite capacity rate neither the number of transfer
+                # units nor the effectiveness are defined, duty must be zero
+                return Q
+            else:  # UA specified
+                # both sides isothermal: constant temperature difference
+                return Q + UA * (T_i1 - T_i2)
+
         C_min = min(C_hot, C_cold)
         if C_min == 0:
             return Q
-        C_max = max(C_hot, C_cold)
-        C_r = 0.0 if math.isinf(C_max) else C_min / C_max
-        eps = calc_epsilon(
-            UA / C_min, C_r, self._resolve_arrangement(C_hot, C_cold),
-            self.num_shell_passes.val
-        )
+        if eps is None:  # NTU or UA specified
+            C_max = max(C_hot, C_cold)
+            C_r = 0.0 if math.isinf(C_max) else C_min / C_max
+            if UA is None:  # NTU specified
+                UA = NTU * C_min
+            eps = calc_epsilon(
+                UA / C_min, C_r, self._resolve_arrangement(C_hot, C_cold),
+                self.num_shell_passes.val
+            )
         return Q + eps * C_min * (T_i1 - T_i2)
 
     def UA_func(self):
@@ -777,7 +807,7 @@ class NTUHeatExchanger(HeatExchanger):
                 \text{NTU} = \frac{UA}{C_\text{min}},\;
                 C_r = \frac{C_\text{min}}{C_\text{max}}
         """
-        return self._ntu_residual(self.UA.val_SI)
+        return self._ntu_residual(UA=self.UA.val_SI)
 
     def NTU_func(self):
         r"""
@@ -797,16 +827,7 @@ class NTUHeatExchanger(HeatExchanger):
                 \varepsilon = f\left(\text{NTU}, C_r\right),\;
                 UA = \text{NTU} \cdot C_\text{min}
         """
-        _, _, C_hot, C_cold = self._calc_capacity_rates()
-        C_min = min(C_hot, C_cold)
-        if math.isinf(C_min):
-            # both sides isothermal, the number of transfer units is not
-            # defined: drive the duty towards zero to leave that state
-            return (
-                self.inl[0].m.val_SI
-                * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            )
-        return self._ntu_residual(self.NTU.val_SI * C_min)
+        return self._ntu_residual(NTU=self.NTU.val_SI)
 
     def eps_func(self):
         r"""
@@ -827,15 +848,7 @@ class NTUHeatExchanger(HeatExchanger):
                 + \varepsilon \cdot C_\text{min} \cdot
                 \left(T_{in,1} - T_{in,2}\right)
         """
-        T_i1, T_i2, C_hot, C_cold = self._calc_capacity_rates()
-        Q = (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        )
-        if math.isinf(C_hot) and math.isinf(C_cold):
-            return Q
-        C_min = min(C_hot, C_cold)
-        return Q + self.eps.val_SI * C_min * (T_i1 - T_i2)
+        return self._ntu_residual(eps=self.eps.val_SI)
 
     def UA_dependents(self):
         return [
@@ -894,7 +907,7 @@ class NTUHeatExchanger(HeatExchanger):
         fUA2 = self.UA_char2.char_func.evaluate(f2)
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
-        return self._ntu_residual(self.UA.design * fUA)
+        return self._ntu_residual(UA=self.UA.design * fUA)
 
     def UA_char_dependents(self):
         return self.UA_dependents()

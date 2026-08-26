@@ -12,7 +12,7 @@ For each case the test:
   4. Asserts that Q, T_h_out and T_c_out match the oracle within tolerance.
 
 Q sign convention: TESPy stores Q = mdot_h * (h_out - h_in) < 0 for the hot
-side.  The oracle reports positive heat transferred, so the warm-start pins
+side. The oracle reports positive heat transferred, so the warm-start pins
 :code:`hx.Q = -Q_oracle` and assertions use :code:`abs(hx.Q.val_SI)`.
 """
 import json
@@ -31,6 +31,7 @@ _ORACLE = json.loads(_ORACLE_PATH.read_text())
 
 Q_RTOL   = 1e-3   # 0.1 % relative tolerance on total heat transfer
 T_ATOL_K = 0.5    # K  absolute tolerance on outlet temperatures
+A_RTOL   = 1e-2   # 1 %  relative tolerance on postprocessed area
 
 
 def _build_and_solve(
@@ -66,14 +67,17 @@ def _build_and_solve(
     )
 
     # Step 1: warm start — pin Q to the oracle value (area_zones inactive).
+    # With all alphas, area_ratio and R_cond set but area_hot unset, the
+    # required area is computed as a postprocessing result.
     hx.set_attr(Q=-Q_oracle)
     nw.solve("design")
+    area_from_calc = hx.area_hot.val_SI
 
     # Step 2: release Q, activate area_zones via area_hot, resolve.
     hx.set_attr(Q=None, area_hot=area)
     nw.solve("design", oscillation_damping=True)
 
-    return nw, hx, c2, c4
+    return nw, hx, c2, c4, area_from_calc
 
 
 # ── Section A: Water (hot) / n-Propane (cold), varying area ──────────────
@@ -85,7 +89,7 @@ _cases_A = _ORACLE["section_A"]["cases"]
     "case", _cases_A, ids=[f"A={c['A_m2']}_m2" for c in _cases_A]
 )
 def test_section_A_water_propane(case):
-    _, hx, c2, c4 = _build_and_solve(
+    _, hx, c2, c4, area_from_calc = _build_and_solve(
         _inp_A["Fluid_h"], _inp_A["T_h_in_K"], _inp_A["p_h_in_Pa"], _inp_A["mdot_h_kg_s"],
         _inp_A["Fluid_c"], _inp_A["T_c_in_K"], _inp_A["p_c_in_Pa"], _inp_A["mdot_c_kg_s"],
         _inp_A["alpha_liquid_vapor_W_m2_K"], _inp_A["alpha_two_phase_W_m2_K"],
@@ -95,6 +99,7 @@ def test_section_A_water_propane(case):
     assert abs(hx.Q.val_SI) == pytest.approx(case["Q_W"], rel=Q_RTOL)
     assert c2.T.val_SI == pytest.approx(case["T_h_out_K"], abs=T_ATOL_K)
     assert c4.T.val_SI == pytest.approx(case["T_c_out_K"], abs=T_ATOL_K)
+    assert area_from_calc == pytest.approx(case["A_m2"], rel=A_RTOL)
 
 
 # ── Section B: n-Propane (hot) / n-Propane (cold), 3 cases ───────────────
@@ -106,7 +111,7 @@ _cases_B = _ORACLE["section_B"]["cases"]
     "case", _cases_B, ids=[c["label"] for c in _cases_B]
 )
 def test_section_B_propane_propane(case):
-    _, hx, c2, c4 = _build_and_solve(
+    _, hx, c2, c4, area_from_calc = _build_and_solve(
         _inp_B["Fluid_h"], _inp_B["T_h_in_K"], _inp_B["p_h_in_Pa"], case["mdot_h_kg_s"],
         _inp_B["Fluid_c"], _inp_B["T_c_in_K"], _inp_B["p_c_in_Pa"], case["mdot_c_kg_s"],
         _inp_B["alpha_liquid_vapor_W_m2_K"], _inp_B["alpha_two_phase_W_m2_K"],
@@ -116,3 +121,4 @@ def test_section_B_propane_propane(case):
     assert abs(hx.Q.val_SI) == pytest.approx(case["Q_W"], rel=Q_RTOL)
     assert c2.T.val_SI == pytest.approx(case["T_h_out_K"], abs=T_ATOL_K)
     assert c4.T.val_SI == pytest.approx(case["T_c_out_K"], abs=T_ATOL_K)
+    assert area_from_calc == pytest.approx(case["A_m2"], rel=A_RTOL)

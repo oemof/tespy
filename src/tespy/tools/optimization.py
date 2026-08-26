@@ -214,7 +214,7 @@ class OptimizationProblem(ElementwiseProblem):
         if _is_nested(variables, constraints, kpi):
             warnings.warn(
                 "Passing nested dictionaries to OptimizationProblem is "
-                "deprecated and will be removed in a future release. Use flat "
+                "deprecated and will be removed in version 0.12. Use flat "
                 "parameter name dictionaries instead.",
                 DeprecationWarning,
                 stacklevel=2,

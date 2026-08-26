@@ -327,6 +327,9 @@ class UserDefinedEquation:
             vector_dependents = [{} for _ in range(data.num_eq)]
         else:
             dependents = data.dependents(**data.func_params)
+            _validate_dependents(
+                dependents, f"the UserDefinedEquation {self.label}"
+            )
             if type(dependents) == list:
                 scalar_dependents = _get_dependents(dependents)
                 vector_dependents = [{} for _ in range(data.num_eq)]
@@ -367,6 +370,97 @@ class UserDefinedEquation:
             self.jacobian[eq_num, var.J_col[dx]] = result
 
 
+class UserDefinedVariable:
+    r"""
+    A UserDefinedVariable adds a standalone variable to the solver.
+
+    The variable is not attached to any connection or component. It is
+    referenced from the function and dependents of a
+    :py:class:`UserDefinedEquation`, which closes the degree of freedom the
+    variable adds - a typical use case is solving for an unknown parameter
+    of a user specified relation instead of specifying it.
+
+    Parameters
+    ----------
+    label : str
+        Label of the variable, must be unique within a network.
+
+    val0 : float
+        Starting value in SI units.
+
+    min_val : float, optional
+        Lower limit for the value during solving.
+
+    max_val : float, optional
+        Upper limit for the value during solving.
+
+    d : float, optional
+        Step size for the numeric derivatives, by default 1e-4.
+
+    Note
+    ----
+    The value is accessed in SI units through :code:`val_SI`, e.g. from
+    within the function of a :code:`UserDefinedEquation`. The dependents of
+    the equation reference the underlying container through the
+    :code:`variable` attribute. With :code:`set_attr(is_var=False)` the
+    variable turns into a plain constant read by the equation, removing it
+    from the variable space of the solver.
+    """
+
+    def __init__(self, label: str, val0: float, min_val: float=None, max_val: float=None, d: float=1e-4):
+        if not isinstance(label, str):
+            msg = "UserDefinedVariable label must be of type str."
+            logger.error(msg)
+            raise TypeError(msg)
+        self.label = label
+        kwargs = {
+            "is_set": True, "_is_var": True, "_potential_var": True,
+            "_val_SI": val0, "d": d
+        }
+        if min_val is not None:
+            kwargs["min_val"] = min_val
+        if max_val is not None:
+            kwargs["max_val"] = max_val
+        self.variable = dc_cp(**kwargs)
+
+    def get_variables(self):
+        if self.variable.is_var:
+            return {"variable": self.variable}
+        return {}
+
+    def get_attr(self, key):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        msg = f"UserDefinedVariable has no attribute {key}."
+        logger.error(msg)
+        raise KeyError(msg)
+
+    def set_attr(self, val=None, is_var=None, min_val=None, max_val=None):
+        if val is not None:
+            self.variable.val_SI = val
+        if is_var is not None:
+            self.variable.is_var = is_var
+            self.variable._potential_var = is_var
+        if min_val is not None:
+            self.variable.min_val = min_val
+        if max_val is not None:
+            self.variable.max_val = max_val
+
+    @property
+    def val_SI(self):
+        return self.variable.val_SI
+
+    # forwarded so the object itself can be listed as dependent of an
+    # equation, consistent with how connection containers are used
+    @property
+    def is_var(self):
+        return self.variable.is_var
+
+    @property
+    def _reference_container(self):
+        return self.variable._reference_container
+
+
 def solve(obj, increment_filter):
     """
     Solve equations and calculate partial derivatives of a component.
@@ -380,6 +474,21 @@ def solve(obj, increment_filter):
         eq_num = data._first_eq_index
         _solve_residual(obj, data, eq_num)
         _solve_jacobian(obj, data, increment_filter, eq_num)
+
+
+def get_variable_value(data):
+    """Current value of a variable entry of :code:`Problem.variables_dict`."""
+    if data["variable"] == "fluid":
+        return data["obj"].val[data["fluid"]]
+    return data["obj"]._val_SI
+
+
+def set_variable_value(data, value):
+    """Set the value of a variable entry of :code:`Problem.variables_dict`."""
+    if data["variable"] == "fluid":
+        data["obj"].val[data["fluid"]] = value
+    else:
+        data["obj"]._val_SI = value
 
 
 def solve_residuals(obj):
@@ -412,7 +521,12 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             **data.func_params
         )
     else:
-        all_scalar_deps = set().union(*data._scalar_dependents)
+        # deterministic evaluation order: the set iterates in the per
+        # process id order, which must not leak into the numerics
+        all_scalar_deps = sorted(
+            set().union(*data._scalar_dependents),
+            key=lambda dep: dep.J_col if dep.is_var else -1
+        )
         for dependent in all_scalar_deps:
             result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
             if result is None:
@@ -428,7 +542,7 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
             for var, dxs in eq_vec_deps.items():
                 all_vector_deps.setdefault(var, set()).update(dxs)
         for var, dxs in all_vector_deps.items():
-            for dx in dxs:
+            for dx in sorted(dxs):
                 result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
                 if result is None:
                     continue
@@ -500,14 +614,18 @@ def _numeric_deriv(variable, func, **kwargs):
             \frac{\partial f}{\partial x} = \frac{f(x + d) - f(x - d)}{2 d}
     """
     d = variable.d
-    tol = max(variable.val_SI * d, d)
-    variable.val_SI += tol
+    original = variable.val_SI
+    tol = max(original * d, d)
+    # restore the original value bit-exact: the arithmetic roundtrip
+    # x + tol - 2 tol + tol leaves one-ulp residues, which make the
+    # jacobian depend on the evaluation order of the dependents
+    variable.val_SI = original + tol
     upper = np.asarray(func(**kwargs))
 
-    variable.val_SI -= 2 * tol
+    variable.val_SI = original - tol
     lower = np.asarray(func(**kwargs))
 
-    variable.val_SI += tol
+    variable.val_SI = original
     result = (upper - lower) / (2 * tol)
     return result.item() if result.ndim == 0 else result
 
@@ -599,7 +717,7 @@ def newton_with_kwargs(
         # relaxation to help convergence in case of jumping
         if iteration == 5:
             relax = 0.75
-            max_iter = 12
+            max_iter = max(max_iter, 12)
 
         if iteration > max_iter:
             msg = (
@@ -684,6 +802,55 @@ def _get_vector_dependents(variable_list):
         return [
             set(var for var in variable_list)
         ]
+
+
+def _validate_dependents(dependents, context):
+    """Raise on dependents that cannot enter the incidence.
+
+    Every variable container of a network object receives a reference container
+    during the affine elimination. A dependent without one is either a variable
+    of an object outside of the network or a property that can never be a
+    variable of the solver. Both silently disappear from the incidence
+    otherwise, leaving the equation with incomplete dependency information.
+    """
+    candidates = (
+        dependents["scalars"] if isinstance(dependents, dict)
+        else dependents
+    )
+    flat = []
+    for item in candidates:
+        if isinstance(item, list):
+            flat.extend(item)
+        else:
+            flat.append(item)
+    for dependent in flat:
+        if getattr(dependent, "_reference_container", None) is not None:
+            continue
+        if dependent.is_var:
+            msg = (
+                f"The dependents of {context} reference a variable that is "
+                "not part of the network's variable space, e.g. a "
+                "UserDefinedVariable that has not been added to the network "
+                "or has been removed from it."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+        elif (
+                getattr(dependent, "func", None) is not None
+                and not isinstance(dependent, dc_cp)
+            ):
+            # component parameters are exempt: listing one that is not switched
+            # to a variable is the established pattern for conditional
+            # dependents, e.g. the specific energy of the reactor components
+            msg = (
+                f"The dependents of {context} reference a property that is "
+                "never a variable of the solver, e.g. a temperature "
+                "container. List the variables the property is calculated "
+                "from instead, e.g. pressure and enthalpy in case of the "
+                "temperature."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
 
 
 def _get_dependents(variable_list):

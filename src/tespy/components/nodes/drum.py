@@ -173,30 +173,16 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
-    def initialise_target(self, c, key):
-        r"""
-        Return a starting value for pressure and enthalpy at inlet.
-
-        Parameters
-        ----------
-        c : tespy.connections.connection.Connection
-            Connection to perform initialisation on.
-
-        key : str
-            Fluid property to retrieve.
-
-        Returns
-        -------
-        val : float
-            Starting value for pressure/enthalpy in SI units.
-        """
-        if key == 'p':
-           return super().initialise_target(c, key)
-        elif key == 'h':
-            if c.target_id == 'in1':
-                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
-            else:
-                return h_mix_pQ(c.p.val_SI, 0.7, c.fluid_data)
+    def initial_state(self, port):
+        # the outlets sit on the saturation lines and the drum pressure is
+        # shared across all ports, so the side must be subcritical
+        if port == 'in1':
+            return {"phase": "liquid"}
+        elif port == 'out1':
+            return {"phase": "liquid", "saturated": True}
+        elif port == 'out2':
+            return {"phase": "gas", "saturated": True}
+        return {"phase": "two-phase", "saturated": True}
 
     def propagate_wrapper_to_target(self, branch):
         return super().propagate_wrapper_to_target(branch)

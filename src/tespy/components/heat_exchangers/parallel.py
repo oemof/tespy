@@ -279,7 +279,31 @@ class ParallelFlowHeatExchanger(HeatExchanger):
         del params["eff_hot"]
         del params["eff_cold"]
         del params["eff_max"]
+        params["ttd_u"].description = (
+            "terminal temperature difference at hot side outlet to cold side "
+            "outlet"
+        )
+        params["ttd_l"].description = (
+            "terminal temperature difference at hot side inlet to cold side "
+            "inlet"
+        )
         return params
+
+    def _initial_temperature_edges(self):
+        # the inherited relations describe counter flow terminal
+        # temperature differences (hot inlet vs cold outlet), in parallel
+        # flow both terminal differences connect same ends: the inlets at
+        # the upper and the outlets at the lower temperature difference
+        ttd_upper = self.ttd_u.val_SI if self.ttd_u.is_set else 10.0
+        weight_upper = 5.0 if self.ttd_u.is_set else 0.3
+        ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
+        weight_lower = 5.0 if self.ttd_l.is_set else 0.3
+        return [
+            (self.inl[0], self.outl[0], 0.0, 1.0),
+            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.outl[1], self.outl[0], ttd_upper, weight_upper),
+            (self.inl[1], self.inl[0], ttd_lower, weight_lower),
+        ]
 
     def _calc_ttd_u(self):
         return self.outl[0].T.val_SI - self.outl[1].T.val_SI

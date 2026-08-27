@@ -86,8 +86,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Secondary to refrigerant side convective heat transfer coefficient
-        ratio. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio; with the
+        deprecated :code:`UA_cecchinato` group it is the secondary to
+        refrigerant side ratio instead. Quantity: :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -96,8 +97,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Heat transfer area ratio; previously defined as secondary to refrigerant
-        side ratio, will be defined as hot to cold side ratio in version 0.12.
+        Cold to hot side heat transfer area ratio; with the deprecated
+        :code:`UA_cecchinato` group it is the secondary to refrigerant side
+        ratio instead, this will change to cold to hot side in version 0.12.
         Quantity: :code:`ratio`.
 
     area_zones : GroupedComponentProperties
@@ -416,8 +418,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     - hot side Reynolds exponent (:code:`re_exp_hot`)
     - cold side Reynolds exponent (:code:`re_exp_cold`)
-    - hot to cold side area ratio (:code:`area_ratio`)
-    - hot to cold side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
+    - cold to hot side area ratio (:code:`area_ratio`)
+    - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
     >>> design_state = nw.save(as_dict=True)
     >>> cd.set_attr(

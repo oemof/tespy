@@ -101,8 +101,9 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Secondary to refrigerant side convective heat transfer coefficient
-        ratio. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio; with the
+        deprecated :code:`UA_cecchinato` group it is the secondary to
+        refrigerant side ratio instead. Quantity: :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -111,8 +112,9 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Heat transfer area ratio; previously defined as secondary to refrigerant
-        side ratio, will be defined as hot to cold side ratio in version 0.12.
+        Cold to hot side heat transfer area ratio; with the deprecated
+        :code:`UA_cecchinato` group it is the secondary to refrigerant side
+        ratio instead, this will change to cold to hot side in version 0.12.
         Quantity: :code:`ratio`.
 
     area_zones : GroupedComponentProperties
@@ -437,8 +439,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
     - hot side Reynolds exponent (:code:`re_exp_hot`)
     - cold side Reynolds exponent (:code:`re_exp_cold`)
-    - hot to cold side area ratio (:code:`area_ratio`)
-    - hot to cold side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
+    - cold to hot side area ratio (:code:`area_ratio`)
+    - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
     >>> design_state = nw.save(as_dict=True)
     >>> cd.set_attr(
@@ -705,12 +707,15 @@ class SectionedHeatExchanger(HeatExchanger):
             ),
             'alpha_ratio': dc_cp(
                 quantity="ratio", min_val=0,
-                description="secondary to refrigerant side convective heat transfer coefficient ratio"
+                description="cold to hot side convective heat transfer coefficient ratio; "
+                "with the deprecated :code:`UA_cecchinato` group it is the secondary to "
+                "refrigerant side ratio instead"
             ),
             'area_ratio': dc_cp(
                 quantity="ratio", min_val=0,
-                description="heat transfer area ratio; previously defined as secondary to "
-                "refrigerant side ratio, will be defined as hot to cold side ratio in "
+                description="cold to hot side heat transfer area ratio; with the "
+                "deprecated :code:`UA_cecchinato` group it is the secondary to "
+                "refrigerant side ratio instead, this will change to cold to hot side in "
                 "version 0.12"
             ),
             'UA_cecchinato': dc_gcp(
@@ -1137,20 +1142,23 @@ class SectionedHeatExchanger(HeatExchanger):
 
         Requires :code:`re_exp_hot`, :code:`re_exp_cold`, :code:`alpha_ratio`,
         and :code:`area_ratio`. Hot side is inlet index 0, cold side is inlet
-        index 1.
+        index 1. :code:`alpha_ratio` is the cold to hot side heat transfer
+        coefficient ratio :math:`\alpha_\text{cold} / \alpha_\text{hot}`,
+        :code:`area_ratio` the cold to hot side area ratio
+        :math:`A_\text{cold} / A_\text{hot}`.
 
         The modification factor for UA is calculated as follows
 
         .. math::
 
             f_\text{UA}=\frac{
-                1 + \frac{\alpha_\text{hot}}{\alpha_\text{cold}}
-                \cdot\frac{A_\text{hot}}{A_\text{cold}}
+                1 + \frac{\alpha_\text{cold}}{\alpha_\text{hot}}
+                \cdot\frac{A_\text{cold}}{A_\text{hot}}
             }{
-                \frac{\dot m_\text{cold}}{\dot m_\text{cold,ref}}^{-Re_\text{cold}} +
-                \frac{\alpha_\text{hot}}{\alpha_\text{cold}}
-                \cdot\frac{A_\text{hot}}{A_\text{cold}}
-                \cdot\frac{\dot m_\text{hot}}{\dot m_\text{hot,ref}}^{-Re_\text{hot}}
+                \left(\frac{\dot m_\text{cold}}{\dot m_\text{cold,ref}}\right)^{-Re_\text{cold}} +
+                \frac{\alpha_\text{cold}}{\alpha_\text{hot}}
+                \cdot\frac{A_\text{cold}}{A_\text{hot}}
+                \cdot\left(\frac{\dot m_\text{hot}}{\dot m_\text{hot,ref}}\right)^{-Re_\text{hot}}
             }
 
         Returns
@@ -1177,7 +1185,10 @@ class SectionedHeatExchanger(HeatExchanger):
         and this group will be removed.
 
         Requires :code:`re_exp_r`, :code:`re_exp_sf`, :code:`alpha_ratio`,
-        :code:`area_ratio`, and :code:`refrigerant_index`.
+        :code:`area_ratio`, and :code:`refrigerant_index`. Here
+        :code:`alpha_ratio` and :code:`area_ratio` are the secondary fluid to
+        refrigerant side ratios, i.e. their direction relative to hot and cold
+        side depends on :code:`refrigerant_index`.
 
         Returns
         -------

@@ -941,7 +941,9 @@ class Component:
                 pass
         state = self.initial_state(port)
         if state is not None:
-            return connection._h_for_state(state)[0]
+            result = connection._h_for_state(state)
+            if result is not None:
+                return result[0]
 
         # mixtures and undeclared ports: ambient temperature as
         # representative state

@@ -1,0 +1,17 @@
+v0.11.2 - under development
++++++++++++++++++++++++++++
+
+New Features
+############
+- The EN 12900 fitting and efficiency map generation for the
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  support non-rectangular data: :code:`nan` cells in datasheet tables are
+  excluded from the fits. The methods
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.fit_EN12900_points` and
+  :py:func:`~tespy.components.displacementmachinery.polynomial_compressor.generate_eta_polys_from_points`
+  accept flattened arrays of data points directly
+  (`PR #1056 <https://github.com/oemof/tespy/pull/1056>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

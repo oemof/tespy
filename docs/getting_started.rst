@@ -1,8 +1,8 @@
 .. _getting_started_label:
 
-###############
-Getting started
-###############
+####################
+About & Installation
+####################
 
 .. grid:: 1 3 3 3
     :gutter: 1
@@ -31,17 +31,6 @@ Getting started
 
         Get the installation instructions for your favorite OS
 
-    .. grid-item-card::  Introductory Tutorials
-        :link: basics_label
-        :link-type: ref
-
-        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials.svg
-            :class: only-light
-
-        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials_darkmode.svg
-            :class: only-dark
-
-        Build your first models with tespy
 
 ..  toctree::
     :maxdepth: 1

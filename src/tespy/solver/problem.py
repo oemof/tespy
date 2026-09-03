@@ -1251,10 +1251,10 @@ class Problem:
             return 0
 
         column_set = set(columns)
-        # the frozen property field only reconciles pressures and
-        # enthalpies - equations depending on a guessed fluid composition
-        # (combustion stoichiometry and energy balances) would inject
-        # arbitrary flow information and are left to the solver
+        # the frozen property field only reconciles pressures and enthalpies
+        # equations depending on a guessed fluid composition (e.g. combustion
+        # stoichiometry and energy balances) would inject arbitrary flow
+        # information and are left to the solver
         fluid_columns = set()
         for data in self.variables_dict.values():
             if data["variable"] == "fluid":
@@ -1264,46 +1264,84 @@ class Problem:
             if not column_set.isdisjoint(cols)
             and fluid_columns.isdisjoint(cols)
         ]
-        if not rows:
+        # approximate relations between the flows complement the retained rows
+        # where the physical relation cannot enter the presolve, e.g. the air
+        # to fuel proportion of combustion components. Without them the least
+        # squares would pick an arbitrary split of the respective total mass
+        # balance. They apply even when no physical row was retained at all,
+        # e.g. all of them consumed by the structural presolve.
+        values = np.array([
+            self.variables_dict[col]["obj"]._val_SI for col in columns
+        ])
+        col_index = {col: idx for idx, col in enumerate(columns)}
+        relation_rows = []
+        relation_rhs = []
+        for cp in self.network.comps["object"]:
+            for relation in cp._initial_flow_relations():
+                row = np.zeros(len(columns))
+                rhs_value = 0.0
+                for container, coefficient in relation.items():
+                    reference = container._reference_container
+                    if reference is None:
+                        reference = container
+                        factor, offset = 1.0, 0.0
+                    else:
+                        factor = container._factor
+                        offset = container._offset
+                    rhs_value -= coefficient * offset
+                    if reference.is_var and reference.J_col in col_index:
+                        row[col_index[reference.J_col]] += coefficient * factor
+                    else:
+                        # presolved and seeded flows are known values
+                        rhs_value -= coefficient * factor * reference._val_SI
+                if np.any(row):
+                    relation_rows.append(row)
+                    relation_rhs.append(rhs_value - row @ values)
+
+        if not rows and not relation_rows:
             return 0
 
-        n = self.variable_counter
-        self.residual = np.zeros(n)
-        self.jacobian = np.zeros((n, n))
-        self.increment = np.ones(n)
-        self.residual_scales = np.ones(n)
-        self.variable_weights = np.ones(n)
-        self.increment_filter = np.absolute(self.increment) < ERR ** 2
-        try:
-            self._solve_equations()
-        except Exception as e:
-            # best effort pass: any failure of the evaluation on the
-            # guessed values - including badly parametrized equations,
-            # which raise their descriptive errors in the actual solve -
-            # just skips the flow presolve
-            msg = (
-                "Skipping the flow variable presolve, the equation "
-                f"evaluation on the starting values failed: {e}"
-            )
-            logger.debug(msg)
-            return 0
-        finally:
-            for obj in (
-                    self.network.comps["object"].tolist()
-                    + self.network.conns["object"].tolist()
-                ):
-                obj.it = 0
+        matrix = np.zeros((0, len(columns)))
+        rhs = np.zeros(0)
+        if rows:
+            n = self.variable_counter
+            self.residual = np.zeros(n)
+            self.jacobian = np.zeros((n, n))
+            self.increment = np.ones(n)
+            self.residual_scales = np.ones(n)
+            self.variable_weights = np.ones(n)
+            self.increment_filter = np.absolute(self.increment) < ERR ** 2
+            try:
+                self._solve_equations()
+            except Exception as e:
+                # best effort pass: any failure of the evaluation on the g
+                # guessed values skips the flow presolve
+                msg = (
+                    "Skipping the flow variable presolve, the equation "
+                    f"evaluation on the starting values failed: {e}"
+                )
+                logger.debug(msg)
+                return 0
+            finally:
+                for obj in (
+                        self.network.comps["object"].tolist()
+                        + self.network.conns["object"].tolist()
+                    ):
+                    obj.it = 0
 
-        rows = [
-            row for row in rows
-            if np.isfinite(self.residual[row])
-            and np.isfinite(self.jacobian[row, columns]).all()
-        ]
-        if not rows:
-            return 0
+            rows = [
+                row for row in rows
+                if np.isfinite(self.residual[row])
+                and np.isfinite(self.jacobian[row, columns]).all()
+            ]
+            matrix = self.jacobian[np.ix_(rows, columns)]
+            rhs = -self.residual[rows]
 
-        matrix = self.jacobian[np.ix_(rows, columns)]
-        rhs = -self.residual[rows]
+        num_physical_rows = matrix.shape[0]
+        if relation_rows:
+            matrix = np.vstack([matrix] + relation_rows)
+            rhs = np.append(rhs, relation_rhs)
+
         # equilibrate the rows: energy balances live on a scale of watts,
         # mass balances on kilograms per second - without normalization
         # the least squares compromise would sacrifice the exact balances
@@ -1314,6 +1352,15 @@ class Problem:
             return 0
         matrix = matrix[keep] / norms[keep, None]
         rhs = rhs[keep] / norms[keep]
+
+        # after the row equilibration a relation would compromise equally with
+        # every physical row. The proportions are better information than the
+        # energy balances evaluated on the guessed property field, so they
+        # weigh in more heavily
+        relation_weight = 10.0
+        relation_rows = np.arange(len(keep))[keep] >= num_physical_rows
+        matrix[relation_rows] *= relation_weight
+        rhs[relation_rows] *= relation_weight
 
         delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
         if not np.isfinite(delta).all():

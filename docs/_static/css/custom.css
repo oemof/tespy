@@ -58,3 +58,79 @@ figure figcaption p {
 span.backrefs {
     display: none !important;
 }
+
+/* ---- landing page: secondary link columns ---- */
+
+.tespy-links .rubric {
+    font-size: 0.75rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-foreground-secondary);
+    border-bottom: 1px solid var(--color-background-border);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.tespy-links ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0;
+}
+
+.tespy-links li {
+    margin: 0.15rem 0;
+}
+
+/* ---- notebook outputs: pandas DataFrame tables ---- */
+
+/* wide frames scroll inside their own box instead of pushing the page */
+.cell_output .output.text_html {
+    overflow-x: auto;
+}
+
+.cell_output table.dataframe {
+    border-collapse: collapse;
+    border: 0;
+    margin: 0.25rem 0;
+    font-size: var(--font-size--small);
+    font-variant-numeric: tabular-nums;
+}
+
+.cell_output table.dataframe thead th {
+    background: var(--color-background-secondary);
+    color: var(--color-foreground-primary);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    border: 0;
+    border-bottom: 2px solid var(--color-background-border);
+    padding: 0.4rem 0.7rem;
+}
+
+.cell_output table.dataframe thead th:first-child,
+.cell_output table.dataframe tbody th {
+    text-align: left;
+}
+
+.cell_output table.dataframe tbody th {
+    color: var(--color-foreground-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+    border: 0;
+    padding: 0.35rem 0.7rem;
+}
+
+.cell_output table.dataframe tbody td {
+    text-align: right;
+    border: 0;
+    border-top: 1px solid var(--color-background-border);
+    padding: 0.35rem 0.7rem;
+}
+
+.cell_output table.dataframe tbody tr:nth-child(2n) {
+    background: var(--color-background-secondary);
+}
+
+.cell_output table.dataframe tbody tr:hover {
+    background: var(--color-background-hover);
+}

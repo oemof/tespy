@@ -34,6 +34,7 @@ from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
@@ -914,6 +915,43 @@ class Component:
         """
         return None
 
+    def _initial_port_enthalpy(self, connection, port):
+        r"""
+        Enthalpy at a port for the initial state based guesses
+
+        Returns in order:
+
+        Either the connection's enthalpy when it already holds a value, the
+        enthalpy at the connection's temperature hint, the enthalpy of the
+        declared port state or the ambient temperature as fallback.
+        """
+        h = connection.h.val_SI
+        # 0 is the placeholder of unset enthalpies during the starting value
+        # assignment
+        if not np.isnan(h) and h != 0:
+            return h
+        T_hint = connection._temperature_hint()
+        if T_hint is not None:
+            try:
+                return h_mix_pT(
+                    connection.p.val_SI, T_hint, connection.fluid_data,
+                    connection.mixing_rule
+                )
+            except ValueError:
+                pass
+        state = self.initial_state(port)
+        if state is not None:
+            result = connection._h_for_state(state)
+            if result is not None:
+                return result[0]
+
+        # mixtures and undeclared ports: ambient temperature as
+        # representative state
+        return h_mix_pT(
+            connection.p.val_SI, 293.15, connection.fluid_data,
+            connection.mixing_rule
+        )
+
     def _initial_temperature_edges(self):
         r"""
         Approximate temperature relations between the ports.
@@ -951,6 +989,12 @@ class Component:
                 (self.inl[0].p, self.outl[0].p, 0.99, 0.0),
                 (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
             ]
+        return []
+
+    def _initial_flow_relations(self):
+        r"""
+        Approximate linear relations between the flow variables.
+        """
         return []
 
     def _separate_flat_enthalpy_starts(self, seeded):

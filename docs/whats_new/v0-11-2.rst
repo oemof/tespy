@@ -1,5 +1,5 @@
-v0.11.2 - under development
-+++++++++++++++++++++++++++
+v0.11.2 - Rankine's Renaissance (September, 3, 2026)
+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
 ############

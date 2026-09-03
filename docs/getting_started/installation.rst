@@ -1,8 +1,8 @@
 .. _installation_and_setup_label:
 
-######################
+======================
 Installation and setup
-######################
+======================
 
 Following you find guidelines for the installation process for linux and
 windows. TESPy is a Python package, thus it requires you to have Python 3

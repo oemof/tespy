@@ -183,7 +183,7 @@ different tespy classes required.
     >>> nw.assert_convergence()
 
 Example: compressor subsystem with a power inlet
--------------------------------------------------
+------------------------------------------------
 
 This example shows how to expose a
 :py:class:`~tespy.connections.powerconnection.PowerConnection` port on a

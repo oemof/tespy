@@ -357,7 +357,7 @@ To solve your offdesign calculation, use:
     nw.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
 Component-level design references
-*********************************
+"""""""""""""""""""""""""""""""""
 
 In some situations a single component - or a small group of components - has
 been redesigned or replaced, so its individual design point differs from the

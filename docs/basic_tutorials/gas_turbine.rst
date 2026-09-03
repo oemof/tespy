@@ -28,7 +28,7 @@ Download the full script here:
 :download:`gas_turbine.py </../tutorial/basics/gas_turbine.py>`
 
 Setting up the Combustion Chamber
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 We are setting up our system step by step. Especially for larger systems, it
 is recommended you follow this approach, since it allows you to validate
 every part of your model separately. You can learn how the solver generates
@@ -131,7 +131,7 @@ results dataframe for the connections.
     respective class names.
 
 Setting up the Full System
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 After learning more about the component, we are going to add the remaining
 components: The turbine, the compressor and the generator. To do that, remove
 the existing connections from the network, create the new connections and
@@ -198,7 +198,7 @@ assume 2 % heat losses and 3 % pressure losses in the combustion chamber.
     and turbine inlet temperatures
 
 Fluid Composition Specifications
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 In this section you will learn how the fluid composition can be used as a
 variable in such systems. To begin, we can set the oxygen mass fraction on the
 flue gas instead of the turbine inlet pressure, since it determines the share

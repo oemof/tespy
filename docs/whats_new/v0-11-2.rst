@@ -12,6 +12,18 @@ New Features
   accept flattened arrays of data points directly
   (`PR #1056 <https://github.com/oemof/tespy/pull/1056>`__).
 
+Bug Fixes
+#########
+- The starting value generation split the total mass balance of combustion
+  components arbitrarily, since the stoichiometry and the energy balance cannot
+  enter the presolve on a guessed fluid composition. The
+  :py:class:`~tespy.components.combustion.base.CombustionChamber` and its
+  subclasses now contribute an approximate air to fuel proportion - based on the
+  oxygen supply and demand of the inlets and on :code:`lamb`, where it is
+  specified - to the flow presolve, which leads to more reasonable initial
+  guesses for the individual mass flows
+  (`PR #1058 <https://github.com/oemof/tespy/pull/1058>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

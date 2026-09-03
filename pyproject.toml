@@ -85,7 +85,8 @@ dev = [
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-notfound-page>=1.1.0",
-    "sphinxcontrib.bibtex",
+    "sphinx-reredirects",
+    "sphinxcontrib.bibtex>=2.0",
     "tox",
     "twine"
 ]

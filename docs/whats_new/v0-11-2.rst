@@ -24,6 +24,32 @@ Bug Fixes
   guesses for the individual mass flows
   (`PR #1058 <https://github.com/oemof/tespy/pull/1058>`__).
 
+Other Changes
+#############
+- Three new example models are available in the
+  :ref:`Model Library <model_library_label>`
+  (`PR #1059 <https://github.com/oemof/tespy/pull/1059>`__):
+
+  - A :ref:`water-to-water heat pump <model_heat_pump_partload_label>` with an
+    internal heat exchanger and EN 12900 compressor maps, including the
+    offdesign evaluation of its part load behavior.
+  - A :ref:`supercritical CO2 recompression cycle <model_sco2_label>`, a 100 MW
+    Brayton cycle validated against published data.
+  - A :ref:`combined cycle power plant <model_ccpp_label>` of 300 MW with
+    district heating extraction.
+
+- The documentation has been restructured into the main sections "Get started",
+  "Explore", "Build", "Project" and "Reference". The former advanced features,
+  integration and knowledge center pages are now split into the
+  :ref:`how-to guides <how_to_guides_label>`, :ref:`extend <extend_label>` and
+  :ref:`integrate <integrate_label>` sections and the complete simulation
+  models moved from the tutorials to the
+  :ref:`Model Library <model_library_label>`
+  (`PR #1059 <https://github.com/oemof/tespy/pull/1059>`__).
+- The new :ref:`publications page <publications_label>` lists the works using
+  or citing tespy. If your work is missing, please open an issue or a pull
+  request (`PR #1059 <https://github.com/oemof/tespy/pull/1059>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

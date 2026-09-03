@@ -1,0 +1,21 @@
+.. _whats_new_v0_7_label:
+
+####
+v0.7
+####
+
+Changelog of the v0.7 release series.
+
+.. include::  /whats_new/v0-7-9.rst
+.. include::  /whats_new/v0-7-8-002.rst
+.. include::  /whats_new/v0-7-8-001.rst
+.. include::  /whats_new/v0-7-8.rst
+.. include::  /whats_new/v0-7-7.rst
+.. include::  /whats_new/v0-7-6-001.rst
+.. include::  /whats_new/v0-7-6.rst
+.. include::  /whats_new/v0-7-5.rst
+.. include::  /whats_new/v0-7-4.rst
+.. include::  /whats_new/v0-7-3.rst
+.. include::  /whats_new/v0-7-2.rst
+.. include::  /whats_new/v0-7-1.rst
+.. include::  /whats_new/v0-7-0.rst

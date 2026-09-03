@@ -378,6 +378,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_copybutton',
     'sphinx_design',
+    'sphinx_reredirects',
     'sphinxcontrib.bibtex',
 ]
 
@@ -389,6 +390,55 @@ def generate_all_sources(app):
 
 def setup(app):
     app.connect("builder-inited", generate_all_sources)
+
+
+
+# Redirects for the pages moved in the documentation restructure. Rendered as
+# meta-refresh stubs at the old paths, so external deep links keep working.
+# ReadTheDocs redirects should mirror these to serve real 301s for search
+# engines; see docs/scripts/redirects.md
+redirects = {
+    "advanced_tutorials": "how_to_guides.html",
+    "advanced_tutorials/co2_cycle": "../model_library/co2_cycle.html",
+    "advanced_tutorials/heat_pump_exergy": "../model_library/heat_pump_exergy.html",
+    "advanced_tutorials/heat_pump_steps": "../how_to_guides/heat_pump_steps.html",
+    "advanced_tutorials/starting_values": "../how_to_guides/starting_values.html",
+    "advanced_tutorials/debugging": "../how_to_guides/debugging.html",
+    "advanced_tutorials/advanced_debugging": "../how_to_guides/advanced_debugging.html",
+    "advanced_tutorials/heat_exchangers": "../how_to_guides/heat_exchangers.html",
+    "advanced_tutorials/humid_air": "../how_to_guides/humid_air.html",
+    "advanced_tutorials/powerconnections": "../how_to_guides/powerconnections.html",
+    "advanced_tutorials/develop_components": "../extend/develop_components.html",
+    "advanced_features": "extend.html",
+    "advanced_features/ude": "../extend/ude.html",
+    "advanced_features/custom_components": "../extend/custom_components.html",
+    "advanced_features/fluid_properties": "../extend/fluid_properties.html",
+    "advanced_features/characteristics": "../extend/characteristics.html",
+    "advanced_features/exergy": "../integrate/exergy.html",
+    "advanced/optimization": "../integrate/optimization.html",
+    "integration": "integrate.html",
+    "integration/workflows": "../integrate/workflows.html",
+    "integration/optimization": "../integrate/optimization.html",
+    "examples_benchmarks": "in_use.html",
+    "examples/applications": "../in_use/example_publications.html",
+    "examples/benchmarks": "../in_use/validation.html",
+    "knowledge_center": "community.html",
+    "knowledge_center/faq": "../how_to_guides/faq.html",
+    "knowledge_center/educational_resources": "../community/educational_resources.html",
+    "zliterature": "in_use/literature.html",
+    "documentation": "api.html",
+}
+
+# a redirect whose target resolves back to its own path overwrites the real page
+# with a self-referencing stub; fail the build instead
+def _check_redirects():
+    import posixpath
+    for _old, _tgt in redirects.items():
+        if posixpath.normpath(posixpath.join(posixpath.dirname(_old), _tgt)) == _old + ".html":
+            raise ValueError(f"self-referencing redirect: {_old} -> {_tgt}")
+
+
+_check_redirects()
 
 
 # landing page
@@ -411,7 +461,7 @@ templates_path = ['_templates']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', 'jupyter_execute']
+exclude_patterns = ['_build', 'jupyter_execute', 'scripts', '.jupyter_cache']
 
 # The name of the Pygments (syntax highlighting) style to use.
 # pygments_style = "some"
@@ -422,6 +472,30 @@ exclude_patterns = ['_build', 'jupyter_execute']
 
 # place for bibtex references
 bibtex_bibfiles = ['references.bib']
+
+
+# the list of publications using tespy reads newest first, which needs a
+# sorting style: sphinxcontrib-bibtex orders entries through pybtex
+from pybtex.plugin import register_plugin  # noqa: E402
+from pybtex.style.formatting.unsrt import Style as UnsrtStyle  # noqa: E402
+from pybtex.style.sorting import BaseSortingStyle  # noqa: E402
+
+
+class YearDescSorting(BaseSortingStyle):
+
+    def sorting_key(self, entry):
+        year = entry.fields.get("year", "")
+        digits = "".join(c for c in year if c.isdigit())
+        return (-int(digits) if digits else 0,
+                entry.fields.get("title", "").lower())
+
+
+class YearDescStyle(UnsrtStyle):
+    default_sorting_style = "year_desc"
+
+
+register_plugin("pybtex.style.sorting", "year_desc", YearDescSorting)
+register_plugin("pybtex.style.formatting", "year_desc", YearDescStyle)
 
 # links to github
 github_repo_url = "https://github.com/oemof/tespy/"
@@ -525,6 +599,13 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
 ]
 
 # Notebook execution
+# "cache" re-uses stored outputs while a notebook's content hash is unchanged,
+# so an unmodified notebook is not re-executed on the next build. NOTE: the
+# hash covers the notebook only - changes to the tespy source do NOT invalidate
+# it. Use `-D nb_execution_mode=force` (or delete docs/.jupyter_cache) after
+# changing library code that the notebooks exercise.
+nb_execution_mode = "cache"
+nb_execution_cache_path = os.path.join(DOCS_ROOT_PATH, ".jupyter_cache")
 nb_execution_allow_errors = True
 nb_execution_in_temp = True
 nb_execution_timeout = 300

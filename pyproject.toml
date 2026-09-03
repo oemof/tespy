@@ -27,7 +27,7 @@ exclude = [
 
 [project]
 name = "tespy"
-version = "0.11.2.dev0"
+version = "0.11.2"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -85,7 +85,8 @@ dev = [
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-notfound-page>=1.1.0",
-    "sphinxcontrib.bibtex",
+    "sphinx-reredirects",
+    "sphinxcontrib.bibtex>=2.0",
     "tox",
     "twine"
 ]

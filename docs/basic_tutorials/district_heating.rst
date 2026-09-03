@@ -26,7 +26,7 @@ Download the full script here:
 :download:`district_heating.py </../tutorial/basics/district_heating.py>`
 
 Setting up the System
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 For this model we have to import the :code:`Network` and :code:`Connection`
 classes as well as the respective components. After setting up the network we
 can create the components, connect them to the network (as shown in the other)
@@ -62,7 +62,7 @@ flow (at connection 4) temperature values.
     :end-before: [sec_3]
 
 Design Pipe Dimensions
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 In the second step we will design the pipe's dimensions. There are two tasks
 for this:
 
@@ -99,7 +99,7 @@ coefficient.
     the calculated value of the diameter instead.
 
 Changing Operation Conditions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 Next, we want to investigate what happens, in case the
 
 - ambient temperature changes.

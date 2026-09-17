@@ -58,8 +58,8 @@ API Changes
       >>> Q = nw.units.ureg.Quantity
       >>> heater.set_attr(dp=Q(20, "psi"))  # set pressure drop with in psi
       >>> nw.solve("design")
-      >>> round(c2.p.val_with_unit, 4)  # retrieve pint.Quantity
-      Quantity(98.621, "bar")
+      >>> print(round(c2.p.val_with_unit, 4))  # retrieve pint.Quantity
+      98.621 bar
       >>> round(turbine.P.val, 2)  # val still only retrieves number, but in specified default unit
       -10.31
       >>> round(heater.dp.val, 1)  # individually assign units are retained

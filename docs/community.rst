@@ -55,5 +55,6 @@ Community & Support
 
     community/community
     community/contribute
+    community/roadmap
     community/support
     community/educational_resources

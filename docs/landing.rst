@@ -19,7 +19,6 @@ Navigate to your favorite section here:
 
         - Learn what TESPy is about
         - Install TESPy
-        - Check the development roadmap of TESPy
 
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Introductory tutorials
         :link: basics_label

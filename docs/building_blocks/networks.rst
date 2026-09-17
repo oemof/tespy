@@ -123,9 +123,9 @@ transform it into what ever unit we need:
 .. code-block:: python
 
     >>> round(compressor.P.val_with_unit, 0)
-    <Quantity(185.0, 'horsepower')>
+    Quantity(185.0, "horsepower")
     >>> round(compressor.P.val_with_unit.to("kW"), 0)
-    <Quantity(138.0, 'kilowatt')>
+    Quantity(138.0, "kilowatt")
 
 Alternatively, we can specify an individual unit using the :code:`Quantity`
 class of pint. For that you have to utilize the :code:`UnitRegistry` of
@@ -136,7 +136,7 @@ your :code:`Network.units`: :code:`ureg`.
     >>> ureg = nw.units.ureg
     >>> c1.set_attr(m=ureg.Quantity(1, "t/h"))
     >>> c1.m.val_with_unit
-    <Quantity(1, 'metric_ton / hour')>
+    Quantity(1, "metric_ton / hour")
 
 .. caution::
 
@@ -155,7 +155,7 @@ your :code:`Network.units`: :code:`ureg`.
 
         >>> nw.solve("design")
         >>> c1.m.val_with_unit
-        <Quantity(5, 'kilogram / second')>
+        Quantity(5, "kilogram / second")
 
 To understand, what quantity is associated with a specific parameter, you can
 do the following:

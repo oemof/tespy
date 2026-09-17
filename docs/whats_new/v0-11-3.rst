@@ -1,0 +1,14 @@
+v0.11.3 - under development
++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- In case the outlet state was near saturated state, the Baumann rule equation
+  of :py:class:`~tespy.components.turbomachinery.steam_turbine.SteamTurbine`
+  sometimes crashed in the :code:`brentq` root search. The equation now assumes
+  dry expansion in such cases
+  (`PR #1065 <https://github.com/oemof/tespy/pull/1065>`__).
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

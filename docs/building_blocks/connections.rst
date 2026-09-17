@@ -70,11 +70,11 @@ vapor quality, specific volume :code:`vol` and volumetric flow.
     >>> round(c1.h.val, 1)  # value in kJ/kg but without unit attached
     668.9
     >>> round(c1.vol.val_with_unit, 3)  # will be in m3/kg
-    <Quantity(0.195, 'm3 / kilogram')>
+    Quantity(0.195, "m3 / kilogram")
     >>> round(c2.T.val_SI, 1)  # SI value
     259.0
     >>> round(c2.T.val_with_unit, 1)  # will be in °C
-    <Quantity(-14.2, 'degree_Celsius')>
+    Quantity(-14.2, "degree_Celsius")
 
 You can also provide quantities to a specific parameter to individually specify
 a unit to a parameter, e.g. inlet mass flow. Note, that units are retained when
@@ -86,9 +86,9 @@ set with individual quantity.
     >>> c1.set_attr(m=Q(2, "t/h"))
     >>> nw.solve("design")
     >>> c1.m.val_with_unit
-    <Quantity(2, 'metric_ton / hour')>
+    Quantity(2, "metric_ton / hour")
     >>> round(c2.m.val_with_unit, 2)
-    <Quantity(0.56, 'kilogram / second')>
+    Quantity(0.56, "kilogram / second")
 
 For pure fluids or CoolProp/REFPROP mixtures we can also specify two-phase
 properties:

@@ -55,7 +55,7 @@ dependencies = [
     "matplotlib>=3.2.1",
     "numpy>=1.13.3",
     "pandas>=1.3.0",
-    "pint",
+    "pint>=0.26",
     "scipy",
     "tabulate>=0.8.2",
 ]

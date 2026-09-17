@@ -576,6 +576,18 @@ class TestTurbomachinery:
         )
         assert eta_s_dry != eta_s, msg
 
+    def test_SteamTurbine_outlet_near_saturation(self):
+        """Expansion ending marginally wet or marginally superheated must
+        converge, see https://github.com/oemof/tespy/pull/1065."""
+        for T in [191.5, 191.55, 192.0]:
+            instance = SteamTurbine("turbine")
+            self.setup_network(instance)
+            instance.set_attr(eta_s_dry=0.9, alpha=1)
+            self.c1.set_attr(fluid={"H2O": 1}, m=1, p=8.763839, T=T)
+            self.c2.set_attr(p=6.307527)
+            self.nw.solve("design")
+            self.nw.assert_convergence()
+
     def test_Turbomachine(self):
         """Test component properties of turbomachines."""
         instance = Turbomachine("turbomachine")

@@ -31,7 +31,7 @@ About & Installation
 
         Get the installation instructions for your favorite OS
 
-    .. grid-item-card::  Roadmap
+    .. grid-item-card::  Development roadmap
         :link: roadmap_label
         :link-type: ref
 

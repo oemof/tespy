@@ -31,6 +31,18 @@ About & Installation
 
         Get the installation instructions for your favorite OS
 
+    .. grid-item-card::  Development roadmap
+        :link: roadmap_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/getting_started/roadmap.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/getting_started/roadmap_darkmode.svg
+            :class: only-dark
+
+        See where the development of tespy is heading
+
 
 ..  toctree::
     :maxdepth: 1
@@ -38,3 +50,4 @@ About & Installation
 
     getting_started/introduction
     getting_started/installation
+    getting_started/roadmap

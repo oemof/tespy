@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 from math import isfinite
 
-
 from .base import FluidPropertyWrapper
 from .base import wrapper_registry
 

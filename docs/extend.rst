@@ -51,6 +51,16 @@ Here you can learn how to customize and extend your simulation models.
         .. image:: /_static/images/thumbnails/extend/custom_eos_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Comparison Fluid Property Back Ends
+        :link: fluid_property_backends_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/extend/fluid_property_backends.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/extend/fluid_property_backends_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card::  Component Partload Characteristics
         :link: modules_characteristics_label
         :link-type: ref
@@ -69,4 +79,5 @@ Here you can learn how to customize and extend your simulation models.
     extend/custom_components
     extend/develop_components
     extend/fluid_properties
+    extend/fluid_property_backends
     extend/characteristics

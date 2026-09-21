@@ -99,7 +99,7 @@ Other Changes
   - Structural singularity detection now uses :code:`numpy.linalg.matrix_rank`
     instead of :code:`numpy.linalg.det`, which is numerically stable for
     arbitrarily sized matrices.
-  - :py:class:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper` now
+  - :py:class:`~tespy.tools.fluid_properties.wrappers.coolprop.CoolPropWrapper` now
     caches the last :code:`AS.update` call and skips redundant updates when
     the same input pair and values are requested consecutively.
   - :py:meth:`~tespy.connections.connection.Connection.get_fluid_data` now

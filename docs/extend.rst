@@ -51,7 +51,7 @@ Here you can learn how to customize and extend your simulation models.
         .. image:: /_static/images/thumbnails/extend/custom_eos_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Comparison Fluid Property Back Ends
+    .. grid-item-card::  Comparison of Fluid Property Back Ends
         :link: fluid_property_backends_label
         :link-type: ref
 

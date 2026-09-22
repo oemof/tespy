@@ -62,6 +62,16 @@ different applications see the :ref:`model library <model_library_label>`.
         .. image:: /_static/images/thumbnails/how_to_guides/SectionedHeatExchanger_vs_HeatExchanger_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Model zeotropic mixtures
+        :link: zeotropic_heat_pump_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/how_to_guides/zeotropic_heat_pump.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/how_to_guides/zeotropic_heat_pump_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card::  Make use of PowerConnection
         :link: tutorial_powerconnection_label
         :link-type: ref
@@ -101,6 +111,7 @@ different applications see the :ref:`model library <model_library_label>`.
     how_to_guides/debugging
     how_to_guides/advanced_debugging
     how_to_guides/heat_exchangers
+    how_to_guides/zeotropic_heat_pump
     how_to_guides/powerconnections
     how_to_guides/humid_air
     how_to_guides/faq

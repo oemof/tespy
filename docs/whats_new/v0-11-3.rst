@@ -1,6 +1,19 @@
 v0.11.3 - under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- A new wrapper class for
+`thermopack <https://github.com/thermotools/thermopack>`__ is available, i.e.
+  the
+  :py:class:`~tespy.tools.fluid_properties.wrappers.thermopack.ThermopackWrapper`.
+  It provides cubic, SAFT, CPA and multiparameter equations of state with fast
+  and robust flash routines, which makes it especially interesting for modeling
+  zeotropic mixtures without a REFPROP license. Install it with
+  :code:`uv add thermopack` or :code:`pip install thermopack`. The
+  :ref:`fluid properties documentation <thermopack_wrapper_label>` shows how to
+  use it (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).
+
 Bug Fixes
 #########
 - In case the outlet state was near saturated state, the Baumann rule equation
@@ -8,6 +21,21 @@ Bug Fixes
   sometimes crashed in the :code:`brentq` root search. The equation now assumes
   dry expansion in such cases
   (`PR #1065 <https://github.com/oemof/tespy/pull/1065>`__).
+
+Other Changes
+#############
+- The :code:`tespy.tools.fluid_properties.wrappers` module has been split into
+  a subpackage with one module per wrapper, imports remain unchanged
+  (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).
+
+Documentation
+#############
+- Two new notebooks showcase the fluid property engines: a
+  :ref:`comparison of the fluid property back ends <fluid_property_backends_label>`
+  benchmarks CoolProp HEOS, REFPROP and thermopack, and a
+  :ref:`how-to guide on zeotropic mixtures <zeotropic_heat_pump_label>`
+  models a heat pump
+  (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).
 
 Contributors
 ############

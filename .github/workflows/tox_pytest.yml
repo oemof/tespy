@@ -26,23 +26,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v7
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+    - name: Set up uv and Python ${{ matrix.python-version }}
+      uses: astral-sh/setup-uv@v10.2.0
       with:
         python-version: ${{ matrix.python-version }}
+        enable-cache: true
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions coverage coveralls
-    - name: Test with tox
-      run: tox
+      run: uv sync --extra test
+    - name: Run pytest
+      run: uv run pytest --cov --cov-report=term-missing -vv
 
-    - name: Check test coverage ${{ matrix.test_number }}
-      run: coverage report -m --fail-under=${{ matrix.vcs == 'bzr' && 84 || 85 }}
+    - name: Check test coverage
+      run: |
+        uv run coverage report -m --fail-under=85
+        uv run coverage lcov -o coverage.lcov
 
     - name: Coveralls Parallel
       uses: coverallsapp/github-action@v2
       with:
+        file: coverage.lcov
+        format: lcov
         flag-name: test-${{ join(matrix.*, '-') }}
         parallel: true
 

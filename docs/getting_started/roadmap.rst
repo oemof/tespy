@@ -42,6 +42,7 @@ and collected in the **Under discussion** section.
   - Connections through named ports, e.g.
     :code:`Connection(turbine.outlet, condenser.hot_inlet)` and
     :code:`component.hot_inlet` instead of :code:`inl[0]` :issue:`689`
+  - Deprecate Python 3.11
 
   .. container:: roadmap-additions
 

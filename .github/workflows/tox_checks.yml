@@ -18,36 +18,46 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: ${{ matrix.toxenv }}
+  check:
+    name: check
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        toxenv:
-          - check
-          - docs
 
     steps:
       - name: Git clone
         uses: actions/checkout@v7
 
-      - name: Set up Python ${{ env.default_python || '3.13' }}
-        uses: actions/setup-python@v7
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v10.2.0
         with:
-          python-version: "${{ env.default_python || '3.13' }}"
+          python-version: "3.13"
+          enable-cache: true
 
-      - name: Pip cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.toxenv }}-${{ hashFiles('tox.ini', 'pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.toxenv }}-
-            ${{ runner.os }}-pip-
       - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run check
         run: |
-          python -m pip install -U pip
-          python -m pip install -U tox
-      - name: Run ${{ matrix.toxenv }}
-        run: python -m tox -e ${{ matrix.toxenv }}
+          uv run check-manifest .
+          uv run isort --verbose --check-only --diff src tests
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git clone
+        uses: actions/checkout@v7
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run docs
+        run: |
+          uv run sphinx-build -E -b html docs docs/_build
+          uv run sphinx-build -b linkcheck docs docs/_build

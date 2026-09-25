@@ -68,26 +68,30 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 "Issue Tracker" = "https://github.com/oemof/tespy/issues"
 
 [project.optional-dependencies]
-dev = [
-    "build",
+test = [
     "exerpy",
-    "flit",
-    "fluprodia>=4",
-    "furo",
     "ht",
     "iapws",
-    "isort",
-    "myst-nb",
     "pymoo",
     "pyromat",
     "pytest",
+    "pytest-cov",
+    "thermopack>=2.2",
+]
+dev = [
+    "tespy[test]",
+    "build",
+    "check-manifest",
+    "flit",
+    "furo",
+    "isort",
+    "myst-nb",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-notfound-page>=1.1.0",
     "sphinx-reredirects",
     "sphinxcontrib.bibtex>=2.0",
-    "thermopack>=2.2",
     "tox",
     "twine"
 ]

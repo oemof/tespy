@@ -11,6 +11,7 @@ tespy/tools/fluid_properties/mixtures.py
 SPDX-License-Identifier: MIT
 """
 
+import CoolProp as _CP
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools.global_vars import FLUID_ALIASES
@@ -1149,6 +1150,287 @@ class MixingRuleRegistry:
     def T_ps(self, name):
         return self._get(self._T_ps, name, "temperature (from entropy)")
 
+_LIBR_PROPS_CACHE = (None, None, None, None)  # (p, T, xi, (h, s, v))
+_LIBR_T_EPS = 0.01
+
+
+def _libr_wrapper(fluid_data):
+    water = _get_fluid_alias("H2O", fluid_data)
+    for fluid, data in fluid_data.items():
+        if fluid not in water and _is_larger_than_precision(data["mass_fraction"]):
+            return data["wrapper"]
+    return None
+
+
+def _xi_libr(fluid_data):
+    water = _get_fluid_alias("H2O", fluid_data)
+    if water:
+        return 1.0 - fluid_data[next(iter(water))]["mass_fraction"]
+    return sum(d["mass_fraction"] for d in fluid_data.values())
+
+
+def _xi_sat_libr(p, T, fluid_data):
+    r"""LiBr mass fraction at which :math:`p_\text{sat}(T, \xi) = p`.
+
+    Uses :func:`scipy.optimize.brentq` over :math:`\xi \in [0.001, 0.749]`.
+    :math:`p_\text{sat}` is monotonically decreasing in :math:`\xi` (higher
+    LiBr concentration lowers the water vapour pressure).
+    """
+    from scipy.optimize import brentq
+
+    libr_as = _libr_wrapper(fluid_data).AS
+
+    def residual(xi):
+        libr_as.set_mass_fractions([xi])
+        libr_as.update(_CP.QT_INPUTS, 0, T)
+        return libr_as.p() - p
+
+    r_lo = residual(0.001)
+    if r_lo <= 0:
+        return 0.001
+    r_hi = residual(0.749)
+    if r_hi >= 0:
+        return 0.749
+    return brentq(residual, 0.001, 0.749, xtol=1e-6)
+
+
+def _T_sat_libr(p, xi, fluid_data):
+    r"""Saturation temperature of LiBr-H2O at pressure *p* and mass fraction *xi*.
+
+    Inverts :func:`_xi_sat_libr` over temperature using
+    :func:`scipy.optimize.brentq`.  :math:`p_\text{sat}(T, \xi)` is
+    monotonically increasing in *T*.
+    """
+    from scipy.optimize import brentq
+
+    w = _libr_wrapper(fluid_data)
+    xi_safe = max(0.001, min(0.749, xi))
+    libr_as = w.AS
+
+    def residual(T):
+        libr_as.set_mass_fractions([xi_safe])
+        libr_as.update(_CP.QT_INPUTS, 0, T)
+        return libr_as.p() - p
+
+    T_min = w._T_min + 2 * _LIBR_T_EPS
+    T_max = w._T_max - 2 * _LIBR_T_EPS
+    if residual(T_min) >= 0:
+        return T_min
+    if residual(T_max) <= 0:
+        return T_max
+    return brentq(residual, T_min, T_max, xtol=1e-6)
+
+
+def _p_sat_libr(T, xi, fluid_data):
+    r"""Vapour pressure of LiBr-H2O at temperature *T* and mass fraction *xi*."""
+    xi_safe = max(0.001, min(0.749, xi))
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi_safe])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    return libr_as.p()
+
+
+def _libr_props_compute(p, T, xi, fluid_data):
+    r"""Compute :math:`(h, s, v)` for LiBr-H2O at *(p, T, xi)*.
+
+    When :math:`p \geq p_\text{sat}(T, \xi)` the solution is fully liquid and
+    properties are read directly from CoolProp's :code:`INCOMP::LiBr` backend.
+
+    When :math:`p < p_\text{sat}(T, \xi)` the solution is in equilibrium with
+    water vapour.  The saturated LiBr fraction :math:`\xi_\text{sat}` is found
+    via :func:`_xi_sat_libr` such that :math:`p_\text{sat}(T, \xi_\text{sat}) = p`.
+    Per-unit-mass balances give liquid fraction
+    :math:`m_l = \xi / \xi_\text{sat}` and vapour fraction
+    :math:`m_v = 1 - m_l`.  Properties are the weighted sum of the saturated
+    liquid solution and pure water vapour.
+
+    """
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    p_sat = libr_as.p()
+
+    if p >= p_sat:
+        libr_as.update(_CP.PT_INPUTS, p, T)
+        return libr_as.hmass(), libr_as.smass(), 1.0 / libr_as.rhomass()
+
+    xi_sat = _xi_sat_libr(p, T, fluid_data)
+    m_l = xi / xi_sat
+    m_v = 1.0 - m_l
+
+    libr_as.set_mass_fractions([xi_sat])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    p_sat_new = libr_as.p()
+    libr_as.update(_CP.PT_INPUTS, p_sat_new + 1.0, T)
+    h_l = libr_as.hmass()
+    s_l = libr_as.smass()
+    v_l = 1.0 / libr_as.rhomass()
+
+    water = _get_fluid_alias("H2O", fluid_data)
+    w = fluid_data[next(iter(water))]["wrapper"]
+    h_v = w.h_QT(1, T)
+    s_v = w.s_QT(1, T)
+    v_v = 1.0 / w.d_QT(1, T)
+
+    h0 = m_l * h_l + m_v * h_v
+    s0 = m_l * s_l + m_v * s_v
+    v0 = m_l * v_l + m_v * v_v
+    return h0, s0, v0
+
+
+def _get_libr_props(p, T, fluid_data):
+    global _LIBR_PROPS_CACHE
+    xi = _xi_libr(fluid_data)
+    cp, cT, cxi, cached = _LIBR_PROPS_CACHE
+    if p == cp and T == cT and xi == cxi:
+        return cached
+    props = _libr_props_compute(p, T, xi, fluid_data)
+    _LIBR_PROPS_CACHE = (p, T, xi, props)
+    return props
+
+
+def h_mix_pT_libr_water(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific enthalpy of a LiBr-water solution.
+
+    Uses CoolProp's :code:`INCOMP::LiBr` backend (Patek-Klomfar correlations).
+    Handles both the sub-saturated liquid and the two-phase (solution + water
+    vapour) region; see :func:`_libr_props_compute` for details.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing LiBr and H2O components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific enthalpy in J/kg.
+    """
+    return _get_libr_props(p, T, fluid_data)[0]
+
+
+def s_mix_pT_libr_water(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific entropy of a LiBr-water solution.
+
+    Uses CoolProp's :code:`INCOMP::LiBr` backend.  Handles both the
+    sub-saturated liquid and the two-phase region; see
+    :func:`_libr_props_compute` for details.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing LiBr and H2O components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific entropy in J/(kg K).
+    """
+    return _get_libr_props(p, T, fluid_data)[1]
+
+
+def v_mix_pT_libr_water(p, T, fluid_data, **kwargs):
+    r"""
+    Calculate specific volume of a LiBr-water solution.
+
+    Uses CoolProp's :code:`INCOMP::LiBr` backend.  Handles both the
+    sub-saturated liquid and the two-phase region; see
+    :func:`_libr_props_compute` for details.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    T : float
+        Temperature in K.
+    fluid_data : dict
+        Fluid property data containing LiBr and H2O components.
+    **kwargs
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Specific volume in m³/kg.
+    """
+    return _get_libr_props(p, T, fluid_data)[2]
+
+
+def phase_mix_ph_libr_water(p, h, fluid_data):
+    r"""Return the phase of a LiBr-water stream given *(p, h)*.
+
+    Returns :code:`"l"` when the solution is fully liquid
+    (:math:`p \geq p_\text{sat}(T, \xi)`) and :code:`"tp"` when the system
+    is in the two-phase (solution + water vapour) region.
+    """
+    T = T_mix_ph_libr_water(p, h, fluid_data)
+    xi = _xi_libr(fluid_data)
+    libr_as = _libr_wrapper(fluid_data).AS
+    libr_as.set_mass_fractions([xi])
+    libr_as.update(_CP.QT_INPUTS, 0, T)
+    return "l" if p >= libr_as.p() else "tp"
+
+
+def T_mix_ph_libr_water(p, h, fluid_data, T0=None):
+    r"""
+    Invert :func:`h_mix_pT_libr_water` to recover temperature.
+
+    Uses :func:`scipy.optimize.brentq` over the valid temperature range of
+    the LiBr wrapper, inset by :code:`2 * _LIBR_T_EPS` from each boundary.
+    This avoids Newton convergence failures near the liquid-to-two-phase
+    boundary where :math:`dh/dT` changes sharply.
+
+    Parameters
+    ----------
+    p : float
+        Pressure in Pa.
+    h : float
+        Specific enthalpy in J/kg.
+    fluid_data : dict
+        Fluid property data containing LiBr and H2O components.
+    T0 : float, optional
+        Ignored; present for interface compatibility.
+
+    Returns
+    -------
+    float
+        Temperature in K.
+    """
+    from scipy.optimize import brentq
+
+    xi = _xi_libr(fluid_data)
+    w = _libr_wrapper(fluid_data)
+    T_lo = w._T_min + 2 * _LIBR_T_EPS
+    T_hi = w._T_max - 2 * _LIBR_T_EPS
+
+    def residual(T):
+        return _libr_props_compute(p, T, xi, fluid_data)[0] - h
+
+    # clamp value to be within T_lo/T_hi to prevent inter-iteration errors
+    h_lo = _libr_props_compute(p, T_lo, xi, fluid_data)[0]
+    if h <= h_lo:
+        return T_lo
+    h_hi = _libr_props_compute(p, T_hi, xi, fluid_data)[0]
+    if h >= h_hi:
+        return T_hi
+
+    return brentq(residual, T_lo, T_hi, xtol=1e-6)
+
+
 MIXING_RULES = MixingRuleRegistry()
 
 MIXING_RULES.register(
@@ -1183,4 +1465,10 @@ MIXING_RULES.register(
     s_pT=s_mix_pT_humidair,
     v_pT=v_mix_pT_humidair,
     viscosity_pT=viscosity_mix_pT_humidair,
+)
+MIXING_RULES.register(
+    "libr_water",
+    h_pT=h_mix_pT_libr_water,
+    s_pT=s_mix_pT_libr_water,
+    v_pT=v_mix_pT_libr_water,
 )

@@ -34,6 +34,8 @@ def _create_connection_instances() -> dict:
             instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
         elif cls_name == "PowerConnection":
             instance = cls_ref(PowerSource("source"), "power", PowerSink("sink"), "power")
+        elif cls_name == "HAConnection":
+            instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
         else:
             # do not add to the dict of not any of both classes
             continue

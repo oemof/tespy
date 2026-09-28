@@ -342,6 +342,47 @@ see the respective API documentation. There are a couple of example
 applications available for the :code:`PowerConnection`
 :ref:`in this section <tutorial_powerconnection_label>`.
 
+.. _haconnections_label:
+
+HAConnection Overview
+---------------------
+
+For the simulation of humid air, for example in air conditioning systems,
+drying processes or cooling towers, use the :code:`HAConnection` instead of the
+regular :code:`Connection`. It works exactly like a :code:`Connection` but
+provides additional parameters specific to humid air. The most important ones
+are:
+
+- :code:`mHA`: mass flow of humid air (note, that :code:`m` is the mass flow
+  of dry air)
+- :code:`mH2O`: mass flow of liquid or solid water not contained in the humid
+  air
+- :code:`w`: humidity ratio, i.e. mass of water per mass of dry air
+- :code:`r`: relative humidity
+
+The fluid composition is always air and water and the mixing rule is fixed to
+:code:`humidair`. Specifying the humidity ratio :code:`w` automatically sets
+the corresponding fluid composition.
+
+.. code-block:: python
+
+    >>> from tespy.connections import HAConnection
+    >>> from tespy.components import Source, Sink
+    >>> from tespy.networks import Network
+    >>> nw_ha = Network(iterinfo=False)
+    >>> nw_ha.units.set_defaults(
+    ...     temperature="°C", pressure="bar", pressure_difference="bar")
+    >>> source_ha = Source("source")
+    >>> sink_ha = Sink("sink")
+    >>> c_ha = HAConnection(source_ha, "out1", sink_ha, "in1", label="c_ha")
+    >>> nw_ha.add_conns(c_ha)
+    >>> c_ha.set_attr(m=1, p=1, T=20, w=0.01)
+    >>> nw_ha.solve("design")
+    >>> round(c_ha.r.val, 4)
+    0.6737
+    >>> round(c_ha.mHA.val, 2)
+    1.01
+
 Access from the :code:`Network` object
 --------------------------------------
 

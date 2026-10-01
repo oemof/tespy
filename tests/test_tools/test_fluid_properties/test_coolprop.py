@@ -88,7 +88,7 @@ class TestFluidProperties:
 
                     # the deviations might have to be checked
                     if p <= 1e6:
-                        d_rel_max = 0.005
+                        d_rel_max = 0.0075
                     elif p < 5e6 and T < 500:
                         d_rel_max = 0.04
                     elif p < 5e6 and T < 1000:

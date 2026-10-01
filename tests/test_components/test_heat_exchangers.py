@@ -765,7 +765,7 @@ class TestHeatExchangers:
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(self.c1.calc_T_sat() - self.c4.T.val_SI, 1)
-        p = round(self.c1.p.val_SI, 5)
+        p = self.c1.p.val_SI
         msg = (
             'Value of terminal temperature difference must be '
             f'{round(instance.ttd_u.val, 1)}, is {ttd_u}.'
@@ -789,10 +789,9 @@ class TestHeatExchangers:
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
-            f'Value of condensing pressure be {p}, is '
-            f'{round(self.c1.p.val_SI, 5)}.'
+            f'Value of condensing pressure be {p}, is {self.c1.p.val_SI}.'
         )
-        assert p == round(self.c1.p.val_SI, 5), msg
+        assert self.c1.p.val_SI == approx(p, rel=1e-8), msg
 
     def test_CondenserWithEvaporation(self):
         """Test a Condenser that evaporates a fluid."""

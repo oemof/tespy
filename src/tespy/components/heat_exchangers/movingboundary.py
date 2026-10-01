@@ -40,8 +40,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (hot side), in2 (cold side)
+    - Fluid outlets: out1 (hot side), out2 (cold side)
 
     Mandatory Equations
     -------------------

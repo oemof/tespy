@@ -596,7 +596,12 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
     r"^https://.*\.svg$",
     "https://product-selection.grundfos.com/",
     "https://docutils.sourceforge.io/rst.html",
+    r"https://github\.com/tub-hofmann",
 ]
+
+# the publication list is curated by hand and the repository hosts it links to
+# routinely block crawlers
+linkcheck_exclude_documents = [r"^in_use/literature$"]
 
 # Notebook execution
 # "cache" re-uses stored outputs while a notebook's content hash is unchanged,

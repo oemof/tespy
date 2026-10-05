@@ -4,7 +4,7 @@ v0.11.3 - under development
 New Features
 ############
 - A new wrapper class for
-`thermopack <https://github.com/thermotools/thermopack>`__ is available, i.e.
+  `thermopack <https://github.com/thermotools/thermopack>`__ is available, i.e.
   the
   :py:class:`~tespy.tools.fluid_properties.wrappers.thermopack.ThermopackWrapper`.
   It provides cubic, SAFT, CPA and multiparameter equations of state with fast

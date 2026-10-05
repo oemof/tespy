@@ -603,6 +603,9 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
 # routinely block crawlers
 linkcheck_exclude_documents = [r"^in_use/literature$"]
 
+# dollarmath in notebooks
+myst_enable_extensions = ["dollarmath"]
+
 # Notebook execution
 # "cache" re-uses stored outputs while a notebook's content hash is unchanged,
 # so an unmodified notebook is not re-executed on the next build. NOTE: the

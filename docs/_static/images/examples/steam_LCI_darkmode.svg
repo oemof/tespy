@@ -3,42 +3,40 @@
 <!-- Generiert durch Microsoft Visio, SVG Export steam_LCI_darkmode.svg Zeichenblatt-1 -->
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
 		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="9.07769in" height="3.89799in"
-		viewBox="0 0 653.593 280.655" xml:space="preserve" color-interpolation-filters="sRGB" class="st31">
+		viewBox="0 0 653.593 280.655" xml:space="preserve" color-interpolation-filters="sRGB" class="st29">
 	<v:documentProperties v:langID="1031" v:metric="true" v:viewMarkup="false"/>
 
 	<style type="text/css">
 	<![CDATA[
-		.st1 {fill:#000000;stroke:#ffffff;stroke-width:0.75}
-		.st2 {fill:none}
+		.st1 {fill:#595959;stroke:#ffffff;stroke-width:0.75}
+		.st2 {fill:#000000}
 		.st3 {stroke:#ffffff;stroke-linecap:butt;stroke-width:1.25}
-		.st4 {fill:none;stroke:#ffffff;stroke-linecap:butt;stroke-width:1.25}
+		.st4 {fill:#000000;stroke:#ffffff;stroke-linecap:butt;stroke-width:1.25}
 		.st5 {marker-end:url(#mrkr4-24);stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
 		.st6 {fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-opacity:1;stroke-width:0.28409090909091}
-		.st7 {fill:none;stroke:#ffffff;stroke-width:0.75}
+		.st7 {fill:#000000;stroke:#ffffff;stroke-width:0.75}
 		.st8 {fill:#ffffff;font-family:Calibri;font-size:0.833336em}
 		.st9 {stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
 		.st10 {fill:none;stroke:#ffffff;stroke-dasharray:11.25,6.75;stroke-width:0.75}
 		.st11 {fill:#d8d8d8;font-family:Calibri;font-size:1.00001em}
 		.st12 {fill:#ffffff;font-family:Calibri;font-size:1.00001em}
 		.st13 {baseline-shift:-33.349%;font-size:0.666979em}
-		.st14 {fill:#000000;font-family:Calibri;font-size:1.00001em}
-		.st15 {marker-end:url(#mrkr4-24);stroke:#ffffff;stroke-dasharray:1,2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
-		.st16 {fill:#003f57;stroke:#ffffff;stroke-width:0.25}
-		.st17 {fill:#feffff;font-family:Calibri;font-size:0.833336em}
-		.st18 {stroke:#ffffff;stroke-dasharray:1,2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
-		.st19 {fill:none;stroke:none;stroke-width:0.25}
-		.st20 {fill:#ffffff;stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.25}
-		.st21 {fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-width:0.25}
-		.st22 {fill:#ffffff;stroke:none;stroke-width:0.749999}
-		.st23 {fill:#ffffff;stroke:none;stroke-width:0.00283465}
-		.st24 {fill:#ffffff;stroke:none;stroke-width:0.0027025}
-		.st25 {fill:#ffffff;stroke:none;stroke-width:0.00272639}
-		.st26 {fill:#ffffff;stroke:none;stroke-width:0.00274034}
-		.st27 {fill:#ffffff;stroke:none;stroke-width:0.00273705}
-		.st28 {fill:#bfbfbf;stroke:#ffffff;stroke-width:0.75}
-		.st29 {fill:none;stroke:none;stroke-width:0.75}
-		.st30 {fill:#ffffff;font-family:Calibri;font-size:0.666664em}
-		.st31 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+		.st14 {marker-end:url(#mrkr4-24);stroke:#ffffff;stroke-dasharray:1,2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st15 {fill:#003f57;stroke:#ffffff;stroke-width:0.25}
+		.st16 {fill:#feffff;font-family:Calibri;font-size:0.833336em}
+		.st17 {stroke:#ffffff;stroke-dasharray:1,2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:none;stroke:none;stroke-width:0.25}
+		.st19 {fill:#ffffff;stroke:#ffffff;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.25}
+		.st20 {fill:#ffffff;stroke:#ffffff;stroke-linecap:butt;stroke-width:0.25}
+		.st21 {fill:#ffffff;stroke:none;stroke-width:0.749999}
+		.st22 {fill:#ffffff;stroke:none;stroke-width:0.00283465}
+		.st23 {fill:#ffffff;stroke:none;stroke-width:0.0027025}
+		.st24 {fill:#ffffff;stroke:none;stroke-width:0.00272639}
+		.st25 {fill:#ffffff;stroke:none;stroke-width:0.00274034}
+		.st26 {fill:#ffffff;stroke:none;stroke-width:0.00273705}
+		.st27 {fill:none;stroke:none;stroke-width:0.75}
+		.st28 {fill:#ffffff;font-family:Calibri;font-size:0.666664em}
+		.st29 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
 	]]>
 	</style>
 
@@ -277,7 +275,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="23.6113" cy="280.655" width="47.23" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L11.34 269.32 L11.34 274.99 L47.22 274.99 L47.22 280.66 L47.22 286.32 L11.34 286.32 L11.34 291.99
-						 L0 280.66 Z" class="st1"/>
+						 L0 280.66 Z" class="st7"/>
 			<text x="-43.22" y="-277.66" transform="rotate(180)" class="st8" v:langID="1031"><v:paragraph/><v:tabList/>leakage</text>		</g>
 		<g id="shape30-64" v:mID="30" v:groupContext="shape" v:layerMember="1" transform="translate(463.08,-179.977)">
 			<title>Dynamischer Verbinder.30</title>
@@ -350,7 +348,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="25.7797" cy="280.655" width="51.56" height="0" transform="rotate(360)"/>
 			<path d="M0 280.66 L11.34 269.32 L11.34 274.99 L51.56 274.99 L51.56 280.66 L51.56 286.32 L11.34 286.32 L11.34 291.99
-						 L0 280.66 Z" class="st1"/>
+						 L0 280.66 Z" class="st7"/>
 			<text x="4.33" y="283.66" class="st8" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>blowdown</text>		</g>
 		<g id="shape46-102" v:mID="46" v:groupContext="shape" v:layerMember="1" transform="translate(377.52,-98.0601)">
 			<title>Dynamischer Verbinder.46</title>
@@ -379,7 +377,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="19.997" cy="280.655" width="40" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L20.21 263.55 L20.21 272.1 L39.99 272.1 L39.99 280.66 L39.99 289.21 L20.21 289.21 L20.21 297.76 L0
-						 280.66 Z" class="st1"/>
+						 280.66 Z" class="st7"/>
 			<text x="-35.99" y="-277.05" transform="rotate(180)" class="st12" v:langID="1031"><v:paragraph/><v:tabList/>Q<tspan
 						dy="-0.289em" class="st13" v:baseFontSize="12">boiler</tspan></text>		</g>
 		<g id="shape49-115" v:mID="49" v:groupContext="shape" transform="translate(655.694,32.5744) rotate(90)">
@@ -392,7 +390,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="15.0419" cy="280.655" width="30.09" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L20.21 263.55 L20.21 272.1 L30.08 272.1 L30.08 280.66 L30.08 289.21 L20.21 289.21 L20.21 297.76 L0
-						 280.66 Z" class="st1"/>
+						 280.66 Z" class="st7"/>
 			<text x="-26.08" y="-277.05" transform="rotate(180)" class="st12" v:langID="1031"><v:paragraph/><v:tabList/>P</text>		</g>
 		<g id="shape50-118" v:mID="50" v:groupContext="shape" transform="translate(722.876,62.073) rotate(90)">
 			<title>Einfacher Pfeil.50</title>
@@ -405,61 +403,61 @@
 			<v:textRect cx="18.1509" cy="280.655" width="36.31" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L20.21 263.55 L20.21 272.1 L36.3 272.1 L36.3 280.66 L36.3 289.21 L20.21 289.21 L20.21 297.76 L0 280.66
 						 Z" class="st7"/>
-			<text x="-32.3" y="-277.05" transform="rotate(180)" class="st14" v:langID="1031"><v:paragraph/><v:tabList/>Q<tspan
+			<text x="-32.3" y="-277.05" transform="rotate(180)" class="st12" v:langID="1031"><v:paragraph/><v:tabList/>Q<tspan
 						dy="-0.289em" class="st13" v:baseFontSize="12">loss</tspan></text>		</g>
 		<g id="shape58-122" v:mID="58" v:groupContext="shape" v:layerMember="1" transform="translate(560.587,-113.48)">
 			<title>Dynamischer Verbinder.58</title>
-			<path d="M7.09 280.66 L-12.01 280.66 L-12.01 228.01 L0.05 228.01" class="st15"/>
+			<path d="M7.09 280.66 L-12.01 280.66 L-12.01 228.01 L0.05 228.01" class="st14"/>
 		</g>
 		<g id="shape59-127" v:mID="59" v:groupContext="shape" transform="translate(224.803,-145.713)">
 			<title>Tabelle.59</title>
 			<desc>i</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="7.36" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>i</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="7.36" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>i</text>		</g>
 		<g id="shape60-130" v:mID="60" v:groupContext="shape" transform="translate(323.661,-174.06)">
 			<title>Tabelle.60</title>
 			<desc>ii</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="6.21" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>ii</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="6.21" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>ii</text>		</g>
 		<g id="shape95-133" v:mID="95" v:groupContext="shape" transform="translate(453.559,-203.824)">
 			<title>Tabelle.95</title>
 			<desc>iii</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="5.06" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>iii</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="5.06" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>iii</text>		</g>
 		<g id="shape96-136" v:mID="96" v:groupContext="shape" transform="translate(469.15,-115.95)">
 			<title>Tabelle.96</title>
 			<desc>iv</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="5.1" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>iv</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="5.1" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>iv</text>		</g>
 		<g id="shape97-139" v:mID="97" v:groupContext="shape" transform="translate(523.549,-183.981)">
 			<title>Tabelle.97</title>
 			<desc>v</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="6.25" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>v</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="6.25" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>v</text>		</g>
 		<g id="shape98-142" v:mID="98" v:groupContext="shape" transform="translate(515.921,-132.324)">
 			<title>Tabelle.98</title>
 			<desc>vi</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="5.1" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>vi</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="5.1" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>vi</text>		</g>
 		<g id="shape99-145" v:mID="99" v:groupContext="shape" transform="translate(583.953,-107.446)">
 			<title>Tabelle.99</title>
 			<desc>vii</desc>
 			<v:textBlock v:margins="rect(2,2,2,2)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="3.95" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>vii</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="3.95" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>vii</text>		</g>
 		<g id="shape29-148" v:mID="29" v:groupContext="shape" transform="translate(680.685,195.351) rotate(90)">
 			<title>Einfacher Pfeil.29</title>
 			<desc>make-up</desc>
@@ -470,15 +468,15 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="22.0058" cy="280.655" width="44.02" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L11.34 269.32 L11.34 274.99 L44.01 274.99 L44.01 280.66 L44.01 286.32 L11.34 286.32 L11.34 291.99
-						 L0 280.66 Z" class="st1"/>
+						 L0 280.66 Z" class="st7"/>
 			<text x="-39.94" y="-277.66" transform="rotate(180)" class="st8" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>make-up</text>		</g>
 		<g id="shape747-151" v:mID="747" v:groupContext="shape" v:layerMember="1" transform="translate(375.039,-248.081)">
 			<title>Dynamischer Verbinder.747</title>
-			<path d="M0 280.66 L0 264.82 L-235.13 264.82 L-235.13 367.43" class="st18"/>
+			<path d="M0 280.66 L0 264.82 L-235.13 264.82 L-235.13 367.43" class="st17"/>
 		</g>
 		<g id="shape748-154" v:mID="748" v:groupContext="shape" v:layerMember="1" transform="translate(198.441,-128.924)">
 			<title>Dynamischer Verbinder.748</title>
-			<path d="M0 273.63 L-24.69 273.5" class="st18"/>
+			<path d="M0 273.63 L-24.69 273.5" class="st17"/>
 		</g>
 		<g id="shape746-157" v:mID="746" v:groupContext="shape" transform="translate(30.6299,-110.85)">
 			<title>Abgerundetes Rechteck.746</title>
@@ -506,7 +504,7 @@
 		</g>
 		<g id="shape105-159" v:mID="105" v:groupContext="shape" transform="translate(54.9999,-132.069)">
 			<title>Tabelle.105</title>
-			<rect v:rectContext="foreign" x="0" y="257.089" width="36.2994" height="23.5657" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="257.089" width="36.2994" height="23.5657" class="st18"/>
 			<image x="0" y="257.089" width="36.2994" height="23.5657" preserveAspectRatio="none" xlink:href="data:image/png;base64,
 						iVBORw0KGgoAAAANSUhEUgAABC0AAAK2CAYAAABq/WaxAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7D
 						AcdvqGQAAP+lSURBVHhe7P0F+H1dVa6PL4+Hw0FEpAQp6S5BWjqkSySlU2lBBaSlW1oklQ4plQYJkUZKEJBSQEBRMY6nfv//dcMeh+HD
@@ -1917,7 +1915,7 @@
 						vlwxTHTp1boSY4wxxhhjjDHGmDk4bynlbyvGiTa9U1dgjDHGGGOMMcYYMxfnL6V8o2KgqImyqcYYY4wxxhhjjDGLcZFSyrcqRgoVXhnG
 						GGOMMcYYY4wxi3LxUsp3KoaKrP+pCxljjDHGGGOMMcYswc+VUv65YqwI/X+6gDHGGGOMMcYYY8xSXLaU8n9XDBbof2hjY4wxxhhjjDHG
 						mCX5lYrBAp2iDY0xxhhjjDHGGGOW5rallH9sjBXksrDBwpw4/n+AWw7F/iJzIQAAAABJRU5ErkJggg=="/>
-			<rect v:rectContext="foreign" x="0" y="257.089" width="36.2994" height="23.5657" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="257.089" width="36.2994" height="23.5657" class="st18"/>
 		</g>
 		<g id="group740-163" transform="translate(36.8661,-125.965)" v:mID="740" v:groupContext="group" v:layerMember="3">
 			<v:userDefs>
@@ -1931,28 +1929,28 @@
 				<title>Tabelle.741</title>
 				<g id="shape742-165" v:mID="742" v:groupContext="shape" v:layerMember="3" transform="translate(0,-16.7095)">
 					<title>Tabelle.742</title>
-					<ellipse cx="7.93701" cy="278.427" rx="7.93701" ry="2.22793" class="st20"/>
+					<ellipse cx="7.93701" cy="278.427" rx="7.93701" ry="2.22793" class="st19"/>
 				</g>
 				<g id="shape743-167" v:mID="743" v:groupContext="shape" v:layerMember="3" transform="translate(0,-11.1397)">
 					<title>Tabelle.743</title>
 					<path d="M13.61 278.43 C13.27 278.43 13.04 278.2 13.04 277.87 C13.04 277.54 13.27 277.31 13.61 277.31 C13.95
 								 277.31 14.17 277.54 14.17 277.87 C14.17 278.2 13.95 278.43 13.61 278.43 ZM7.94 276.2 C3.57 276.2
 								 0 275.2 0 273.97 L0 278.43 C0 279.65 3.57 280.66 7.94 280.66 C12.3 280.66 15.87 279.65 15.87 278.43
-								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st20"/>
+								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st19"/>
 				</g>
 				<g id="shape744-169" v:mID="744" v:groupContext="shape" v:layerMember="3" transform="translate(0,-5.56983)">
 					<title>Tabelle.744</title>
 					<path d="M13.61 278.43 C13.27 278.43 13.04 278.2 13.04 277.87 C13.04 277.54 13.27 277.31 13.61 277.31 C13.95
 								 277.31 14.17 277.54 14.17 277.87 C14.17 278.2 13.95 278.43 13.61 278.43 ZM7.94 276.2 C3.57 276.2
 								 0 275.2 0 273.97 L0 278.43 C0 279.65 3.57 280.66 7.94 280.66 C12.3 280.66 15.87 279.65 15.87 278.43
-								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st20"/>
+								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st19"/>
 				</g>
 				<g id="shape745-171" v:mID="745" v:groupContext="shape" v:layerMember="3">
 					<title>Tabelle.745</title>
 					<path d="M13.61 278.43 C13.27 278.43 13.04 278.2 13.04 277.87 C13.04 277.54 13.27 277.31 13.61 277.31 C13.95
 								 277.31 14.17 277.54 14.17 277.87 C14.17 278.2 13.95 278.43 13.61 278.43 ZM7.94 276.2 C3.57 276.2
 								 0 275.2 0 273.97 L0 278.43 C0 279.65 3.57 280.66 7.94 280.66 C12.3 280.66 15.87 279.65 15.87 278.43
-								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st20"/>
+								 L15.87 273.97 C15.87 275.2 12.3 276.2 7.94 276.2 Z" class="st19"/>
 				</g>
 			</g>
 		</g>
@@ -1982,11 +1980,11 @@
 		</g>
 		<g id="shape751-175" v:mID="751" v:groupContext="shape" v:layerMember="1" transform="translate(108.113,-143.163)">
 			<title>Dynamischer Verbinder.751</title>
-			<path d="M-2.04 287.74 L-12.13 287.74" class="st18"/>
+			<path d="M-2.04 287.74 L-12.13 287.74" class="st17"/>
 		</g>
 		<g id="shape754-178" v:mID="754" v:groupContext="shape" v:layerMember="1" transform="translate(139.909,-110.85)">
 			<title>Dynamischer Verbinder.754</title>
-			<path d="M0 280.66 L0 382.7 L260.64 382.7 L260.64 350.21" class="st18"/>
+			<path d="M0 280.66 L0 382.7 L260.64 382.7 L260.64 350.21" class="st17"/>
 		</g>
 		<g id="shape755-181" v:mID="755" v:groupContext="shape" transform="translate(677.021,251.162) rotate(90)">
 			<title>Link.755</title>
@@ -2003,7 +2001,7 @@
 						 A1.05956 1.07652 0 0 1 5.32 279.04 L2.66 279.04 A1.0641 1.08112 0 0 1 1.59 277.96 L1.59 276.33 A1.06375
 						 1.08077 0 0 1 2.66 275.25 L5.32 275.25 A1.05956 1.07652 0 0 1 6.23 275.79 L7.92 275.79 A2.65892 2.70146
 						 -180 0 0 5.32 273.63 L2.66 273.63 A2.65751 2.70003 -180 0 0 0 276.33 L0 277.96 A2.65751 2.70003 -180 0 0
-						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st21"/>
+						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st20"/>
 		</g>
 		<g id="shape100-183" v:mID="100" v:groupContext="shape" transform="translate(178.031,-132.282)">
 			<title>Link</title>
@@ -2020,7 +2018,7 @@
 						 A1.05956 1.07652 0 0 1 5.32 279.04 L2.66 279.04 A1.0641 1.08112 0 0 1 1.59 277.96 L1.59 276.33 A1.06375
 						 1.08077 0 0 1 2.66 275.25 L5.32 275.25 A1.05956 1.07652 0 0 1 6.23 275.79 L7.92 275.79 A2.65892 2.70146
 						 -180 0 0 5.32 273.63 L2.66 273.63 A2.65751 2.70003 -180 0 0 0 276.33 L0 277.96 A2.65751 2.70003 -180 0 0
-						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st21"/>
+						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st20"/>
 		</g>
 		<g id="shape104-185" v:mID="104" v:groupContext="shape" transform="translate(652.184,13.052) rotate(90)">
 			<title>Link.104</title>
@@ -2037,15 +2035,15 @@
 						 A1.05956 1.07652 0 0 1 5.32 279.04 L2.66 279.04 A1.0641 1.08112 0 0 1 1.59 277.96 L1.59 276.33 A1.06375
 						 1.08077 0 0 1 2.66 275.25 L5.32 275.25 A1.05956 1.07652 0 0 1 6.23 275.79 L7.92 275.79 A2.65892 2.70146
 						 -180 0 0 5.32 273.63 L2.66 273.63 A2.65751 2.70003 -180 0 0 0 276.33 L0 277.96 A2.65751 2.70003 -180 0 0
-						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st21"/>
+						 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st20"/>
 		</g>
 		<g id="shape763-187" v:mID="763" v:groupContext="shape" v:layerMember="1" transform="translate(56.2197,-172.237)">
 			<title>Dynamischer Verbinder.763</title>
-			<path d="M7.09 283.9 L7.09 291.59" class="st18"/>
+			<path d="M7.09 283.9 L7.09 291.59" class="st17"/>
 		</g>
 		<g id="shape765-190" v:mID="765" v:groupContext="shape" v:layerMember="1" transform="translate(649.15,-135.792)">
 			<title>Dynamischer Verbinder.765</title>
-			<path d="M0 280.66 L3.94 280.66 L3.94 144.59 L-515.91 144.59 L-515.91 255.14" class="st18"/>
+			<path d="M0 280.66 L3.94 280.66 L3.94 144.59 L-515.91 144.59 L-515.91 255.14" class="st17"/>
 		</g>
 		<g id="shape766-193" v:mID="766" v:groupContext="shape" transform="translate(649.15,421.833) rotate(180)">
 			<title>Link.766</title>
@@ -2062,11 +2060,11 @@
 						 A1.05956 1.07652 0 0 1 5.32 279.04 L2.66 279.04 A1.0641 1.08112 0 0 1 1.59 277.96 L1.59 276.33 A1.06375
 						 1.08077 0 0 1 2.66 275.25 L5.32 275.25 A1.05956 1.07652 0 0 1 6.23 275.79 L7.92 275.79 A2.65892 2.70146
 						 -180 0 0 5.32 273.63 L2.66 273.63 A2.65751 2.70003 -180 0 0 -0 276.33 L0 277.96 A2.65751 2.70003 -180 0
-						 0 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st21"/>
+						 0 2.66 280.66 L5.32 280.66 A2.6579 2.70042 -180 0 0 7.92 278.5 L6.23 278.5 Z" class="st20"/>
 		</g>
 		<g id="shape767-195" v:mID="767" v:groupContext="shape" v:layerMember="1" transform="translate(623.354,-142.879)">
 			<title>Dynamischer Verbinder.767</title>
-			<path d="M5.39 287.74 L8.79 287.74" class="st18"/>
+			<path d="M5.39 287.74 L8.79 287.74" class="st17"/>
 		</g>
 		<g id="group768-198" transform="translate(116.557,-126.183)" v:mID="768" v:groupContext="group">
 			<title>Tabelle.768</title>
@@ -2089,7 +2087,7 @@
 								 278.99 5.42 279.02 C5.48 279.07 5.49 279.09 5.53 279.16 C5.55 279.18 5.56 279.21 5.58 279.23 C5.62
 								 279.3 5.64 279.37 5.67 279.44 C5.7 279.53 5.73 279.62 5.75 279.72 C5.76 279.71 5.77 279.7 5.78 279.7
 								 C6.02 279.46 6.22 279.21 6.37 278.93 C6.34 278.91 6.31 278.88 6.28 278.85 C6.18 278.75 6.15 278.73
-								 6.05 278.62 C5.88 278.44 5.72 278.24 5.57 278.03 Z" class="st22"/>
+								 6.05 278.62 C5.88 278.44 5.72 278.24 5.57 278.03 Z" class="st21"/>
 				</g>
 				<g id="shape771-202" v:mID="771" v:groupContext="shape">
 					<title>text4</title>
@@ -2130,7 +2128,7 @@
 								 C0.87 270.65 0.85 270.64 0.83 270.62 L0.83 270.62 ZM1.65 270.87 C1.65 270.87 1.65 270.87 1.65 270.87
 								 C1.65 270.87 1.65 270.87 1.66 270.88 C1.66 270.87 1.65 270.87 1.65 270.87 L1.65 270.87 ZM1.71 270.96
 								 C1.71 270.96 1.71 270.96 1.71 270.96 C1.71 270.96 1.71 270.96 1.71 270.96 L1.71 270.96 Z"
-							class="st22"/>
+							class="st21"/>
 				</g>
 				<g id="shape772-204" v:mID="772" v:groupContext="shape" transform="translate(8.74259,-0.0104958)">
 					<title>text1</title>
@@ -2163,31 +2161,31 @@
 								 C37.96 280.36 37.79 280.6 37.43 280.6 C37.05 280.6 36.86 280.36 36.86 279.86 C36.86 279.86 36.86
 								 278.21 36.86 274.91 C36.86 274.54 36.76 274.27 36.57 274.09 C36.33 273.87 36.07 273.76 35.79 273.76
 								 C35.79 273.76 34.98 273.76 33.36 273.76 L33.36 279.96 C33.36 280.38 33.19 280.59 32.83 280.59 C32.48
-								 280.59 32.3 280.39 32.3 279.97 L32.3 273.2 Z" class="st23"/>
+								 280.59 32.3 280.39 32.3 279.97 L32.3 273.2 Z" class="st22"/>
 				</g>
 				<g id="shape773-206" v:mID="773" v:groupContext="shape" transform="translate(5.71597,-12.6378)">
 					<title>text2</title>
 					<path d="M0.54 280.66 C0.18 280.66 0 280.4 0 279.89 C0 279.38 0.17 279.12 0.5 279.12 C0.9 279.12 1.1 279.39 1.1
-								 279.94 C1.1 280.42 0.91 280.66 0.54 280.66 Z" class="st24"/>
+								 279.94 C1.1 280.42 0.91 280.66 0.54 280.66 Z" class="st23"/>
 				</g>
 				<g id="shape774-208" v:mID="774" v:groupContext="shape" transform="translate(3.89435,-7.89661)">
 					<title>text2-8</title>
 					<path d="M0.7 279.53 C0.56 279.48 0.36 279.49 0.11 279.56 C0.07 279.57 0.04 279.58 0 279.59 C0 279.6 0.01 279.61
 								 0.01 279.62 C0.06 279.79 0.12 279.95 0.16 280.11 C0.19 280.22 0.22 280.33 0.25 280.43 C0.27 280.51
 								 0.29 280.58 0.31 280.66 C0.32 280.65 0.33 280.65 0.34 280.65 C0.87 280.5 1.09 280.24 0.98 279.85
-								 C0.94 279.69 0.85 279.58 0.7 279.53 L0.7 279.53 Z" class="st25"/>
+								 C0.94 279.69 0.85 279.58 0.7 279.53 L0.7 279.53 Z" class="st24"/>
 				</g>
 				<g id="shape775-210" v:mID="775" v:groupContext="shape" transform="translate(0.0010799,-5.03248)">
 					<title>text2-6</title>
 					<path d="M0.55 280.66 C0.18 280.66 0 280.4 0 279.88 C0 279.36 0.17 279.1 0.51 279.1 C0.91 279.1 1.11 279.37 1.11
-								 279.93 C1.11 280.41 0.92 280.66 0.55 280.66 Z" class="st26"/>
+								 279.93 C1.11 280.41 0.92 280.66 0.55 280.66 Z" class="st25"/>
 				</g>
 				<g id="shape776-212" v:mID="776" v:groupContext="shape" transform="translate(1.78083,-10.144)">
 					<title>text2-8-5</title>
 					<path d="M0.37 280.6 C0.52 280.66 0.71 280.65 0.96 280.59 C1 280.58 1.04 280.56 1.07 280.55 C1.07 280.54 1.07
 								 280.53 1.06 280.52 C1.01 280.35 0.96 280.19 0.92 280.02 C0.89 279.92 0.87 279.81 0.84 279.7 C0.82
 								 279.63 0.8 279.55 0.78 279.47 C0.77 279.48 0.76 279.48 0.75 279.48 C0.22 279.62 0 279.88 0.09 280.27
-								 C0.13 280.44 0.23 280.55 0.37 280.6 L0.37 280.6 Z" class="st27"/>
+								 C0.13 280.44 0.23 280.55 0.37 280.6 L0.37 280.6 Z" class="st26"/>
 				</g>
 			</g>
 		</g>
@@ -2213,11 +2211,11 @@
 			</v:userDefs>
 			<path d="M6.54 280.66 L58.82 280.66 A6.53517 6.53517 -180 0 0 65.35 274.12 L65.35 253.17 A6.53517 6.53517 -180 0 0 58.82
 						 246.64 L6.54 246.64 A6.53517 6.53517 -180 0 0 -0 253.17 L0 274.12 A6.53517 6.53517 -180 0 0 6.54 280.66
-						 Z" class="st28"/>
+						 Z" class="st1"/>
 		</g>
 		<g id="shape108-216" v:mID="108" v:groupContext="shape" transform="translate(39.9543,-231.172)">
 			<title>Tabelle.108</title>
-			<rect v:rectContext="foreign" x="0" y="272.99" width="46.704" height="7.66554" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="272.99" width="46.704" height="7.66554" class="st18"/>
 			<image x="0" y="272.99" width="46.704" height="7.66554" preserveAspectRatio="none" xlink:href="data:image/png;base64,
 						iVBORw0KGgoAAAANSUhEUgAAA5gAAACXCAYAAABwdvT1AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7D
 						AcdvqGQAAFi9SURBVHhe7Z0H1D1LVeWPjoqOAWWGAQEBRUTJeRgB4SHRBw+QHFQUUQHJWUSiCAqSJCdBchCQjAoSJeMDBAEFdQYGR0AU
@@ -2512,11 +2510,11 @@
 						FsRl7ppNqou+cplri4XYYnEw9EF1m4o360cFQRAEQRAEQRCEjQJhx0bVdBFmj6VUYy5fucy1xbKeki6ErKdWox5BEARBEARBEIQjBTZa
 						GnOxx1Jo6ETTBZpysc6S/TFpyvAGJy75jt/nks6x7PHFd+guS7WSBl00gmC7BdboCIIgCIIgCIIgCCcINGOiwRaNgi7TdW6m0tkH6yTD
 						/pundRsA05GW7oII0Qs02otREARBEARBKID/Cwm9EiFHl4+LAAAAAElFTkSuQmCC"/>
-			<rect v:rectContext="foreign" x="0" y="272.99" width="46.704" height="7.66554" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="272.99" width="46.704" height="7.66554" class="st18"/>
 		</g>
 		<g id="shape778-220" v:mID="778" v:groupContext="shape" v:layerMember="1" transform="translate(56.2197,-206.658)">
 			<title>Dynamischer Verbinder.778</title>
-			<path d="M7.09 277.82 L7.09 269.32" class="st18"/>
+			<path d="M7.09 277.82 L7.09 269.32" class="st17"/>
 		</g>
 		<g id="group779-223" transform="translate(34.0315,-165.632)" v:mID="779" v:groupContext="group">
 			<title>Tabelle.779</title>
@@ -2542,11 +2540,11 @@
 				</v:userDefs>
 				<path d="M6.54 280.66 L58.82 280.66 A6.53517 6.53517 -180 0 0 65.35 274.12 L65.35 246.69 A6.53517 6.53517 -180 0
 							 0 58.82 240.16 L6.54 240.16 A6.53517 6.53517 -180 0 0 -0 246.69 L0 274.12 A6.53517 6.53517 -180 0 0
-							 6.54 280.66 Z" class="st28"/>
+							 6.54 280.66 Z" class="st1"/>
 			</g>
 			<g id="shape107-226" v:mID="107" v:groupContext="shape" transform="translate(7.46075,-2.40887)">
 				<title>Tabelle.107</title>
-				<rect v:rectContext="foreign" x="0" y="237.644" width="43.0116" height="43.0116" class="st29"/>
+				<rect v:rectContext="foreign" x="0" y="237.644" width="43.0116" height="43.0116" class="st27"/>
 				<image x="0" y="237.644" width="43.0116" height="43.0116" preserveAspectRatio="none" xlink:href="data:image/png;base64,
 							iVBORw0KGgoAAAANSUhEUgAACLwAAAi8CAYAAABLZWuJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMA
 							AA7DAcdvqGQAAP+lSURBVHhe7N0HlOV1ff//92xvs2Vm7h2qVJHeiwgKSBGBpdcFhAWsqCiioAKbqEmMscWosWM0FmzYRdSACqjc
@@ -5382,12 +5380,12 @@
 							AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 							AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/689OCABAAAAEPT/dT9CBQAAAAAAAAAAAAAAAAAAeAtQGH83ZY9HuAAA
 							AABJRU5ErkJggg=="/>
-				<rect v:rectContext="foreign" x="0" y="237.644" width="43.0116" height="43.0116" class="st29"/>
+				<rect v:rectContext="foreign" x="0" y="237.644" width="43.0116" height="43.0116" class="st27"/>
 			</g>
 		</g>
 		<g id="shape780-230" v:mID="780" v:groupContext="shape" v:layerMember="1" transform="translate(37.7165,-136.077)">
 			<title>Dynamischer Verbinder.780</title>
-			<path d="M-7.09 280.66 L-17.72 280.66 L-17.72 181.73 L-7.09 181.73" class="st18"/>
+			<path d="M-7.09 280.66 L-17.72 280.66 L-17.72 181.73 L-7.09 181.73" class="st17"/>
 		</g>
 		<g id="shape782-233" v:mID="782" v:groupContext="shape" v:layerMember="0"
 				transform="translate(504.274,405.676) rotate(180)">
@@ -5436,7 +5434,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="14.1732" cy="280.655" width="28.35" height="0"/>
 			<path d="M0 280.66 L20.21 263.55 L20.21 272.1 L28.35 272.1 L28.35 280.66 L28.35 289.21 L20.21 289.21 L20.21 297.76 L0
-						 280.66 Z" class="st1"/>
+						 280.66 Z" class="st7"/>
 			<text x="5.4" y="284.26" class="st12" v:langID="1031"><v:paragraph v:horizAlign="2"/><v:tabList/>Q<tspan dy="-0.289em"
 						class="st13" v:baseFontSize="12">net</tspan></text>		</g>
 		<g id="shape791-251" v:mID="791" v:groupContext="shape" transform="translate(340.173,-110.28)">
@@ -5444,8 +5442,8 @@
 			<desc>viii</desc>
 			<v:textBlock v:margins="rect(2,2,2,2)" v:tabSpace="42.5197"/>
 			<v:textRect cx="8.50394" cy="272.151" width="17.01" height="17.0079"/>
-			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st16"/>
-			<text x="2.8" y="275.15" class="st17" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>viii</text>		</g>
+			<ellipse cx="8.50394" cy="272.151" rx="8.50394" ry="8.50394" class="st15"/>
+			<text x="2.8" y="275.15" class="st16" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>viii</text>		</g>
 		<g id="shape794-254" v:mID="794" v:groupContext="shape" transform="translate(722.876,136.908) rotate(90)">
 			<title>Einfacher Pfeil.794</title>
 			<desc>Qloss</desc>
@@ -5456,7 +5454,7 @@
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="18.1509" cy="280.655" width="36.31" height="0" transform="rotate(180)"/>
 			<path d="M0 280.66 L20.21 263.55 L20.21 272.1 L36.3 272.1 L36.3 280.66 L36.3 289.21 L20.21 289.21 L20.21 297.76 L0 280.66
-						 Z" class="st1"/>
+						 Z" class="st7"/>
 			<text x="-32.3" y="-277.05" transform="rotate(180)" class="st12" v:langID="1031"><v:paragraph/><v:tabList/>Q<tspan
 						dy="-0.289em" class="st13" v:baseFontSize="12">loss</tspan></text>		</g>
 		<g id="shape795-258" v:mID="795" v:groupContext="shape" v:layerMember="0"
@@ -5500,11 +5498,11 @@
 			<desc>desuperheating</desc>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="30.1181" cy="277.145" width="60.24" height="7.02022"/>
-			<rect x="0" y="273.635" width="60.2362" height="7.02022" class="st19"/>
-			<text x="4.62" y="279.54" class="st30" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>desuperheating</text>		</g>
+			<rect x="0" y="273.635" width="60.2362" height="7.02022" class="st18"/>
+			<text x="4.62" y="279.54" class="st28" v:langID="1031"><v:paragraph v:horizAlign="1"/><v:tabList/>desuperheating</text>		</g>
 		<g id="shape109-272" v:mID="109" v:groupContext="shape" transform="translate(50.4764,-115.95)">
 			<title>Tabelle.109</title>
-			<rect v:rectContext="foreign" x="0" y="235.309" width="45.3464" height="45.3464" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="235.309" width="45.3464" height="45.3464" class="st18"/>
 			<image x="0" y="235.309" width="45.3464" height="45.3464" preserveAspectRatio="none" xlink:href="data:image/png;base64,
 						iVBORw0KGgoAAAANSUhEUgAACLwAAAi8CAYAAABLZWuJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7D
 						AcdvqGQAAP+lSURBVHhe7N13eCV3dTD+0BMCJCEFSAh5AySEEEIqCSQvKW+wDS644ILB2HQMAdN7szFgeu8G07vB25u9q7q9995Xu5JW
@@ -8899,11 +8897,11 @@
 						AAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAAAAAAAADK
 						LgAAAAAAAAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAAAAAAAADKLgAAAAAAAAAAoOwCAAAA
 						AAAAAADKBlvC2fN4KV1cAAAAAElFTkSuQmCC"/>
-			<rect v:rectContext="foreign" x="0" y="235.309" width="45.3464" height="45.3464" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="235.309" width="45.3464" height="45.3464" class="st18"/>
 		</g>
 		<g id="shape110-276" v:mID="110" v:groupContext="shape" transform="translate(229.622,-22.5953)">
 			<title>Tabelle.110</title>
-			<rect v:rectContext="foreign" x="0" y="262.702" width="56.6929" height="17.9528" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="262.702" width="56.6929" height="17.9528" class="st18"/>
 			<image x="0" y="262.702" width="56.6929" height="17.9528" preserveAspectRatio="none" xlink:href="data:image/png;base64,
 						iVBORw0KGgoAAAANSUhEUgAAA4QAAAEdCAYAAABUuKmZAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7D
 						AcdvqGQAAHWHSURBVHhe7d0HfBVV+j/+Jb333hsJhJIEQkIIhBISCIEEEkIH6R3p0oUVQaQpIE2kSgdBsPdVV8W+ll3Xta3Ye8Pu7v5f
@@ -9293,7 +9291,7 @@
 						VTCjAv8bY4wxJjuaxNIfs+wNTggZY1LzDosrwH9jTEszN3dvvsWYMcYYY4wxxhhjjDHGGGOMMcYYY4wxxhhjjDHGGGOMMcYYY4wxxhhj
 						jDHGGGOMMcYYY4wxxhhjjDHGGGOMMcYYY4wxxhhjjDHGGGOMMcYYY4wxxhhjjDHGGGOMMcYYY4wxxhhjjDFmh/8PSMU4ZMt2JmAAAAAA
 						SUVORK5CYII="/>
-			<rect v:rectContext="foreign" x="0" y="262.702" width="56.6929" height="17.9528" class="st19"/>
+			<rect v:rectContext="foreign" x="0" y="262.702" width="56.6929" height="17.9528" class="st18"/>
 		</g>
 	</g>
 </svg>

@@ -51,6 +51,37 @@ your project.
 
 .. card::
 
+    **Steam distribution model for Life cylcle inventory data.**
+    ^^^
+
+    .. image:: /_static/images/examples/steam_LCI.svg
+      :align: center
+      :alt: Steam distribution model topology of utilityLCA 
+      :class: only-light
+      :target: https://github.com/HaSchneider/utilityLCA
+
+    .. image:: /_static/images/examples/steam_LCI_darkmode.svg
+      :align: center
+      :alt: Steam distribution model topology of utilityLCA 
+      :class: only-dark
+      :target: https://github.com/HaSchneider/utilityLCA
+
+    A generic model for generating Life Cycle Inventory (LCI) data for process heat supply via steam is presented. 
+    The model's results are compared with existing generic datasets from ecoinvent, highlighting key differences and variances. 
+    The study investigates the influence of varying heat demand temperatures, 
+    integrating these findings within the context of broader background system developments. 
+    Additionally, the influence of substituted electricity generated in back-pressure turbines is analyzed, 
+    and its implications for the overall environmental performance of steam supply systems are discussed.
+    
+    +++
+    Title: Generic model for determining the environmental impact of process steam supply
+
+    Authors: Hannes Schneider, Stephan Scholl, Mandy Paschetag
+
+    Reference: :cite:`Schneider2026`
+
+.. card::
+
     **Coupled Porous Media Storage and Power Plant Simulation**
     ^^^
 
@@ -146,34 +177,3 @@ your project.
 
     Reference: :cite:`Fry2022`
 
-
-.. card::
-
-    **Steam distribution model for Life cylcle inventory data.**
-    ^^^
-
-    .. image:: /_static/images/examples/steam_LCI.svg
-      :align: center
-      :alt: Steam distribution model topology of utilityLCA 
-      :class: only-light
-      :target: https://github.com/HaSchneider/utilityLCA
-
-    .. image:: /_static/images/examples/steam_LCI_darkmode.svg
-      :align: center
-      :alt: Steam distribution model topology of utilityLCA 
-      :class: only-dark
-      :target: https://github.com/HaSchneider/utilityLCA
-
-    A generic model for generating Life Cycle Inventory (LCI) data for process heat supply via steam is presented. 
-    The model's results are compared with existing generic datasets from ecoinvent, highlighting key differences and variances. 
-    The study investigates the influence of varying heat demand temperatures, 
-    integrating these findings within the context of broader background system developments. 
-    Additionally, the influence of substituted electricity generated in back-pressure turbines is analyzed, 
-    and its implications for the overall environmental performance of steam supply systems are discussed.
-    
-    +++
-    Title: Generic model for determining the environmental impact of process steam supply
-
-    Authors: Hannes Schneider, Stephan Scholl, Mandy Paschetag
-
-    Reference: :cite:`Schneider2026`

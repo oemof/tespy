@@ -1,46 +1,45 @@
-.. _tespy_label:
+.. _label:
 
-.. include:: introduction.rst
-
-..  toctree::
-    :maxdepth: 2
-    :hidden:
-
-    introduction
+.. include:: landing.rst
 
 ..  toctree::
     :maxdepth: 2
-    :caption: User Guide
+    :caption: Get started
     :hidden:
 
-    installation
-    basics
-    tutorials
-    examples
-    support
+    getting_started
+    basic_tutorials
 
 ..  toctree::
     :maxdepth: 2
-    :caption: Documentation
+    :caption: Explore
     :hidden:
 
-    modules
-    benchmarks
+    building_blocks
+    model_library
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Build
+    :hidden:
+
+    how_to_guides
+    extend
+    integrate
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Project
+    :hidden:
+
+    in_use
+    community
+
+..  toctree::
+    :maxdepth: 1
+    :caption: Reference
+    :hidden:
+
     api
     whats_new
-    zliterature
-
-..  toctree::
-    :maxdepth: 2
-    :caption: Advanced Features
-    :hidden:
-
-    advanced/exergy
-
-..  toctree::
-    :maxdepth: 2
-    :caption: Contribute to TESPy
-    :hidden:
-
-    development/what
-    how
+    literature

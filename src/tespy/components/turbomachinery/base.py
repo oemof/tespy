@@ -11,69 +11,79 @@ tespy/components/turbomachinery/base.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
 class Turbomachine(Component):
+    _p_in_adj = 0.9   # factor relative to o.p for priority-2 i.p adjustment
+    _p_out_adj = 1.1  # factor relative to i.p for priority-3 o.p adjustment
+    _initial_pr_guess = 1.0
+    _initial_dh_fallback = 0.0
+    _initial_eta_guess = 0.9
     r"""
     Parent class for compressor, pump and turbine.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
+    - Fluid inlets: in1
+    - Fluid outlets: out1
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.turbomachinery.base.Turbomachine.energy_balance_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
 
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    dp : float, dict
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    local_design : boolean
+    label : str
+        The label of the component.
+
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
-        Include this component in the network's results printout.
+    offdesign : list
+        List containing offdesign parameters (stated as String).
 
     P : float, dict
-        Power, :math:`P/\text{W}`
+        Power input/output of the component. Quantity: :code:`power`.
+        Equation: :py:meth:`energy_balance_func <tespy.components.turbomachinery.base.Turbomachine.energy_balance_func>`.
 
     pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
 
-    dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+    printout : bool
+        Include this component in the network's results printout.
 
     Example
     -------
@@ -84,25 +94,34 @@ class Turbomachine(Component):
     - :class:`tespy.components.turbomachinery.turbine.Turbine`
     - :class:`tespy.components.turbomachinery.steam_turbine.SteamTurbine`
     """
+    def _calc_P(self):
+        return self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
+
     def get_parameters(self):
         return {
             'P': dc_cp(
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
-                quantity="power"
+                quantity="power",
+                description="power input/output of the component",
+                calc=self._calc_P
             ),
             'pr': dc_cp(
                 num_eq_sets=1,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
-                quantity="ratio"
+                quantity="ratio",
+                description="outlet to inlet pressure ratio",
+                calc=self._calc_pr
             ),
             'dp': dc_cp(
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
-                quantity="pressure"
+                quantity="pressure_difference",
+                description="inlet to outlet absolute pressure change",
+                calc=self._calc_dp
             )
         }
 
@@ -138,6 +157,65 @@ class Turbomachine(Component):
     def outlets():
         return ['out1']
 
+    def _initial_affine_edges(self):
+        # the state based enthalpy change is more trustworthy than the
+        # constant guesses of e.g. heat exchangers, its weight makes those
+        # absorb the closure residual of guess cycles
+        return [
+            (self.inl[0].p, self.outl[0].p, self._initial_pr_guess, 0.0),
+            (self.inl[0].h, self.outl[0].h, 1.0, self._initial_dh_guess(), 10.0),
+        ]
+
+    def _initial_temperature_edges(self):
+        # the state based temperature change of the machine, consistent
+        # with the enthalpy edge - for pumps this is close to zero, so the
+        # temperature level carries across them
+        i, o = self.inl[0], self.outl[0]
+        try:
+            h_in = self._initial_port_enthalpy(i, 'in1')
+            p_out = o.p.val_SI
+            if np.isnan(p_out) or p_out <= 0:
+                p_out = i.p.val_SI * self._initial_pr_guess
+            T_in = T_mix_ph(i.p.val_SI, h_in, i.fluid_data, i.mixing_rule)
+            T_out = T_mix_ph(
+                p_out, h_in + self._initial_dh_guess(), o.fluid_data,
+                o.mixing_rule
+            )
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            T_in = T_out = float("nan")
+        if np.isnan(T_in) or np.isnan(T_out):
+            state = self.initial_state('in1')
+            if state is not None and state.get("phase") == "liquid":
+                # liquid compression is near isothermal regardless of the
+                # unknown state, so the temperature level carries across
+                # the machine even when no pressure exists yet to evaluate
+                # the state based estimate
+                return [(i, o, 0.0, 5.0)]
+            return []
+        return [(i, o, T_out - T_in, 5.0)]
+
+    def _initial_dh_guess(self):
+        """Enthalpy change of an isentropic state change to the outlet
+        pressure with a generic efficiency, evaluated at the inlet state,
+        the inlet's temperature hint or the inlet phase expectation of the
+        component class."""
+        i, o = self.inl[0], self.outl[0]
+        try:
+            h_in = self._initial_port_enthalpy(i, 'in1')
+            p_out = o.p.val_SI
+            if np.isnan(p_out) or p_out <= 0:
+                p_out = i.p.val_SI * self._initial_pr_guess
+            dh_s = isentropic(
+                i.p.val_SI, h_in, p_out, i.fluid_data, i.mixing_rule
+            ) - h_in
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return self._initial_dh_fallback
+        if np.isnan(dh_s):
+            return self._initial_dh_fallback
+        if dh_s > 0:
+            return dh_s / self._initial_eta_guess
+        return dh_s * self._initial_eta_guess
+
     def energy_balance_func(self):
         r"""
         Calculate energy balance of a turbomachine.
@@ -151,10 +229,7 @@ class Turbomachine(Component):
 
                 0=\dot{m}_{in}\cdot\left(h_{out}-h_{in}\right)-P
         """
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI) - self.P.val_SI
-        )
+        return self._calc_P() - self.P.val_SI
 
     def energy_balance_dependents(self):
         return [
@@ -163,67 +238,25 @@ class Turbomachine(Component):
             self.outl[0].h,
         ]
 
-    def bus_func(self, bus):
-        r"""
-        Calculate the value of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        residual : float
-            Value of energy transfer :math:`\dot{E}`. This value is passed to
-            :py:meth:`tespy.components.component.Component.calc_bus_value`
-            for value manipulation according to the specified characteristic
-            line of the bus.
-
-            .. math::
-
-                \dot{E} = \dot{m}_{in} \cdot \left(h_{out} - h_{in} \right)
-        """
-        return self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI
-        )
-
-    def bus_deriv(self, bus):
-        r"""
-        Calculate partial derivatives of the bus function.
-
-        Parameters
-        ----------
-        bus : tespy.connections.bus.Bus
-            TESPy bus object.
-
-        Returns
-        -------
-        deriv : ndarray
-            Matrix of partial derivatives.
-        """
-        f = self.calc_bus_value
-        if self.inl[0].m.is_var:
-            if self.inl[0].m.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].m.J_col] = 0
-            bus.jacobian[self.inl[0].m.J_col] -= _numeric_deriv(self.inl[0].m._reference_container, f, bus=bus)
-
-        if self.inl[0].h.is_var:
-            if self.inl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.inl[0].h.J_col] = 0
-            bus.jacobian[self.inl[0].h.J_col] -= _numeric_deriv(self.inl[0].h._reference_container, f, bus=bus)
-
-        if self.outl[0].h.is_var:
-            if self.outl[0].h.J_col not in bus.jacobian:
-                bus.jacobian[self.outl[0].h.J_col] = 0
-            bus.jacobian[self.outl[0].h.J_col] -= _numeric_deriv(self.outl[0].h._reference_container, f, bus=bus)
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        self.P.val_SI = self.inl[0].m.val_SI * (
-            self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        self.pr.val_SI = self.outl[0].p.val_SI / self.inl[0].p.val_SI
-        self.dp.val_SI = self.inl[0].p.val_SI - self.outl[0].p.val_SI
+    def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
+        i, o = self.inl[0], self.outl[0]
+        fluid = single_fluid(i.fluid_data)
+        if fluid is None:
+            return
+        wrapper = i.fluid.wrapper[fluid]
+        try:
+            s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
+            wrapper.h_ps(o.p.val_SI, s_in)
+        except ValueError:
+            if i.h.is_var and self._p_out_adj > 1:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
+            elif i.p.is_var:
+                i.p.set_reference_val_SI(o.p.val_SI * self._p_in_adj)
+            elif o.p.is_var:
+                o.p.set_reference_val_SI(i.p.val_SI * self._p_out_adj)
 
     def entropy_balance(self):
         r"""
@@ -231,11 +264,11 @@ class Turbomachine(Component):
 
         Note
         ----
-        The entropy balance makes the follwing parameter available:
+        The entropy balance makes the following parameter available:
 
         .. math::
 
-            \text{S\_irr}=\dot{m} \cdot \left(s_\mathrm{out}-s_\mathrm{in}
+            \text{S\_irr}=\dot{m} \cdot \left(s_\text{out}-s_\text{in}
             \right)\\
         """
         self.S_irr = self.inl[0].m.val_SI * (
@@ -258,9 +291,9 @@ class Turbomachine(Component):
                 'isoline_property': 's',
                 'isoline_value': self.inl[0].s.val,
                 'isoline_value_end': self.outl[0].s.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[0].vol.val
             }
         }

@@ -10,3 +10,191 @@ figure figcaption p {
     text-align: center;
     font-weight: bold;
 }
+
+/* Let the content of the page (usually 46em) use the right sidebar space (15em) */
+
+.page:has(.toc-drawer.no-toc) .content {
+    width: 61em;
+}
+
+/* This is to style the cards on the landing page */
+
+.sd-material-icon {
+  background: var(--color-background-secondary);
+  border-radius: 50%;
+  padding: 0.25em;
+  overflow: visible;
+}
+
+/* Add the color of the logo */
+
+:root {
+  --color-logo-main: #1f567d;
+  --color-logo-main-transparent: #1f567d0d;
+}
+
+.sd-text-logo-main {
+  color: var(--color-logo-main);
+}
+
+/* This is to change the labels of tabs and make a nice rounded box around them  */
+
+.sd-card {
+    background-color: var(--color-logo-main-transparent) !important;
+    border-color: var(--color-logo-main-transparent) !important;
+    margin: 0.25em;
+}
+
+/* This is to change the text on the landing page card grid */
+
+.sd-card.landing-card:hover ul.simple {
+    color: var(--color-foreground-primary);
+}
+
+.sd-card.landing-card ul.simple {
+    color: var(--color-foreground-secondary);
+}
+
+span.backrefs {
+    display: none !important;
+}
+
+/* ---- landing page: secondary link columns ---- */
+
+.tespy-links .rubric {
+    font-size: 0.75rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-foreground-secondary);
+    border-bottom: 1px solid var(--color-background-border);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.tespy-links ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0;
+}
+
+.tespy-links li {
+    margin: 0.15rem 0;
+}
+
+/* ---- notebook outputs: pandas DataFrame tables ---- */
+
+/* wide frames scroll inside their own box instead of pushing the page */
+.cell_output .output.text_html {
+    overflow-x: auto;
+}
+
+.cell_output table.dataframe {
+    border-collapse: collapse;
+    border: 0;
+    margin: 0.25rem 0;
+    font-size: var(--font-size--small);
+    font-variant-numeric: tabular-nums;
+}
+
+.cell_output table.dataframe thead th {
+    background: var(--color-background-secondary);
+    color: var(--color-foreground-primary);
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    border: 0;
+    border-bottom: 2px solid var(--color-background-border);
+    padding: 0.4rem 0.7rem;
+}
+
+.cell_output table.dataframe thead th:first-child,
+.cell_output table.dataframe tbody th {
+    text-align: left;
+}
+
+.cell_output table.dataframe tbody th {
+    color: var(--color-foreground-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+    border: 0;
+    padding: 0.35rem 0.7rem;
+}
+
+.cell_output table.dataframe tbody td {
+    text-align: right;
+    border: 0;
+    border-top: 1px solid var(--color-background-border);
+    padding: 0.35rem 0.7rem;
+}
+
+.cell_output table.dataframe tbody tr:nth-child(2n) {
+    background: var(--color-background-secondary);
+}
+
+.cell_output table.dataframe tbody tr:hover {
+    background: var(--color-background-hover);
+}
+
+/* Roadmap timeline (docs/community/roadmap.rst) */
+
+ul.roadmap-timeline {
+    list-style: none;
+    margin: 1.5em 0;
+    padding-left: 0;
+    position: relative;
+}
+
+ul.roadmap-timeline::before {
+    content: "";
+    position: absolute;
+    left: calc(0.5em + 2px);
+    top: 0.4em;
+    bottom: 0.4em;
+    width: 2px;
+    background: var(--color-background-border);
+}
+
+ul.roadmap-timeline > li {
+    position: relative;
+    padding-left: 2.2em;
+    margin-bottom: 1.8em;
+}
+
+ul.roadmap-timeline > li::before {
+    box-sizing: border-box;
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.35em;
+    width: calc(1em + 6px);
+    height: calc(1em + 6px);
+    border-radius: 50%;
+    background: var(--color-background-primary);
+    border: 3px solid var(--color-logo-main);
+}
+
+.roadmap-timeline p.rubric {
+    margin: 1em 0 0.4em 0;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-logo-main);
+}
+
+.roadmap-timeline p.rubric.roadmap-release {
+    margin: 0 0 0.4em 0;
+    font-size: 1.15em;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--color-foreground-primary);
+}
+
+.roadmap-additions {
+    color: var(--color-foreground-secondary);
+    font-size: 0.95em;
+}
+
+.roadmap-additions p.rubric {
+    color: var(--color-foreground-secondary);
+}

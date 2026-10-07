@@ -26,56 +26,57 @@ class DropletSeparator(NodeBase):
 
     This component is the parent component of the Drum.
 
-    **Mandatory Equations**
-
-    - :py:meth:`tespy.components.nodes.base.NodeBase.mass_flow_func`
-    - :py:meth:`tespy.components.nodes.base.NodeBase.pressure_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix`
-    - :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func`
-    - saturated liquid: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-    - saturated gas: :py:meth:`tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1, out2 (index 1: saturated liquid, index 2: saturated gas)
-
-    Image
-
-    .. image:: /api/_images/DropletSeparator.svg
-       :alt: flowsheet of the droplet separator
+    .. image:: /api/_images/components/DropletSeparator.svg
+       :alt: flowsheet of the dropletseparator
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/DropletSeparator_darkmode.svg
-       :alt: flowsheet of the droplet separator
+    .. image:: /api/_images/components/DropletSeparator_darkmode.svg
+       :alt: flowsheet of the dropletseparator
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2
+
+    Mandatory Equations
+    -------------------
+
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - energy balance constraint: :py:meth:`energy_balance_func <tespy.components.nodes.droplet_separator.DropletSeparator.energy_balance_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
+    - outlet 0 is saturated liquid constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - outlet 1 is saturated gas constraint: :py:meth:`saturated_outlet_func <tespy.components.nodes.droplet_separator.DropletSeparator.saturated_outlet_func>`
+    - fluid equality constraints: :py:meth:`fluid_structure_matrix <tespy.components.nodes.droplet_separator.DropletSeparator.fluid_structure_matrix>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
+    label : str
+        The label of the component.
 
-    local_design : boolean
+    local_design : bool
         Treat this component in design mode in an offdesign calculation.
 
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
 
-    printout : boolean
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
         Include this component in the network's results printout.
 
     Example
@@ -88,7 +89,8 @@ class DropletSeparator(NodeBase):
     >>> from tespy.networks import Network
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC", "enthalpy": "kJ/kg"
     ... })
     >>> so = Source('two phase inflow')
     >>> sig = Sink('gas outflow')
@@ -106,11 +108,11 @@ class DropletSeparator(NodeBase):
 
     .. math::
 
-        \dot{m}_\mathrm{out,1} = \left(1 - \frac{h_\mathrm{in} - h'}{h'' - h'}
-        \right) \cdot \dot{m}_\mathrm{in}
+        \dot{m}_\text{out,1} = \left(1 - \frac{h_\text{in} - h'}{h'' - h'}
+        \right) \cdot \dot{m}_\text{in}
 
-        \dot{m}_\mathrm{out,2} = \frac{h_\mathrm{in} - h'}{h'' - h'} \cdot
-        \dot{m}_\mathrm{in}
+        \dot{m}_\text{out,2} = \frac{h_\text{in} - h'}{h'' - h'} \cdot
+        \dot{m}_\text{in}
 
     >>> so_ds.set_attr(fluid={'water': 1}, p=1, h=1500, m=10)
     >>> nw.solve('design')
@@ -119,9 +121,9 @@ class DropletSeparator(NodeBase):
     True
     >>> round((1 - Q_in) * so_ds.m.val_SI, 6) == round(ds_sil.m.val_SI, 6)
     True
-    >>> ds_sig.calc_Q()
+    >>> round(ds_sig.calc_Q(), 4)
     1.0
-    >>> ds_sil.calc_Q()
+    >>> round(abs(ds_sil.calc_Q()), 4)
     0.0
 
     In a different setup, we unset pressure and enthalpy and specify gas
@@ -145,34 +147,40 @@ class DropletSeparator(NodeBase):
             'mass_flow_constraints': dc_cmc(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
             }),
             'energy_balance_constraints': dc_cmc(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                'num_eq_sets': 1
+                'num_eq_sets': 1,
+                'description': 'energy balance constraint'
             }),
             'pressure_constraints': dc_cmc(**{
                 'structure_matrix': self.pressure_structure_matrix,
-                'num_eq_sets': self.num_i + self.num_o - 1
+                'num_eq_sets': self.num_i + self.num_o - 1,
+                'description': 'pressure equality constraints'
             }),
             'outlet_constraint_liquid': dc_cmc(**{
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
                 'num_eq_sets': 1,
-                'func_params': {'outconn': 0, 'quality': 0}
+                'func_params': {'outconn': 0, 'quality': 0},
+                'description': 'outlet 0 is saturated liquid constraint'
             }),
             'outlet_constraint_gas': dc_cmc(**{
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
                 'num_eq_sets': 1,
-                'func_params': {'outconn': 1, 'quality': 1}
+                'func_params': {'outconn': 1, 'quality': 1},
+                'description': 'outlet 1 is saturated gas constraint'
             }),
             'fluid_constraints': dc_cmc(**{
                 'structure_matrix': self.fluid_structure_matrix,
-                'num_eq_sets': self.num_o
+                'num_eq_sets': self.num_o,
+                'description': 'fluid equality constraints'
             })
         }
 
@@ -246,7 +254,7 @@ class DropletSeparator(NodeBase):
 
     def fluid_structure_matrix(self, k):
         r"""
-        Set the fluid strucutre matrix to force fluid composition equality.
+        Set the fluid structure matrix to force fluid composition equality.
         """
         for eq, conn in enumerate(self.outl):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
@@ -270,10 +278,26 @@ class DropletSeparator(NodeBase):
             if o.p.val_SI > p_crit:
                 o.p.set_reference_val_SI(p_crit * 0.9)
 
+    def _initial_affine_edges(self):
+        # the enthalpy jumps to the bubble and dew line at the outlets, only
+        # the pressure relation is a usable guess
+        connections = self.inl + self.outl
+        first = connections[0]
+        return [(first.p, c.p, 1.0, 0.0) for c in connections[1:]]
+
+    def initial_state(self, port):
+        # every port sits on or inside the dome, so all pressures must be
+        # subcritical
+        if port == 'out1':
+            return {"phase": "liquid", "saturated": True}
+        elif port == 'out2':
+            return {"phase": "gas", "saturated": True}
+        return {"phase": "two-phase", "saturated": True}
+
     @staticmethod
     def initialise_source(c, key):
         r"""
-        Return a starting value for pressure and enthalpy at outlet.
+        Return a starting value for pressure at outlet.
 
         Parameters
         ----------
@@ -286,21 +310,17 @@ class DropletSeparator(NodeBase):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
+            Starting value for pressure in SI units.
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             return c.fluid.wrapper[fluid]._p_crit / 2
-        elif key == 'h':
-            if c.source_id == 'out1':
-                return h_mix_pQ(c.p.val_SI, 0, c.fluid_data)
-            else:
-                return h_mix_pQ(c.p.val_SI, 1, c.fluid_data)
+        return 0
 
     @staticmethod
     def initialise_target(c, key):
         r"""
-        Return a starting value for pressure and enthalpy at inlet.
+        Return a starting value for pressure at inlet.
 
         Parameters
         ----------
@@ -313,20 +333,12 @@ class DropletSeparator(NodeBase):
         Returns
         -------
         val : float
-            Starting value for pressure/enthalpy in SI units.
-
-            .. math::
-
-                val = \begin{cases}
-                10^6 & \text{key = 'p'}\\
-                h\left(p, x=0.5 \right) & \text{key = 'h' at inlet 1}
-                \end{cases}
+            Starting value for pressure in SI units.
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
             return c.fluid.wrapper[fluid]._p_crit / 2
-        elif key == 'h':
-            return h_mix_pQ(c.p.val_SI, 0.5, c.fluid_data)
+        return 0
 
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
@@ -344,9 +356,9 @@ class DropletSeparator(NodeBase):
                 'isoline_property': 'p',
                 'isoline_value': self.inl[0].p.val,
                 'isoline_value_end': self.outl[i].p.val,
-                'starting_point_property': 'v',
+                'starting_point_property': 'vol',
                 'starting_point_value': self.inl[0].vol.val,
-                'ending_point_property': 'v',
+                'ending_point_property': 'vol',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)
         }

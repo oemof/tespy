@@ -1,0 +1,195 @@
+{
+  "section_A": {
+    "inputs": {
+      "Fluid_h": "Water",
+      "T_h_in_K": 330.0,
+      "p_h_in_Pa": 101325.0,
+      "mdot_h_kg_s": 0.1,
+      "Fluid_c": "n-Propane",
+      "T_c_in_K": 275.0,
+      "p_c_in_Pa": 997682.6201918732,
+      "mdot_c_kg_s": 0.01,
+      "alpha_liquid_vapor_W_m2_K": 100,
+      "alpha_two_phase_W_m2_K": 1000,
+      "R_cond": 0
+    },
+    "cases": [
+      {
+        "A_m2": 0.2,
+        "Q_W": 451.8242,
+        "Qmax_W": 4581.505,
+        "effectiveness": 0.098619,
+        "n_cells": 1,
+        "T_h_out_K": 328.92,
+        "T_c_out_K": 292.556,
+        "phases_hot": [
+          "liquid"
+        ],
+        "phases_cold": [
+          "liquid"
+        ]
+      },
+      {
+        "A_m2": 1.0,
+        "Q_W": 2289.3026,
+        "Qmax_W": 4581.505,
+        "effectiveness": 0.499684,
+        "n_cells": 2,
+        "T_h_out_K": 324.5267,
+        "T_c_out_K": 300.0,
+        "phases_hot": [
+          "liquid",
+          "liquid"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase"
+        ]
+      },
+      {
+        "A_m2": 2.0,
+        "Q_W": 4163.4556,
+        "Qmax_W": 4581.505,
+        "effectiveness": 0.908753,
+        "n_cells": 3,
+        "T_h_out_K": 320.0443,
+        "T_c_out_K": 309.2026,
+        "phases_hot": [
+          "liquid",
+          "liquid",
+          "liquid"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "vapor"
+        ]
+      },
+      {
+        "A_m2": 4.0,
+        "Q_W": 4577.2422,
+        "Qmax_W": 4581.505,
+        "effectiveness": 0.99907,
+        "n_cells": 3,
+        "T_h_out_K": 319.0544,
+        "T_c_out_K": 329.7885,
+        "phases_hot": [
+          "liquid",
+          "liquid",
+          "liquid"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "vapor"
+        ]
+      },
+      {
+        "A_m2": 7.0,
+        "Q_W": 4581.5014,
+        "Qmax_W": 4581.505,
+        "effectiveness": 0.999999,
+        "n_cells": 3,
+        "T_h_out_K": 319.0443,
+        "T_c_out_K": 329.9998,
+        "phases_hot": [
+          "liquid",
+          "liquid",
+          "liquid"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "vapor"
+        ]
+      }
+    ]
+  },
+  "section_B": {
+    "inputs": {
+      "Fluid_h": "n-Propane",
+      "T_h_in_K": 340.0,
+      "p_h_in_Pa": 1982839.319735127,
+      "Fluid_c": "n-Propane",
+      "T_c_in_K": 285.0,
+      "p_c_in_Pa": 997682.6201918732,
+      "alpha_liquid_vapor_W_m2_K": 100,
+      "alpha_two_phase_W_m2_K": 1000,
+      "R_cond": 0
+    },
+    "cases": [
+      {
+        "A_m2": 3.0,
+        "Q_W": 1811.9192,
+        "Qmax_W": 1811.9202,
+        "effectiveness": 0.999999,
+        "n_cells": 4,
+        "T_h_out_K": 330.0,
+        "T_c_out_K": 339.9999,
+        "phases_hot": [
+          "two-phase",
+          "two-phase",
+          "two-phase",
+          "vapor"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "vapor",
+          "vapor"
+        ],
+        "label": "B1 - damping_test baseline",
+        "mdot_h_kg_s": 0.01,
+        "mdot_c_kg_s": 0.004
+      },
+      {
+        "A_m2": 3.0,
+        "Q_W": 4100.5249,
+        "Qmax_W": 4209.6511,
+        "effectiveness": 0.974077,
+        "n_cells": 5,
+        "T_h_out_K": 289.2271,
+        "T_c_out_K": 318.7089,
+        "phases_hot": [
+          "liquid",
+          "liquid",
+          "two-phase",
+          "two-phase",
+          "vapor"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "two-phase",
+          "vapor",
+          "vapor"
+        ],
+        "label": "B2 - equal mass flows A=3",
+        "mdot_h_kg_s": 0.01,
+        "mdot_c_kg_s": 0.01
+      },
+      {
+        "A_m2": 0.3,
+        "Q_W": 2152.7352,
+        "Qmax_W": 4209.6511,
+        "effectiveness": 0.511381,
+        "n_cells": 3,
+        "T_h_out_K": 330.0,
+        "T_c_out_K": 300.0,
+        "phases_hot": [
+          "two-phase",
+          "two-phase",
+          "vapor"
+        ],
+        "phases_cold": [
+          "liquid",
+          "two-phase",
+          "two-phase"
+        ],
+        "label": "B3 - equal mass flows A=0.3",
+        "mdot_h_kg_s": 0.01,
+        "mdot_c_kg_s": 0.01
+      }
+    ]
+  }
+}

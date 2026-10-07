@@ -28,8 +28,9 @@ class TestClausiusRankine:
         self.pamb = 1
         self.nw = Network()
         self.nw.units.set_defaults(**{
-            "pressure": "bar", "temperature": "degC", "enthalpy": "kJ/kg"
-})
+            "pressure": "bar", "pressure_difference": "bar",
+            "temperature": "degC", "enthalpy": "kJ/kg"
+        })
 
         # create components
         splitter1 = Splitter('splitter 1')

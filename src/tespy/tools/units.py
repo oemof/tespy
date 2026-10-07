@@ -34,6 +34,7 @@ class Units:
             "specific_energy": "J/kg",
             "entropy": "J/kg/K",
             "pressure": "Pa",
+            "pressure_difference": "Pa",
             "mass_flow": "kg/s",
             "volumetric_flow": "m3/s",
             "specific_volume": "m3/kg",
@@ -48,11 +49,14 @@ class Units:
             "area": "m2",
             "thermal_conductivity": "W/m/K",
             "heat_transfer_coefficient": "W/K",
+            "heat_transfer_coefficient_per_area": "W/m**2/K",
+            "thermal_resistance": "K/W",
             "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
             "frequency": "1/s",
             # None is the default if not quantity is supplied
             None: "1"
         }
+        self._conversions_applied = False
         # necessary, because pint cannot auto detect environment changes and
         # pint version changes
         major = sys.version_info.major
@@ -77,6 +81,45 @@ class Units:
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
+        self._from_SI = {}
+        self._parsed_units = {}
+
+    def parsed_unit(self, unit):
+        """Return the pint Unit for a unit string.
+
+        The units are parsed once and then cached.
+        """
+        try:
+            return self._parsed_units[unit]
+        except KeyError:
+            parsed = self.ureg.Unit(unit)
+            self._parsed_units[unit] = parsed
+            return parsed
+
+    def value_from_SI(self, value_SI, base_unit, target_unit):
+        """Convert a value in SI units to its magnitude in the target unit.
+
+        Unit conversions are affine, so factor and offset are computed once
+        per unit pair and cached, bypassing the pint conversion machinery
+        for every subsequent value.
+        """
+        try:
+            factor, offset = self._from_SI[(base_unit, target_unit)]
+        except KeyError:
+            offset = self.ureg.Quantity(0.0, base_unit).m_as(target_unit)
+            # probe at a large power of two: the division is exact and the
+            # cancellation error of the offset subtraction becomes negligible
+            probe = 2.0 ** 20
+            factor = (
+                self.ureg.Quantity(probe, base_unit).m_as(target_unit) - offset
+            ) / probe
+            self._from_SI[(base_unit, target_unit)] = (factor, offset)
+        return value_SI * factor + offset
+
+    def quantity_from_SI(self, value_SI, base_unit, target_unit):
+        return self.ureg.Quantity(
+            self.value_from_SI(value_SI, base_unit, target_unit), target_unit
+        )
 
     def set_defaults(self, **kwargs):
         """Set the default units
@@ -94,6 +137,10 @@ class Units:
         entropy : str
             Default unit: "J/kg/K"
         pressure : str
+            Default unit: "Pa". For backwards compatibility, setting this also
+            sets :code:`pressure_difference` to the same unit unless
+            :code:`pressure_difference` is explicitly provided as well.
+        pressure_difference : str
             Default unit: "Pa"
         mass_flow : str
             Default unit: "kg/s"
@@ -121,20 +168,37 @@ class Units:
             Default unit: "W/m/K"
         heat_transfer_coefficient : str
             Default unit: "W/K"
+        heat_transfer_coefficient_per_area : str
+            Default unit: "W/m**2/K"
+        thermal_resistance : str
+            Default unit: "K/W"
         """
+        if "pressure" in kwargs and "pressure_difference" not in kwargs:
+            msg = (
+                "Setting the 'pressure' unit currently also sets the "
+                "'pressure_difference' unit for backwards compatibility. "
+                "In version 0.12 this will no longer happen. Please "
+                "explicitly set 'pressure_difference' in "
+                "Network.units.set_defaults() to silence this warning."
+            )
+            warnings.warn(msg, FutureWarning)
+            kwargs["pressure_difference"] = kwargs["pressure"]
+
+        if self._conversions_applied:
+            msg = (
+                "You are changing default units after a solve has already "
+                "been executed. Values specified and results keep their SI "
+                "value and are displayed in the new default units from the "
+                "next solve on. New plain number specifications use the new "
+                "default units. Values specified as pint quantities keep the "
+                "custom unit."
+            )
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
         for key, value in kwargs.items():
             self._check_quantity_exists(key)
             if value == "-":
                 value = "1"
-            elif value == "C":
-                value = "degC"
-                msg = (
-                    "The unit 'C' is used for 'Coulomb' in pint. For "
-                    "backwards compatibility it will be parsed as degC for "
-                    "now. Please use '°C' (or correct pint aliases) instead  "
-                    "as it will stop working with the next major release"
-                )
-                warnings.warn(msg, FutureWarning)
             if self._is_compatible(key, value):
                 self.default[key] = value
             else:
@@ -181,6 +245,9 @@ class Units:
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
+        # cached objects belong to the replaced registry
+        self._from_SI = {}
+        self._parsed_units = {}
 
     def get_ureg(self):
         return self._ureg

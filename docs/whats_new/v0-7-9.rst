@@ -19,7 +19,7 @@ New Features
   of the component. It splits the heat exchange automatically in sections,
   where in each section the phase of the hot and the cold fluid does not change.
   These sections are utilized to find the minimum pinch internally, and allow
-  to assing heat transfer coefficients `UA` for all individual sections as well
+  to assign heat transfer coefficients `UA` for all individual sections as well
   as the total sum
   (`PR #515 <https://github.com/oemof/tespy/pull/515>`__).
 

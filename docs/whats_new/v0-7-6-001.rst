@@ -6,7 +6,7 @@ the :code:`HeatExchanger` classes.
 
 Bug Fixes
 #########
-- An exception is catched in the heat exchanger post processing, in case the
+- An exception is caught in the heat exchanger post processing, in case the
   heat exchanger effectiveness cannot be calculated when hot side or cold side
   inlet temperature value are out of bounds of the fluid properties for the
   other side respectively

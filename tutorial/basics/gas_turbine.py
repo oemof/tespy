@@ -72,10 +72,8 @@ c1.set_attr(
     p=1, T=20,
     fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
 )
-c3.set_attr(m=30)
+c3.set_attr(T=1200)
 c4.set_attr(p=Ref(c1, 1, 0))
-nw.solve("design")
-c3.set_attr(m=None, T=1200)
 nw.solve("design")
 nw.print_results()
 # %%[sec_10]
@@ -85,7 +83,7 @@ c5.set_attr(p=Ref(c2, 1.05, 0))
 nw.solve("design")
 # %%[sec_11]
 cc.set_attr(pr=0.97, eta=0.98)
-nw.set_attr(iterinfo=False)
+nw.iterinfo = False
 import matplotlib.pyplot as plt
 import numpy as np
 

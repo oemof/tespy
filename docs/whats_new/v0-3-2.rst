@@ -38,7 +38,7 @@ Bug fixes
   (`PR #207 <https://github.com/oemof/tespy/pull/207>`_). With the old method,
   the specific volume was calculated according to Amagat's law, which produced
   incorrect values if one or more components of the mixture were liquid at the
-  mixture's temperature and pressure. See discussion about humid air propreties
+  mixture's temperature and pressure. See discussion about humid air properties
   here: `Issue #206 <https://github.com/oemof/tespy/issues/206>`_.
 
 Contributors

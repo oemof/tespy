@@ -21,8 +21,10 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties.functions import T_bubble_p
+from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.helpers import TESPyComponentError
 
 
@@ -34,93 +36,138 @@ class PolynomialCompressor(DisplacementMachine):
 
     See the example for the intended use of the component.
 
-    **Mandatory Equations**
-
-    - fluid: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-    - mass flow: :py:meth:`tespy.components.component.Component.variable_equality_structure_matrix`
-
-    **Optional Equations**
-
-    - :py:meth:`tespy.components.component.Component.dp_structure_matrix`
-    - :py:meth:`tespy.components.component.Component.pr_structure_matrix`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func`
-    - :py:meth:`tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func`
-
-    Inlets/Outlets
-
-    - in1
-    - out1
-
-    Optional inlets
-
-    - power
-
-    Image
-
-    .. image:: /api/_images/Compressor.svg
-       :alt: flowsheet of the compressor
+    .. image:: /api/_images/components/PolynomialCompressor.svg
+       :alt: flowsheet of the polynomialcompressor
        :align: center
        :class: only-light
 
-    .. image:: /api/_images/Compressor_darkmode.svg
-       :alt: flowsheet of the compressor
+    .. image:: /api/_images/components/PolynomialCompressor_darkmode.svg
+       :alt: flowsheet of the polynomialcompressor
        :align: center
        :class: only-dark
 
+    Ports
+    -----
+
+    - Fluid inlets: in1
+    - Fluid outlets: out1
+    - Power inlets: power
+
+    Mandatory Equations
+    -------------------
+
+    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+
+    When a power or heat connector is attached:
+
+    - energy balance between for power connector and the power consumption of the compressor: :py:meth:`energy_connector_balance_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_connector_balance_func>`
+
     Parameters
     ----------
-    label : str
-        The label of the component.
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
 
     design : list
         List containing design parameters (stated as String).
 
-    offdesign : list
-        List containing offdesign parameters (stated as String).
-
     design_path : str
         Path to the components design case.
 
-    local_offdesign : boolean
-        Treat this component in offdesign mode in a design calculation.
-
-    local_design : boolean
-        Treat this component in design mode in an offdesign calculation.
-
-    char_warnings : boolean
-        Ignore warnings on default characteristics usage for this component.
-
-    printout : boolean
-        Include this component in the network's results printout.
-
-    P : float, dict
-        Compressor power, :math:`P/\text{W}`
-
     dissipation_ratio : float, dict
-        Relative heat loss of compressor, :math:`Q_\text{diss,rel}/1`
-
-    eta_s : float, dict
-        Isentropic efficiency, :math:`\eta_\text{s}/1`
-
-    eta_s_poly : array, dict
-        Polynomial coefficients for isentropic efficiency
-
-    eta_vol : float, dict
-        Volumetric efficiency, :math:`\eta_\text{vol}/1`
-
-    eta_vol_poly : array, dict
-        Polynomial coefficients for volumetric efficiency
-
-    reference_state: dict
-        Reference state for the polynomial and displacement.
-
-    pr : float, dict
-        Outlet to inlet pressure ratio, :math:`pr/1`
+        Heat dissipation ratio relative to power consumption. Quantity:
+        :code:`ratio`.
 
     dp : float, dict
-        Inlet to outlet pressure difference, :math:`dp/\text{p}_\text{unit}`
-        Is specified in the Network's pressure unit
+        Inlet to outlet absolute pressure change. Quantity:
+        :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    energy_balance_group : GroupedComponentProperties
+        Energy balance equation for fixed power and dissipation ratio. Elements:
+        :code:`P`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`energy_balance_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func>`.
+
+    eta_s : float, dict
+        Isentropic efficiency. Quantity: :code:`efficiency`.
+
+    eta_s_group : GroupedComponentProperties
+        Isentropic efficiency equation with fixed efficiency. Elements:
+        :code:`eta_s`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`eta_s_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func>`.
+
+    eta_s_poly : list
+        Polynomial coefficients for isentropic efficiency.
+
+    eta_s_poly_group : GroupedComponentProperties
+        Isentropic efficiency equation based on polynomial coefficients.
+        Elements: :code:`eta_s_poly`, :code:`dissipation_ratio`.
+        Equation: :py:meth:`eta_s_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`.
+
+    eta_vol : float, dict
+        Volumetric efficiency. Quantity: :code:`efficiency`.
+
+    eta_vol_group : GroupedComponentProperties
+        Elements: :code:`reference_state`, :code:`eta_vol`, :code:`frequency`.
+        Equation: :py:meth:`eta_vol_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_frequency_group_func>`.
+
+    eta_vol_group_rpm : GroupedComponentProperties
+        Displacement equation based on fixed volumetric efficiency. Elements:
+        :code:`reference_state`, :code:`eta_vol`, :code:`rpm`.
+        Equation: :py:meth:`eta_vol_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func>`.
+
+    eta_vol_poly : list
+        Polynomial coefficients for volumetric efficiency.
+
+    eta_vol_poly_group : GroupedComponentProperties
+        Displacement equation based on polynomial coefficients for volumetric
+        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        :code:`frequency`.
+        Equation: :py:meth:`eta_vol_poly_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_frequency_group_func>`.
+
+    eta_vol_poly_group_rpm : GroupedComponentProperties
+        Displacement equation based on polynomial coefficients for volumetric
+        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        :code:`rpm`.
+        Equation: :py:meth:`eta_vol_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`.
+
+    frequency : float, dict, :code:`"var"`
+        Compressor frequency. Quantity: :code:`frequency`. Can be set as a
+        system variable by passing :code:`"var"` as its value.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    P : float, dict
+        Power consumption. Quantity: :code:`power`.
+
+    pr : float, dict
+        Outlet to inlet pressure ratio. Quantity: :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q_diss : float, dict
+        Heat dissipation. Quantity: :code:`heat`.
+
+    reference_state : dict
+        Reference state definition for the scaling of displacement with
+        compressor rpm.
+
+    rpm : float, dict, :code:`"var"`
+        Compressor frequency. Can be set as a system variable by passing
+        :code:`"var"` as its value.
 
     Example
     -------
@@ -141,7 +188,8 @@ class PolynomialCompressor(DisplacementMachine):
     >>> from CoolProp.CoolProp import PropsSI
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
-    ...     "pressure": "bar", "temperature": "degC"
+    ...     "pressure": "bar", "pressure_difference": "bar",
+    ...     "temperature": "degC"
     ... })
     >>> so = Source("from evaporator")
     >>> si = Sink("to condenser")
@@ -164,8 +212,9 @@ class PolynomialCompressor(DisplacementMachine):
 
     - superheating at suction
     - subcooling after the condensation
-    - the rpm belonging to the original data
-    - a displacement value (kg/h) with the respective rpm for this displacement
+    - the frequency (Hz) at which the polynomial data applies
+    - the swept volume per revolution (m³) - or equivalently a displacement
+      (m³/h) together with a reference frequency (Hz)
 
     .. tip::
 
@@ -175,11 +224,11 @@ class PolynomialCompressor(DisplacementMachine):
         retrieved from :cite:`bitzer2025_HSK`.
 
     >>> reference_state = {
-    ...     "T_sh": 20,  # superheating
-    ...     "T_sc": 0,  # subcooling
-    ...     "rpm_poly": 50 * 60,  # rpm belonging to the polynomial data
-    ...     "rpm_displacement": 20 * 60,  # rpm belonging to the displacement
-    ...     "displacement": 214  # kg / h
+    ...     "T_sh": 20,  # superheating, K
+    ...     "T_sc": 0,  # subcooling, K
+    ...     "frequency_poly": 50.0,  # Hz, frequency at which the polynomial applies
+    ...     "displacement": 214,  # m³/h, at the reference frequency below
+    ...     "frequency_displacement": 20.0,  # Hz
     ... }
     >>> power = pd.DataFrame(
     ...     columns=[10,7.5,5,0,-5,-10], index=[30, 40, 50], dtype=float
@@ -210,14 +259,14 @@ class PolynomialCompressor(DisplacementMachine):
     >>> eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
     ...     power, cooling, "R134a", reference_state
     ... )
+    >>> np.set_printoptions(precision=4)
     >>> eta_s_poly
-    array([ 3.44223012e-03, -3.75139140e-02,  4.39204462e-02, -9.21644870e-04,
-            1.68576190e-03, -8.97540501e-04, -7.54781107e-06,  1.61377008e-05,
-           -1.53820046e-05,  5.04818089e-06])
+    array([ 3.4422e-03, -3.7514e-02,  4.3920e-02, -9.2164e-04,  1.6858e-03,
+           -8.9754e-04, -7.5478e-06,  1.6138e-05, -1.5382e-05,  5.0482e-06])
     >>> eta_vol_poly
-    array([ 5.81192914e-03, -7.18820053e-04,  7.41463587e-02,  2.84410052e-05,
-            6.51372426e-05, -1.89872495e-03,  7.84206012e-07, -1.90585865e-06,
-            4.52695494e-07,  1.51321175e-05])
+    array([ 5.8119e-03, -7.1882e-04,  7.4146e-02,  2.8441e-05,  6.5137e-05,
+           -1.8987e-03,  7.8421e-07, -1.9059e-06,  4.5270e-07,  1.5132e-05])
+    >>> np.set_printoptions()
 
     We can take these polynomials and set them on the compressor instance
     together with the reference state and the assumption on heat dissipation.
@@ -232,7 +281,7 @@ class PolynomialCompressor(DisplacementMachine):
     same displacement value as inputted into the reference.
 
     >>> c1.set_attr(fluid={"R134a": 1}, T=0, td_dew=10)  # T_evap=-10°C
-    >>> compressor.set_attr(rpm=1200)
+    >>> compressor.set_attr(frequency=20)  # Hz, equals 1200 RPM
     >>> p_sat = PropsSI("P", "Q", 0, "T", 50 + 273.15, "R134a")  # T_cond=50°C
     >>> c2.set_attr(p=p_sat / 1e5)
     >>> nw.solve("design")
@@ -286,36 +335,23 @@ class PolynomialCompressor(DisplacementMachine):
     >>> round(compressor.eta_vol.val, 3)
     0.924
 
-    It is also possible, to make the rpm a variable. This is useful, in case
-    mass flow through the compressor is governed from external. Usually, this
-    could be the case, if a specific heat transfer is required to be provided
-    by the condenser or from the evaporator. In this case, we just fix the
-    displacement to mimic that.
+    It is also possible, to make the frequency a variable. This is useful, in
+    case mass flow through the compressor is governed from external. Usually,
+    this could be the case, if a specific heat transfer is required to be
+    provided by the condenser or from the evaporator. In this case, we just
+    fix the volumetric flow to mimic that.
 
-    >>> compressor.set_attr(rpm="var")
+    >>> compressor.set_attr(frequency="var")
     >>> c1.set_attr(v=400/3600)
     >>> nw.solve("design")
-    >>> round(compressor.rpm.val)
-    2427
+    >>> round(compressor.frequency.val)
+    40
 
     As final remarks: You can also set fixed isentropic and fixed volumetric
     efficiencies for these components.
     """
 
     def _preprocess(self, row_idx):
-        if self.Q_diss_rel.is_set:
-            msg = (
-                "The parameter Q_diss_rel has been renamed, please use "
-                "'dissipation_ratio' instead."
-            )
-            logger.warning(msg)
-            warnings.warn(msg, FutureWarning)
-            # this only injects to .val and not to .val_SI, the calculation
-            # of .val_SI from .val in preprocessing already happened before
-            # this point
-            self.set_attr(dissipation_ratio=self.Q_diss_rel.val)
-            self.dissipation_ratio.val_SI = self.Q_diss_rel.val_SI
-
         if not self.dissipation_ratio.is_set:
             msg = (
                 f"The component {self.label} of type {self.__class__.__name__} "
@@ -326,11 +362,74 @@ class PolynomialCompressor(DisplacementMachine):
             logger.error(msg)
             raise TESPyComponentError(msg)
 
+        if self.rpm.is_set or self.rpm.is_var:
+            msg = (
+                f"The 'rpm' parameter of component {self.label} of type "
+                f"{self.__class__.__name__} is deprecated and will be "
+                "removed in version 0.12. Please use 'frequency' instead. Note, to "
+                "specify the rounds per minute use the unit 1/min as 'rpm' "
+                "is '1/min' divided by 2π in the unit conversion framework."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        if self.reference_state.is_set:
+            rs = self.reference_state.val
+            if "swept_volume" not in rs:
+                if "frequency_displacement" in rs:
+                    rs["swept_volume"] = swept_volume_from_displacement(
+                        rs["displacement"], rs["frequency_displacement"]
+                    )
+                else:
+                    msg = (
+                        f"The 'rpm_displacement' key in 'reference_state' of "
+                        f"component {self.label} is deprecated and will be "
+                        "removed in version 0.12. Use "
+                        "'frequency_displacement' in Hz (1/s) together with "
+                        "'displacement' in m³/h, or provide 'swept_volume' "
+                        "directly in m³. See swept_volume_from_displacement()."
+                    )
+                    warnings.warn(msg, FutureWarning, stacklevel=2)
+                    rs["swept_volume"] = swept_volume_from_displacement(
+                        rs["displacement"], rs["rpm_displacement"] / 60
+                    )
+            if "frequency_poly" not in rs and "rpm_poly" in rs:
+                msg = (
+                    f"The 'rpm_poly' key in 'reference_state' of component "
+                    f"{self.label} is deprecated and will be removed in version "
+                    "0.12. Use 'frequency_poly' in Hz "
+                    "(1/s) instead: frequency_poly = rpm_poly / 60."
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
+                rs["frequency_poly"] = rs["rpm_poly"] / 60
+
         return super()._preprocess(row_idx)
 
     @staticmethod
     def powerinlets():
         return ["power"]
+
+    def _isentropic_equation_is_set(self):
+        return self.eta_s_group.is_set or self.eta_s_poly_group.is_set
+
+    def _adjust_to_property_limits(self):
+        if not self._isentropic_equation_is_set():
+            return
+        i, o = self.inl[0], self.outl[0]
+        fluid = single_fluid(i.fluid_data)
+        if fluid is None:
+            return
+        wrapper = i.fluid.wrapper[fluid]
+        try:
+            s_in = wrapper.s_ph(i.p.val_SI, i.h.val_SI)
+            wrapper.h_ps(o.p.val_SI, s_in)
+        except ValueError:
+            if i.h.is_var:
+                s_max = wrapper.s_pT(o.p.val_SI, wrapper._T_max)
+                i.h.set_reference_val_SI(wrapper.h_ps(i.p.val_SI, s_max) * 0.99)
+            elif i.p.is_var:
+                i.p.set_reference_val_SI(o.p.val_SI * 0.9)
+            elif o.p.is_var:
+                o.p.set_reference_val_SI(i.p.val_SI * 1.1)
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
@@ -338,6 +437,7 @@ class PolynomialCompressor(DisplacementMachine):
             constraints["energy_connector_balance"] = dc_cmc(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "description": "energy balance between for power connector and the power consumption of the compressor.",
                 "num_eq_sets": 1
             })
 
@@ -346,58 +446,157 @@ class PolynomialCompressor(DisplacementMachine):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            "Q_diss": dc_cp(max_val=0, val=0, is_result=True, quantity="heat"),
-            "P": dc_cp(min_val=0, is_result=True, quantity="power"),
-            "eta_vol": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
-            "dissipation_ratio": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "Q_diss_rel": dc_cp(min_val=0, max_val=1, val=0, quantity="ratio"),
-            "rpm": dc_cp(min_val=0, is_result=True),
-            "reference_state": dc_simple(),
-            "eta_s_poly": dc_simple(),
-            "eta_vol_poly": dc_simple(),
-            "eta_vol_poly_group": dc_gcp(
+            "Q_diss": dc_cp(
+                max_val=0, val=0, is_result=True, quantity="heat",
+                description="heat dissipation",
+                calc=self._calc_Q_diss
+            ),
+            "P": dc_cp(
+                min_val=0, is_result=True, quantity="power",
+                description="power consumption",
+                calc=self._calc_P
+            ),
+            "eta_vol": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="volumetric efficiency",
+                calc=self._calc_eta_vol
+            ),
+            "eta_s": dc_cp(
+                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                description="isentropic efficiency",
+                calc=self._calc_eta_s
+            ),
+            "dissipation_ratio": dc_cp(
+                min_val=0, max_val=1, val=0, quantity="ratio",
+                description="heat dissipation ratio relative to power consumption"
+            ),
+            "frequency": dc_cp(
+                min_val=0, max_val=10000, is_result=True, _allows_var=True,
+                quantity="frequency",
+                description="compressor frequency"
+            ),
+            "rpm": dc_cp(
+                min_val=0, is_result=True, _allows_var=True,
+                description="compressor frequency"
+            ),
+            "reference_state": dc_simple(
+                dtype="dict",
+                description="reference state definition for the scaling of displacement with compressor rpm"
+            ),
+            "eta_s_poly": dc_simple(
+                dtype="list",
+                description="polynomial coefficients for isentropic efficiency"
+            ),
+            "eta_vol_poly": dc_simple(
+                dtype="list",
+                description="polynomial coefficients for volumetric efficiency"
+            ),
+            "eta_vol_poly_group_rpm": dc_gcp(
                 elements=["reference_state", "eta_vol_poly", "rpm"],
                 func=self.eta_vol_poly_group_func,
                 dependents=self.eta_vol_poly_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
             ),
-            "eta_vol_group": dc_gcp(
+            "eta_vol_poly_group": dc_gcp(
+                elements=["reference_state", "eta_vol_poly", "frequency"],
+                func=self.eta_vol_poly_frequency_group_func,
+                dependents=self.eta_vol_poly_frequency_group_dependents,
+                num_eq_sets=1,
+                description="displacement equation based on polynomial coefficients for volumetric efficiency"
+            ),
+            "eta_vol_group_rpm": dc_gcp(  # will be deprecated
                 elements=["reference_state", "eta_vol", "rpm"],
                 func=self.eta_vol_group_func,
                 dependents=self.eta_vol_group_dependents,
+                num_eq_sets=1,
+                description="displacement equation based on fixed volumetric efficiency"
+            ),
+            "eta_vol_group": dc_gcp(
+                elements=["reference_state", "eta_vol", "frequency"],
+                func=self.eta_vol_frequency_group_func,
+                dependents=self.eta_vol_frequency_group_dependents,
                 num_eq_sets=1
             ),
-            "eta_s": dc_cp(min_val=0, max_val=1, is_result=True, quantity="efficiency"),
             "eta_s_poly_group": dc_gcp(
                 elements=["eta_s_poly", "dissipation_ratio"],
                 func=self.eta_s_poly_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation based on polynomial coefficients"
             ),
             "eta_s_group": dc_gcp(
                 elements=["eta_s", "dissipation_ratio"],
                 func=self.eta_s_group_func,
                 dependents=self.eta_s_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="isentropic efficiency equation with fixed efficiency"
             ),
             "energy_balance_group": dc_gcp(
                 elements=["P", "dissipation_ratio"],
                 func=self.energy_balance_group_func,
                 dependents=self.energy_balance_group_dependents,
-                num_eq_sets=1
+                num_eq_sets=1,
+                description="energy balance equation for fixed power and dissipation ratio"
             )
         })
         return params
 
+    def _calc_h2(self):
+        i, o = self.inl[0], self.outl[0]
+        return (
+            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
+            / (1 - self.dissipation_ratio.val_SI)
+        )
+
+    def _calc_P(self):
+        i = self.inl[0]
+        return i.m.val_SI * (self._calc_h2() - i.h.val_SI)
+
+    def _calc_Q_diss(self):
+        i, o = self.inl[0], self.outl[0]
+        return i.m.val_SI * (o.h.val_SI - self._calc_h2())
+
+    def _calc_eta_s(self):
+        i, o = self.inl[0], self.outl[0]
+        h2 = self._calc_h2()
+        return (
+            isentropic(
+                i.p.val_SI, i.h.val_SI, o.p.val_SI,
+                i.fluid_data, i.mixing_rule,
+                T0=i.T.val_SI, T0_out=o.T.val_SI
+            ) - i.h.val_SI
+        ) / (h2 - i.h.val_SI)
+
+    def _calc_eta_vol(self):
+        if not self.reference_state.is_set:
+            return self.eta_vol.val_SI
+        i = self.inl[0]
+        rs = self.reference_state.val
+        if self.frequency.is_set or self.frequency.is_var:
+            displacement = rs["swept_volume"] * self.frequency.val_SI
+        else:
+            displacement = rs["swept_volume"] * self.rpm.val_SI / 60
+        return i.m.val_SI * i.vol.val_SI / displacement
+
     # this is a bit different that in other cases, because the power cannot
     # directly be deduced from the change in enthalpy
     def energy_connector_balance_func(self):
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-            - self.power_inl[0].E.val_SI
-        )
+        r"""Equation for equality of power connector power with component drawn
+        power.
+
+        .. math::
+
+            0 = \dot m \cdot
+            \frac{ h_\text{out} - h_\text{in}}{1 - \dot Q_\text{diss,rel}}
+            - \dot E
+
+        Returns
+        -------
+        float
+            residual
+        """
+        return self._calc_P() - self.power_inl[0].E.val_SI
 
     def energy_connector_dependents(self):
         return [
@@ -418,12 +617,7 @@ class PolynomialCompressor(DisplacementMachine):
         float
             residual
         """
-        return (
-            self.inl[0].m.val_SI
-            * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-            - self.P.val_SI
-        )
+        return self._calc_P() - self.P.val_SI
 
     def energy_balance_group_dependents(self):
         return [self.inl[0].m, self.inl[0].h, self.outl[0].h]
@@ -460,12 +654,12 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
-            self.eta_s.val_SI
-            * (o.h.val_SI - i.h.val_SI) / (1 - self.dissipation_ratio.val_SI)
+            self.eta_s.val_SI * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -495,8 +689,8 @@ class PolynomialCompressor(DisplacementMachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_s = _calc_EN12900_SI(self.eta_s_poly.val, t_evap, t_cond)
         h_out_s = isentropic(
@@ -505,12 +699,12 @@ class PolynomialCompressor(DisplacementMachine):
             o.p.val_SI,
             i.fluid_data,
             i.mixing_rule,
-            T0=None
+            T0=i.T.val_SI,
+            T0_out=o.T.val_SI
         )
 
         return (
-            eta_s * (o.h.val_SI - i.h.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
+            eta_s * (self._calc_h2() - i.h.val_SI)
             - (h_out_s - i.h.val_SI)
         )
 
@@ -523,13 +717,13 @@ class PolynomialCompressor(DisplacementMachine):
         ]
 
     def eta_vol_group_func(self):
-        r"""Volumetric efficiency function.
+        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
 
         .. math::
 
             0 = \dot m_\text{in} -
-            \eta_\text{vol} \cdot \frac{\dot V_\text{ref}}{3600} \cdot
-            \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
+            \eta_\text{vol} \cdot V_\text{swept} \cdot
+            \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
 
         Returns
         -------
@@ -537,15 +731,8 @@ class PolynomialCompressor(DisplacementMachine):
             residual value
         """
         i = self.inl[0]
-
-        displacement = (
-            self.reference_state.val["displacement"] / 3600
-            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-        )
-
-        return (
-            i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
-        )
+        displacement = self.reference_state.val["swept_volume"] * self.rpm.val_SI / 60
+        return i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
 
     def eta_vol_group_dependents(self):
         return [
@@ -555,15 +742,40 @@ class PolynomialCompressor(DisplacementMachine):
             self.rpm
         ]
 
-    def eta_vol_poly_group_func(self):
+    def eta_vol_frequency_group_func(self):
         r"""Volumetric efficiency function.
 
         .. math::
 
             0 = \dot m_\text{in} -
+            \eta_\text{vol} \cdot V_\text{swept} \cdot
+            f \cdot \frac{1}{v_\text{in}}
+
+        Returns
+        -------
+        float
+            residual value
+        """
+        i = self.inl[0]
+        displacement = self.reference_state.val["swept_volume"] * self.frequency.val_SI
+        return i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
+
+    def eta_vol_frequency_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.frequency
+        ]
+
+    def eta_vol_poly_group_func(self):
+        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
+
+        .. math::
+
+            0 = \dot m_\text{in} -
             \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
-            \frac{\dot V_\text{ref}}{3600} \cdot
-            \frac{rpm}{rpm_\text{ref}} \cdot \frac{1}{v_\text{in}}
+            V_\text{swept} \cdot \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
 
         Returns
         -------
@@ -573,18 +785,12 @@ class PolynomialCompressor(DisplacementMachine):
         i = self.inl[0]
         o = self.outl[0]
 
-        t_evap = T_sat_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_sat_p(o.p.val_SI, o.fluid_data)
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
         # here .val is fine, because it just holds the coefficients
         eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
-        displacement = (
-            self.reference_state.val["displacement"] / 3600
-            * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-        )
-
-        return (
-            i.m.val_SI - eta_vol * displacement / i.calc_vol()
-        )
+        displacement = self.reference_state.val["swept_volume"] * self.rpm.val_SI / 60
+        return i.m.val_SI - eta_vol * displacement / i.calc_vol()
 
     def eta_vol_poly_group_dependents(self):
         return [
@@ -595,38 +801,61 @@ class PolynomialCompressor(DisplacementMachine):
             self.rpm
         ]
 
-    def calc_parameters(self):
+    def eta_vol_poly_frequency_group_func(self):
+        r"""Volumetric efficiency function.
+
+        .. math::
+
+            0 = \dot m_\text{in} -
+            \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
+            V_\text{swept} \cdot f \cdot \frac{1}{v_\text{in}}
+
+        Returns
+        -------
+        float
+            residual value
+        """
         i = self.inl[0]
         o = self.outl[0]
 
-        self.pr.val_SI = o.p.val_SI / i.p.val_SI
-        self.dp.val_SI = i.p.val_SI - o.p.val_SI
+        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
+        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
+        # here .val is fine, because it just holds the coefficients
+        eta_vol = _calc_EN12900_SI(self.eta_vol_poly.val, t_evap, t_cond)
+        displacement = self.reference_state.val["swept_volume"] * self.frequency.val_SI
+        return i.m.val_SI - eta_vol * displacement / i.calc_vol()
 
-        h_2 = (
-            (o.h.val_SI - i.h.val_SI * self.dissipation_ratio.val_SI)
-            / (1 - self.dissipation_ratio.val_SI)
-        )
-        self.P.val_SI = i.m.val_SI * (h_2 - i.h.val_SI)
-        self.Q_diss.val_SI = i.m.val_SI * (o.h.val_SI - h_2)
-        self.eta_s.val_SI = (
-            isentropic(
-                i.p.val_SI,
-                i.h.val_SI,
-                o.p.val_SI,
-                i.fluid_data,
-                i.mixing_rule,
-                T0=None
-            ) - i.h.val_SI
-        ) / (
-            (h_2 - i.h.val_SI)
-        )
+    def eta_vol_poly_frequency_group_dependents(self):
+        return [
+            self.inl[0].m,
+            self.inl[0].p,
+            self.inl[0].h,
+            self.outl[0].p,
+            self.frequency
+        ]
 
-        if self.reference_state.is_set:
-            displacement = (
-                self.reference_state.val["displacement"] / 3600
-                * self.rpm.val_SI / self.reference_state.val["rpm_displacement"]
-            )
-            self.eta_vol.val_SI = i.m.val_SI * i.calc_vol() / displacement
+
+def swept_volume_from_displacement(displacement: float, frequency: float) -> float:
+    """Calculate swept volume per revolution from displacement and reference frequency.
+
+    Parameters
+    ----------
+    displacement : float
+        Volumetric displacement in m³/h at the reference frequency.
+    frequency : float
+        Reference frequency in Hz (1/s).
+
+    Returns
+    -------
+    float
+        Swept volume per revolution in m³.
+
+    Example
+    -------
+    >>> round(swept_volume_from_displacement(214, 20.0), 6)
+    0.002972
+    """
+    return displacement / 3600 / frequency
 
 
 def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference_state: dict, polynomes: dict) -> dict:
@@ -642,12 +871,15 @@ def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference
     T_cond : float
         Evaporation temperature in K
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
+
     polynomes : dict
         Dictionary containing the power and the evaporator heat polynomial
 
@@ -685,12 +917,33 @@ def _calc_etas_from_polynome(fluid: str, T_evap: float, T_cond: float, reference
     dot_m = Q_evap / (h_evap_out - h_cond_out)
     eta_s = dot_m * (h_comp_s - h_evap_out) / P_comp
 
-    rpm_poly = reference_state["rpm_poly"]
-    rpm_displacement = reference_state["rpm_displacement"]
-    displacement = (
-        (reference_state["displacement"] / 3600)
-        * (rpm_poly / rpm_displacement)
-    )
+    if "swept_volume" in reference_state:
+        swept_vol = reference_state["swept_volume"]
+    elif "frequency_displacement" in reference_state:
+        swept_vol = swept_volume_from_displacement(
+            reference_state["displacement"], reference_state["frequency_displacement"]
+        )
+    else:
+        warnings.warn(
+            "The 'rpm_displacement' key in 'reference_state' is deprecated. "
+            "Use 'frequency_displacement' in Hz (1/s) together with "
+            "'displacement' in m³/h, or provide 'swept_volume' directly in m³. "
+            "See swept_volume_from_displacement().",
+            FutureWarning, stacklevel=3
+        )
+        swept_vol = swept_volume_from_displacement(
+            reference_state["displacement"], reference_state["rpm_displacement"] / 60
+        )
+    if "frequency_poly" in reference_state:
+        freq_poly = reference_state["frequency_poly"]
+    else:
+        warnings.warn(
+            "The 'rpm_poly' key in 'reference_state' is deprecated. "
+            "Use 'frequency_poly' in Hz (1/s) instead: frequency_poly = rpm_poly / 60.",
+            FutureWarning, stacklevel=3
+        )
+        freq_poly = reference_state["rpm_poly"] / 60
+    displacement = swept_vol * freq_poly
     rho_comp_in = PSI("D", "P", p_evap, "H", h_evap_out, fluid)
     eta_vol = dot_m / (rho_comp_in * displacement)
 
@@ -746,9 +999,13 @@ def _calc_EN12900_SI(c: list, t_evap: float, t_cond: float) -> float:
     return calc_EN12900(c, t_evap - 273.15, t_cond - 273.15)
 
 
-def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
-    """Fit the polynome coefficients of EN12900 polynome based on evaporation
-    and condensation temperature and respective measurements
+def fit_EN12900_points(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
+    """Fit the polynome coefficients of EN12900 polynome to scattered data
+    points.
+
+    Use this method, if your data do not lie on a rectangular grid of
+    evaporation and condensation temperatures, for example because the
+    datasheet table is clipped by the application envelope of the compressor.
 
     Parameters
     ----------
@@ -757,17 +1014,22 @@ def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
     t_cond : np.array
         1-d array of condensation temperatures
     data : np.array
-        datasheet information
+        1-d array of datasheet values. If a value is :code:`nan` the point is
+        excluded from the fit
 
     Returns
     -------
     np.array
         1-d array of polynome coefficients
     """
-    z = data.flatten()
-    t_cond, t_evap = np.meshgrid(t_evap, t_cond)  # needs to be inverted here
-    x = t_cond.flatten()
-    y = t_evap.flatten()
+    x = np.asarray(t_evap, dtype=float).flatten()
+    y = np.asarray(t_cond, dtype=float).flatten()
+    z = np.asarray(data, dtype=float).flatten()
+    valid = ~np.isnan(z)
+    if not valid.all():
+        x = x[valid]
+        y = y[valid]
+        z = z[valid]
     A = np.column_stack([
         np.ones_like(x),           # c0
         x,                         # c1 * t_evap
@@ -786,15 +1048,93 @@ def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
         deviation = abs((check - z) / z)
         location = np.argmax(deviation)
 
-        T_evap = y[location]
-        T_cond = x[location]
+        T_evap = float(x[location])
+        T_cond = float(y[location])
         msg = (
-            f"A maximum relative deviation of {deviation.max()} at "
-            f"{T_evap=} and {T_cond=} remains when fitting the polynomial "
-            "coefficients to the data."
+            f"A maximum relative deviation of {deviation.max()} at {T_evap=} "
+            f"and {T_cond=} remains when fitting the polynomial coefficients "
+            "to the data."
         )
         logger.warning(msg)
     return c
+
+
+def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
+    """Fit the polynome coefficients of EN12900 polynome based on evaporation
+    and condensation temperature and respective measurements
+
+    The grid is flattened into data points and passed to
+    :py:func:`fit_EN12900_points <tespy.components.displacementmachinery.polynomial_compressor.fit_EN12900_points>`.
+
+    Parameters
+    ----------
+    t_evap : np.array
+        1-d array of evaporation temperatures
+    t_cond : np.array
+        1-d array of condensation temperatures
+    data : np.array
+        datasheet information of shape :code:`(len(t_cond), len(t_evap))`. If
+        values in the datasheet are not provided, because they are outside of
+        the operating envelope you can pass them as missing (:code:`nan`).
+        These points are then excluded from the fit
+
+    Returns
+    -------
+    np.array
+        1-d array of polynome coefficients
+    """
+    t_evap_grid, t_cond_grid = np.meshgrid(t_evap, t_cond)
+    return fit_EN12900_points(
+        t_evap_grid.flatten(),
+        t_cond_grid.flatten(),
+        np.asarray(data, dtype=float).flatten()
+    )
+
+
+def generate_eta_polys_from_points(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
+    """Generate polynomials for calculation of isentropic and volumetric
+    efficiency of a compressor
+
+    Parameters
+    ----------
+    power_poly : list
+        List of polynomial coefficients for power
+    cooling_poly : list
+        List of polynomial coefficients for cooling
+    t_evap : np.array
+        1-d array of evaporation temperatures
+    t_cond : np.array
+        1-d array of condensation temperatures
+    fluid : str
+        Name of fluid
+    reference_state : dict
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
+
+    Returns
+    -------
+    tuple
+        Polynomial coefficients for isentropic and volumetric efficiency as
+        function of evaporation and condensation temperature
+    """
+    x = np.asarray(t_evap, dtype=float).flatten()
+    y = np.asarray(t_cond, dtype=float).flatten()
+    etas = _calc_etas_from_polynome(
+        fluid,
+        x + 273.15,
+        y + 273.15,
+        reference_state=reference_state,
+        polynomes={"power": power_poly, "cooling": cooling_poly}
+    )
+    eta_s_poly = fit_EN12900_points(x, y, etas["eta_s"])
+    eta_vol_poly = fit_EN12900_points(x, y, etas["eta_vol"])
+    return eta_s_poly, eta_vol_poly
 
 
 def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
@@ -807,15 +1147,21 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
         List of polynomial coefficients for power
     cooling_poly : list
         List of polynomial coefficients for cooling
+    t_evap : np.array
+        1-d array of evaporation temperatures spanning the grid
+    t_cond : np.array
+        1-d array of condensation temperatures spanning the grid
     fluid : str
         Name of fluid
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
 
     Returns
     -------
@@ -823,46 +1169,39 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
         Polynomial coefficients for isentropic and volumetric efficiency as
         function of evaporation and condensation temperature
     """
-    columns = t_evap
-    index = t_cond
-
-    t_evap, t_cond = np.meshgrid(t_evap, t_cond)
-    t_evap = t_evap.flatten() + 273.15
-    t_cond = t_cond.flatten() + 273.15
-    etas = _calc_etas_from_polynome(
-        fluid,
-        t_evap,
-        t_cond,
-        reference_state=reference_state,
-        polynomes={"power": power_poly, "cooling": cooling_poly}
+    t_evap_grid, t_cond_grid = np.meshgrid(t_evap, t_cond)
+    return generate_eta_polys_from_points(
+        power_poly, cooling_poly, t_evap_grid.flatten(), t_cond_grid.flatten(),
+        fluid, reference_state
     )
-    for k in etas:
-        etas[k] = etas[k].reshape(len(index), len(columns))
-
-    eta_s_poly = fit_EN12900(columns, index, etas["eta_s"])
-    eta_vol_poly = fit_EN12900(columns, index, etas["eta_vol"])
-    return eta_s_poly, eta_vol_poly
 
 
 def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_state: dict) -> tuple:
     """Generate polynomials for calculation of isentropic and volumetric
     efficiency of a compressor
 
+    The dataframes are transposed into points. If data are missing
+    (:code:`nan`) they are exluded from the fit.
+
     Parameters
     ----------
     df_power : pd.DataFrame
-        Power consumption data
+        Power consumption data with condensation temperature as index and
+        evaporation temperature as columns. Missing entries, where the
+        datasheet does not provide a value need to be passed as :code:`nan`
     df_cooling : pd.DataFrame
-        Cooling data
+        Cooling data, :code:`nan` values are handled as for :code:`df_power`.
     fluid : str
         Name of fluid
     reference_state : dict
-        Dictionary with reference state information, i.e.
-        - T_sh: superheating delta T (Kelvin)
-        - T_sc: subcooling delta T (Kelvin)
-        - rpm_poly: reference rpm of the polynomial
-        - displancement: displacement in m3/h
-        - rpm_displacement: reference rpm of the displacement
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
 
     Returns
     -------
@@ -879,11 +1218,19 @@ def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_sta
             "temperature)."
         )
         raise ValueError(msg)
-    t_evap = df_power.columns
-    t_cond = df_power.index
-    power_poly = fit_EN12900(t_evap, t_cond, df_power.values)
-    cooling_poly = fit_EN12900(t_evap, t_cond, df_cooling.values)
 
-    return generate_eta_polys_from_power_and_cooling_polys(
-        power_poly, cooling_poly, df_power.columns, df_power.index, fluid, reference_state
+    t_evap_grid, t_cond_grid = np.meshgrid(df_power.columns, df_power.index)
+    valid = ~(df_power.isna() | df_cooling.isna()).values.flatten()
+    t_evap = t_evap_grid.flatten()[valid]
+    t_cond = t_cond_grid.flatten()[valid]
+
+    power_poly = fit_EN12900_points(
+        t_evap, t_cond, df_power.values.flatten()[valid]
+    )
+    cooling_poly = fit_EN12900_points(
+        t_evap, t_cond, df_cooling.values.flatten()[valid]
+    )
+
+    return generate_eta_polys_from_points(
+        power_poly, cooling_poly, t_evap, t_cond, fluid, reference_state
     )

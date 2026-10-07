@@ -9,7 +9,7 @@ API changes
   is utilized to target the :code:`subsystem.inlet` and
   :code:`subsystem.outlet` in a :code:`Connection` object. For the required
   changes please check the respective section
-  :ref:`in the docs <tespy_subsystems_label>`
+  :ref:`in the docs <modules_subsystems_label>`
   (`PR #652 <https://github.com/oemof/tespy/pull/652>`__).
 - The attribute :code:`progress` of the class :code:`Network` has been removed.
   (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
@@ -26,7 +26,7 @@ New Features
   (`PR #674 <https://github.com/oemof/tespy/pull/674>`__).
 - The :code:`Network`'s :code:`solve` method will now assign status values
   depending of the outcome of the simulation. Check the section on
-  :ref:`convergence <tespy_module_convergence_label>` for more information
+  :ref:`convergence <module_convergence_label>` for more information
   (`PR #684 <https://github.com/oemof/tespy/pull/684>`__).
 
 Other Changes

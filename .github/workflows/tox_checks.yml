@@ -55,7 +55,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra docs
 
       - name: Run docs
         run: |

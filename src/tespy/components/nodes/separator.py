@@ -216,9 +216,9 @@ class Separator(NodeBase):
         i = self.inl[0]
         residual = []
         for fluid in self.variable_fluids:
-            res = i.fluid.val[fluid] * i.m.val_SI
+            res = i.fluid.val.get(fluid, 0) * i.m.val_SI
             for o in self.outl:
-                res -= o.fluid.val[fluid] * o.m.val_SI
+                res -= o.fluid.val.get(fluid, 0) * o.m.val_SI
             residual += [res]
         return residual
 

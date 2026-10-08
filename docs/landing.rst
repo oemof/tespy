@@ -4,12 +4,6 @@
 Thermal Engineering Systems in Python
 #####################################
 
-.. admonition:: Daily News
-    :class: important
-
-    Give credit where credit is due: Congratulations on your doctorate, Mr.
-    TESPy, aka Dr.-Ing. Witte 
-
 Thermal Engineering Systems in Python (TESPy) is a free and open source
 framework for the simulation of thermal engineering systems. Build your models
 from components and connections, solve it at design and offdesign conditions.

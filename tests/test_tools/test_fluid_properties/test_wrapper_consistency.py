@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from dataclasses import field
 
 import pytest
-from CoolProp.CoolProp import get_global_param_string
 
+from CoolProp.CoolProp import get_global_param_string
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.fluid_properties.wrappers import wrapper_registry

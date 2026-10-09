@@ -9,9 +9,9 @@ tests/test_tools/test_fluid_properties/test_humidair.py
 
 SPDX-License-Identifier: MIT
 """
-from CoolProp.CoolProp import HAPropsSI
 from pytest import fixture
 
+from CoolProp.CoolProp import HAPropsSI
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source

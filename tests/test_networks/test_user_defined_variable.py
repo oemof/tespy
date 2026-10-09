@@ -9,10 +9,10 @@ tests/test_networks/test_user_defined_variable.py
 
 SPDX-License-Identifier: MIT
 """
-from CoolProp.CoolProp import PropsSI
 from pytest import approx
 from pytest import raises
 
+from CoolProp.CoolProp import PropsSI
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Valve

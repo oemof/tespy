@@ -9,10 +9,10 @@ tests/test_tools/test_fluid_properties/test_zeotropic.py
 
 SPDX-License-Identifier: MIT
 """
-from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import mark
 
+from CoolProp.CoolProp import get_global_param_string
 from tespy.tools.fluid_properties.functions import T_bubble_p
 from tespy.tools.fluid_properties.functions import T_dew_p
 from tespy.tools.fluid_properties.functions import p_sat_TQ

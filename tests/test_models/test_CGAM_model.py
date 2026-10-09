@@ -12,9 +12,9 @@ SPDX-License-Identifier: MIT
 import os
 
 import pandas as pd
-from CoolProp.CoolProp import PropsSI as CPSI
 from exerpy import ExergyAnalysis
 
+from CoolProp.CoolProp import PropsSI as CPSI
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
 from tespy.components import Drum

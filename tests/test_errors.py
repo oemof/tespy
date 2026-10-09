@@ -21,6 +21,7 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import Pipe
 from tespy.components import Sink
+from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import Subsystem
@@ -478,3 +479,42 @@ def test_warning_logged_with_correct_category(caplog):
             "UserWarning: Custom test message" in msg
             for msg in caplog.messages
         ])
+
+
+def test_CharLine_below_range_reports_minimum(caplog):
+    char = CharLine(x=[0.5, 1, 1.5], y=[0.9, 1, 1.1])
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        char.get_domain_errors(0.2, "test")
+
+    assert any("minimum of 0.5" in msg for msg in caplog.messages)
+
+
+def test_CharLine_get_attr_error_message():
+    with raises(KeyError, match="Char_line"):
+        CharLine().get_attr("missing")
+
+
+def test_alias_ignored_if_target_parameter_missing():
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        with raises(KeyError):
+            SolarCollector("solar collector").set_attr(kA=1)
+
+    assert not any(issubclass(w.category, FutureWarning) for w in record)
+
+
+def test_assert_convergence_raises_without_assert_statement():
+    nw = Network()
+    nw.status = 99
+    with raises(AssertionError):
+        nw.assert_convergence()
+
+
+def test_UserDefinedEquation_defaults_not_shared():
+    ude1 = UserDefinedEquation("ude1", udf_dummy, udf_dummy)
+    ude2 = UserDefinedEquation("ude2", udf_dummy, udf_dummy)
+    ude1.conns.append("conn")
+    ude1.params["key"] = "value"
+
+    assert ude2.conns == []
+    assert ude2.params == {}

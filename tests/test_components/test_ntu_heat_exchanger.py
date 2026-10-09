@@ -14,10 +14,10 @@ import math
 import ht
 import numpy as np
 import pytest
-from CoolProp.CoolProp import PropsSI as PSI
 from pytest import approx
 from pytest import mark
 
+from CoolProp.CoolProp import PropsSI as PSI
 from tespy.components import HeatExchanger
 from tespy.components import NTUHeatExchanger
 from tespy.components import ParallelFlowHeatExchanger

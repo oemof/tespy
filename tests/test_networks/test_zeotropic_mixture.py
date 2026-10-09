@@ -9,10 +9,10 @@ tests/test_networks/test_zeotropic_mixture.py
 
 SPDX-License-Identifier: MIT
 """
-from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import mark
 
+from CoolProp.CoolProp import get_global_param_string
 from tespy.components import CycleCloser
 from tespy.components import Generator
 from tespy.components import Motor

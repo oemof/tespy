@@ -802,8 +802,8 @@ class Network:
 
     def assert_convergence(self):
         """Check convergence status of a simulation."""
-        msg = 'Calculation did not converge!'
-        assert self.converged, msg
+        if not self.converged:
+            raise AssertionError("Calculation did not converge!")
 
     @property
     def converged(self):

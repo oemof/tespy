@@ -131,6 +131,7 @@ testpaths = [
 force_single_line = true
 line_length = 120
 known_first_party = "tespy"
+src_paths = ["src", "tests"]
 default_section = "THIRDPARTY"
 forced_separate = "test_tespy"
 skip = "migrations"

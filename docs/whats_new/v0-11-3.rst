@@ -74,7 +74,13 @@ Documentation
   :ref:`how-to guide on zeotropic mixtures <zeotropic_heat_pump_label>`
   models a heat pump
   (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).
+- The heat exchanger component docstrings now specify the hot and cold side
+  ports explicitly, and the connections overview documents the
+  :code:`HAConnection` building block
+  (`PR #1081 <https://github.com/oemof/tespy/pull/1081>`__,
+  `PR #1082 <https://github.com/oemof/tespy/pull/1082>`__).
 
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- Chen Yi (`@chenyi6758-source <https://github.com/chenyi6758-source>`__)

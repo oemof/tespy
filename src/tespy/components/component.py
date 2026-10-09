@@ -142,6 +142,13 @@ class Component:
     _parameter_aliases = {}
     _is_wrapper_branch_source = False
 
+    @classmethod
+    def _get_parameter_aliases(cls):
+        aliases = {}
+        for klass in reversed(cls.__mro__):
+            aliases.update(klass.__dict__.get("_parameter_aliases", {}))
+        return aliases
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
@@ -195,16 +202,14 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
-        for old, new in self._parameter_aliases.items():
+        for old, new in self._get_parameter_aliases().items():
             if old in kwargs and new in self.parameters:
                 warnings.warn(
                     f"The parameter '{old}' of component {self.label!r} is "
                     f"deprecated. Use '{new}' instead.",
                     FutureWarning, stacklevel=2
                 )
-                kwargs[new] = kwargs[old]
-                if kwargs[old] == 'var':
-                    del kwargs[old]
+                kwargs[new] = kwargs.pop(old)
         for key, value in kwargs.items():
             if key in self.parameters:
                 self._set_parameter(key, value)
@@ -458,7 +463,7 @@ class Component:
 
             sum_eq += constraint.num_eq_sets
 
-        for old, new in self._parameter_aliases.items():
+        for old, new in self._get_parameter_aliases().items():
             if old not in self.parameters or new not in self.parameters:
                 continue
             for lst_name in ('design', 'offdesign'):

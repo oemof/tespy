@@ -26,14 +26,16 @@ Bug Fixes
   (`PR #1065 <https://github.com/oemof/tespy/pull/1065>`__).
 - Connections of components with ten or more ports of one type were sorted by
   the port id string, e.g. :code:`inl[1]` referred to :code:`in10` instead of
-  :code:`in2`. They are now sorted in the order of the port declaration.
+  :code:`in2`. They are now sorted in the order of the port declaration
+  (`PR #1085 <https://github.com/oemof/tespy/pull/1085>`__).
 - Deprecated parameter names of a parent class were lost if a subclass defined
   own aliases, e.g. :code:`kA` on the
   :py:class:`~tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger`.
   Also, the deprecated parameter was set and exported alongside its
-  replacement. Only the replacement is set now.
+  replacement (`PR #1085 <https://github.com/oemof/tespy/pull/1085>`__).
 - A warning is logged if fixed mass fractions of a fluid branch do not sum up
-  to 1 and no fluid is left to fill the remainder.
+  to 1 and no fluid is left to fill the remainder
+  (`PR #1085 <https://github.com/oemof/tespy/pull/1085>`__).
 
 Other Changes
 #############

@@ -90,7 +90,6 @@ class HAConnection(Connection):
             "fluid_balance": dc_simple(
                 dtype="bool",
                 func=self.fluid_balance_func,
-                deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"

@@ -208,13 +208,13 @@ class SubsystemInterface(Component):
 
     def inlets(self):
         if self.num_inter.is_set:
-            return ['in' + str(i + 1) for i in range(self.num_inter.val)]
+            return [f"in{i + 1}" for i in range(self.num_inter.val)]
         else:
             return ['in1']
 
     def outlets(self):
         if self.num_inter.is_set:
-            return ['out' + str(i + 1) for i in range(self.num_inter.val)]
+            return [f"out{i + 1}" for i in range(self.num_inter.val)]
         else:
             return ['out1']
 

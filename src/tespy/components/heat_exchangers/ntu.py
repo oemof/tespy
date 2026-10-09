@@ -602,12 +602,12 @@ class NTUHeatExchanger(HeatExchanger):
 
     def get_parameters(self):
         params = super().get_parameters()
+        arrangements = ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
         params["flow_arrangement"] = dc_simple(
             dtype="str",
             description=(
                 "flow arrangement for the effectiveness-NTU relation, "
-                "mandatory, one of "
-                + ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
+                f"mandatory, one of {arrangements}"
             )
         )
         params["num_shell_passes"] = dc_simple(
@@ -666,19 +666,19 @@ class NTUHeatExchanger(HeatExchanger):
         return params
 
     def _preprocess(self, row_idx):
+        arrangements = "', '".join(FLOW_ARRANGEMENTS)
         if not self.flow_arrangement.is_set:
             msg = (
                 f"The flow arrangement of {self.label} is not specified. The "
                 "effectiveness-NTU relation depends on it, you need to set it "
-                "explicitly. Select from '"
-                + "', '".join(FLOW_ARRANGEMENTS) + "'."
+                f"explicitly. Select from '{arrangements}'."
             )
             raise ValueError(msg)
         if self.flow_arrangement.val not in FLOW_ARRANGEMENTS:
             msg = (
                 f"The flow arrangement '{self.flow_arrangement.val}' of "
                 f"component {self.label} is not available. Available flow "
-                "arrangements are: '" + "', '".join(FLOW_ARRANGEMENTS) + "'."
+                f"arrangements are: '{arrangements}'."
             )
             raise ValueError(msg)
         if (

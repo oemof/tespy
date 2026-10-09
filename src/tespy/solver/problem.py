@@ -1610,7 +1610,7 @@ class Problem:
 
         logger.progress(0, msg2)
         if print_results and not logger.console_logging_enabled():
-            print('\n' + msg + '\n' + msg2)
+            print(f"\n{msg}\n{msg2}")
 
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""

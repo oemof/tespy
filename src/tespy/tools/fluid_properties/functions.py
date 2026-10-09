@@ -603,10 +603,10 @@ def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
     """
     if get_number_of_fluids(fluid_data) != 1:
         if mixing_rule not in _MIXING_RULE_PHASE:
+            known_rules = ", ".join(_MIXING_RULE_PHASE)
             raise ValueError(
                 f"Cannot determine phase for multi-component fluid data with "
-                f"mixing_rule={mixing_rule!r}. Known rules: "
-                + ", ".join(_MIXING_RULE_PHASE)
+                f"mixing_rule={mixing_rule!r}. Known rules: {known_rules}"
             )
         return _MIXING_RULE_PHASE[mixing_rule]
     return get_pure_fluid(fluid_data)["wrapper"].phase_ph(p, h)

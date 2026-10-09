@@ -704,3 +704,27 @@ def test_wrapper_kwargs_injection():
     # if kwargs could not be passed to the Wrapper instantiation this would
     # raise an error
     c._create_fluid_wrapper()
+
+
+def test_fluid_balance_converges_with_variable_fractions():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    merge = Merge("merge", num_in=3)
+    c1 = Connection(Source("air"), "out1", merge, "in1", label="1")
+    c2 = Connection(Source("carbon dioxide"), "out1", merge, "in2", label="2")
+    c3 = Connection(Source("nitrogen"), "out1", merge, "in3", label="3")
+    c4 = Connection(merge, "out1", Sink("sink"), "in1", label="4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(
+        fluid={"O2": 0.23, "N2": 0.76, "Ar": 0.01, "CO2": 0}, p=1, T=20, m=5
+    )
+    c2.set_attr(fluid={"CO2": 1}, T=20, m=5)
+    c3.set_attr(fluid={"N2": 1}, T=20)
+    c4.set_attr(fluid={"N2": 0.4}, fluid_balance=True)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert sum(c4.fluid.val.values()) == approx(1)
+    assert c3.m.val_SI == approx(1 / 3)

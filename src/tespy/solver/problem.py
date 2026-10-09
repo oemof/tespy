@@ -635,7 +635,16 @@ class Problem:
                     # remaining fluids are variable, create wrappers for them
                     all_fluids = reference_conn._potential_fluids
                     num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
-                    if num_remaining_fluids == 1:
+                    if num_remaining_fluids == 0:
+                        msg = (
+                            "The specified mass fractions within a linear "
+                            "branch of connections sum up to "
+                            f"{mass_fraction_sum:.4g} instead of 1: "
+                            f"{', '.join([c.label for c in all_connections])}."
+                        )
+                        logger.warning(msg)
+                        variable = set()
+                    elif num_remaining_fluids == 1:
                         missing_fluid = list(
                             set(all_fluids) - set(fixed_fractions.keys())
                         )[0]

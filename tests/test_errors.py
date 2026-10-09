@@ -518,3 +518,18 @@ def test_UserDefinedEquation_defaults_not_shared():
 
     assert ude2.conns == []
     assert ude2.params == {}
+
+
+def test_warning_fixed_mass_fractions_below_one(caplog):
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    c1 = Connection(Source("source"), "out1", Pipe("pipe"), "in1", label="1")
+    c2 = Connection(c1.target, "out1", Sink("sink"), "in1", label="2")
+    nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"N2": 0.6, "O2": 0.3}, m=1, p=1, T=20)
+    c2.set_attr(p=1, T=30)
+
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        nw.solve("design")
+
+    assert any("sum up to 0.9 instead of 1" in msg for msg in caplog.messages)

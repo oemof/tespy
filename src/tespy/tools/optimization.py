@@ -216,7 +216,7 @@ class OptimizationProblem(ElementwiseProblem):
                 "Passing nested dictionaries to OptimizationProblem is "
                 "deprecated and will be removed in version 0.12. Use flat "
                 "parameter name dictionaries instead.",
-                DeprecationWarning,
+                FutureWarning,
                 stacklevel=2,
             )
             variables, constraints, kpi, param_mapping = _translate_nested(variables, constraints, kpi)

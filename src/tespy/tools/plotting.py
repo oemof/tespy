@@ -102,9 +102,11 @@ def get_plotting_data(nw, connection_label):
             for key, value in data.items():
                 processes[f"{component.label}_{key}"] = value
 
+    unitmap={"p":'pressure', "h":'enthalpy', "T":'temperature', "s":'entropy', "vol":'specific_volume'}
+
     points = {
         c.label: {
-            key: c.get_attr(key).val
+            key: c.get_attr(key)._val.to(nw.units.default[unitmap[key]]).m
             for key in ["p", "h", "T", "s", "vol"]
         }
         for c in connections

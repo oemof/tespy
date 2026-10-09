@@ -802,8 +802,8 @@ class Network:
 
     def assert_convergence(self):
         """Check convergence status of a simulation."""
-        msg = 'Calculation did not converge!'
-        assert self.converged, msg
+        if not self.converged:
+            raise AssertionError("Calculation did not converge!")
 
     @property
     def converged(self):
@@ -993,9 +993,13 @@ class Network:
             src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
             tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
 
+        inlet_order = {port: i for i, port in enumerate(inlet_ids)}
+        outlet_order = {port: i for i, port in enumerate(outlet_ids)}
+        tgt_sorted = tgt["target_id"].sort_values(key=lambda s: s.map(inlet_order))
+        src_sorted = src["source_id"].sort_values(key=lambda s: s.map(outlet_order))
         return (
-            self.conns.loc[tgt["target_id"].sort_values().index, "object"].tolist(),
-            self.conns.loc[src["source_id"].sort_values().index, "object"].tolist(),
+            self.conns.loc[tgt_sorted.index, "object"].tolist(),
+            self.conns.loc[src_sorted.index, "object"].tolist(),
         )
 
     def _check_components(self):
@@ -2558,8 +2562,7 @@ class Network:
             Decompose the equation system into its block lower triangular
             form and solve the blocks in precedence order instead of solving
             the full system simultaneously. Scalar blocks are solved with a
-            bracketing fallback on oscillation. Experimental, default:
-            :code:`False`.
+            bracketing fallback on oscillation, default: :code:`True`.
 
         pause_on_block_failure : boolean
             Pause the block-wise solution process at the first block that

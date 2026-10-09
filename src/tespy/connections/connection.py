@@ -182,7 +182,7 @@ class ConnectionBase:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Connection has no attribute \"' + key + '\".'
+            msg = f"Connection has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -296,7 +296,7 @@ class ConnectionBase:
         self.printout = True
 
         self.property_data = self.get_parameters()
-        self.property_data0 = [x + '0' for x in self.property_data.keys()]
+        self.property_data0 = [f"{x}0" for x in self.property_data.keys()]
         self.parameters = self._build_parameters()
         self.__dict__.update(self.property_data)
         logger.debug(

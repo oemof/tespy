@@ -18,6 +18,7 @@ from pytest import approx
 from pytest import fixture
 from pytest import mark
 
+from tespy.components import Merge
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger

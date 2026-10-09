@@ -1475,3 +1475,22 @@ class TestParameterAliases:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert approx(zeta) == _calc_zeta(self.c1, self.c2)
+
+    def test_set_attr_old_name_does_not_set_old_parameter(self):
+        """Only the new parameter is set and serialized, not the deprecated one."""
+        with pytest.warns(FutureWarning, match="kA"):
+            self.he.set_attr(kA=5000)
+        assert self.he.UA.is_set
+        assert not self.he.kA.is_set
+        data = self.he._serialize()[self.he.label]
+        assert data["UA"]["is_set"]
+        assert not data["kA"]["is_set"]
+
+    def test_subclass_inherits_parent_aliases(self):
+        """Aliases of the parent class remain active on subclasses defining own aliases."""
+        he = SectionedHeatExchanger("sectioned heat exchanger")
+        with pytest.warns(FutureWarning, match="kA"):
+            he.set_attr(kA=5000)
+        assert he.UA.is_set
+        assert he.UA.val == pytest.approx(5000)
+        assert not he.kA.is_set

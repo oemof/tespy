@@ -1121,11 +1121,11 @@ class MixingRuleRegistry:
 
     def _get(self, registry, name, label):
         if name not in registry:
-            available = sorted(registry.keys())
+            available = "', '".join(sorted(registry.keys()))
             msg = (
                 f"The mixing rule '{name}' is not available for the fluid "
-                f"property function for {label}. Available rules are '"
-                + "', '".join(available) + "'."
+                f"property function for {label}. Available rules are "
+                f"'{available}'."
             )
             logger.exception(msg)
             raise KeyError(msg)

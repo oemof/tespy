@@ -196,7 +196,7 @@ class Component:
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
         for old, new in self._parameter_aliases.items():
-            if old in kwargs:
+            if old in kwargs and new in self.parameters:
                 warnings.warn(
                     f"The parameter '{old}' of component {self.label!r} is "
                     f"deprecated. Use '{new}' instead.",

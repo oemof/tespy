@@ -13,11 +13,12 @@ import inspect
 import sys
 
 import pytest
+from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import fixture
 from pytest import mark
 
-from CoolProp.CoolProp import get_global_param_string
+from tespy.components import Merge
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger

@@ -10,9 +10,9 @@ tests/test_networks/test_starting_value_guesses.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+from CoolProp.CoolProp import PropsSI
 from pytest import approx
 
-from CoolProp.CoolProp import PropsSI
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source

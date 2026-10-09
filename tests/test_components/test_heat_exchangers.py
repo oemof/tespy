@@ -13,12 +13,12 @@ import math
 
 import numpy as np
 import pytest
+from CoolProp.CoolProp import PropsSI as PSI
+from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
 from pytest import fixture
 from pytest import mark
 
-from CoolProp.CoolProp import PropsSI as PSI
-from CoolProp.CoolProp import get_global_param_string
 from tespy.components import Condenser
 from tespy.components import Desuperheater
 from tespy.components import HeatExchanger

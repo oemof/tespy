@@ -146,7 +146,7 @@ class CharLine:
         elif x < self.x[0]:
             msg = (
                 "Operating point below characteristic line range: X="
-                f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
+                f"{round(x, 3)} with minimum of {self.x[0]} at component {c}."
             )
             logger.warning(msg)
 
@@ -167,7 +167,7 @@ class CharLine:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Char_map has no attribute \"' + key + '\".'
+            msg = f"CharLine has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -470,7 +470,7 @@ class CharMap:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Char_map has no attribute \"' + key + '\".'
+            msg = 'CharMap has no attribute \"' + key + '\".'
             logger.error(msg)
             raise KeyError(msg)
 

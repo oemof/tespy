@@ -13,6 +13,9 @@ New Features
   :code:`uv add thermopack` or :code:`pip install thermopack`. The
   :ref:`fluid properties documentation <thermopack_wrapper_label>` shows how to
   use it (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).
+- New :py:class:`~tespy.components.nodes.equilibrium_separator.EquilibriumSeparator`
+  component: a phase separator that also handles single phase inlet states
+  (`PR #1036 <https://github.com/oemof/tespy/pull/1036>`__).
 
 Bug Fixes
 #########

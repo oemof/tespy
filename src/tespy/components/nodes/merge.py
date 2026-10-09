@@ -300,15 +300,6 @@ class Merge(NodeBase):
             dependents += [c.m, c.h]
         return dependents
 
-    def propagate_wrapper_to_target(self, branch):
-        if self in branch["components"]:
-            return
-
-        branch["components"] += [self]
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            outconn.target.propagate_wrapper_to_target(branch)
-
     def entropy_balance(self):
         r"""
         Calculate entropy balance of a merge.

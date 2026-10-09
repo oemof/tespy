@@ -260,15 +260,6 @@ class DropletSeparator(NodeBase):
             self._structure_matrix[k + eq, self.inl[0].fluid.sm_col] = 1
             self._structure_matrix[k + eq, conn.fluid.sm_col] = -1
 
-    def propagate_wrapper_to_target(self, branch):
-        if self in branch["components"]:
-            return
-
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            branch["components"] += [self]
-            outconn.target.propagate_wrapper_to_target(branch)
-
     def convergence_check(self):
         # here all pressures are the same value
         o = self.outl[0]

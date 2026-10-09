@@ -191,12 +191,6 @@ class Separator(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
-    def propagate_wrapper_to_target(self, branch):
-        branch["components"] += [self]
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            outconn.target.propagate_wrapper_to_target(branch)
-
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.

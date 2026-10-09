@@ -329,3 +329,116 @@ def test_diagram_cache_is_per_instance():
     m2 = SimpleModel()
     m1._diagram_cache["fluid"] = "something"
     assert "fluid" not in m2._diagram_cache
+
+
+# ---------------------------------------------------------------------------
+# diagram creation, registration and graceful degradation
+# ---------------------------------------------------------------------------
+
+class TestDiagramHandling:
+
+    def setup_method(self):
+        self.model = SimpleModel()
+        self.model.nw.conns.index = ["c1"]
+
+    def test_create_diagram_is_used_and_cached(self):
+        diagram = MagicMock()
+        self.model.create_diagram = MagicMock(return_value=diagram)
+        assert self.model._get_diagram("water") is diagram
+        assert self.model._get_diagram("water") is diagram
+        self.model.create_diagram.assert_called_once_with("water")
+
+    def test_register_diagram_takes_precedence(self):
+        diagram = MagicMock()
+        self.model.create_diagram = MagicMock()
+        self.model.register_diagram("water", diagram)
+        assert self.model._get_diagram("water") is diagram
+        self.model.create_diagram.assert_not_called()
+
+    def test_failing_creation_warns_and_caches_none(self, caplog):
+        import logging
+        self.model.create_diagram = MagicMock(side_effect=ValueError("nope"))
+        with caplog.at_level(logging.WARNING):
+            assert self.model._get_diagram("water") is None
+        assert "water" in caplog.text
+        # second call must not retry the creation
+        assert self.model._get_diagram("water") is None
+        self.model.create_diagram.assert_called_once()
+
+    def test_failing_creation_raises_when_strict(self):
+        self.model.create_diagram = MagicMock(side_effect=ValueError("nope"))
+        with pytest.raises(ValueError, match="nope"):
+            self.model._get_diagram("water", strict=True)
+
+    def test_cached_failure_raises_when_strict(self):
+        self.model._diagram_cache["water"] = None
+        with pytest.raises(ValueError, match="water"):
+            self.model._get_diagram("water", strict=True)
+
+    def test_supports_fluid_diagram_unknown_connection(self):
+        assert not self.model.supports_fluid_diagram("nonexistent")
+
+    def test_supports_fluid_diagram_mixture(self):
+        with patch("tespy.models.template.single_fluid", return_value=None):
+            assert not self.model.supports_fluid_diagram("c1")
+
+    def test_supports_fluid_diagram_pure_fluid(self):
+        self.model.register_diagram("water", MagicMock())
+        with patch("tespy.models.template.single_fluid", return_value="water"):
+            assert self.model.supports_fluid_diagram("c1")
+
+    def test_supports_fluid_diagram_failing_creation(self):
+        self.model.create_diagram = MagicMock(side_effect=ValueError("nope"))
+        with patch("tespy.models.template.single_fluid", return_value="water"):
+            assert not self.model.supports_fluid_diagram("c1")
+
+    def test_mixture_prepare_raises_when_strict(self):
+        with patch("tespy.models.template.single_fluid", return_value=None):
+            with pytest.raises(ValueError, match="mixture"):
+                self.model._prepare_diagram_and_process_data("c1", strict=True)
+
+    def test_explicit_diagram_is_passed_through(self):
+        diagram = MagicMock()
+        diagram.calc_individual_isoline = MagicMock(return_value="isoline")
+        plotting_data = ({"comp": {"some": "data"}}, {"a": {"s": 1.0}})
+        with (
+            patch("tespy.models.template.single_fluid", return_value="water"),
+            patch("tespy.models.template.get_plotting_data", return_value=plotting_data)
+        ):
+            processes, points, used = (
+                self.model._prepare_diagram_and_process_data("c1", diagram=diagram)
+            )
+        assert used is diagram
+        assert processes == {"comp": "isoline"}
+
+    def _plot_points_only(self, method):
+        import matplotlib
+        matplotlib.use("Agg")
+        points = {
+            "a": {"p": 1.0, "h": 100.0, "T": 25.0, "s": 1.0, "vol": 0.5},
+            "b": {"p": 5.0, "h": 200.0, "T": 50.0, "s": 2.0, "vol": 0.1},
+        }
+        self.model.nw.units.get_default = MagicMock(return_value="unit")
+        with (
+            patch("tespy.models.template.single_fluid", return_value=None),
+            patch("tespy.models.template.get_plotting_data", return_value=({}, points))
+        ):
+            fig, ax = method("c1")
+        return fig, ax
+
+    def test_ts_plot_falls_back_to_points_for_mixture(self, caplog):
+        import logging
+        with caplog.at_level(logging.WARNING):
+            fig, ax = self._plot_points_only(
+                self.model.plot_Ts_diagram_matplotlib
+            )
+        assert "mixture" in caplog.text
+        # the two state points must be scattered onto the axes
+        assert len(ax.collections) == 2
+
+    def test_logph_plot_falls_back_to_points_for_mixture(self):
+        fig, ax = self._plot_points_only(
+            self.model.plot_logph_diagram_matplotlib
+        )
+        assert ax.get_yscale() == "log"
+        assert len(ax.collections) == 2

@@ -53,6 +53,27 @@ def test_enthalpy_forwards_backwards(property_data, wrapper_instance):
     np.testing.assert_allclose(temperature_check, temperature_data)
 
 
+def test_enthalpy_forwards_backwards_constant_heat_capacity():
+    # constant data produce a heat capacity polynomial slope of (nearly)
+    # zero, the standard quadratic formula in the enthalpy inversion loses
+    # all precision in this case
+    wrapper = IncompressibleFluidWrapper(
+        "fluid name",
+        None,
+        temperature_data=np.array([273.15, 673.15]),
+        heat_capacity_data=np.array([1000.0, 1000.0]),
+        density_data=np.array([0.9, 0.9]),
+        viscosity_data=np.array([3e-5, 3e-5])
+    )
+    temperature_data = np.array([273.15, 373.15, 573.15, 673.15])
+    temperature_check = [
+        wrapper.T_ph(None, wrapper.h_pT(None, temperature))
+        for temperature in temperature_data
+    ]
+
+    np.testing.assert_allclose(temperature_check, temperature_data)
+
+
 def test_entropy_forwards_backwards(property_data, wrapper_instance):
     temperature_data = property_data["temperature_data"]
     temperature_check = []

@@ -27,7 +27,7 @@ Download the full script here:
 :download:`heat_pump.py </../tutorial/basics/heat_pump.py>`
 
 Flexibility in Modeling
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 In TESPy the specifications for components and/or connections are
 interchangeable in every possible way, provided that the system of equations
 representing the plant is well-defined.
@@ -64,7 +64,7 @@ compressor would be, in case we measure :code:`T=97.3` at connection 3.
     :end-before: [sec_10]
 
 Typical Errors
-^^^^^^^^^^^^^^
+--------------
 If you over or under determine the system by specifying too few or too many
 parameters, you will get an error message. Below you will find an example,
 where the heat demand and the mass flow is set simultaneously.
@@ -123,7 +123,7 @@ obviously does not make any sense.
     :ref:`here <tutorial_starting_values_label>`.
 
 Parametric Analysis of COP
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 For a constant amount of heat production, we will investigate the influence of
 
 * the source temperature level

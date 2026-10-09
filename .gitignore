@@ -45,6 +45,7 @@ htmlcov
 
 # Sphinx
 docs/_build
+docs/.jupyter_cache
 docs/api/*.rst
 docs/building_blocks/_*.rst
 docs/jupyter_execute

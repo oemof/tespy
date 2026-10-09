@@ -1,5 +1,5 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
+requires = ["flit_core >=3.2,<5"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.sdist]
@@ -27,7 +27,7 @@ exclude = [
 
 [project]
 name = "tespy"
-version = "0.11.0"
+version = "0.11.3.dev0"
 description = "Thermal Engineering Systems in Python (TESPy)"
 readme = "README.rst"
 authors = [
@@ -68,23 +68,35 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 "Issue Tracker" = "https://github.com/oemof/tespy/issues"
 
 [project.optional-dependencies]
-dev = [
-    "build",
+test = [
     "exerpy",
-    "flit",
-    "fluprodia>=4",
-    "furo",
+    "ht",
     "iapws",
-    "isort",
-    "myst-nb",
     "pymoo",
     "pyromat",
     "pytest",
+    "pytest-cov",
+    "thermopack>=2.2",
+]
+docs = [
+    "exerpy",
+    "furo",
+    "myst-nb",
+    "pymoo",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-notfound-page>=1.1.0",
-    "sphinxcontrib.bibtex",
+    "sphinx-reredirects",
+    "sphinxcontrib.bibtex>=2.0",
+    "thermopack>=2.2",
+]
+dev = [
+    "tespy[docs,test]",
+    "build",
+    "check-manifest",
+    "flit",
+    "isort",
     "tox",
     "twine"
 ]

@@ -264,9 +264,12 @@ class SteamTurbine(Turbine):
 
                 return hout - hsat
 
-            frac = 1
-            if round(outl.calc_Q(), 3) != 1:
-                frac = brentq(find_sat, 1, 0)
+            # during iteration outlet might be in two-phase region although dry
+            # expansion would stay superheated
+            if find_sat(1) >= 0:
+                return self.calc_eta_s() - self.eta_s_dry.val_SI
+
+            frac = brentq(find_sat, 1, 0)
 
             psat = inl.p.val_SI - frac * dp
             hsat = h_mix_pQ(psat, 1, inl.fluid_data)
@@ -288,4 +291,3 @@ class SteamTurbine(Turbine):
 
             # return residual: outlet enthalpy = calculated outlet enthalpy
             return outl.h.val_SI - hout
-

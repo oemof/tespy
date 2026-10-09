@@ -7,6 +7,7 @@ from scipy.spatial.distance import cdist
 from tespy.networks import Network
 from tespy.tools import OptimizationProblem
 from tespy.tools import get_plotting_data
+from tespy.tools import logger
 from tespy.tools.fluid_properties import single_fluid
 
 
@@ -146,20 +147,97 @@ class ModelTemplate():
                 "offdesign", init_only=True, design_path=self._design_path, init_path=self._stable_solution
             )
 
-    def _get_diagram(self, fluid_name):
-        if fluid_name in self._diagram_cache:
-            return self._diagram_cache[fluid_name]
+    def create_diagram(self, fluid_name):
+        """Create and configure a fluid property diagram for a fluid.
 
-        else:
-            diagram = FluidPropertyDiagram(fluid_name)
-            diagram.set_unit_system(self.nw.units)
-            diagram.set_isolines_subcritical(-20, 200)
-            diagram.calc_isolines()
-            self._diagram_cache[fluid_name] = diagram
+        Override this method to customize the diagram, e.g. to adjust the
+        isoline ranges to the operating envelope of your model. The base
+        implementation creates subcritical isolines between -20 °C and 200 °C.
 
-            return diagram
+        Parameters
+        ----------
+        fluid_name : str
+            Name of the (pure) fluid.
 
-    def _prepare_diagram_and_process_data(self, connection_label):
+        Returns
+        -------
+        fluprodia.FluidPropertyDiagram
+            Diagram with calculated isolines.
+        """
+        diagram = FluidPropertyDiagram(fluid_name)
+        diagram.set_unit_system(self.nw.units)
+        diagram.set_isolines_subcritical(-20, 200)
+        diagram.calc_isolines()
+        return diagram
+
+    def register_diagram(self, fluid_name, diagram):
+        """Register a pre-configured fluid property diagram for a fluid.
+
+        A registered diagram replaces an existing cached diagram, which was
+        created earlier. This is useful in interactive sessions, where a
+        diagram can be configured once and reused for all subsequent plots.
+
+        Parameters
+        ----------
+        fluid_name : str
+            Name of the (pure) fluid.
+        diagram : fluprodia.FluidPropertyDiagram
+            Diagram with calculated isolines.
+        """
+        self._diagram_cache[fluid_name] = diagram
+
+    def _get_diagram(self, fluid_name, strict=False):
+        if fluid_name not in self._diagram_cache:
+            try:
+                self._diagram_cache[fluid_name] = self.create_diagram(fluid_name)
+            except Exception as e:
+                if strict:
+                    raise
+                logger.warning(
+                    f"Could not create a fluid property diagram for "
+                    f"'{fluid_name}' ({type(e).__name__}: {e}). Plots will "
+                    "only show the state points without isolines and process "
+                    "lines. Overwrite the create_diagram method or register a "
+                    "diagram with register_diagram to customize the isoline "
+                    "creation."
+                )
+                self._diagram_cache[fluid_name] = None
+
+        diagram = self._diagram_cache[fluid_name]
+        if diagram is None and strict:
+            msg = (
+                f"A fluid property diagram for '{fluid_name}' could not be "
+                "created."
+            )
+            raise ValueError(msg)
+        return diagram
+
+    def supports_fluid_diagram(self, connection_label):
+        """Check whether a fluid property diagram is available for the fluid
+        of a connection.
+
+        This is the case, if the fluid of the connection is a pure fluid
+        (fluprodia does not support mixtures) and the diagram creation via
+        :py:meth:`create_diagram` succeeds (or a diagram was registered with
+        :py:meth:`register_diagram`).
+
+        Parameters
+        ----------
+        connection_label : str
+            Label of the connection.
+
+        Returns
+        -------
+        bool
+        """
+        if connection_label not in self.nw.conns.index:
+            return False
+        fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
+        if fluid_name is None:
+            return False
+        return self._get_diagram(fluid_name) is not None
+
+    def _prepare_diagram_and_process_data(self, connection_label, diagram=None, strict=False):
         if connection_label not in self.nw.conns.index:
             msg = f"There is no connection with the label {connection_label}."
             raise KeyError(msg)
@@ -167,13 +245,25 @@ class ModelTemplate():
         fluid_name = single_fluid(self.nw.get_conn(connection_label).fluid_data)
 
         if fluid_name is None:
-            raise ValueError(
-                "Fluid is mixture, and not supported by fluprodia"
+            msg = (
+                f"The fluid of connection {connection_label} is a mixture, "
+                "which is not supported by fluprodia. The plot will only show "
+                "the state points without isolines and process lines."
             )
+            if strict:
+                raise ValueError(msg)
+            logger.warning(msg)
+            _, points = get_plotting_data(self.nw, connection_label)
+            return {}, points, None
 
-        diagram = self._get_diagram(fluid_name)
+        if diagram is None:
+            diagram = self._get_diagram(fluid_name, strict=strict)
 
         processes, points = get_plotting_data(self.nw, connection_label)
+
+        if diagram is None:
+            return {}, points, None
+
         processes = {
             key: diagram.calc_individual_isoline(**value)
             for key, value in processes.items()
@@ -190,19 +280,49 @@ class ModelTemplate():
         for label, point in points.items():
             _ = ax.scatter(point[x_property], point[y_property], label=label, color="tab:red", zorder=10000)
 
+    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False):
+        """Plot the process into a Ts diagram.
 
-    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
+        Parameters
+        ----------
+        connection_label : str
+            Label of any connection of the process to plot.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot into.
+        save_dir : str, optional
+            Directory to save the figure to.
+        figsize : tuple, optional
+            Figure size for a new figure.
+        xlim : tuple, optional
+            x axis limits.
+        ylim : tuple, optional
+            y axis limits.
+        diagram : fluprodia.FluidPropertyDiagram, optional
+            Pre-configured diagram to use instead of the one from
+            :py:meth:`create_diagram`.
+        strict : bool, optional
+            Raise instead of falling back to a state point only plot, if no
+            diagram is available for the fluid, default False.
 
+        Returns
+        -------
+        tuple
+            matplotlib figure and axes.
+        """
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
             fig = ax.get_figure()
 
-        processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
+        processes, points, diagram = self._prepare_diagram_and_process_data(
+            connection_label, diagram=diagram, strict=strict
+        )
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "s", "lin")
         if ylim:
             y_min, y_max = ylim
+        elif diagram is None:
+            y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin")
         else:
             conn = self.nw.get_conn(connection_label)
             fluid_name = single_fluid(conn.fluid_data)
@@ -211,12 +331,22 @@ class ModelTemplate():
             T_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._T_crit, 'K').m_as(T_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "T", "lin", clamp_max=T_crit)
 
-        diagram.draw_isolines(
-            fig, ax, "Ts", x_min, x_max, y_min, y_max,
-            isoline_data={
-                "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
-            }
-        )
+        if diagram is None:
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+            ax.set_xlabel(
+                f"specific entropy in {self.nw.units.get_default('entropy')}"
+            )
+            ax.set_ylabel(
+                f"temperature in {self.nw.units.get_default('temperature')}"
+            )
+        else:
+            diagram.draw_isolines(
+                fig, ax, "Ts", x_min, x_max, y_min, y_max,
+                isoline_data={
+                    "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
+                }
+            )
         self._plot_processes_and_states(ax, processes, points, "s", "T")
 
         if save_dir:
@@ -224,18 +354,49 @@ class ModelTemplate():
 
         return fig, ax
 
-    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None):
+    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False):
+        """Plot the process into a logph diagram.
 
+        Parameters
+        ----------
+        connection_label : str
+            Label of any connection of the process to plot.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot into.
+        save_dir : str, optional
+            Directory to save the figure to.
+        figsize : tuple, optional
+            Figure size for a new figure.
+        xlim : tuple, optional
+            x axis limits.
+        ylim : tuple, optional
+            y axis limits.
+        diagram : fluprodia.FluidPropertyDiagram, optional
+            Pre-configured diagram to use instead of the one from
+            :py:meth:`create_diagram`.
+        strict : bool, optional
+            Raise instead of falling back to a state point only plot, if no
+            diagram is available for the fluid, default False.
+
+        Returns
+        -------
+        tuple
+            matplotlib figure and axes.
+        """
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
             fig = ax.get_figure()
 
-        processes, points, diagram = self._prepare_diagram_and_process_data(connection_label)
+        processes, points, diagram = self._prepare_diagram_and_process_data(
+            connection_label, diagram=diagram, strict=strict
+        )
 
         x_min, x_max = xlim or self._make_cycle_plot_limits(points, "h", "lin")
         if ylim:
             y_min, y_max = ylim
+        elif diagram is None:
+            y_min, y_max = self._make_cycle_plot_limits(points, "p", "log")
         else:
             conn = self.nw.get_conn(connection_label)
             fluid_name = single_fluid(conn.fluid_data)
@@ -244,13 +405,24 @@ class ModelTemplate():
             p_crit = ureg.Quantity(conn.fluid.wrapper[fluid_name]._p_crit, 'Pa').m_as(p_unit)
             y_min, y_max = self._make_cycle_plot_limits(points, "p", "log", clamp_max=p_crit)
 
-        diagram.draw_isolines(
-            fig, ax, "logph", x_min, x_max, y_min, y_max,
-            isoline_data={
-                "s": {"values": np.array([])},
-                "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
-            }
-        )
+        if diagram is None:
+            ax.set_yscale("log")
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+            ax.set_xlabel(
+                f"specific enthalpy in {self.nw.units.get_default('enthalpy')}"
+            )
+            ax.set_ylabel(
+                f"pressure in {self.nw.units.get_default('pressure')}"
+            )
+        else:
+            diagram.draw_isolines(
+                fig, ax, "logph", x_min, x_max, y_min, y_max,
+                isoline_data={
+                    "s": {"values": np.array([])},
+                    "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
+                }
+            )
         self._plot_processes_and_states(ax, processes, points, "h", "p")
 
         if save_dir:

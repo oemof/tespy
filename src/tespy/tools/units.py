@@ -56,6 +56,7 @@ class Units:
             # None is the default if not quantity is supplied
             None: "1"
         }
+        self._conversions_applied = False
         # necessary, because pint cannot auto detect environment changes and
         # pint version changes
         major = sys.version_info.major
@@ -81,6 +82,19 @@ class Units:
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
         self._from_SI = {}
+        self._parsed_units = {}
+
+    def parsed_unit(self, unit):
+        """Return the pint Unit for a unit string.
+
+        The units are parsed once and then cached.
+        """
+        try:
+            return self._parsed_units[unit]
+        except KeyError:
+            parsed = self.ureg.Unit(unit)
+            self._parsed_units[unit] = parsed
+            return parsed
 
     def value_from_SI(self, value_SI, base_unit, target_unit):
         """Convert a value in SI units to its magnitude in the target unit.
@@ -170,6 +184,17 @@ class Units:
             warnings.warn(msg, FutureWarning)
             kwargs["pressure_difference"] = kwargs["pressure"]
 
+        if self._conversions_applied:
+            msg = (
+                "You are changing default units after a solve has already "
+                "been executed. Values specified and results keep their SI "
+                "value and are displayed in the new default units from the "
+                "next solve on. New plain number specifications use the new "
+                "default units. Values specified as pint quantities keep the "
+                "custom unit."
+            )
+            warnings.warn(msg, UserWarning, stacklevel=2)
+
         for key, value in kwargs.items():
             self._check_quantity_exists(key)
             if value == "-":
@@ -220,6 +245,9 @@ class Units:
         self._quantities = {
             k: self.ureg.Quantity(1, v) for k, v in self.default.items()
         }
+        # cached objects belong to the replaced registry
+        self._from_SI = {}
+        self._parsed_units = {}
 
     def get_ureg(self):
         return self._ureg

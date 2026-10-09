@@ -21,7 +21,7 @@ Download the full script here:
 :download:`rankine.py </../tutorial/basics/rankine.py>`
 
 Setting up the Cycle
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 We will model the cycle including the cooling water of the condenser. For this
 start with the :code:`Network` set up we already know.
 
@@ -82,7 +82,7 @@ After rerunning, we will see that the condensation temperature and pressure
 are both automatically calculated by the specified terminal temperature value.
 
 Generating T-s Diagram
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 To visualize the Rankine cycle, we generate a temperature (T) versus entropy (s)
 diagram using the fluprodia (Fluid Property Diagram) package.
 
@@ -126,7 +126,7 @@ fluprodia, we refer users to the
 `fluprodia documentation <https://fluprodia.readthedocs.io/en/latest/>`__.
 
 Assess Electrical Power
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 To assess the electrical power output we want to consider the power generated
 by the turbine as well as the power required to drive the feed pump. It is
 possible to include both of the component's power values in a single electrical
@@ -158,7 +158,7 @@ replacing the mass flow specification at connection 1:
     :end-before: [sec_8]
 
 Analyze Efficiency and power generation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------
 In this section, we will analyze the power production and the efficiency
 of the cycle, given constant steam mass flow and with varying values for the
 
@@ -195,7 +195,7 @@ can disable the printout of the convergence history.
     Figure: Parametric analysis of the efficiency and power output
 
 Part load Simulation
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 In the part load simulation part, we are starting with a specific design of the
 plant and calculate the part load performance with some assumptions on the
 component's individual behavior. The table below summarizes the assumptions,

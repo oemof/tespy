@@ -1,11 +1,11 @@
 .. _developing_label:
 
-~~~~~~~~~~~~~~~~~~~
+===================
 Contribute to TESPy
-~~~~~~~~~~~~~~~~~~~
+===================
 
 What can I contribute?
-======================
+----------------------
 TESPy has originally been developed mainly by Francesco Witte at the University
 of Applied Sciences Flensburg. Since 2021 with a lot of free time. The goal is,
 that many people can make use of this project and that it will be a community
@@ -70,7 +70,7 @@ characteristics.
 .. _development_how_label:
 
 How can I contribute?
-=====================
+---------------------
 
 You will find the most important information concerning the development process
 in the following sections. If you have any further questions feel free to
@@ -120,7 +120,7 @@ To collaborate use the pull request functionality of GitHub as described here:
 https://guides.github.com/activities/hello-world/
 
 How to create a pull request
-----------------------------
+++++++++++++++++++++++++++++
 
 * Fork the oemof repository to your own GitHub account.
 * Change, add or remove code.
@@ -133,7 +133,7 @@ How to create a pull request
 .. _coding_requirements_label:
 
 Changing, adding or removing code
----------------------------------
++++++++++++++++++++++++++++++++++
 
 * Read the :ref:`style_guidlines_label` and :ref:`naming_conventions_label` and
   follow them
@@ -208,7 +208,7 @@ anything is not defined in this section, search for a
 `PEP rule <https://www.python.org/dev/peps/>`_ and follow it.
 
 Docstrings
-----------
+++++++++++
 
 We decided to use the style of the numpydoc docstrings. See the following
 link for more information
@@ -216,7 +216,7 @@ link for more information
 
 
 Code commenting
----------------
++++++++++++++++
 
 Code comments are block and inline comments in the source code. They can help
 to understand he code and should be utilized "as much as necessary, as little
@@ -225,7 +225,7 @@ as possible". When writing comments follow the
 
 
 PEP8 (Python Style Guide)
--------------------------
++++++++++++++++++++++++++
 
 * We adhere to `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ for any code
   produced in the framework.
@@ -262,7 +262,7 @@ Using git
 ^^^^^^^^^
 
 Branching model
----------------
++++++++++++++++
 
 So far we adhere mostly to the git branching model by
 `Vincent Driessen <https://nvie.com/posts/a-successful-git-branching-model/>`_.
@@ -274,7 +274,7 @@ Differences are:
 * release branches are named like :code:`releases/*`
 
 Commit message
---------------
+++++++++++++++
 
 Use this nice little `commit tutorial <https://commit.style/>`_ to
 learn how to write a nice commit message.

@@ -391,6 +391,12 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         assert round(instance.Tamb.val - self.c2.T.val, 3) == 0.008
 
+        # an outlet approach below the threshold of the smoothed lmtd cannot
+        # be resolved exactly and is rejected in postprocessing
+        instance.set_attr(UA=4000.0)
+        self.nw.solve("design")
+        assert self.nw.status == 2
+
     def test_SimpleHeatExchanger_lmtd_zero_Q(self):
         """lmtd must be nan when Q=0 (UA=0), not raise ZeroDivisionError."""
         instance = SimpleHeatExchanger("heatexchanger")
@@ -759,7 +765,7 @@ class TestHeatExchangers:
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(self.c1.calc_T_sat() - self.c4.T.val_SI, 1)
-        p = round(self.c1.p.val_SI, 5)
+        p = self.c1.p.val_SI
         msg = (
             'Value of terminal temperature difference must be '
             f'{round(instance.ttd_u.val, 1)}, is {ttd_u}.'
@@ -783,10 +789,9 @@ class TestHeatExchangers:
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
-            f'Value of condensing pressure be {p}, is '
-            f'{round(self.c1.p.val_SI, 5)}.'
+            f'Value of condensing pressure be {p}, is {self.c1.p.val_SI}.'
         )
-        assert p == round(self.c1.p.val_SI, 5), msg
+        assert self.c1.p.val_SI == approx(p, rel=1e-8), msg
 
     def test_CondenserWithEvaporation(self):
         """Test a Condenser that evaporates a fluid."""
@@ -864,6 +869,35 @@ class TestHeatExchangers:
         assert approx(instance.UA.val) == _calc_UA(
             instance.Q.val, instance.td_log.val
         )
+
+    def test_ParallelFlowHeatExchanger_sections_alignment(self):
+        instance = ParallelFlowHeatExchanger("heat exchanger")
+        self.setup_HeatExchanger_network(instance)
+
+        self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+        self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=1)
+        instance.set_attr(dp1=0, dp2=0, ttd_u=15)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        # index 0 sits at the common inlet end with the maximum temperature
+        # difference and zero heat transferred, the last index at the
+        # outlets with the temperatures having come closer
+        assert approx(instance.T_hot_sections.val_SI[0]) == self.c1.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[0]) == self.c3.T.val_SI
+        assert approx(instance.T_hot_sections.val_SI[-1]) == self.c2.T.val_SI
+        assert approx(instance.T_cold_sections.val_SI[-1]) == self.c4.T.val_SI
+        assert instance.Q_sections.val_SI[0] == 0
+        assert approx(instance.Q_sections.val_SI[-1]) == -instance.Q.val_SI
+
+        # the section lmtd applies the parallel flow terminal temperature
+        # differences
+        ttd_u = self.c2.T.val_SI - self.c4.T.val_SI
+        ttd_l = self.c1.T.val_SI - self.c3.T.val_SI
+        assert approx(
+            instance.lmtd_per_section.val_SI[0]
+        ) == _calc_td_log(ttd_u, ttd_l)
 
     def test_ParallelFlowHeatExchanger_offdesign(self):
         instance = ParallelFlowHeatExchanger("heat exchanger")

@@ -999,9 +999,13 @@ def _calc_EN12900_SI(c: list, t_evap: float, t_cond: float) -> float:
     return calc_EN12900(c, t_evap - 273.15, t_cond - 273.15)
 
 
-def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
-    """Fit the polynome coefficients of EN12900 polynome based on evaporation
-    and condensation temperature and respective measurements
+def fit_EN12900_points(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
+    """Fit the polynome coefficients of EN12900 polynome to scattered data
+    points.
+
+    Use this method, if your data do not lie on a rectangular grid of
+    evaporation and condensation temperatures, for example because the
+    datasheet table is clipped by the application envelope of the compressor.
 
     Parameters
     ----------
@@ -1010,17 +1014,22 @@ def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
     t_cond : np.array
         1-d array of condensation temperatures
     data : np.array
-        datasheet information
+        1-d array of datasheet values. If a value is :code:`nan` the point is
+        excluded from the fit
 
     Returns
     -------
     np.array
         1-d array of polynome coefficients
     """
-    z = data.flatten()
-    t_cond, t_evap = np.meshgrid(t_evap, t_cond)  # needs to be inverted here
-    x = t_cond.flatten()
-    y = t_evap.flatten()
+    x = np.asarray(t_evap, dtype=float).flatten()
+    y = np.asarray(t_cond, dtype=float).flatten()
+    z = np.asarray(data, dtype=float).flatten()
+    valid = ~np.isnan(z)
+    if not valid.all():
+        x = x[valid]
+        y = y[valid]
+        z = z[valid]
     A = np.column_stack([
         np.ones_like(x),           # c0
         x,                         # c1 * t_evap
@@ -1039,18 +1048,50 @@ def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
         deviation = abs((check - z) / z)
         location = np.argmax(deviation)
 
-        T_evap = y[location]
-        T_cond = x[location]
+        T_evap = float(x[location])
+        T_cond = float(y[location])
         msg = (
-            f"A maximum relative deviation of {deviation.max()} at "
-            f"{T_evap=} and {T_cond=} remains when fitting the polynomial "
-            "coefficients to the data."
+            f"A maximum relative deviation of {deviation.max()} at {T_evap=} "
+            f"and {T_cond=} remains when fitting the polynomial coefficients "
+            "to the data."
         )
         logger.warning(msg)
     return c
 
 
-def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
+def fit_EN12900(t_evap: np.array, t_cond: np.array, data: np.array) -> np.array:
+    """Fit the polynome coefficients of EN12900 polynome based on evaporation
+    and condensation temperature and respective measurements
+
+    The grid is flattened into data points and passed to
+    :py:func:`fit_EN12900_points <tespy.components.displacementmachinery.polynomial_compressor.fit_EN12900_points>`.
+
+    Parameters
+    ----------
+    t_evap : np.array
+        1-d array of evaporation temperatures
+    t_cond : np.array
+        1-d array of condensation temperatures
+    data : np.array
+        datasheet information of shape :code:`(len(t_cond), len(t_evap))`. If
+        values in the datasheet are not provided, because they are outside of
+        the operating envelope you can pass them as missing (:code:`nan`).
+        These points are then excluded from the fit
+
+    Returns
+    -------
+    np.array
+        1-d array of polynome coefficients
+    """
+    t_evap_grid, t_cond_grid = np.meshgrid(t_evap, t_cond)
+    return fit_EN12900_points(
+        t_evap_grid.flatten(),
+        t_cond_grid.flatten(),
+        np.asarray(data, dtype=float).flatten()
+    )
+
+
+def generate_eta_polys_from_points(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
     """Generate polynomials for calculation of isentropic and volumetric
     efficiency of a compressor
 
@@ -1060,6 +1101,10 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
         List of polynomial coefficients for power
     cooling_poly : list
         List of polynomial coefficients for cooling
+    t_evap : np.array
+        1-d array of evaporation temperatures
+    t_cond : np.array
+        1-d array of condensation temperatures
     fluid : str
         Name of fluid
     reference_state : dict
@@ -1078,37 +1123,74 @@ def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_po
         Polynomial coefficients for isentropic and volumetric efficiency as
         function of evaporation and condensation temperature
     """
-    columns = t_evap
-    index = t_cond
-
-    t_evap, t_cond = np.meshgrid(t_evap, t_cond)
-    t_evap = t_evap.flatten() + 273.15
-    t_cond = t_cond.flatten() + 273.15
+    x = np.asarray(t_evap, dtype=float).flatten()
+    y = np.asarray(t_cond, dtype=float).flatten()
     etas = _calc_etas_from_polynome(
         fluid,
-        t_evap,
-        t_cond,
+        x + 273.15,
+        y + 273.15,
         reference_state=reference_state,
         polynomes={"power": power_poly, "cooling": cooling_poly}
     )
-    for k in etas:
-        etas[k] = etas[k].reshape(len(index), len(columns))
-
-    eta_s_poly = fit_EN12900(columns, index, etas["eta_s"])
-    eta_vol_poly = fit_EN12900(columns, index, etas["eta_vol"])
+    eta_s_poly = fit_EN12900_points(x, y, etas["eta_s"])
+    eta_vol_poly = fit_EN12900_points(x, y, etas["eta_vol"])
     return eta_s_poly, eta_vol_poly
+
+
+def generate_eta_polys_from_power_and_cooling_polys(power_poly: list, cooling_poly: list, t_evap: np.array, t_cond: np.array, fluid: str, reference_state: dict) -> tuple:
+    """Generate polynomials for calculation of isentropic and volumetric
+    efficiency of a compressor
+
+    Parameters
+    ----------
+    power_poly : list
+        List of polynomial coefficients for power
+    cooling_poly : list
+        List of polynomial coefficients for cooling
+    t_evap : np.array
+        1-d array of evaporation temperatures spanning the grid
+    t_cond : np.array
+        1-d array of condensation temperatures spanning the grid
+    fluid : str
+        Name of fluid
+    reference_state : dict
+        Dictionary with reference state information:
+
+        - :code:`T_sh`: superheating delta T in K
+        - :code:`T_sc`: subcooling delta T in K
+        - :code:`frequency_poly`: frequency in Hz at which the polynomial data applies
+        - :code:`swept_volume`: swept volume per revolution in m³ (preferred), or
+        - :code:`displacement` in m³/h plus :code:`frequency_displacement` in Hz,
+          or (deprecated) :code:`rpm_displacement` in 1/min
+
+    Returns
+    -------
+    tuple
+        Polynomial coefficients for isentropic and volumetric efficiency as
+        function of evaporation and condensation temperature
+    """
+    t_evap_grid, t_cond_grid = np.meshgrid(t_evap, t_cond)
+    return generate_eta_polys_from_points(
+        power_poly, cooling_poly, t_evap_grid.flatten(), t_cond_grid.flatten(),
+        fluid, reference_state
+    )
 
 
 def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_state: dict) -> tuple:
     """Generate polynomials for calculation of isentropic and volumetric
     efficiency of a compressor
 
+    The dataframes are transposed into points. If data are missing
+    (:code:`nan`) they are exluded from the fit.
+
     Parameters
     ----------
     df_power : pd.DataFrame
-        Power consumption data
+        Power consumption data with condensation temperature as index and
+        evaporation temperature as columns. Missing entries, where the
+        datasheet does not provide a value need to be passed as :code:`nan`
     df_cooling : pd.DataFrame
-        Cooling data
+        Cooling data, :code:`nan` values are handled as for :code:`df_power`.
     fluid : str
         Name of fluid
     reference_state : dict
@@ -1136,11 +1218,19 @@ def generate_eta_polys_from_data(df_power, df_cooling, fluid: str, reference_sta
             "temperature)."
         )
         raise ValueError(msg)
-    t_evap = df_power.columns
-    t_cond = df_power.index
-    power_poly = fit_EN12900(t_evap, t_cond, df_power.values)
-    cooling_poly = fit_EN12900(t_evap, t_cond, df_cooling.values)
 
-    return generate_eta_polys_from_power_and_cooling_polys(
-        power_poly, cooling_poly, df_power.columns, df_power.index, fluid, reference_state
+    t_evap_grid, t_cond_grid = np.meshgrid(df_power.columns, df_power.index)
+    valid = ~(df_power.isna() | df_cooling.isna()).values.flatten()
+    t_evap = t_evap_grid.flatten()[valid]
+    t_cond = t_cond_grid.flatten()[valid]
+
+    power_poly = fit_EN12900_points(
+        t_evap, t_cond, df_power.values.flatten()[valid]
+    )
+    cooling_poly = fit_EN12900_points(
+        t_evap, t_cond, df_cooling.values.flatten()[valid]
+    )
+
+    return generate_eta_polys_from_points(
+        power_poly, cooling_poly, t_evap, t_cond, fluid, reference_state
     )

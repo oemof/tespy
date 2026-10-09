@@ -32,7 +32,7 @@ API Changes
 
 New Features
 ############
-- :py:meth:`~tespy.tools.fluid_properties.wrappers.FluidPropertyWrapper.phase_ph`
+- :py:meth:`~tespy.tools.fluid_properties.wrappers.base.FluidPropertyWrapper.phase_ph`
   is now implemented across all fluid property wrappers, returning a consistent
   set of string identifiers: :code:`"l"` (liquid), :code:`"g"` (gas),
   :code:`"tp"` (two-phase), and :code:`"sc"` (supercritical).
@@ -78,7 +78,7 @@ Bug Fixes
   in the polynomial generation step. For pure fluids there is no change in
   behavior
   (`PR #1004 <https://github.com/oemof/tespy/pull/1004>`__).
-- Fixed :py:meth:`~tespy.tools.fluid_properties.wrappers.CoolPropWrapper.phase_ph`
+- Fixed :py:meth:`~tespy.tools.fluid_properties.wrappers.coolprop.CoolPropWrapper.phase_ph`
   for mixture-type backends (e.g. REFPROP zeotropic mixtures) where
   :code:`calc_phase` is not implemented. Phase is now determined by comparing
   enthalpy against the bubble and dew enthalpies at the given pressure

@@ -1,10 +1,10 @@
 # -*- coding: utf-8
 
-"""Module for testing components of type merge.
+"""Module for testing components of type separator.
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_components/test_merge.py
+tests/test_components/test_separator.py
 SPDX-License-Identifier: MIT
 """
 
@@ -58,3 +58,19 @@ class TestSeparator:
         self.nwk.assert_convergence()
         assert c2.T.val_SI == approx(c1.T.val_SI, abs=1e-3)
         assert c2.T.val == approx(102.007, abs=1e-3)
+
+    def test_outlet_composition_omits_fluid(self):
+        """An outlet composition that sums to one without naming every fluid
+        of the branch must work: the presolver fixes the omitted fluid at
+        zero and removes it from the fluid vector of that outlet"""
+        c1, c2, c3 = self.nwk.get_conn(["1", "2", "3"])
+        c1.set_attr(fluid={"N2": 0.7, "O2": 0.2, "Ar": 0.1}, m=10, p=1, T=20)
+        c2.set_attr(fluid={"N2": 0.5, "O2": 0.5}, m=1)
+
+        self.nwk.solve("design")
+        self.nwk.assert_convergence()
+        assert c2.fluid.val.get("Ar", 0) == 0
+        assert c3.m.val_SI == approx(9)
+        assert c3.fluid.val["N2"] == approx(6.5 / 9)
+        assert c3.fluid.val["O2"] == approx(1.5 / 9)
+        assert c3.fluid.val["Ar"] == approx(1 / 9)

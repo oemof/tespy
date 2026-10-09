@@ -18,7 +18,6 @@ from tespy.components.component import component_registry
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.fluid_properties import T_mix_ph
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 
 
@@ -109,20 +108,7 @@ class DisplacementMachine(Component):
         # with the enthalpy edge
         i, o = self.inl[0], self.outl[0]
         try:
-            h_in = i.h.val_SI
-            # 0 is the placeholder of unset enthalpies during the starting
-            # value assignment, evaluating the state there is meaningless
-            if np.isnan(h_in) or h_in == 0:
-                state = self.initial_state('in1')
-                result = i._h_for_state(state) if state is not None else None
-                if result is None:
-                    # mixtures and undeclared inlets: ambient temperature
-                    # as representative state
-                    h_in = h_mix_pT(
-                        i.p.val_SI, 293.15, i.fluid_data, i.mixing_rule
-                    )
-                else:
-                    h_in = result[0]
+            h_in = self._initial_port_enthalpy(i, 'in1')
             p_out = o.p.val_SI
             if np.isnan(p_out) or p_out <= 0:
                 p_out = i.p.val_SI * self._initial_pr_guess
@@ -146,24 +132,12 @@ class DisplacementMachine(Component):
 
     def _initial_dh_guess(self):
         """Enthalpy change of an isentropic state change to the outlet
-        pressure with a generic efficiency, evaluated at the inlet state or
-        the inlet anchor of the component class."""
+        pressure with a generic efficiency, evaluated at the inlet state,
+        the inlet's temperature hint or the inlet anchor of the component
+        class."""
         i, o = self.inl[0], self.outl[0]
         try:
-            h_in = i.h.val_SI
-            # 0 is the placeholder of unset enthalpies during the starting
-            # value assignment, evaluating the state there is meaningless
-            if np.isnan(h_in) or h_in == 0:
-                state = self.initial_state('in1')
-                result = i._h_for_state(state) if state is not None else None
-                if result is None:
-                    # mixtures and undeclared inlets: ambient temperature
-                    # as representative state
-                    h_in = h_mix_pT(
-                        i.p.val_SI, 293.15, i.fluid_data, i.mixing_rule
-                    )
-                else:
-                    h_in = result[0]
+            h_in = self._initial_port_enthalpy(i, 'in1')
             p_out = o.p.val_SI
             if np.isnan(p_out) or p_out <= 0:
                 p_out = i.p.val_SI * self._initial_pr_guess

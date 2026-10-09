@@ -36,6 +36,7 @@ QUANTITY_EXEMPTIONS = {
     "MovingBoundaryHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "re_exp_r", "re_exp_sf", "re_exp_hot", "re_exp_cold"},
     "SimpleHeatExchanger": {"zeta", "zeta_d4", "ks_HW"},
     "ParabolicTrough": {"zeta", "zeta_d4", "c_1", "c_2", "iam_1", "iam_2", "ks_HW"},
+    "NTUHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4", "NTU"},
     "ParallelFlowHeatExchanger": {"zeta1", "zeta1_d4", "zeta2", "zeta2_d4"},
     "SolarCollector": {"zeta", "zeta_d4", "lkf_lin", "lkf_quad", "ks_HW"},
     "Pipe": {"zeta", "zeta_d4", "ks_HW"},

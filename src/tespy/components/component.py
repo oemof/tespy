@@ -18,18 +18,23 @@ from collections import deque
 
 import numpy as np
 import pandas as pd
+from tabulate import tabulate
 
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
+from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.global_vars import ERR
+from tespy.tools.data_containers import _display_repr
+from tespy.tools.data_containers import _format_value
+from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.global_vars import LIMIT_RTOL
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import _get_dependents
@@ -165,13 +170,6 @@ class Component:
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
-        self.num_i = len(self.inlets())
-        self.num_o = len(self.outlets())
-        self.num_power_i = len(self.powerinlets())
-        self.num_power_o = len(self.poweroutlets())
-        self.num_heat_i = len(self.heatinlets())
-        self.num_heat_o = len(self.heatoutlets())
-
     def set_attr(self, **kwargs):
         r"""
         Set, reset or unset attributes of a component for provided arguments.
@@ -269,6 +267,48 @@ class Component:
         if key == 'design_path' and value is None:
             self._local_connection_design_state = {}
 
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return f"{type(self).__name__}({self.label!r})"
+
+    def _repr_extensive(self):
+        title = f"{type(self).__name__}: {self.label}"
+        rows = []
+        for key, data in self.parameters.items():
+            if isinstance(data, dc_cp):
+                if not data.is_set and np.isnan(data.val):
+                    continue
+                spec = "var" if data.is_var else ("set" if data.is_set else "")
+                rows.append([
+                    key,
+                    _format_value(data.val),
+                    data._display_unit(),
+                    f"{data.val_SI:.4e}",
+                    spec
+                ])
+            elif isinstance(data, dc_cap):
+                val = data.val if data.val is not None else data.val_SI
+                if val is not None:
+                    rows.append([key, "[...]", data._display_unit(), "", ""])
+            elif isinstance(data, (dc_cc, dc_cm)):
+                if data.is_set:
+                    rows.append([key, "characteristic", "", "", "set"])
+            elif isinstance(data, (dc_gcp, dc_gcc)):
+                if data.is_set:
+                    rows.append([key, "parameter group", "", "", "set"])
+        if not rows:
+            return f"{title}\nno specifications or results"
+        table = tabulate(
+            rows, headers=["parameter", "value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left", "right", "left")
+        )
+        return "\n".join([title, "", table])
+
     def get_attr(self, key):
         r"""
         Get the value of a component's attribute.
@@ -306,6 +346,39 @@ class Component:
             "design", "offdesign", "local_design", "local_offdesign",
             "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
+
+    def _save_specifications(self):
+        specs = {}
+        for key, container in self.parameters.items():
+            if not container.is_set:
+                continue
+            if isinstance(container, dc_cp):
+                specs[key] = {
+                    "val": container.val,
+                    "unit": container.unit,
+                    "is_set": True,
+                    "is_var": container.is_var
+                }
+            elif isinstance(container, (dc_cc, dc_cm)):
+                specs[key] = {
+                    k: v for k, v in container._serialize().items()
+                    if k != "char_func"
+                }
+            elif isinstance(container, dc_gcp):
+                specs[key] = {"is_set": True}
+            else:
+                specs[key] = {"val": container.val, "is_set": True}
+        return specs
+
+    def _clear_specifications(self):
+        for container in self.parameters.values():
+            container.is_set = False
+            if isinstance(container, dc_cp):
+                container.is_var = False
+
+    def _restore_specifications(self, data):
+        for key, param_data in data.items():
+            self.get_attr(key).set_attr(**param_data)
 
     def _get_result_attributes(self):
         return [
@@ -671,6 +744,30 @@ class Component:
         return []
 
     @property
+    def num_i(self):
+        return len(self.inlets())
+
+    @property
+    def num_o(self):
+        return len(self.outlets())
+
+    @property
+    def num_power_i(self):
+        return len(self.powerinlets())
+
+    @property
+    def num_power_o(self):
+        return len(self.poweroutlets())
+
+    @property
+    def num_heat_i(self):
+        return len(self.heatinlets())
+
+    @property
+    def num_heat_o(self):
+        return len(self.heatoutlets())
+
+    @property
     def all_connections(self):
         return self.all_inlets + self.all_outlets
 
@@ -818,6 +915,43 @@ class Component:
         """
         return None
 
+    def _initial_port_enthalpy(self, connection, port):
+        r"""
+        Enthalpy at a port for the initial state based guesses
+
+        Returns in order:
+
+        Either the connection's enthalpy when it already holds a value, the
+        enthalpy at the connection's temperature hint, the enthalpy of the
+        declared port state or the ambient temperature as fallback.
+        """
+        h = connection.h.val_SI
+        # 0 is the placeholder of unset enthalpies during the starting value
+        # assignment
+        if not np.isnan(h) and h != 0:
+            return h
+        T_hint = connection._temperature_hint()
+        if T_hint is not None:
+            try:
+                return h_mix_pT(
+                    connection.p.val_SI, T_hint, connection.fluid_data,
+                    connection.mixing_rule
+                )
+            except ValueError:
+                pass
+        state = self.initial_state(port)
+        if state is not None:
+            result = connection._h_for_state(state)
+            if result is not None:
+                return result[0]
+
+        # mixtures and undeclared ports: ambient temperature as
+        # representative state
+        return h_mix_pT(
+            connection.p.val_SI, 293.15, connection.fluid_data,
+            connection.mixing_rule
+        )
+
     def _initial_temperature_edges(self):
         r"""
         Approximate temperature relations between the ports.
@@ -855,6 +989,12 @@ class Component:
                 (self.inl[0].p, self.outl[0].p, 0.99, 0.0),
                 (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
             ]
+        return []
+
+    def _initial_flow_relations(self):
+        r"""
+        Approximate linear relations between the flow variables.
+        """
         return []
 
     def _separate_flat_enthalpy_starts(self, seeded):
@@ -1008,6 +1148,53 @@ class Component:
         for k in _topological_sort(calc_items):
             dc = calc_items[k]
             dc.val_SI = dc.calc(**dc.calc_params)
+
+    def calc_results(self, units):
+        r"""Postprocess this component's parameters.
+
+        Calculates the parameter results, checks the value limits and - for
+        fixed input parameters - compares the calculated result against the
+        originally specified value.
+
+        Returns
+        -------
+        tuple
+            Two booleans: no parameter limits violated, all fixed input
+            parameters match their calculated results.
+        """
+        self.calc_parameters()
+        _converged = self.check_parameter_bounds()
+        _specifications_matched = True
+        for key, value in self.parameters.items():
+            if isinstance(value, dc_cap):
+                value.set_val_from_SI(units)
+            elif isinstance(value, dc_prop):
+                if value.is_set and not value.is_var:
+                    if self.bypass:
+                        continue
+                    result = value._get_val_from_SI(units)
+                    if not np.isclose(result.magnitude, value.val, 1e-3, 1e-3):
+                        _specifications_matched = False
+                        msg = (
+                            "The simulation converged but the calculated "
+                            f"result {result} for the fixed input parameter "
+                            f"{key} is not equal to the originally specified "
+                            f"value: {value.val}. Usually, this can happen, "
+                            "when a method internally manipulates the "
+                            "associated equation during iteration in order to "
+                            "allow progress in situations, when the equation "
+                            "is otherwise not well defined for the current"
+                            "values of the variables, e.g. in case a negative "
+                            "root would need to be evaluated.  Often, this "
+                            "can happen during the first iterations and then "
+                            "will resolve itself as convergence progresses. "
+                            "In this case it did not, meaning convergence was "
+                            "not actually achieved."
+                        )
+                        logger.warning(msg)
+                else:
+                    value.set_val_from_SI(units)
+        return _converged, _specifications_matched
 
     def check_parameter_bounds(self):
         r"""Check parameter value limits.

@@ -1,7 +1,8 @@
 .. _basics_label:
 
+######################
 Introductory Tutorials
-~~~~~~~~~~~~~~~~~~~~~~
+######################
 
 In this section we will introduce how to create your first simple TESPy models.
 In the intro part you learn about the modeling concept of TESPy. The other
@@ -12,8 +13,8 @@ If you want to learn more about the details of the different parts of the
 software, you should also have a look at this
 :ref:`documentation section <building_blocks_label>` after the first steps. If
 you have any questions please reach out to the
-:ref:`TESPy community <community_label>`. There are regular online
-meetings as well as a discussion forum on GitHub.
+:ref:`TESPy community <community_label>`. There are regular online meetings as
+well as a discussion forum on GitHub.
 
 
 .. grid:: 1 2 3 3

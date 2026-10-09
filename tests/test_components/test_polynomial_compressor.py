@@ -19,7 +19,9 @@ from tespy.components import Sink
 from tespy.components import Source
 from tespy.components.displacementmachinery.polynomial_compressor import calc_EN12900
 from tespy.components.displacementmachinery.polynomial_compressor import fit_EN12900
+from tespy.components.displacementmachinery.polynomial_compressor import fit_EN12900_points
 from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_data
+from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_points
 from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
 from tespy.components.displacementmachinery.polynomial_compressor import swept_volume_from_displacement
 from tespy.connections import Connection
@@ -113,6 +115,91 @@ def test_integration_eta_polys(power_data, cooling_data, power_poly, cooling_pol
 
     np.testing.assert_allclose(eta_s_poly, eta_s_poly2)
     np.testing.assert_allclose(eta_vol_poly, eta_vol_poly2)
+
+
+def test_fit_en12900_with_nan(power_data, power_poly):
+    # a fit on data with nan holes must reproduce the remaining points and
+    # stay close to the full fit inside the data region
+    power_nan = power_data.copy()
+    power_nan.iloc[2, 4] = np.nan
+    power_nan.iloc[2, 5] = np.nan
+    poly_nan = fit_EN12900(power_nan.columns, power_nan.index, power_nan.values)
+
+    t_evap, t_cond = np.meshgrid(power_data.columns, power_data.index)
+    valid = ~np.isnan(power_nan.values.flatten())
+    np.testing.assert_allclose(
+        power_nan.values.flatten()[valid],
+        calc_EN12900(poly_nan, t_evap.flatten(), t_cond.flatten())[valid],
+        rtol=1e-3
+    )
+
+
+def test_generate_eta_polys_with_nan(power_data, cooling_data, reference_state):
+    fluid = "R134a"
+    power_nan = power_data.copy()
+    cooling_nan = cooling_data.copy()
+    power_nan.iloc[2, 5] = np.nan
+    cooling_nan.iloc[2, 5] = np.nan
+    eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
+        power_nan, cooling_nan, fluid, reference_state
+    )
+    eta_s_full, eta_vol_full = generate_eta_polys_from_data(
+        power_data, cooling_data, fluid, reference_state
+    )
+    # both fits must agree closely at a point backed by data in both cases
+    np.testing.assert_allclose(
+        calc_EN12900(eta_s_poly, 0, 40), calc_EN12900(eta_s_full, 0, 40),
+        rtol=1e-2
+    )
+    np.testing.assert_allclose(
+        calc_EN12900(eta_vol_poly, 0, 40), calc_EN12900(eta_vol_full, 0, 40),
+        rtol=1e-2
+    )
+
+
+def test_fit_en12900_warning_on_poor_fit(power_data, caplog):
+    import logging
+
+    # an outlier the cubic polynomial cannot represent must trigger the
+    # fit quality warning, and the warning must name the location with
+    # correctly labeled temperatures (t_evap from columns, t_cond from index)
+    poor = power_data.copy()
+    poor.iloc[0, 0] *= 1.5
+    with caplog.at_level(logging.WARNING):
+        fit_EN12900(poor.columns, poor.index, poor.values)
+
+    assert len(caplog.records) == 1
+    message = caplog.records[0].message
+    assert "maximum relative deviation" in message
+
+    t_evap_reported = float(message.split("T_evap=")[1].split(" ")[0])
+    t_cond_reported = float(message.split("T_cond=")[1].split(" ")[0])
+    assert t_evap_reported in poor.columns
+    assert t_cond_reported in poor.index
+
+
+def test_fit_en12900_points(power_data, power_poly):
+    # the points based fit on the flattened grid must match the grid fit
+    t_evap, t_cond = np.meshgrid(power_data.columns, power_data.index)
+    poly_points = fit_EN12900_points(
+        t_evap.flatten(), t_cond.flatten(), power_data.values.flatten()
+    )
+    np.testing.assert_allclose(poly_points, power_poly)
+
+
+def test_generate_eta_polys_from_points(power_data, power_poly, cooling_poly, reference_state):
+    fluid = "R134a"
+    t_evap, t_cond = np.meshgrid(power_data.columns, power_data.index)
+    eta_s_points, eta_vol_points = generate_eta_polys_from_points(
+        power_poly, cooling_poly, t_evap.flatten(), t_cond.flatten(),
+        fluid, reference_state
+    )
+    eta_s_grid, eta_vol_grid = generate_eta_polys_from_power_and_cooling_polys(
+        power_poly, cooling_poly, power_data.columns, power_data.index,
+        fluid, reference_state
+    )
+    np.testing.assert_allclose(eta_s_points, eta_s_grid)
+    np.testing.assert_allclose(eta_vol_points, eta_vol_grid)
 
 
 class TestPolynomialCompressor:
@@ -380,4 +467,45 @@ class TestPolynomialCompressor:
         assert (
             abs((instance.P.val - power_data.loc[50, 0.0]))
             / power_data.loc[50, 0.0] <= 1e-2
+        )
+
+    def test_specifications_round_trip(self, power_data, cooling_data, reference_state):
+        """Restoring saved specifications recovers polynomials and reference state."""
+        instance = PolynomialCompressor('compressor')
+        self.setup_network(instance)
+
+        fl = {'R134a': 1}
+        self.c1.set_attr(fluid=fl, td_dew=reference_state["T_sh"], T=20)
+        self.c2.set_attr(T_dew=50)
+        eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
+            power_data, cooling_data, "R134a", reference_state
+        )
+        instance.set_attr(
+            eta_vol_poly=eta_vol_poly, frequency=reference_state["frequency_poly"],
+            eta_s_poly=eta_s_poly, dissipation_ratio=0,
+            reference_state=reference_state
+        )
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        results = (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
+        specs = self.nw.save_specifications()
+
+        # in-place changes of mutable specification values must not leak into
+        # the saved snapshot
+        original_displacement = reference_state["displacement"]
+        instance.reference_state.val["displacement"] = original_displacement * 0.9
+        instance.set_attr(eta_s_poly=eta_s_poly * 0.95, frequency=40.0)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert results != pytest.approx(
+            (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
+        )
+
+        self.nw.restore_specifications(specs)
+        assert instance.reference_state.val["displacement"] == original_displacement
+        np.testing.assert_allclose(instance.eta_s_poly.val, eta_s_poly)
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert results == pytest.approx(
+            (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
         )

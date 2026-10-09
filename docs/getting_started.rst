@@ -1,8 +1,8 @@
 .. _getting_started_label:
 
-###############
-Getting started
-###############
+####################
+About & Installation
+####################
 
 .. grid:: 1 3 3 3
     :gutter: 1
@@ -31,17 +31,18 @@ Getting started
 
         Get the installation instructions for your favorite OS
 
-    .. grid-item-card::  Introductory Tutorials
-        :link: basics_label
+    .. grid-item-card::  Development roadmap
+        :link: roadmap_label
         :link-type: ref
 
-        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials.svg
+        .. image:: /_static/images/thumbnails/getting_started/roadmap.svg
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/getting_started/basic_tutorials_darkmode.svg
+        .. image:: /_static/images/thumbnails/getting_started/roadmap_darkmode.svg
             :class: only-dark
 
-        Build your first models with tespy
+        See where the development of tespy is heading
+
 
 ..  toctree::
     :maxdepth: 1
@@ -49,3 +50,4 @@ Getting started
 
     getting_started/introduction
     getting_started/installation
+    getting_started/roadmap

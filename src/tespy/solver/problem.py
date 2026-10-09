@@ -240,6 +240,9 @@ class Problem:
         self._equation_set_lookup = {}
         self._equation_set_origin = {}
         self._presolved_equations = []
+        self._presolve_log = []
+        self._presolve_logged_refs = set()
+        self._presolve_round = 0
         self._reference_container_lookup = {}
 
         num_vars = self._prepare_variables()
@@ -514,8 +517,21 @@ class Problem:
         rounds = 0
         while to_check:
             rounds += 1
+            self._presolve_round = rounds
             for c in to_check:
+                # cleared here, not in _presolve: custom connection classes are
+                # not required to know about the log
+                c._presolve_determinations = []
                 self._presolved_equations += c._presolve()
+                for determination in c._presolve_determinations:
+                    self._presolve_log.append({
+                        "round": rounds,
+                        "kind": "combination",
+                        "object": c.label,
+                        "property": determination["property"],
+                        "via": determination["via"],
+                        "requires": determination["requires"],
+                    })
             self._presolve_linear_dependents()
 
             newly_known = []
@@ -707,14 +723,136 @@ class Problem:
                     reference_data["property"]
                 )._reference_container
                 reference_container.is_var = False
+                if id(reference_container) not in self._presolve_logged_refs:
+                    self._presolve_logged_refs.add(id(reference_container))
+                    cause_var = next(
+                        var for var, container in zip(
+                            linear_dependents["variables"], all_containers
+                        ) if not container._potential_var
+                    )
+                    self._record_group_determination(
+                        linear_dependents, cause_var
+                    )
+
+    def _record_group_determination(self, linear_dependents, cause_var):
+        """Log that an affine group left the variable space.
+
+        The record names the member whose specification or presolved value
+        determined the group and the variables the group represents. A debug
+        message prints it to the solver log.
+
+        Parameters
+        ----------
+        linear_dependents : dict
+            Affine group entry from :code:`self._variable_dependencies`.
+
+        cause_var : int
+            Structural column of the member variable that determined the group.
+        """
+        cause = self._variable_lookup[cause_var]
+        cause_container = cause["object"].get_attr(cause["property"])
+        represents = [
+            (
+                self._variable_lookup[var]["object"].label,
+                self._variable_lookup[var]["property"],
+            )
+            for var in linear_dependents["variables"]
+        ]
+        kind = "specification" if cause_container.is_set else "derived"
+        self._presolve_log.append({
+            "round": self._presolve_round,
+            "kind": kind,
+            "object": cause["object"].label,
+            "property": cause["property"],
+            "represents": represents,
+        })
+        members = ", ".join(f"{lbl} ({prop})" for lbl, prop in represents)
+        source = kind if kind == "specification" else "presolved value"
+        msg = (
+            f"Presolved {cause['property']} of {members} through the "
+            f"{source} at {cause['object'].label}."
+        )
+        logger.debug(msg)
+
+    def get_presolve_log(self) -> list:
+        """Get the presolve determinations in order of occurrence.
+
+        Every record names
+
+        - :code:`round`
+        - :code:`kind`:
+
+          - :code:`specification`: a user specification determines its affine
+            group,
+          - :code:`derived`: a presolved value does
+          - :code:`combination`: a connection determines a property from
+            specified property combinations),
+
+        - :code:`object`
+        - :code:`property`
+        - :code:`origins`: the original specifications as (label, parameter)
+          pairs that enabled the determination.
+
+        Group records additionally list the member variables :code:`represents`
+
+        Returns
+        -------
+        list
+            List of determination records.
+        """
+        combination = {}
+        group_of = {}
+        for record in self._presolve_log:
+            if record["kind"] == "combination":
+                combination[(record["object"], record["property"])] = record
+            else:
+                for member in record["represents"]:
+                    group_of[member] = record
+
+        def combination_origins(record, seen):
+            result = {
+                (record["object"], spec) for spec in record["via"]
+            }
+            for required in record["requires"]:
+                result |= member_origins(
+                    (record["object"], required), seen
+                )
+            return result
+
+        def member_origins(member, seen):
+            if member in seen:
+                return set()
+            seen = seen | {member}
+            group = group_of.get(member)
+            if group is None:
+                return {member}
+            cause = (group["object"], group["property"])
+            if group["kind"] == "specification":
+                return {cause}
+            if cause in combination:
+                return combination_origins(combination[cause], seen)
+            return {cause}
+
+        resolved = []
+        for record in self._presolve_log:
+            entry = dict(record)
+            if record["kind"] == "combination":
+                origins = combination_origins(record, set())
+            else:
+                origins = member_origins(
+                    (record["object"], record["property"]), set()
+                )
+            entry["origins"] = sorted(origins)
+            resolved.append(entry)
+        return resolved
 
     def _prepare_for_solver(self):
         """Assign the solver variable space and collect the equations.
 
-        Every reference that is still a variable after presolving
-        receives a solver column, the network parts contribute their
-        iterated equations and incidence, and the solver incidence is
-        attached to the structure graph.
+        Every reference that is still a variable after presolving receives a
+        solver column, the network parts contribute their iterated equations
+        and incidence, and the solver incidence is attached to the structure
+        graph.
         """
         for variable in self._variable_dependencies:
             reference = self._variable_lookup[variable["reference"]]
@@ -745,10 +883,9 @@ class Problem:
         objects.
 
         Every object numbers its remaining equations against the global
-        counter, skipping the equation sets consumed by the affine
-        elimination and the presolving
-        (:code:`self._presolved_equations`). The incidence rows are
-        assembled from the declared scalar and vector dependents.
+        counter, skipping the equation sets consumed by the affine elimination
+        and the presolving (:code:`self._presolved_equations`). The incidence
+        rows are assembled from the declared scalar and vector dependents.
 
         Parameters
         ----------
@@ -800,15 +937,14 @@ class Problem:
     def _assign_variable_space(self, reference, represents):
         """Register a variable reference container in the solver space.
 
-        The container receives its jacobian column and the entry records
-        which structural variables the column represents.
+        The container receives its jacobian column and the entry records which
+        structural variables the column represents.
 
         Parameters
         ----------
         reference : dict
-            Entry of :code:`self._variable_lookup` for the group's
-            reference variable, holding the owning object and the
-            property name.
+            Entry of :code:`self._variable_lookup` for the group's reference
+            variable, holding the owning object and the property name.
 
         represents : list
             Structural variable numbers the solver column represents.
@@ -827,9 +963,9 @@ class Problem:
     def unload_variables(self):
         """Detach all containers from their reference containers.
 
-        Detaching writes the final value (through factor and offset)
-        back into every member container, so the results remain after
-        the shared references are released.
+        Detaching writes the final value (through factor and offset) back into
+        every member container, so the results remain after the shared
+        references are released.
         """
         for dependents in self._variable_dependencies:
             for variable_num in dependents["variables"]:
@@ -840,16 +976,19 @@ class Problem:
     def starting_temperature_field(self):
         """Reconcile a temperature per connection for the starting values.
 
-        The components provide approximate temperature relations between
-        their ports, including the terminal temperature differences of
-        heat exchangers - so known temperature levels reach coupled
-        circuits the enthalpy relations cannot connect. The known
-        temperatures - specifications, values derived from saturation
-        specifications and converted fixed states - anchor a least squares
-        problem per connected component of that graph; the temperature
-        hints of the component state expectations act as soft priors.
-        Returns a dict mapping connections to reconciled temperatures,
-        including the known ones.
+        The components provide approximate temperature relations between their
+        ports, including the terminal temperature differences of heat
+        exchangers - so known temperature levels reach coupled circuits the
+        enthalpy relations cannot connect. The known temperatures -
+        specifications, values derived from saturation specifications and
+        converted fixed states - anchor a least squares problem per connected
+        component of that graph; the temperature hints of the component state
+        expectations act as soft priors.
+
+        Returns
+        -------
+        dict
+            Map of connections to reconciled temperatures.
         """
         edges = []
         neighbors = {}
@@ -1112,10 +1251,10 @@ class Problem:
             return 0
 
         column_set = set(columns)
-        # the frozen property field only reconciles pressures and
-        # enthalpies - equations depending on a guessed fluid composition
-        # (combustion stoichiometry and energy balances) would inject
-        # arbitrary flow information and are left to the solver
+        # the frozen property field only reconciles pressures and enthalpies
+        # equations depending on a guessed fluid composition (e.g. combustion
+        # stoichiometry and energy balances) would inject arbitrary flow
+        # information and are left to the solver
         fluid_columns = set()
         for data in self.variables_dict.values():
             if data["variable"] == "fluid":
@@ -1125,46 +1264,84 @@ class Problem:
             if not column_set.isdisjoint(cols)
             and fluid_columns.isdisjoint(cols)
         ]
-        if not rows:
+        # approximate relations between the flows complement the retained rows
+        # where the physical relation cannot enter the presolve, e.g. the air
+        # to fuel proportion of combustion components. Without them the least
+        # squares would pick an arbitrary split of the respective total mass
+        # balance. They apply even when no physical row was retained at all,
+        # e.g. all of them consumed by the structural presolve.
+        values = np.array([
+            self.variables_dict[col]["obj"]._val_SI for col in columns
+        ])
+        col_index = {col: idx for idx, col in enumerate(columns)}
+        relation_rows = []
+        relation_rhs = []
+        for cp in self.network.comps["object"]:
+            for relation in cp._initial_flow_relations():
+                row = np.zeros(len(columns))
+                rhs_value = 0.0
+                for container, coefficient in relation.items():
+                    reference = container._reference_container
+                    if reference is None:
+                        reference = container
+                        factor, offset = 1.0, 0.0
+                    else:
+                        factor = container._factor
+                        offset = container._offset
+                    rhs_value -= coefficient * offset
+                    if reference.is_var and reference.J_col in col_index:
+                        row[col_index[reference.J_col]] += coefficient * factor
+                    else:
+                        # presolved and seeded flows are known values
+                        rhs_value -= coefficient * factor * reference._val_SI
+                if np.any(row):
+                    relation_rows.append(row)
+                    relation_rhs.append(rhs_value - row @ values)
+
+        if not rows and not relation_rows:
             return 0
 
-        n = self.variable_counter
-        self.residual = np.zeros(n)
-        self.jacobian = np.zeros((n, n))
-        self.increment = np.ones(n)
-        self.residual_scales = np.ones(n)
-        self.variable_weights = np.ones(n)
-        self.increment_filter = np.absolute(self.increment) < ERR ** 2
-        try:
-            self._solve_equations()
-        except Exception as e:
-            # best effort pass: any failure of the evaluation on the
-            # guessed values - including badly parametrized equations,
-            # which raise their descriptive errors in the actual solve -
-            # just skips the flow presolve
-            msg = (
-                "Skipping the flow variable presolve, the equation "
-                f"evaluation on the starting values failed: {e}"
-            )
-            logger.debug(msg)
-            return 0
-        finally:
-            for obj in (
-                    self.network.comps["object"].tolist()
-                    + self.network.conns["object"].tolist()
-                ):
-                obj.it = 0
+        matrix = np.zeros((0, len(columns)))
+        rhs = np.zeros(0)
+        if rows:
+            n = self.variable_counter
+            self.residual = np.zeros(n)
+            self.jacobian = np.zeros((n, n))
+            self.increment = np.ones(n)
+            self.residual_scales = np.ones(n)
+            self.variable_weights = np.ones(n)
+            self.increment_filter = np.absolute(self.increment) < ERR ** 2
+            try:
+                self._solve_equations()
+            except Exception as e:
+                # best effort pass: any failure of the evaluation on the g
+                # guessed values skips the flow presolve
+                msg = (
+                    "Skipping the flow variable presolve, the equation "
+                    f"evaluation on the starting values failed: {e}"
+                )
+                logger.debug(msg)
+                return 0
+            finally:
+                for obj in (
+                        self.network.comps["object"].tolist()
+                        + self.network.conns["object"].tolist()
+                    ):
+                    obj.it = 0
 
-        rows = [
-            row for row in rows
-            if np.isfinite(self.residual[row])
-            and np.isfinite(self.jacobian[row, columns]).all()
-        ]
-        if not rows:
-            return 0
+            rows = [
+                row for row in rows
+                if np.isfinite(self.residual[row])
+                and np.isfinite(self.jacobian[row, columns]).all()
+            ]
+            matrix = self.jacobian[np.ix_(rows, columns)]
+            rhs = -self.residual[rows]
 
-        matrix = self.jacobian[np.ix_(rows, columns)]
-        rhs = -self.residual[rows]
+        num_physical_rows = matrix.shape[0]
+        if relation_rows:
+            matrix = np.vstack([matrix] + relation_rows)
+            rhs = np.append(rhs, relation_rhs)
+
         # equilibrate the rows: energy balances live on a scale of watts,
         # mass balances on kilograms per second - without normalization
         # the least squares compromise would sacrifice the exact balances
@@ -1175,6 +1352,15 @@ class Problem:
             return 0
         matrix = matrix[keep] / norms[keep, None]
         rhs = rhs[keep] / norms[keep]
+
+        # after the row equilibration a relation would compromise equally with
+        # every physical row. The proportions are better information than the
+        # energy balances evaluated on the guessed property field, so they
+        # weigh in more heavily
+        relation_weight = 10.0
+        relation_rows = np.arange(len(keep))[keep] >= num_physical_rows
+        matrix[relation_rows] *= relation_weight
+        rhs[relation_rows] *= relation_weight
 
         delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
         if not np.isfinite(delta).all():

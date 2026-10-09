@@ -30,6 +30,68 @@ from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
 
+_LMTD_SMOOTHING_EPS = 0.001
+_LMTD_SMOOTHING_XI = 5.0
+
+
+def smoothed_lmtd(td_a, td_b):
+    r"""Calculate logarithmic mean temperature difference based on
+    :cite:`Quoilin2011`.
+
+    If both temperature differences are larger than the threshold
+    :math:`\epsilon` (:code:`_LMTD_SMOOTHING_EPS`) this returns the standard
+    lmtd. Otherwise linear extrapolation with the slope :math:`\xi`
+    (:code:`_LMTD_SMOOTHING_XI`) is applied. The value of lmtd is then
+    continuous even with :math:`\Delta T \leq 0`. :cite:`Quoilin2011` uses
+    a threshold of 1 K and a slope of 1e4. We choose much lower threshold for
+    achieving lower pinches and lower slope for lower stiffness.
+
+    .. math::
+
+        \Delta T_\text{log} = \begin{cases}
+        \frac{\Delta T_a - \Delta T_b}
+        {\ln \frac{\Delta T_a}{\Delta T_b}} &
+        \Delta T_a > \epsilon \land \Delta T_b > \epsilon \\
+        \frac{\Delta T_a - \epsilon}
+        {\ln \frac{\Delta T_a}{\epsilon} \cdot
+        \left(1 - \xi \left(\Delta T_b - \epsilon\right)\right)} &
+        \Delta T_a > \epsilon \land \Delta T_b \leq \epsilon \\
+        \frac{\Delta T_b - \epsilon}
+        {\ln \frac{\Delta T_b}{\epsilon} \cdot
+        \left(1 - \xi \left(\Delta T_a - \epsilon\right)\right)} &
+        \Delta T_b > \epsilon \land \Delta T_a \leq \epsilon \\
+        \frac{\epsilon}
+        {\left(1 - \xi \left(\Delta T_a - \epsilon\right)\right) \cdot
+        \left(1 - \xi \left(\Delta T_b - \epsilon\right)\right)} &
+        \text{else}
+        \end{cases}
+
+    Parameters
+    ----------
+    td_a : float
+        Temperature difference a.
+    td_b : float
+        Temperature difference b.
+
+    Returns
+    -------
+    float
+        Smoothed logarithmic mean temperature difference
+    """
+    eps = _LMTD_SMOOTHING_EPS
+    xi = _LMTD_SMOOTHING_XI
+    if td_a > eps and td_b > eps:
+        # round is required because tiny differences may cause inconsistencies
+        # due to rounding errors
+        if round(td_a, 6) == round(td_b, 6):
+            return (td_a + td_b) / 2
+        return (td_a - td_b) / math.log(td_a / td_b)
+    if td_a > eps:
+        return (td_a - eps) / (math.log(td_a / eps) * (1 - xi * (td_b - eps)))
+    if td_b > eps:
+        return (td_b - eps) / (math.log(td_b / eps) * (1 - xi * (td_a - eps)))
+    return eps / ((1 - xi * (td_a - eps)) * (1 - xi * (td_b - eps)))
+
 
 @component_registry
 class HeatExchanger(Component):
@@ -637,25 +699,24 @@ class HeatExchanger(Component):
     def _calc_eff_max(self):
         return max(self.eff_hot.val_SI, self.eff_cold.val_SI)
 
-    def calculate_td_log(self):
-        """Method to calculate logarithmic temperature difference during
-        iteration. It returns the minimal temperature difference value instead
-        of the logarithmic temperature difference if the minimal temperature
-        difference is negative during iteration to progress in convergence
+    def calculate_lmtd(self):
+        r"""Calculate the logarithmic mean temperature difference during
+        iteration, see :py:func:`smoothed_lmtd
+        <tespy.components.heat_exchangers.base.smoothed_lmtd>`.
         """
         T_i1 = self.inl[0].calc_T()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
+        return smoothed_lmtd(T_i1 - T_o2, T_o1 - T_i2)
 
-        ttd_u = T_i1 - T_o2
-        ttd_l = T_o1 - T_i2
-        min_ttd = min(ttd_u, ttd_l)
-        if min_ttd <= 0:
-            return min_ttd
-        if round(ttd_u, 6) == round(ttd_l, 6):
-            return ttd_l
-        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+    def calculate_td_log(self):
+        msg = (
+            "The method 'calculate_td_log' is deprecated. Use "
+            "'calculate_lmtd' instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        return self.calculate_lmtd()
 
     def UA_func(self):
         r"""
@@ -674,7 +735,7 @@ class HeatExchanger(Component):
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.UA.val_SI * self.calculate_td_log()
+        return Q + self.UA.val_SI * self.calculate_lmtd()
 
     def UA_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -754,7 +815,7 @@ class HeatExchanger(Component):
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.UA.design * fUA * self.calculate_td_log()
+        return Q + self.UA.design * fUA * self.calculate_lmtd()
 
     def UA_char_dependents(self):
         return [
@@ -1327,7 +1388,7 @@ class HeatExchanger(Component):
 
     @staticmethod
     def _calc_lmtd_per_section(T_steps_hot, T_steps_cold, postprocess=False):
-        """Calculate the logarithmic temperature difference values per section
+        r"""Calculate the logarithmic temperature difference values per section
         of heat exchanged.
 
         Parameters
@@ -1339,8 +1400,9 @@ class HeatExchanger(Component):
         postprocess : bool
             When :code:`True`, returns an array of :code:`nan` if any
             temperature difference is non-positive (used for result reporting).
-            When :code:`False` (default), clips negative differences to 1e-3 K
-            so the solver can continue iterating.
+            When :code:`False` (default), each section is evaluated with
+            :py:func:`smoothed_lmtd
+            <tespy.components.heat_exchangers.base.smoothed_lmtd>`.
 
         Returns
         -------
@@ -1353,14 +1415,18 @@ class HeatExchanger(Component):
             if len(truly_negative) and (truly_negative < -1e-6).any():
                 return np.ones(len(td_at_steps) - 1) * np.nan
             td_at_steps[td_at_steps <= 0] = abs(td_at_steps[td_at_steps <= 0])
-        td_at_steps[td_at_steps <= 0] = 1e-6
+            td_at_steps[td_at_steps <= 0] = 1e-6
+            return np.array([
+                (td_at_steps[i + 1] - td_at_steps[i])
+                / math.log(td_at_steps[i + 1] / td_at_steps[i])
+                # round is required because tiny differences may cause
+                # inconsistencies due to rounding errors
+                if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
+                else td_at_steps[i + 1]
+                for i in range(len(td_at_steps) - 1)
+            ])
         return np.array([
-            (td_at_steps[i + 1] - td_at_steps[i])
-            / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            # round is required because tiny differences may cause
-            # inconsistencies due to rounding errors
-            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
-            else td_at_steps[i + 1]
+            smoothed_lmtd(td_at_steps[i], td_at_steps[i + 1])
             for i in range(len(td_at_steps) - 1)
         ])
 

@@ -193,6 +193,7 @@ class HAConnection(Connection):
         pass
 
     def _presolve(self):
+        self._presolve_determinations = []
 
         air_alias = _get_fluid_alias("air", self.fluid_data)
         water_alias = _get_fluid_alias("water", self.fluid_data)
@@ -213,6 +214,9 @@ class HAConnection(Connection):
             if self.T.is_set:
                 self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
+                self._presolve_determinations.append(
+                    {"property": "h", "via": ["T"], "requires": ["p"]}
+                )
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
 

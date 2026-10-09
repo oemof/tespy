@@ -11,7 +11,6 @@ SPDX-License-Identifier: MIT
 """
 import logging
 import os
-import shutil
 import warnings
 
 from pytest import raises
@@ -41,7 +40,6 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
-from tespy.tools.helpers import extend_basic_path
 from tespy.tools.logger import FutureWarningHandler
 
 ##############################################################################
@@ -435,46 +433,24 @@ def test_CharMap_y_z_dimension_mismatch():
                 z=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
 
 
-def test_missing_CharLine_files():
+def test_missing_CharLine_files(monkeypatch, tmp_path):
     """Test missing files."""
-    path = extend_basic_path('data')
-    tmp_path = extend_basic_path('tmp_dir_for_testing')
-
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
-
-        shutil.rmtree(path, ignore_errors=True)
-
+    monkeypatch.setattr(
+        "tespy.tools.helpers.extend_basic_path",
+        lambda subfolder: os.path.join(tmp_path, subfolder)
+    )
     with raises(FileNotFoundError):
-        load_custom_char('stuff', CharLine)
-
-    if os.path.exists(tmp_path):
-        for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
-
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        load_custom_char("stuff", CharLine)
 
 
-def test_missing_CharMap_files():
+def test_missing_CharMap_files(monkeypatch, tmp_path):
     """Test missing files."""
-    path = extend_basic_path('data')
-    tmp_path = extend_basic_path('tmp_dir_for_testing')
-
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
-
-        shutil.rmtree(path, ignore_errors=True)
-
+    monkeypatch.setattr(
+        "tespy.tools.helpers.extend_basic_path",
+        lambda subfolder: os.path.join(tmp_path, subfolder)
+    )
     with raises(FileNotFoundError):
-        load_custom_char('some other stuff', CharMap)
-
-    if os.path.exists(tmp_path):
-        for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
-
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        load_custom_char("some other stuff", CharMap)
 
 
 ##############################################################################

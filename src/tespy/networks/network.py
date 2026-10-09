@@ -993,9 +993,13 @@ class Network:
             src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
             tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
 
+        inlet_order = {port: i for i, port in enumerate(inlet_ids)}
+        outlet_order = {port: i for i, port in enumerate(outlet_ids)}
+        tgt_sorted = tgt["target_id"].sort_values(key=lambda s: s.map(inlet_order))
+        src_sorted = src["source_id"].sort_values(key=lambda s: s.map(outlet_order))
         return (
-            self.conns.loc[tgt["target_id"].sort_values().index, "object"].tolist(),
-            self.conns.loc[src["source_id"].sort_values().index, "object"].tolist(),
+            self.conns.loc[tgt_sorted.index, "object"].tolist(),
+            self.conns.loc[src_sorted.index, "object"].tolist(),
         )
 
     def _check_components(self):

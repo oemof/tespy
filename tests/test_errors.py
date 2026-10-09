@@ -490,7 +490,7 @@ def test_CharLine_below_range_reports_minimum(caplog):
 
 
 def test_CharLine_get_attr_error_message():
-    with raises(KeyError, match="Char_line"):
+    with raises(KeyError, match="CharLine"):
         CharLine().get_attr("missing")
 
 

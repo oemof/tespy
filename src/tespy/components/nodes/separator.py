@@ -142,13 +142,13 @@ class Separator(NodeBase):
         }
 
     def _update_num_eq(self):
-        self.variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        self.variable_fluids = sorted(
+            {fluid for c in self.inl + self.outl for fluid in c.fluid.is_var}
         )
         num_fluid_eq = len(self.variable_fluids)
         if num_fluid_eq == 0:
             num_fluid_eq = 1
-            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
+            self.variable_fluids = [sorted(self.inl[0].fluid.is_set)[0]]
 
         self.constraints["fluid_constraints"].num_eq = num_fluid_eq
 

@@ -2558,8 +2558,7 @@ class Network:
             Decompose the equation system into its block lower triangular
             form and solve the blocks in precedence order instead of solving
             the full system simultaneously. Scalar blocks are solved with a
-            bracketing fallback on oscillation. Experimental, default:
-            :code:`False`.
+            bracketing fallback on oscillation, default: :code:`True`.
 
         pause_on_block_failure : boolean
             Pause the block-wise solution process at the first block that

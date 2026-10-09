@@ -36,6 +36,29 @@ Bug Fixes
 - A warning is logged if fixed mass fractions of a fluid branch do not sum up
   to 1 and no fluid is left to fill the remainder
   (`PR #1085 <https://github.com/oemof/tespy/pull/1085>`__).
+- The derivative of the :code:`fluid_balance` equation was wrong, which could
+  prevent convergence of models with variable fluid composition
+  (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- The :py:class:`~tespy.components.nodes.merge.Merge` applied an arbitrary
+  subset of the species balances if the composition at the outlet was partially
+  specified, so results could differ between python processes. The balances of
+  the variable fractions are applied now
+  (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- A :py:class:`~tespy.components.nodes.node.Node` closing a recirculation loop
+  caused infinite recursion in the fluid propagation
+  (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- The equal temperature equation of the
+  :py:class:`~tespy.components.nodes.separator.Separator` crashed if an
+  outlet enthalpy was determined by presolving, and its derivative ignored the
+  outlet composition
+  (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- The relative humidity :code:`r` of an
+  :py:class:`~tespy.connections.humidairconnection.HAConnection` is constant
+  above saturation. Starting values and iterates above saturation are now
+  projected onto the specified relative humidity, which previously caused
+  singular Jacobians. Also, the equation used a stale temperature if :code:`T`
+  was not specified
+  (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
 
 Other Changes
 #############

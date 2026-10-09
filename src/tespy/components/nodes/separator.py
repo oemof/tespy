@@ -14,8 +14,6 @@ from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-from tespy.tools.fluid_properties import dT_mix_dph
-from tespy.tools.fluid_properties import dT_mix_pdh
 
 
 @component_registry
@@ -142,13 +140,13 @@ class Separator(NodeBase):
         }
 
     def _update_num_eq(self):
-        self.variable_fluids = set(
-            [fluid for c in self.inl + self.outl for fluid in c.fluid.is_var]
+        self.variable_fluids = sorted(
+            {fluid for c in self.inl + self.outl for fluid in c.fluid.is_var}
         )
         num_fluid_eq = len(self.variable_fluids)
         if num_fluid_eq == 0:
             num_fluid_eq = 1
-            self.variable_fluids = [list(self.inl[0].fluid.is_set)[0]]
+            self.variable_fluids = [sorted(self.inl[0].fluid.is_set)[0]]
 
         self.constraints["fluid_constraints"].num_eq = num_fluid_eq
 
@@ -161,7 +159,7 @@ class Separator(NodeBase):
                 'description': 'mass balance constraint'
             }),
             'fluid_constraints': dc_cmc(**{
-                'num_eq_sets': self.num_o,
+                'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
@@ -169,7 +167,6 @@ class Separator(NodeBase):
             'energy_balance_constraints': dc_cmc(**{
                 'num_eq_sets': self.num_o,
                 'func': self.energy_balance_func,
-                'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
                 'description': 'equal temperature at all outlets constraints'
             }),
@@ -190,12 +187,6 @@ class Separator(NodeBase):
         else:
             self.set_attr(num_out=2)
             return self.outlets()
-
-    def propagate_wrapper_to_target(self, branch):
-        branch["components"] += [self]
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            outconn.target.propagate_wrapper_to_target(branch)
 
     def fluid_func(self):
         r"""
@@ -253,49 +244,12 @@ class Separator(NodeBase):
             residual += [T_in - o.calc_T()]
         return residual
 
-    def energy_balance_deriv(self, increment_filter, k, dependents=None):
-        r"""
-        Calculate partial derivatives of energy balance.
-
-        Parameters
-        ----------
-        increment_filter : ndarray
-            Matrix for filtering non-changing variables.
-
-        k : int
-            Position of derivatives in Jacobian matrix (k-th equation).
-        """
-        i = self.inl[0]
-        dT_dp_in = 0
-        dT_dh_in = 0
-        if i.p.is_var:
-            # outlet pressure must be variable as well in this case!
-            dT_dp_in = dT_mix_dph(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
-        if i.h.is_var:
-            dT_dh_in = dT_mix_pdh(i.p.val_SI, i.h.val_SI, i.fluid_data, i.mixing_rule)
-
-        for o in self.outl:
-            args = (o.p.val_SI, o.h.val_SI, o.fluid_data, o.mixing_rule)
-
-            dT_dp_out = 0
-            if o.p.is_var:
-                dT_dp_out = -dT_mix_dph(*args)
-            # pressure is always coupled
-            self._partial_derivative(i.p, k, dT_dp_in - dT_dp_out)
-
-            if o.h.is_var:
-                dT_dh_out = -dT_mix_pdh(*args)
-
-            # enthalpy is not necessarily coupled
-            if i.h._reference_container == o.h._reference_container:
-                self._partial_derivative(i.h, k, dT_dh_in - dT_dh_out)
-            else:
-                self._partial_derivative(i.h, k, dT_dh_in)
-                self._partial_derivative(o.h, k, dT_dh_out)
-
-            k += 1
-
     def energy_balance_dependents(self):
-        return [
-            [self.inl[0].p, self.inl[0].h, o.p, o.h] for o in self.outl
-        ]
+        i = self.inl[0]
+        return {
+            "scalars": [[i.p, i.h, o.p, o.h] for o in self.outl],
+            "vectors": [
+                {i.fluid: i.fluid.is_var, o.fluid: o.fluid.is_var}
+                for o in self.outl
+            ]
+        }

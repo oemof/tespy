@@ -19,6 +19,7 @@ from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
 from tespy.tools.fluid_properties.mixtures import w_mix_pT_humidair
+from tespy.tools.fluid_properties.mixtures import w_mix_pTrh_humidair
 from tespy.tools.helpers import seeded_random
 
 from .connection import Connection
@@ -90,7 +91,6 @@ class HAConnection(Connection):
             "fluid_balance": dc_simple(
                 dtype="bool",
                 func=self.fluid_balance_func,
-                deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
@@ -244,19 +244,39 @@ class HAConnection(Connection):
 
         return None
 
-    def _adjust_to_property_limits(self, nw):
+    def _finalize_starting_values(self, units, covered, seeded, nw):
+        super()._finalize_starting_values(units, covered, seeded, nw)
+        if self._project_composition_to_r():
+            self._precalc_guess_values()
 
-        if self.r.is_set and self.it < 5:
-            # with relative humidity specified and at beginning of iterations
-            # large water fraction is unlikely expected
-            air_alias = list(_get_fluid_alias("air", self.fluid_data))[0]
-            if air_alias in self.fluid.is_var:
-                if self.fluid.val[air_alias] < 0.8:
-                    self.fluid.set_reference_val(air_alias, 0.95)
-            water_alias = list(_get_fluid_alias("water", self.fluid_data))[0]
-            if water_alias in self.fluid.is_var:
-                if self.fluid.val[water_alias] > 0.2:
-                    self.fluid.set_reference_val(water_alias, 0.05)
+    def _adjust_to_property_limits(self, nw):
+        self._project_composition_to_r()
+
+    def _project_composition_to_r(self):
+        """Move a supersaturated variable composition onto the specified
+        relative humidity.
+
+        Above saturation the humidity ratio is capped, the relative humidity
+        is constant 1 and the equation loses its sensitivity to the
+        composition.
+        """
+        if not self.r.is_set:
+            return False
+
+        water_alias = list(_get_fluid_alias("water", self.fluid_data))[0]
+        air_alias = list(_get_fluid_alias("air", self.fluid_data))[0]
+        if not {water_alias, air_alias} <= self.fluid.is_var:
+            return False
+
+        T = self._T_for_evaluation()
+        w = self.fluid.val[water_alias] / self.fluid.val[air_alias]
+        if w <= w_mix_pTrh_humidair(self.p.val_SI, T, 1.0):
+            return False
+
+        w = w_mix_pTrh_humidair(self.p.val_SI, T, self.r.val_SI)
+        self.fluid.set_reference_val(water_alias, w / (1 + w))
+        self.fluid.set_reference_val(air_alias, 1 / (1 + w))
+        return True
 
     @classmethod
     def _result_attributes(cls):
@@ -266,10 +286,16 @@ class HAConnection(Connection):
     def _print_attributes(cls):
         return ["m", "mHA", "mH2O", "p", "h", "T", "w", "r"]
 
+    def _T_for_evaluation(self):
+        if self.T.is_set:
+            return self.T.val_SI
+        return self.calc_T()
+
     def calc_r(self):
-        w = self.calc_w()
+        T = self._T_for_evaluation()
+        w = w_mix_pT_humidair(self.p.val_SI, T, self.fluid_data)
         try:
-            return HAPropsSI("R", "P", self.p.val_SI, "T", self.T.val_SI, "W", w)
+            return HAPropsSI("R", "P", self.p.val_SI, "T", T, "W", w)
         except ValueError as e:
             value = str(e).split("value (")[1].split(")")[0]
             return float(value)

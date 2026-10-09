@@ -187,16 +187,15 @@ class Merge(NodeBase):
         set_fluids = set(
             [fluid for c in self.inl + self.outl for fluid in c.fluid.is_set]
         )
-        self.all_fluids = self.variable_fluids | set_fluids
         if len(self.variable_fluids) == 0 and len(set_fluids) == 0:
-            fluid_eq = 0
+            self._balance_fluids = []
             self.constraints["mass_flow_constraints"].num_eq = 1
         elif len(self.variable_fluids) == 0:
-            fluid_eq = len(self.all_fluids)
+            self._balance_fluids = sorted(set_fluids)
             self.constraints["mass_flow_constraints"].num_eq = 0
         else:
-            fluid_eq = len(self.variable_fluids)
-        self.constraints["fluid_constraints"].num_eq = fluid_eq
+            self._balance_fluids = sorted(self.variable_fluids)
+        self.constraints["fluid_constraints"].num_eq = len(self._balance_fluids)
 
     def get_mandatory_constraints(self):
         return {
@@ -255,7 +254,7 @@ class Merge(NodeBase):
         residual = []
         # we take the total mass flow to handle more than one outlet if necessary
         total_mass_flow = sum([c.m.val_SI for c in self.outl])
-        for fluid in self.all_fluids:
+        for fluid in self._balance_fluids:
             res = -self.outl[0].fluid.val.get(fluid, 0) * total_mass_flow
             for i in self.inl:
                 res += i.fluid.val.get(fluid, 0) * i.m.val_SI
@@ -265,11 +264,11 @@ class Merge(NodeBase):
     def fluid_dependents(self):
         return {
             "scalars": [
-                [c.m for c in self.inl + self.outl] for f in self.all_fluids
+                [c.m for c in self.inl + self.outl] for f in self._balance_fluids
             ],
             "vectors": [{
                 c.fluid: {f} & c.fluid.is_var for c in self.inl + self.outl[:1]
-            } for f in self.all_fluids]
+            } for f in self._balance_fluids]
         }
 
     def energy_balance_func(self):
@@ -299,15 +298,6 @@ class Merge(NodeBase):
         for c in self.inl + self.outl:
             dependents += [c.m, c.h]
         return dependents
-
-    def propagate_wrapper_to_target(self, branch):
-        if self in branch["components"]:
-            return
-
-        branch["components"] += [self]
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            outconn.target.propagate_wrapper_to_target(branch)
 
     def entropy_balance(self):
         r"""

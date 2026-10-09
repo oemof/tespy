@@ -176,12 +176,6 @@ class Splitter(NodeBase):
             self.set_attr(num_out=2)
             return self.outlets()
 
-    def propagate_wrapper_to_target(self, branch):
-        branch["components"] += [self]
-        for outconn in self.outl:
-            branch["connections"] += [outconn]
-            outconn.target.propagate_wrapper_to_target(branch)
-
     def enthalpy_structure_matrix(self, k):
         r"""
         Calculate partial derivatives for energy balance equation.

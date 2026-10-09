@@ -22,8 +22,8 @@ class NodeBase(Component):
     Mandatory Equations
     -------------------
 
-    - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
-    - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
+    - mass balance constraint: :py:meth:`mass_flow_func <tespy.components.nodes.base.NodeBase.mass_flow_func>`
+    - pressure equality constraints: :py:meth:`pressure_structure_matrix <tespy.components.nodes.base.NodeBase.pressure_structure_matrix>`
 
     Parameters
     ----------
@@ -72,6 +72,17 @@ class NodeBase(Component):
         connections = self.inl + self.outl
         first = connections[0]
         return [(first, c, 0.0, 1.0) for c in connections[1:]]
+
+    def propagate_wrapper_to_target(self, branch):
+        # nodes with more than one inlet close recirculation loops, the
+        # branch must not be re-entered from the loop
+        if self in branch["components"]:
+            return
+
+        branch["components"] += [self]
+        for outconn in self.outl:
+            branch["connections"] += [outconn]
+            outconn.target.propagate_wrapper_to_target(branch)
 
     def mass_flow_func(self):
         r"""

@@ -13,6 +13,7 @@ from pytest import approx
 from tespy.components import Separator
 from tespy.components import Sink
 from tespy.components import Source
+from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.connections import Ref
 from tespy.networks import Network
@@ -74,3 +75,28 @@ class TestSeparator:
         assert c3.fluid.val["N2"] == approx(6.5 / 9)
         assert c3.fluid.val["O2"] == approx(1.5 / 9)
         assert c3.fluid.val["Ar"] == approx(1 / 9)
+
+
+def test_separator_with_presolved_outlet_enthalpy():
+    """A temperature specified downstream of an outlet presolves the outlet
+    enthalpy, the separator's equal temperature equation must handle that"""
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    separator = Separator("separator")
+    valve = Valve("valve")
+    c1 = Connection(Source("source"), "out1", separator, "in1", label="1")
+    c2 = Connection(separator, "out1", valve, "in1", label="2")
+    c3 = Connection(valve, "out1", Sink("sink 1"), "in1", label="3")
+    c4 = Connection(separator, "out2", Sink("sink 2"), "in1", label="4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(fluid={"O2": 0.23, "N2": 0.77}, m=5, p=1)
+    c2.set_attr(fluid={"O2": 0.1, "N2": 0.9}, m=1)
+    c3.set_attr(T=20, p=0.9)
+    c4.set_attr(fluid0={"O2": 0.5, "N2": 0.5})
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert c1.T.val_SI == approx(c4.T.val_SI)
+    assert c4.fluid.val["O2"] == approx((0.23 * 5 - 0.1) / 4)

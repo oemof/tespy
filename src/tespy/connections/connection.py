@@ -1932,7 +1932,6 @@ class Connection(ConnectionBase):
             "fluid_balance": dc_simple(
                 dtype="bool",
                 func=self.fluid_balance_func,
-                deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
@@ -2254,10 +2253,6 @@ class Connection(ConnectionBase):
         residual = 1 - sum(self.fluid.val[f] for f in self.fluid.is_set)
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
         return residual
-
-    def fluid_balance_deriv(self, increment_filter, k, **kwargs):
-        for f in self.fluid.is_var:
-            self.jacobian[k, self.fluid.J_col[f]] = -self.fluid.val[f]
 
     def fluid_balance_dependents(self):
         return {

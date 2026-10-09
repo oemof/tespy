@@ -65,7 +65,7 @@ class TESPyComponentError(Exception):
 
 class UserDefinedEquation:
 
-    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=[], comps:list=[], params:dict={}):
+    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=None, comps:list=None, params:dict=None):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -259,9 +259,9 @@ class UserDefinedEquation:
         self.func = func
         self.deriv = deriv
         self.dependents = dependents
-        self.conns = conns
-        self.comps = comps
-        self.params = params
+        self.conns = [] if conns is None else conns
+        self.comps = [] if comps is None else comps
+        self.params = {} if params is None else params
         self._is_set = True
 
     def _get_is_set(self):

@@ -347,6 +347,12 @@ applications available for the :code:`PowerConnection`
 HAConnection Overview
 ---------------------
 
+.. attention::
+
+    :code:`HAConnection` not yet stable and not fully tested with all kinds of
+    components. You are invited to raise issues on github in case you identify
+    any.
+
 For the simulation of humid air, for example in air conditioning systems,
 drying processes or cooling towers, use the :code:`HAConnection` instead of the
 regular :code:`Connection`. It works exactly like a :code:`Connection` but

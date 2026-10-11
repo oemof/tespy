@@ -18,6 +18,8 @@ import os
 import warnings
 import weakref
 from copy import deepcopy
+from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 
 import numpy as np
@@ -1827,6 +1829,7 @@ class Network:
             if data is None:
                 with open(json_path, "r") as f:
                     data = json.load(f)
+        _check_meta(data, "state")
 
         def _row(d):
             return {col: np.nan if val is None else val for col, val in d.items()}
@@ -2998,6 +3001,7 @@ class Network:
 
     @classmethod
     def from_dict(cls, network_data):
+        _check_meta(network_data, "network")
         # create network
         # get method to ensure compatibility with old style export
         units = Units.from_json(network_data["Network"].get("units", {}))
@@ -3241,6 +3245,7 @@ class Network:
         self._attach_default_units_to_specifications()
 
         export = {}
+        export["meta"] = _create_meta("network")
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
@@ -3286,7 +3291,10 @@ class Network:
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
 
-        dump = hlp._nested_dict_of_dataframes_to_dict(dump)
+        dump = {
+            "meta": _create_meta("state"),
+            **hlp._nested_dict_of_dataframes_to_dict(dump)
+        }
 
         if json_file_path is None:
             if as_dict:
@@ -3387,6 +3395,7 @@ class Network:
         self._attach_default_units_to_specifications()
 
         specs = {
+            "meta": _create_meta("specifications"),
             "Connection": {}, "Component": {},
             "UserDefinedEquation": {}, "UserDefinedVariable": {}
         }
@@ -3458,6 +3467,7 @@ class Network:
                 data = json.load(f)
         else:
             data = deepcopy(data)
+        _check_meta(data, "specifications")
 
         self.clear_specifications()
 
@@ -3562,6 +3572,135 @@ class Network:
                 components[c].update(cp._serialize())
 
         return components
+
+FORMAT_VERSION = 1
+
+_FILE_KINDS = {
+    "network": (
+        "a network export written by Network.export(), which is loaded with "
+        "Network.from_json() or Network.from_dict()"
+    ),
+    "state": (
+        "a network state written by Network.save(), which is passed as "
+        "design_path or init_path to Network.solve()"
+    ),
+    "specifications": (
+        "a set of specifications written by Network.save_specifications(), "
+        "which is loaded with Network.restore_specifications()"
+    ),
+    "subsystem": (
+        "a subsystem serialization created by Subsystem.from_network(), which "
+        "is loaded with Subsystem.from_dict()"
+    ),
+}
+
+
+def _create_meta(kind):
+    r"""
+    Create the :code:`meta` block of a serialized tespy artifact.
+
+    Parameters
+    ----------
+    kind : str
+        Kind of the artifact, one of :code:`network`, :code:`state`,
+        :code:`specifications` or :code:`subsystem`.
+
+    Returns
+    -------
+    dict
+        The meta block.
+    """
+    from tespy import __version__
+
+    return {
+        "kind": kind,
+        "format_version": FORMAT_VERSION,
+        "tespy_version": __version__,
+        "tespy_commit": logger.check_git_branch(),
+        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+
+
+def _guess_kind(data):
+    # files written before the meta block was introduced can only be told
+    # apart by their top level keys
+    if "Subsystem" in data:
+        return "subsystem"
+    if "Network" in data:
+        return "network"
+    if "UserDefinedEquation" in data or "UserDefinedVariable" in data:
+        return "specifications"
+    if "Connection" in data and "Component" in data:
+        return "state"
+    return None
+
+
+def _check_meta(data, expected_kind):
+    r"""
+    Check that serialized data are of the expected kind and format version.
+
+    Data without a :code:`meta` block originate from tespy versions before the
+    block was introduced. Their kind is guessed from the top level keys and a
+    warning is issued.
+
+    Parameters
+    ----------
+    data : dict
+        The serialized data.
+
+    expected_kind : str
+        Kind of artifact the caller is able to load.
+    """
+    expected = _FILE_KINDS[expected_kind]
+    if not isinstance(data, dict):
+        msg = (
+            f"Expected {expected}, but the data are of type "
+            f"{type(data).__name__}."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+
+    meta = data.get("meta")
+    if meta is None:
+        kind = _guess_kind(data)
+        if kind is None:
+            msg = (
+                f"Expected {expected}, but the data do not look like any file "
+                f"written by tespy. Found the top level keys {list(data)}."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        if kind == expected_kind:
+            msg = (
+                "The data do not contain a 'meta' block, so they were "
+                "probably created with a tespy version older than 0.11.3. "
+                "Their compatibility cannot be checked. Support for data "
+                "without a 'meta' block will be removed in a future release, "
+                "please save or export them again."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+            return
+    else:
+        kind = meta.get("kind")
+        format_version = meta.get("format_version")
+        if kind == expected_kind and (
+                not isinstance(format_version, int)
+                or format_version > FORMAT_VERSION):
+            msg = (
+                f"The data have the format version {format_version} and were "
+                f"created with tespy {meta.get('tespy_version')}, but this "
+                f"tespy version only supports format versions up to "
+                f"{FORMAT_VERSION}. Please update tespy."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+    if kind != expected_kind:
+        found = _FILE_KINDS.get(kind, f"data of unknown kind '{kind}'")
+        msg = f"Expected {expected}, but got {found}."
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+
 
 def _construct_components(target_class, data, units=None):
     r"""

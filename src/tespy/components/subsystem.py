@@ -291,9 +291,11 @@ class Subsystem:
         """
         from tespy.components.component import component_registry
         from tespy.connections.connection import connection_registry
+        from tespy.networks.network import _check_meta
         from tespy.networks.network import _construct_components
         from tespy.networks.network import _construct_connections
 
+        _check_meta(subsystem_data, "subsystem")
         subsystem_data = copy.deepcopy(subsystem_data)
 
         if label is None:
@@ -524,6 +526,7 @@ class Subsystem:
         interfaces.update(SubsystemInterface("inlet")._serialize())
         interfaces.update(SubsystemInterface("outlet")._serialize())
 
+        nw_dict["meta"]["kind"] = "subsystem"
         nw_dict["Subsystem"] = {"label": label}
         for attr in [
                 "num_in", "num_out", "num_heat_in", "num_heat_out",

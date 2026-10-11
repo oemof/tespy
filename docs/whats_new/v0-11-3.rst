@@ -62,6 +62,9 @@ Bug Fixes
 
 Other Changes
 #############
+- Saved and exported data contain a :code:`meta` block (kind, format and tespy
+  version, git commit, timestamp), which is checked on load for clear errors
+  (`PR #1088 <https://github.com/oemof/tespy/pull/1088>`__).
 - The :code:`tespy.tools.fluid_properties.wrappers` module has been split into
   a subpackage with one module per wrapper, imports remain unchanged
   (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).

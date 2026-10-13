@@ -66,6 +66,11 @@ Bug Fixes
   singular Jacobians. Also, the equation used a stale temperature if :code:`T`
   was not specified
   (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- :py:class:`~tespy.connections.powerconnection.PowerConnection` and
+  :py:class:`~tespy.connections.heatconnection.HeatConnection` accept a
+  :py:class:`~tespy.components.subsystem.Subsystem` as source or target, and
+  :code:`print_results(subsystem=...)` works with mixed connection types
+  (`PR #1092 <https://github.com/oemof/tespy/pull/1092>`__).
 
 Other Changes
 #############

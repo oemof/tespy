@@ -1131,6 +1131,20 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
     the temperature via :func:`T_mix_ph`, then evaluates
     :func:`viscosity_mix_pT`.
 
+    Viscosity is not defined for a two-phase state. For a pure fluid in the
+    two-phase region the homogeneous equilibrium model is applied: the mixture
+    is treated as a pseudo single-phase fluid with the viscosity of McAdams
+    (:cite:`McAdams1942`), which is the quality weighted harmonic mean of the
+    saturated liquid and vapor viscosities.
+
+    .. math::
+
+        \frac{1}{\eta} = \frac{x}{\eta_{g}} + \frac{1 - x}{\eta_{l}}
+
+    This is a closure for the homogeneous model, not a fluid property. It is a
+    reasonable approximation if both phases move at the same velocity, e.g. for
+    dispersed flow, high mass flux or high reduced pressure.
+
     Parameters
     ----------
     p : float
@@ -1151,8 +1165,14 @@ def viscosity_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         Dynamic viscosity in Pa s.
     """
     if get_number_of_fluids(fluid_data) == 1:
-        pure_fluid = get_pure_fluid(fluid_data)
-        return pure_fluid["wrapper"].viscosity_ph(p, h)
+        wrapper = get_pure_fluid(fluid_data)["wrapper"]
+        if wrapper.phase_ph(p, h) == "tp":
+            x = wrapper.Q_ph(p, h)
+            return 1 / (
+                x / wrapper.viscosity_pQ(p, 1)
+                + (1 - x) / wrapper.viscosity_pQ(p, 0)
+            )
+        return wrapper.viscosity_ph(p, h)
     else:
         if mixing_rule == "humidair":
             w = w_mix_ph_humidair(p, h, fluid_data)

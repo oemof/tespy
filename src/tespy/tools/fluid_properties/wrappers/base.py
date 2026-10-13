@@ -154,6 +154,9 @@ class FluidPropertyWrapper:
     def viscosity_pT(self, p, T):
         self._not_implemented()
 
+    def viscosity_pQ(self, p, Q):
+        self._not_implemented()
+
     def conductivity_ph(self, p, h):
         self._not_implemented()
 

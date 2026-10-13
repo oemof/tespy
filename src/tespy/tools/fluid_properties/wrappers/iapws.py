@@ -130,6 +130,9 @@ class IAPWSWrapper(FluidPropertyWrapper):
     def viscosity_pT(self, p, T):
         return self.AS(T=T, P=p / 1e6).mu
 
+    def viscosity_pQ(self, p, Q):
+        return self.AS(P=p / 1e6, x=Q).mu
+
     def s_ph(self, p, h):
         return self.AS(P=p / 1e6, h=h / 1e3).s * 1e3
 

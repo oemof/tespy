@@ -553,6 +553,15 @@ class SimpleHeatExchanger(Component):
                 \eta: \text{dynamic viscosity}\\
                 v: \text{specific volume}\\
                 \lambda: \text{darcy friction factor}
+
+        Note
+        ----
+        If the inlet or the outlet state is in the two-phase region, the
+        equation reduces to the homogeneous equilibrium model implementing the
+        McAdams viscosity (:cite:`McAdams1942`), see
+        :func:`tespy.tools.fluid_properties.functions.viscosity_mix_ph`. This
+        is not a separated flow correlation, the pressure drop of flow regimes
+        with slip between the phases is underestimated.
         """
         i = self.inl[0]
         o = self.outl[0]

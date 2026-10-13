@@ -20,6 +20,7 @@ from pytest import mark
 from pytest import raises
 from pytest import warns
 
+from tespy import __version__
 from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
@@ -38,7 +39,6 @@ from tespy.components import WaterElectrolyzer
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
-from tespy import __version__
 from tespy.networks import Network
 from tespy.networks.network import FORMAT_VERSION
 from tespy.tools.characteristics import CharLine

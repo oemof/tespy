@@ -3055,6 +3055,16 @@ class Network:
         for c in conns.values():
             nw.add_conns(c)
 
+        # the results of a converged simulation are a starting point as good
+        # as the previous solution within the same session
+        if network_data.get("meta", {}).get("status") in (0, 1):
+            for c in conns.values():
+                for variable in c.get_variables().values():
+                    variable.set_val0_from_SI(nw.units)
+                if "fluid" in c.property_data:
+                    c.fluid.val0 = c.fluid.val.copy()
+                c.good_starting_values = True
+
         msg = 'Created connections.'
         logger.info(msg)
 
@@ -3247,7 +3257,7 @@ class Network:
             Parametrization and structure of the Network instance.
         """
         export = {}
-        export["meta"] = _create_meta("network")
+        export["meta"] = _create_meta("network", getattr(self, "status", 99))
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
@@ -3294,7 +3304,7 @@ class Network:
         dump["Component"] = self._save_components()
 
         dump = {
-            "meta": _create_meta("state"),
+            "meta": _create_meta("state", getattr(self, "status", 99)),
             **hlp._nested_dict_of_dataframes_to_dict(dump)
         }
 
@@ -3561,7 +3571,7 @@ _FILE_KINDS = {
 }
 
 
-def _create_meta(kind):
+def _create_meta(kind, status=None):
     r"""
     Create the :code:`meta` block of a serialized tespy artifact.
 
@@ -3571,6 +3581,10 @@ def _create_meta(kind):
         Kind of the artifact, one of :code:`network`, :code:`state`,
         :code:`specifications` or :code:`subsystem`.
 
+    status : int, optional
+        Status of the last simulation of the network, only for data holding
+        results.
+
     Returns
     -------
     dict
@@ -3578,13 +3592,16 @@ def _create_meta(kind):
     """
     from tespy import __version__
 
-    return {
+    meta = {
         "kind": kind,
         "format_version": FORMAT_VERSION,
         "tespy_version": __version__,
         "tespy_commit": logger.check_git_branch(),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+    if status is not None:
+        meta["status"] = status
+    return meta
 
 
 def _guess_kind(data):

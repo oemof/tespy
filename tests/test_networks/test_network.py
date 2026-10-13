@@ -1870,6 +1870,36 @@ class TestSerializationMeta:
         with warns(FutureWarning, match="'meta' block"):
             self._load(kind, data)
 
+    def test_status_in_meta(self):
+        assert self.data["network"]["meta"]["status"] == 0
+        assert self.data["state"]["meta"]["status"] == 0
+        assert "status" not in self.data["specifications"]["meta"]
+
+    def test_import_converged_export_seeds_starting_values(self):
+        imported = Network.from_dict(deepcopy(self.data["network"]))
+        for c in imported.conns["object"]:
+            original = self.nw.get_conn(c.label)
+            assert c.good_starting_values
+            for key, variable in c.get_variables().items():
+                assert variable.val0 == approx(original.get_attr(key).val)
+            assert c.fluid.val0 == original.fluid.val
+        imported.solve("design")
+        imported.assert_convergence()
+        assert imported.problem.iter <= self.nw.problem.iter
+
+    @mark.parametrize("status", [2, 3, 99, None])
+    def test_import_without_converged_export_regenerates(self, status):
+        data = deepcopy(self.data["network"])
+        if status is None:
+            del data["meta"]["status"]
+        else:
+            data["meta"]["status"] = status
+        imported = Network.from_dict(data)
+        for c in imported.conns["object"]:
+            assert not c.good_starting_values
+            for variable in c.get_variables().values():
+                assert np.isnan(variable.val0)
+
     def test_unknown_data_raises(self):
         with raises(TESPyNetworkError, match="do not look like"):
             self.nw.solve("offdesign", design_path={"foo": 1})

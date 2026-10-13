@@ -504,10 +504,11 @@ class Subsystem:
                                 param_data["is_var"] = False
                             if "val" in param_data and "unit" in param_data:
                                 if keep == "starting_values":
-                                    param_data["val0"] = param_data["val"]
+                                    param_data["val0"] = param_data.pop("val")
+                                    param_data["val0_unit"] = param_data.pop("unit")
                                 else:
                                     param_data.pop("val")
-                                    param_data.pop("val_SI", None)
+                                param_data.pop("val_SI", None)
 
         for comps in nw_dict["Component"].values():
             for reserved in ("inlet", "outlet"):

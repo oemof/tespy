@@ -58,7 +58,6 @@ from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import seeded_random
-from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
 # offset of phase based starting values from the phase boundaries: it must
@@ -75,9 +74,9 @@ def connection_registry(type):
 connection_registry.items = {}
 
 
-def _deserialize_ref_delta(data):
-    if data.get("delta_unit") is not None:
-        return _UNITS.ureg.Quantity(data["delta"], data["delta_unit"])
+def _deserialize_ref_delta(data, units=None):
+    if data.get("delta_unit") is not None and units is not None:
+        return units.ureg.Quantity(data["delta"], data["delta_unit"])
     return data["delta"]
 
 
@@ -243,7 +242,7 @@ class ConnectionBase:
         )
         return "\n".join([title, "", table])
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         export = {}
         export.update({"source": self.source.label})
         export.update({"target": self.target.label})
@@ -251,7 +250,7 @@ class ConnectionBase:
             export.update({k: self.get_attr(k)})
         for k in self.property_data:
             data = self.get_attr(k)
-            export.update({k: data._serialize()})
+            export.update({k: data._serialize(units)})
 
         return {self.label: export}
 
@@ -499,9 +498,9 @@ class ConnectionBase:
             elif unit == "-":
                 unit = "1"
             param = self.get_attr(var)
-            state[var] = units.ureg.Quantity(
-                float(data[var]), unit
-            ).m_as(SI_UNITS[param.quantity])
+            state[var] = units.value_to_SI(
+                float(data[var]), unit, param.quantity
+            )
         return state
 
     def _set_design_params(self, data, units):
@@ -516,7 +515,7 @@ class ConnectionBase:
                 data[f"{prop}_unit"]
             )
 
-    def _deserialize(self, data, all_connections):
+    def _deserialize(self, data, all_connections, units=None):
         arglist = [
             _ for _ in data
             if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
@@ -538,7 +537,7 @@ class ConnectionBase:
             else:
                 self.set_attr(**{arg: data[arg]})
 
-    def _save_specifications(self):
+    def _save_specifications(self, units):
         specs = {}
         for key, container in self.property_data.items():
             data = {}
@@ -553,18 +552,19 @@ class ConnectionBase:
                 elif isinstance(container, dc_prop):
                     data = {
                         "val": container.val,
-                        "unit": container.unit,
+                        "unit": container._unit_for_export(units),
                         "is_set": True
                     }
                 else:
                     data = {"val": container.val, "is_set": True}
-            if (
-                    isinstance(container, dc_prop)
-                    and container._val0_is_quantity
-                    and not np.isnan(container.val0.magnitude)
-                ):
-                data["val0"] = float(container.val0.magnitude)
-                data["val0_unit"] = str(container.val0.units)
+            if isinstance(container, dc_prop) and not np.isnan(container._val0):
+                data["val0"] = float(container._val0)
+                if container._val0_unit is None:
+                    data["val0_unit"] = units.canonical(
+                        units.default[container.quantity]
+                    )
+                else:
+                    data["val0_unit"] = container._val0_unit
             elif isinstance(container, dc_flu) and container.val0:
                 data["val0"] = {
                     f: float(x) for f, x in container.val0.items()
@@ -590,7 +590,7 @@ class ConnectionBase:
                 ref = Ref(
                     all_connections[param_data["conn"]],
                     param_data["factor"],
-                    _deserialize_ref_delta(param_data)
+                    _deserialize_ref_delta(param_data, units)
                 )
                 container.set_attr(
                     ref=ref, is_set=True, unit=param_data["unit"]
@@ -1012,13 +1012,13 @@ class Connection(ConnectionBase):
                 logger.error(msg)
                 raise TypeError(msg)
 
-    def _serialize(self):
-        export = super()._serialize()
+    def _serialize(self, units=None):
+        export = super()._serialize(units)
         export[self.label].update({"state": self.state._serialize()})
         return export
 
-    def _deserialize(self, data, all_connections):
-        super()._deserialize(data, all_connections)
+    def _deserialize(self, data, all_connections, units=None):
+        super()._deserialize(data, all_connections, units)
 
         for f, engine in data["fluid"]["engine"].items():
             data["fluid"]["engine"][f] = wrapper_registry.items[engine]
@@ -1033,7 +1033,7 @@ class Connection(ConnectionBase):
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
-                    _deserialize_ref_delta(data[arg])
+                    _deserialize_ref_delta(data[arg], units)
                 )
                 # do not use set_attr here: it would force is_set to True on
                 # the reference and False on the base property, discarding the
@@ -2361,12 +2361,13 @@ class Connection(ConnectionBase):
         for prop in self._result_attributes():
             param = self.get_attr(prop)
             if param.is_set:
-                result = param._get_val_from_SI(units)
-                if not np.isclose(result.magnitude, param.val, 1e-3, 1e-3):
+                result = param.value_from_SI(units)
+                if not np.isclose(result, param.val, 1e-3, 1e-3):
                     _converged = False
                     msg = (
                         "The simulation converged but the calculated result "
-                        f"{result} for the fixed input parameter {prop} of "
+                        f"{result} {param.unit} for the fixed input parameter "
+                        f"{prop} of "
                         f"connection {self.label} is not equal to the originally "
                         f"specified value of {param.val}. Usually, this can "
                         "happen, when a method internally manipulates the "

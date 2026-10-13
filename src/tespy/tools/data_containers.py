@@ -20,8 +20,8 @@ from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.global_vars import get_display_mode
-from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
+from tespy.tools.units import is_compatible
 
 
 def _is_numeric(potentially_a_number):
@@ -71,6 +71,7 @@ def _format_value(value):
     if value == 0 or 1e-4 <= abs(value) < 1e5:
         return f"{value:.4f}"
     return f"{value:.4e}"
+
 
 
 class _NumEqMixin:
@@ -188,34 +189,9 @@ class DataContainer:
             keywords.
         """
         for key, value in kwargs.items():
-            prop = getattr(type(self), key, None)
-
-            if prop is not None and prop.fset is not None:
-                setattr(self, key, value)  # goes through setter
-            elif hasattr(self, key):
-                setattr(self, key, value)  # plain attribute
-            else:
+            if key not in self.__dict__ and not hasattr(type(self), key):
                 raise AttributeError(f"Unknown parameter '{key}'.")
-        # apply kwargs via setters
-        # for key, value in kwargs.items():
-        #     if hasattr(self, key):  # property exists
-        #         setattr(self, key, value)  # goes through setter
-        #     else:
-        #         raise AttributeError(f"Unknown parameter {key!r}")
-        # var = self.attr()
-        # specify values
-        # for key in kwargs:
-        #     if f"_{key}" in var:
-        #         self.__dict__.update({f"_{key}": kwargs[key]})
-        #     elif key in var:
-        #         self.__dict__.update({key: kwargs[key]})
-        #     else:
-        #         msg = (
-        #             f"Datacontainer of type {self.__class__.__name__} has no "
-        #             f"attribute \"{key}\"."
-        #         )
-        #         logger.error(msg)
-        #         raise KeyError(msg)
+            setattr(self, key, value)
 
     def get_attr(self, key):
         """
@@ -254,7 +230,7 @@ class DataContainer:
         """
         return {"result_only": False}
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         return {}
 
     def accept(self, value):
@@ -321,7 +297,7 @@ class ComponentCharacteristics(_NumEqMixin, DataContainer):
             "result_only": False
         }
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         export = {}
         if self.char_func is not None:
             export.update({"char_func": self.char_func._serialize()})
@@ -398,7 +374,7 @@ class ComponentCharacteristicMaps(_NumEqMixin, DataContainer):
             "result_only": False
         }
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         export = {}
         if self.char_func is not None:
             export.update({"char_func": self.char_func._serialize()})
@@ -592,9 +568,10 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "_val": np.nan,
             "_val0": np.nan,
             "_val_SI": np.nan,
-            "_val_is_quantity": False,
-            "_val0_is_quantity": False,
-            "_unit_from_network_defaults": False,
+            "_unit_pinned": False,
+            "_val0_unit": None,
+            "_units": None,
+            "_user_quantity": None,
             "_is_var": False,
             "is_result": False,
             "min_val": -1e12,
@@ -623,16 +600,27 @@ class FluidProperties(_NumEqMixin, DataContainer):
             "result_only": False
         }
 
-    def _serialize(self):
-        keys = ["val", "val_SI", "is_set", "unit"]
-        return {k: getattr(self, k) for k in keys}
+    def _serialize(self, units=None):
+        return {
+            "val": self.val, "val_SI": self.val_SI, "is_set": self.is_set,
+            "unit": self._unit_for_export(units)
+        }
+
+    def _unit_for_export(self, units):
+        """Unit of the exported value: the unit the container is bound to or
+        a specification is pinned to. A specification not yet bound to a
+        network takes the default unit of the given unit system. Values that
+        are neither specified nor calculated have no unit."""
+        if self._unit is not None or units is None or not self.is_set:
+            return self._unit
+        return units.canonical(units.default[self.quantity])
 
     def _display_unit(self):
-        if self._val_is_quantity:
-            return f"{self._val.units:~}"
-        elif self._unit is not None:
-            return f"{_UNITS.ureg.Unit(self._unit):~}"
-        return ""
+        if self._unit is None:
+            return ""
+        if self._units is not None:
+            return f"{self._units.parsed_unit(self._unit):~}"
+        return self._unit
 
     def _repr_compact(self):
         return (
@@ -658,6 +646,9 @@ class FluidProperties(_NumEqMixin, DataContainer):
     def accept(self, value):
         if value is None:
             self.is_set = False
+            self._unit = None
+            self._unit_pinned = False
+            self._user_quantity = None
         elif isinstance(value, dict):
             self.set_attr(**value)
         elif isinstance(value, pint.Quantity) or _is_numeric(value):
@@ -714,70 +705,63 @@ class FluidProperties(_NumEqMixin, DataContainer):
             self._is_var = value
 
     def get_val_with_unit(self):
+        if self._units is not None and self._unit is not None:
+            return self._units.ureg.Quantity(self._val, self._unit)
+        if self._user_quantity is not None:
+            return self._user_quantity
         return self._val
 
-    def _assign_default_unit_to_val(self, units):
-        ureg = units.ureg
-        default_unit = units.parsed_unit(self._get_default_unit(units))
-        self.val = ureg.Quantity(self._val, default_unit)
-        # flag to mark unit as inherited from network
-        self._unit_from_network_defaults = True
+    def get_val0_with_unit(self):
+        if self._units is not None and self._val0_unit is not None:
+            return self._units.ureg.Quantity(self._val0, self._val0_unit)
+        return self._val0
 
-    def _convert_to_default_unit(self, units):
-        default = units.parsed_unit(self._get_default_unit(units))
-        if self._val.units != default:
-            self.val = self._val.to(default)
-            # set_val treats quantity assignment as user-pinned, but this
-            # assignment is internal: restore the flag so the value keeps
-            # following future default changes
-            self._unit_from_network_defaults = True
-
-    def _assign_default_unit_to_val0(self, units):
-        ureg = units.ureg
-        default_unit = units.parsed_unit(self._get_default_unit(units))
-        self.val0 = ureg.Quantity(self._val0, default_unit)
-
-    def _get_default_unit(self, units):
+    def _bind_unit(self, units):
+        """Attach the network's unit system: a plain number takes the default
+        unit, a number pinned to the earlier default is converted to the
+        current one, explicitly pinned units are kept."""
+        self._units = units
+        default = units.canonical(units.default[self.quantity])
         if self._unit is None:
-            return units.default[self.quantity]
-        else:
-            # compatibility with older version exports
-            self._unit = self._replace_unit_for_compatibility(self._unit)
-            return self._unit
+            self._unit = default
+        elif not self._unit_pinned and self._unit != default:
+            self._val = units.convert(self._val, self._unit, default)
+            self._unit = default
+
+    def _bind_val0_unit(self, units):
+        self._units = units
+        if self._val0_unit is None:
+            self._val0_unit = units.canonical(units.default[self.quantity])
 
     def set_SI_from_val(self, units):
-        if not self._val_is_quantity:
-            self._assign_default_unit_to_val(units)
-        elif self._unit_from_network_defaults:
-            self._convert_to_default_unit(units)
-        self.val_SI = self._val.m_as(SI_UNITS[self.quantity])
+        self._bind_unit(units)
+        self.val_SI = units.value_to_SI(self._val, self._unit, self.quantity)
 
     def set_SI_from_val0(self, units):
-        if not self._val0_is_quantity:
-            self._assign_default_unit_to_val0(units)
-        self.val_SI = self._val0.m_as(SI_UNITS[self.quantity])
-
-    def _get_val_from_SI(self, units):
-        if not self._val_is_quantity:
-            self._assign_default_unit_to_val(units)
-        elif self._unit_from_network_defaults:
-            self._convert_to_default_unit(units)
-        return units.quantity_from_SI(
-            self.val_SI, SI_UNITS[self.quantity], self._val.units
+        self._bind_val0_unit(units)
+        self.val_SI = units.value_to_SI(
+            self._val0, self._val0_unit, self.quantity
         )
+
+    def value_from_SI(self, units):
+        """SI value expressed in the unit of this container without
+        modifying the container."""
+        if self._unit is None:
+            unit = units.canonical(units.default[self.quantity])
+        else:
+            unit = self._unit
+        return units.value_from_SI(self.val_SI, SI_UNITS[self.quantity], unit)
 
     def set_val_from_SI(self, units):
-        from_defaults = (
-            self._unit_from_network_defaults or not self._val_is_quantity
+        self._bind_unit(units)
+        self._val = units.value_from_SI(
+            self.val_SI, SI_UNITS[self.quantity], self._unit
         )
-        self.val = self._get_val_from_SI(units)
-        self._unit_from_network_defaults = from_defaults
 
     def set_val0_from_SI(self, units):
-        if not self._val0_is_quantity:
-            self._assign_default_unit_to_val0(units)
-        self.val0 = units.quantity_from_SI(
-            self.val_SI, SI_UNITS[self.quantity], self.val0.units
+        self._bind_val0_unit(units)
+        self._val0 = units.value_from_SI(
+            self.val_SI, SI_UNITS[self.quantity], self._val0_unit
         )
 
     def detach(self):
@@ -786,52 +770,40 @@ class FluidProperties(_NumEqMixin, DataContainer):
         self._reference_container = None
 
     def get_val(self):
-        if self._val_is_quantity:
-            return float(self._val.magnitude)
         return float(self._val)
 
     def set_val(self, value):
-        self._val = self._handle_value_with_quantity(value)
-        self._val_is_quantity = isinstance(self._val, pint.Quantity)
-        self._unit_from_network_defaults = False
+        if isinstance(value, pint.Quantity):
+            self._check_compatible(str(value.units))
+            self._val = value.magnitude
+            self._unit = str(value.units)
+            self._unit_pinned = True
+            self._user_quantity = value
+        else:
+            self._val = value
+            self._unit = None
+            self._unit_pinned = False
+            self._user_quantity = None
 
     def get_val0(self):
         return self._val0
 
     def set_val0(self, value):
-        self._val0 = self._handle_value_with_quantity(value)
-        self._val0_is_quantity = isinstance(self._val0, pint.Quantity)
-
-    def _handle_value_with_quantity(self, value):
         if isinstance(value, pint.Quantity):
-            if self._is_compatible(value.units):
-                return value
-            else:
-                msg = (
-                    f"Unit '{value.units}' is not compatible with "
-                    f"{self.quantity}."
-                )
-                raise ValueError(msg)
+            self._check_compatible(str(value.units))
+            self._val0 = value.magnitude
+            self._val0_unit = str(value.units)
         else:
-            return value
+            self._val0 = value
+            self._val0_unit = None
 
-    def _is_compatible(self, unit):
-        if self.quantity == "temperature_difference":
-            unit_label = list(unit._units.keys())[0]
-            if unit_label.startswith("delta_"):
-                return _UNITS._quantities[self.quantity].is_compatible_with(unit)
-            else:
-                _units = _UNITS.ureg._units
-                kelvin = list(_units["K"].aliases) + [_units["K"].name]
-                rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
-                return unit_label in kelvin or unit_label in rankine
-        else:
-            return _UNITS._quantities[self.quantity].is_compatible_with(unit)
+    def _check_compatible(self, unit):
+        if not is_compatible(self.quantity, unit):
+            msg = f"Unit '{unit}' is not compatible with {self.quantity}."
+            raise ValueError(msg)
 
     def get_unit(self):
-        if not self._val_is_quantity:
-            return _UNITS.default[self.quantity]
-        return str(self.val_with_unit.units)
+        return self._unit
 
     def _replace_unit_for_compatibility(self, value):
         if value == "C":
@@ -846,13 +818,35 @@ class FluidProperties(_NumEqMixin, DataContainer):
         return value
 
     def set_unit(self, value):
-        self._unit = self._replace_unit_for_compatibility(value)
+        # a unit string describes the stored value, the container still
+        # follows the default units of the network. Only quantities pin
+        # the unit of a container
+        self._unit_pinned = False
+        if value is None:
+            self._unit = None
+        else:
+            value = self._replace_unit_for_compatibility(value)
+            self._check_compatible(value)
+            self._unit = value
+
+    def get_val0_unit(self):
+        return self._val0_unit
+
+    def set_val0_unit(self, value):
+        if value is None:
+            self._val0_unit = None
+        else:
+            value = self._replace_unit_for_compatibility(value)
+            self._check_compatible(value)
+            self._val0_unit = value
 
     unit = property(get_unit, set_unit)
+    val0_unit = property(get_val0_unit, set_val0_unit)
     val = property(get_val, set_val)
     val0 = property(get_val0, set_val0)
     val_SI = property(get_val_SI, set_val_SI)
     val_with_unit = property(get_val_with_unit)
+    val0_with_unit = property(get_val0_with_unit)
     J_col = property(get_J_col)
     is_var = property(get_is_var, set_is_var)
 
@@ -886,6 +880,7 @@ class ComponentArrayProperties(DataContainer):
             "val": None,
             "val_SI": None,
             "unit": None,
+            "_units": None,
             "quantity": None,
             "structure_matrix": None,
             "func": None,
@@ -902,15 +897,24 @@ class ComponentArrayProperties(DataContainer):
     def set_val_from_SI(self, units):
         if self.val_SI is None:
             return
-        self.unit = units.default[self.quantity]
+        self._units = units
+        self.unit = units.canonical(units.default[self.quantity])
         self.val = units.value_from_SI(
             self.val_SI, SI_UNITS[self.quantity], self.unit
         )
 
     def _display_unit(self):
-        if self.unit is not None:
-            return f"{_UNITS.ureg.Unit(self.unit):~}"
-        return ""
+        if self.unit is None:
+            return ""
+        if self._units is not None:
+            return f"{self._units.parsed_unit(self.unit):~}"
+        return self.unit
+
+    def _si_display_unit(self):
+        si_unit = SI_UNITS[self.quantity]
+        if self._units is not None:
+            return f"{self._units.parsed_unit(si_unit):~}"
+        return si_unit
 
     def _repr_compact(self):
         val = self.val if self.val is not None else self.val_SI
@@ -954,7 +958,7 @@ class ComponentArrayProperties(DataContainer):
             unit = self._display_unit()
             if unit:
                 title += f" in {unit}"
-            si_unit = f"{_UNITS.ureg.Unit(SI_UNITS[self.quantity]):~}"
+            si_unit = self._si_display_unit()
             if si_unit:
                 title += f" (SI value in {si_unit})"
             lines += [title, ""]
@@ -978,9 +982,10 @@ class ComponentProperties(FluidProperties):
         attrs["_allows_var"] = False
         return attrs
 
-    def _serialize(self):
-        keys = ["val", "val_SI", "is_set", "unit", "is_var"]
-        return {k: getattr(self, k) for k in keys}
+    def _serialize(self, units=None):
+        export = super()._serialize(units)
+        export["is_var"] = self.is_var
+        return export
 
     def _repr_compact(self):
         return (
@@ -1117,7 +1122,7 @@ class FluidComposition(DataContainer):
             "result_only": False
         }
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         export = {"val": self.val}
         export["is_set"] = list(self.is_set)
         export["engine"] = {k: e.__name__ for k, e in self.engine.items()}
@@ -1311,7 +1316,7 @@ class ReferencedFluidProperties(DataContainer):
             "result_only": False
         }
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         if self.ref is not None:
             keys = ["is_set", "unit"]
             export = {k: self.get_attr(k) for k in keys}
@@ -1328,19 +1333,19 @@ class ReferencedFluidProperties(DataContainer):
 
     def set_SI_from_val(self, units):
         ref = self.ref
+        si_unit = SI_UNITS[self.quantity]
         if isinstance(ref.delta, pint.Quantity):
-            ref.delta_SI = ref.delta.m_as(SI_UNITS[self.quantity])
+            ref.delta_SI = units.convert(
+                ref.delta.magnitude, str(ref.delta.units), si_unit
+            )
             return
-        unit = units.default[self.quantity]
-        if ref.delta_SI is not None and ref._delta_unit != unit:
-            ref.delta = units.ureg.Quantity(
-                ref.delta, ref._delta_unit
-            ).m_as(unit)
-        else:
-            ref.delta_SI = units.ureg.Quantity(
-                ref.delta, unit
-            ).m_as(SI_UNITS[self.quantity])
-        ref._delta_unit = unit
+        default = units.canonical(units.default[self.quantity])
+        if ref._delta_unit is None:
+            ref._delta_unit = default
+        elif ref.delta_SI is not None and ref._delta_unit != default:
+            ref.delta = units.convert(ref.delta, ref._delta_unit, default)
+            ref._delta_unit = default
+        ref.delta_SI = units.convert(ref.delta, ref._delta_unit, si_unit)
 
     def _repr_compact(self):
         return f"{type(self).__name__}(ref={self.ref!r}, is_set={self.is_set})"
@@ -1387,7 +1392,7 @@ class SimpleDataContainer(_NumEqMixin, DataContainer):
             "result_only": False,
         }
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         return {"val": self.val, "is_set": self.is_set}
 
     def _repr_compact(self):

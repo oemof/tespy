@@ -2929,7 +2929,10 @@ class Network:
             df = self.results[c_type].copy().loc[:, cols]
 
             if subsystem is not None:
-                connection_labels = [c.label for c in subsystem.conns.values()]
+                connection_labels = [
+                    c.label for c in subsystem.conns.values()
+                    if c.label in df.index
+                ]
                 df = df.loc[connection_labels]
 
             df = df.astype(str)

@@ -17,6 +17,7 @@ class PowerConnection(ConnectionBase):
         return target.powerinlets()
 
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
+        source, target = self._remap_if_subsystem(source, target)
         self._check_types(source, target)
         self._check_self_connect(source, target)
         self._check_connector_id(source, outlet_id, self._source_outlets(source))

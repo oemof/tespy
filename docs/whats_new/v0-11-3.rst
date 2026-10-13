@@ -52,6 +52,13 @@ Bug Fixes
   outlet enthalpy was determined by presolving, and its derivative ignored the
   outlet composition
   (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- Unspecified properties were exported with the SI unit, which pinned the unit
+  on import, e.g. the results of a
+  :py:class:`~tespy.components.subsystem.Subsystem` created from an exported
+  network were reported in SI units instead of the units of the network. The
+  unit in a file describes the stored value only, imported values are reported
+  in the default units of the network they are loaded into
+  (`PR #1089 <https://github.com/oemof/tespy/pull/1089>`__).
 - The relative humidity :code:`r` of an
   :py:class:`~tespy.connections.humidairconnection.HAConnection` is constant
   above saturation. Starting values and iterates above saturation are now
@@ -59,12 +66,35 @@ Bug Fixes
   singular Jacobians. Also, the equation used a stale temperature if :code:`T`
   was not specified
   (`PR #1086 <https://github.com/oemof/tespy/pull/1086>`__).
+- :py:class:`~tespy.connections.powerconnection.PowerConnection` and
+  :py:class:`~tespy.connections.heatconnection.HeatConnection` accept a
+  :py:class:`~tespy.components.subsystem.Subsystem` as source or target, and
+  :code:`print_results(subsystem=...)` works with mixed connection types
+  (`PR #1092 <https://github.com/oemof/tespy/pull/1092>`__).
+- CoolProp 8.1 raises an error for the viscosity of two-phase states, which
+  crashed the :code:`darcy_group` pressure drop equation whenever an iterate of
+  the inlet or the outlet was inside the two-phase region, e.g. for a saturated
+  liquid inlet. Older versions returned a value without physical meaning. The
+  viscosity of a two-phase pure fluid is now the McAdams viscosity of the
+  homogeneous equilibrium model.
+  See :py:func:`~tespy.tools.fluid_properties.functions.viscosity_mix_ph` for
+  the model and its limitations
+  (`PR #1093 <https://github.com/oemof/tespy/pull/1093>`__).
 
 Other Changes
 #############
 - Saved and exported data contain a :code:`meta` block (kind, format and tespy
   version, git commit, timestamp), which is checked on load for clear errors
   (`PR #1088 <https://github.com/oemof/tespy/pull/1088>`__).
+- The unit handling of the data containers has been reworked: a value is stored
+  together with its unit string and converted through the unit system of its
+  network, a plain number is bound to the default units at the first solve.
+  There is no module level unit registry any more, pint quantities of any
+  registry are accepted and the unit conversions in the solver loop do not
+  create pint objects. Visible changes: :code:`unit` of a plain specification
+  is :code:`None` before the first solve, :code:`val0` is always a number and
+  the new :code:`val0_with_unit` returns the starting value as quantity
+  (`PR #1089 <https://github.com/oemof/tespy/pull/1089>`__).
 - The :code:`tespy.tools.fluid_properties.wrappers` module has been split into
   a subpackage with one module per wrapper, imports remain unchanged
   (`PR #1067 <https://github.com/oemof/tespy/pull/1067>`__).

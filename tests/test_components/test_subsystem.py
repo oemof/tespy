@@ -17,6 +17,7 @@ from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import TESPyNetworkError
 
 
 class MySubsystem(Subsystem):
@@ -447,3 +448,131 @@ def test_subsystem_from_network_keep_modes_with_changed_fluid(keep):
     for label in ("1", "2"):
         assert sub.get_conn(label).fluid.val == {"N2": 1.0}
     assert p_in.E.val_SI > 0
+
+
+class CompressorSubsystem(Subsystem):
+    def __init__(self, label):
+        self.num_in = 1
+        self.num_out = 1
+        self.num_power_in = 1
+        super().__init__(label)
+
+    def create_network(self):
+        comp = Compressor("compressor")
+        c1 = Connection(self.inlet, "out1", comp, "in1", label="c1")
+        c2 = Connection(comp, "out1", self.outlet, "in1", label="c2")
+        p1 = PowerConnection(
+            self.inlet, "power_out1", comp, "power", label="p1"
+        )
+        self.add_conns(c1, c2, p1)
+
+
+class HeatedSubsystem(Subsystem):
+    def __init__(self, label):
+        self.num_in = 1
+        self.num_out = 1
+        self.num_heat_in = 1
+        super().__init__(label)
+
+    def create_network(self):
+        hx = SimpleHeatExchanger("heat_exchanger")
+        c1 = Connection(self.inlet, "out1", hx, "in1", label="c1")
+        c2 = Connection(hx, "out1", self.outlet, "in1", label="c2")
+        h1 = HeatConnection(self.inlet, "heat_out1", hx, "heat", label="h1")
+        self.add_conns(c1, c2, h1)
+
+
+def test_power_connection_to_subsystem_is_remapped():
+    """Like Connection, a PowerConnection accepts the subsystem as target."""
+    sub = CompressorSubsystem("sub")
+    ps = PowerSource("power source")
+
+    p_in = PowerConnection(ps, "power", sub, "power_in1", label="p_in")
+
+    assert p_in.target is sub.inlet
+
+
+def test_heat_connection_to_subsystem_is_remapped():
+    """Like Connection, a HeatConnection accepts the subsystem as target."""
+    sub = HeatedSubsystem("sub")
+    hs = HeatSource("heat source")
+
+    h_in = HeatConnection(hs, "heat", sub, "heat_in1", label="h_in")
+
+    assert h_in.target is sub.inlet
+
+
+class InnerSubsystem(Subsystem):
+    def __init__(self, label):
+        self.num_in = 1
+        self.num_out = 1
+        super().__init__(label)
+
+    def create_network(self):
+        hx = SimpleHeatExchanger("heat_exchanger")
+        c1 = Connection(self.inlet, "out1", hx, "in1", label="c1")
+        c2 = Connection(hx, "out1", self.outlet, "in1", label="c2")
+        self.add_conns(c1, c2)
+
+
+class OuterSubsystem(Subsystem):
+    def __init__(self, label):
+        self.num_in = 1
+        self.num_out = 1
+        super().__init__(label)
+
+    def create_network(self):
+        inner = InnerSubsystem("inner")
+        c1 = Connection(self.inlet, "out1", inner, "in1", label="c1")
+        c2 = Connection(inner, "out1", self.outlet, "in1", label="c2")
+        self.add_conns(c1, c2)
+
+
+@mark.xfail(
+    reason="nested subsystems are part of the refactoring in #1079",
+    raises=TESPyNetworkError,
+    strict=True
+)
+def test_nested_subsystem_check_topology():
+    """A subsystem containing another subsystem is a valid topology."""
+    nw = Network(iterinfo=False)
+    outer = OuterSubsystem("outer")
+    so = Source("source")
+    si = Sink("sink")
+
+    c_in = Connection(so, "out1", outer, "in1", label="c_in")
+    c_out = Connection(outer, "out1", si, "in1", label="c_out")
+    nw.add_conns(c_in, c_out)
+    nw.add_subsystems(outer)
+
+    nw.check_topology()
+
+    # 2 external + 2 outer level + 2 inner level
+    assert len(nw.conns) == 6
+
+
+def test_print_results_subsystem_with_mixed_connection_types():
+    """Filtering the printout by subsystem works with fluid and power connections."""
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(
+        pressure="bar", pressure_difference="bar", temperature="degC"
+    )
+    sub = CompressorSubsystem("sub")
+    so = Source("source")
+    si = Sink("sink")
+    ps = PowerSource("power source")
+
+    c_in = Connection(so, "out1", sub.inlet, "in1", label="c_in")
+    c_out = Connection(sub.outlet, "out1", si, "in1", label="c_out")
+    p_in = PowerConnection(ps, "power", sub.inlet, "power_in1", label="p_in")
+    nw.add_conns(c_in, c_out, p_in)
+    nw.add_subsystems(sub)
+
+    c_in.set_attr(fluid={"air": 1}, T=20, p=1, m=1)
+    c_out.set_attr(p=5)
+    sub.get_comp("compressor").set_attr(eta_s=0.8)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    nw.print_results(subsystem=sub, print_results=False)

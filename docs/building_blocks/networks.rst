@@ -128,8 +128,9 @@ transform it into what ever unit we need:
     138.0 kilowatt
 
 Alternatively, we can specify an individual unit using the :code:`Quantity`
-class of pint. For that you have to utilize the :code:`UnitRegistry` of
-your :code:`Network.units`: :code:`ureg`.
+class of pint, e.g. with the :code:`UnitRegistry` of your
+:code:`Network.units`. Quantities of any other pint registry are accepted as
+well.
 
 .. code-block:: python
 
@@ -174,9 +175,6 @@ It is also possible to use your own :code:`UnitRegistry`:
     >>> from pint import UnitRegistry
     >>> ureg = UnitRegistry()
     >>> nw.units.set_ureg(ureg)
-
-Changing the ureg will only have effect on future specifications. Existing
-quantities are not changed.
 
 .. attention::
 

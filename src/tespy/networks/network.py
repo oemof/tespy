@@ -1352,7 +1352,8 @@ class Network:
 
                     # take nominal values from design point
                     if isinstance(data, dc_cp):
-                        cp.get_attr(var).val = cp.get_attr(var).design
+                        data.val_SI = data.design
+                        data.set_val_from_SI(self.units)
                         set_values.append(var)
                     else:
                         activated.append(var)
@@ -1383,7 +1384,7 @@ class Network:
                     for var in cp.offdesign:
                         cp.get_attr(var).is_set = False
 
-                cp._set_design_parameters(self.mode, series)
+                cp._set_design_parameters(self.mode, series, self.units)
 
     def _prepare_offdesign(self):
         r"""
@@ -1641,7 +1642,7 @@ class Network:
             logger.debug(msg)
             return
         # write component design data
-        c._set_design_parameters(self.mode, entries[label])
+        c._set_design_parameters(self.mode, entries[label], self.units)
 
     def _write_design_state_to_connection(self, c, entries):
         r"""
@@ -2931,7 +2932,10 @@ class Network:
             df = self.results[c_type].copy().loc[:, cols]
 
             if subsystem is not None:
-                connection_labels = [c.label for c in subsystem.conns.values()]
+                connection_labels = [
+                    c.label for c in subsystem.conns.values()
+                    if c.label in df.index
+                ]
                 df = df.loc[connection_labels]
 
             df = df.astype(str)
@@ -3026,7 +3030,7 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data, nw.units))
+            comps.update(_construct_components(target_class, data))
 
         msg = 'Created network components.'
         logger.info(msg)
@@ -3045,7 +3049,7 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = connection_registry.items[connection]
-            conns.update(_construct_connections(target_class, data, comps))
+            conns.update(_construct_connections(target_class, data, comps, nw.units))
 
         # add connections to network
         for c in conns.values():
@@ -3242,8 +3246,6 @@ class Network:
         dict
             Parametrization and structure of the Network instance.
         """
-        self._attach_default_units_to_specifications()
-
         export = {}
         export["meta"] = _create_meta("network")
         export["Network"] = self._export_network()
@@ -3312,41 +3314,6 @@ class Network:
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
 
-    def _attach_default_units_to_specifications(self):
-        # a plain numeric specification means "in the network's default
-        # units". The unit is only attached to the containers when the
-        # network is transformed to SI for solving: serializing before that
-        # would attach the global default units, misinterpreting the values
-        # when reapplied. The same applies to plain numeric starting values
-        # of connections, which are serialized alongside the specifications
-        conn_containers = [
-            c.get_attr(key)
-            for c in self.conns["object"] for key in c.property_data
-        ]
-        comp_containers = [
-            cp.get_attr(key)
-            for cp in self.comps["object"] for key in cp.parameters
-        ]
-        for container in conn_containers + comp_containers:
-            if not isinstance(container, dc_prop) or not container.is_set:
-                continue
-            if container._val_is_quantity or container.quantity is None:
-                continue
-            try:
-                container._assign_default_unit_to_val(self.units)
-            except KeyError:
-                continue
-
-        for container in conn_containers:
-            if not isinstance(container, dc_prop) or container.quantity is None:
-                continue
-            if container._val0_is_quantity or np.isnan(container._val0):
-                continue
-            try:
-                container._assign_default_unit_to_val0(self.units)
-            except KeyError:
-                continue
-
     def save_specifications(self, json_file_path=None):
         r"""
         Save the currently set specifications of the network.
@@ -3392,19 +3359,17 @@ class Network:
         >>> c1.m.is_set and pi.pr.is_set
         True
         """
-        self._attach_default_units_to_specifications()
-
         specs = {
             "meta": _create_meta("specifications"),
             "Connection": {}, "Component": {},
             "UserDefinedEquation": {}, "UserDefinedVariable": {}
         }
         for c in self.conns["object"]:
-            data = c._save_specifications()
+            data = c._save_specifications(self.units)
             if data:
                 specs["Connection"][c.label] = data
         for cp in self.comps["object"]:
-            data = cp._save_specifications()
+            data = cp._save_specifications(self.units)
             if data:
                 specs["Component"][cp.label] = data
         for label, ude in self.user_defined_eq.items():
@@ -3554,7 +3519,7 @@ class Network:
             conn_type = c.__class__.__name__
             if conn_type not in connections:
                 connections[conn_type] = {}
-            connections[conn_type].update(c._serialize())
+            connections[conn_type].update(c._serialize(self.units))
         return connections
 
     def _export_components(self):
@@ -3569,9 +3534,10 @@ class Network:
         for c in self.comps["comp_type"].unique():
             components[c] = {}
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
-                components[c].update(cp._serialize())
+                components[c].update(cp._serialize(self.units))
 
         return components
+
 
 FORMAT_VERSION = 1
 
@@ -3702,7 +3668,7 @@ def _check_meta(data, expected_kind):
         raise hlp.TESPyNetworkError(msg)
 
 
-def _construct_components(target_class, data, units=None):
+def _construct_components(target_class, data):
     r"""
     Create TESPy component from class name and set parameters.
 
@@ -3713,12 +3679,6 @@ def _construct_components(target_class, data, units=None):
 
     data : dict
         Dictionary with component information.
-
-    units : tespy.tools.units.Units, optional
-        Unit context to bind values with units to. If not provided, values
-        are kept plain together with their unit string, so they can be
-        interpreted through the unit registry of the network they will be
-        part of.
 
     Returns
     -------
@@ -3746,14 +3706,6 @@ def _construct_components(target_class, data, units=None):
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
 
-                if "val" in param_data:
-                    if (units is not None and "unit" in param_data
-                            and param_data["unit"] is not None):
-                        param_data["val"] = units.ureg.Quantity(
-                            param_data["val"], param_data["unit"]
-                        )
-                    if "val0" in param_data:
-                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})
@@ -3761,7 +3713,7 @@ def _construct_components(target_class, data, units=None):
     return instances
 
 
-def _construct_connections(target_class, data, comps):
+def _construct_connections(target_class, data, comps, units=None):
     r"""
     Create TESPy connection from data in the .json-file and its parameters.
 
@@ -3791,6 +3743,6 @@ def _construct_connections(target_class, data, comps):
         )
 
     for label, conn_data in data.items():
-        conns[label]._deserialize(conn_data, conns)
+        conns[label]._deserialize(conn_data, conns, units)
 
     return conns

@@ -1572,10 +1572,10 @@ class TestSaveClearRestoreSpecifications:
         # the starting values are interpreted in stored units
         c2 = self.nw.get_conn("c2")
         m_SI, p_SI, h_SI = results["c2"]
-        assert str(c2.p.val0.units) == "bar"
-        assert approx(c2.m.val0.m_as("kg/s")) == m_SI
-        assert approx(c2.p.val0.m_as("Pa")) == p_SI
-        assert approx(c2.h.val0.m_as("J/kg")) == h_SI
+        assert str(c2.p.val0_with_unit.units) == "bar"
+        assert approx(c2.m.val0_with_unit.m_as("kg/s")) == m_SI
+        assert approx(c2.p.val0_with_unit.m_as("Pa")) == p_SI
+        assert approx(c2.h.val0_with_unit.m_as("J/kg")) == h_SI
 
     def test_restore_specifications_saved_before_solving(self):
         specs = self.nw.save_specifications()

@@ -71,6 +71,15 @@ Bug Fixes
   :py:class:`~tespy.components.subsystem.Subsystem` as source or target, and
   :code:`print_results(subsystem=...)` works with mixed connection types
   (`PR #1092 <https://github.com/oemof/tespy/pull/1092>`__).
+- CoolProp 8.1 raises an error for the viscosity of two-phase states, which
+  crashed the :code:`darcy_group` pressure drop equation whenever an iterate of
+  the inlet or the outlet was inside the two-phase region, e.g. for a saturated
+  liquid inlet. Older versions returned a value without physical meaning. The
+  viscosity of a two-phase pure fluid is now the McAdams viscosity of the
+  homogeneous equilibrium model.
+  See :py:func:`~tespy.tools.fluid_properties.functions.viscosity_mix_ph` for
+  the model and its limitations
+  (`PR #1093 <https://github.com/oemof/tespy/pull/1093>`__).
 
 Other Changes
 #############

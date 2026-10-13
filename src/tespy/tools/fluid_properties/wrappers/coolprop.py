@@ -240,6 +240,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self._update(CP.PT_INPUTS, p, T)
         return self.AS.viscosity()
 
+    def viscosity_pQ(self, p, Q):
+        self._update(CP.PQ_INPUTS, p, Q)
+        return self.AS.viscosity()
+
     def conductivity_ph(self, p, h):
         self._update(CP.HmassP_INPUTS, h, p)
         return self.AS.conductivity()

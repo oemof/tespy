@@ -20,6 +20,7 @@ from dataclasses import field
 import pytest
 from CoolProp.CoolProp import get_global_param_string
 
+from tespy.tools.fluid_properties import viscosity_mix_ph
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.fluid_properties.wrappers import FluidPropertyWrapper
 from tespy.tools.fluid_properties.wrappers import wrapper_registry
@@ -230,6 +231,49 @@ class TestSaturation:
         assert w.h_QT(1, c.T_sat) == pytest.approx(
             w.h_pQ(w.p_dew(c.T_sat), 1), rel=1e-3
         )
+
+
+class TestTwoPhaseViscosity:
+
+    @pytest.fixture(autouse=True)
+    def _skip_without_transport(self, case):
+        c, w = case
+        if not c.two_phase or c.mixture:
+            pytest.skip("Wrapper case has no pure fluid two-phase states.")
+        try:
+            w.viscosity_pQ(w.p_sat(c.T_sat), 0)
+        except NotImplementedError:
+            pytest.skip("Wrapper does not implement transport properties.")
+        self.fluid_data = {w.fluid: {"mass_fraction": 1, "wrapper": w}}
+
+    def test_mcadams_between_saturated_values(self, case):
+        c, w = case
+        p = w.p_sat(c.T_sat)
+        eta_l = w.viscosity_pQ(p, 0)
+        eta_g = w.viscosity_pQ(p, 1)
+        assert eta_g < eta_l
+        x = 0.4
+        eta = viscosity_mix_ph(p, w.h_pQ(p, x), self.fluid_data)
+        assert eta == pytest.approx(
+            1 / (x / eta_g + (1 - x) / eta_l), rel=1e-2
+        )
+
+    def test_continuous_at_saturation_lines(self, case):
+        c, w = case
+        p = w.p_sat(c.T_sat)
+        for Q in [0, 1]:
+            eta_sat = w.viscosity_pQ(p, Q)
+            # the harmonic mean is steep near the bubble line, the step must
+            # be small to resolve continuity within the tolerance
+            dh = (w.h_pQ(p, 1) - w.h_pQ(p, 0)) * 1e-5
+            h_in = w.h_pQ(p, Q) + (dh if Q == 0 else -dh)
+            h_out = w.h_pQ(p, Q) - (dh if Q == 0 else -dh)
+            assert viscosity_mix_ph(p, h_in, self.fluid_data) == pytest.approx(
+                eta_sat, rel=1e-2
+            )
+            assert viscosity_mix_ph(p, h_out, self.fluid_data) == pytest.approx(
+                eta_sat, rel=1e-2
+            )
 
 
 class TestReferenceCrossCheck:

@@ -79,7 +79,7 @@ Bug Fixes
   homogeneous equilibrium model.
   See :py:func:`~tespy.tools.fluid_properties.functions.viscosity_mix_ph` for
   the model and its limitations
-  (`Issue #1090 <https://github.com/oemof/tespy/issues/1090>`__).
+  (`PR #1093 <https://github.com/oemof/tespy/pull/1093>`__).
 
 Other Changes
 #############

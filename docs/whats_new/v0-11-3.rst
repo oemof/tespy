@@ -83,6 +83,9 @@ Bug Fixes
 
 Other Changes
 #############
+- Saved and exported data contain a :code:`meta` block (kind, format and tespy
+  version, git commit, timestamp), which is checked on load for clear errors
+  (`PR #1088 <https://github.com/oemof/tespy/pull/1088>`__).
 - The unit handling of the data containers has been reworked: a value is stored
   together with its unit string and converted through the unit system of its
   network, a plain number is bound to the default units at the first solve.

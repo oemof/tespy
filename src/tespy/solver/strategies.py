@@ -367,24 +367,55 @@ class NewtonStrategy:
             obj.it = 0
         problem._prev_residual = None
         problem._auto_damping = False
-        for block_iter in range(problem.max_iter):
+        problem._line_search_active = problem.line_search == "always"
+        problem._reset_best_state()
+        budget = problem.max_iter
+        block_iter = -1
+        while block_iter < budget - 1:
+            block_iter += 1
+            # a failing block returns to its best state and continues with
+            # line search steps on a fresh iteration budget
+            fallback = (
+                problem.line_search == "stagnation"
+                and not problem._line_search_active
+            )
             problem.iter = block_iter
             problem.increment_filter = (
                 np.absolute(problem.increment) < ERR ** 2
             )
-            problem._solve_equations(equation_objects)
-            problem._update_residual_scales()
-            problem._invert_jacobian(equations, variables)
+            try:
+                problem._solve_equations(equation_objects)
+                problem._update_residual_scales()
+                problem._record_best_state(equations)
+                problem._invert_jacobian(equations, variables)
+            except hlp.TESPyNetworkError:
+                raise
+            except Exception:
+                if not fallback:
+                    raise
+                problem._start_line_search(variables)
+                budget = block_iter + 1 + problem.max_iter
+                continue
             if problem.lin_dep:
+                if fallback:
+                    problem._start_line_search(variables)
+                    budget = block_iter + 1 + problem.max_iter
+                    continue
                 return 3
 
             if problem.oscillation_damping or problem._auto_damping:
                 problem._dampen_oscillating_increments()
             self._modify_increment(problem, block)
-            problem._update_variables(variable_set)
-            modified = problem._adapt_to_variable_bounds(
-                connections, components
-            )
+            if problem._line_search_active:
+                modified = problem._update_with_line_search(
+                    variable_set, connections, components, equations,
+                    equation_objects
+                )
+            else:
+                problem._update_variables(variable_set)
+                modified = problem._adapt_to_variable_bounds(
+                    connections, components
+                )
             problem._prev_residual = problem.residual.copy()
 
             block.residual_history.append(
@@ -431,6 +462,10 @@ class NewtonStrategy:
                     ).all()
                 ):
                 return 0
+
+            if fallback and block_iter == budget - 1:
+                problem._start_line_search(variables)
+                budget = block_iter + 1 + problem.max_iter
 
         return 2
 

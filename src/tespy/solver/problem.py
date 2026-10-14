@@ -26,6 +26,7 @@ from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLAT_ENTHALPY_DIFFERENCE
+from tespy.tools.global_vars import LINE_SEARCH_STEPS
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
@@ -33,6 +34,9 @@ from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 # squares: low enough that any information transported by the guess edges
 # dominates, only holding the absolute level where nothing else reaches
 PRIOR_WEIGHT = 0.1
+# rescue measures of the simultaneous solve on a singular jacobian
+SINGULAR_RESCUE_ITERATIONS = 20
+SINGULAR_RESCUE_DAMPING = 1e-3
 
 # Only require cupy if Cuda shall be used
 try:
@@ -69,6 +73,10 @@ class Problem:
 
         self.status = 99
         self.iter = 0
+        self.line_search = "stagnation"
+        self._line_search_active = False
+        self._best_residual = np.inf
+        self._best_state = None
         self.residual = None
         self.jacobian = None
         self.increment = None
@@ -76,6 +84,8 @@ class Problem:
         self.variable_weights = None
         self.lin_dep = False
         self.singularity_msg = ""
+        self.singular_rescue = True
+        self._rescue_iterations = 0
 
         self.structure_graph = None
         self._decomposition = None
@@ -1595,8 +1605,17 @@ class Problem:
 
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True,
-                   block_solve=False, pause_on_block_failure=None):
+                   block_solve=False, pause_on_block_failure=None,
+                   line_search="stagnation"):
         r"""Loop of the newton algorithm."""
+        if line_search not in ("off", "stagnation", "always"):
+            msg = (
+                "The line_search option must be one of 'off', 'stagnation' "
+                f"or 'always', got {line_search!r}."
+            )
+            raise ValueError(msg)
+        self.line_search = line_search
+        self._line_search_active = line_search == "always"
         self.max_iter = max_iter
         self.min_iter = min_iter
         self.use_cuda = use_cuda
@@ -1650,9 +1669,28 @@ class Problem:
             self._print_iterinfo_head(print_results)
 
         self._auto_damping = False
-        for self.iter in range(self.max_iter):
+        self._rescue_iterations = 0
+        self._line_search_active = self.line_search == "always"
+        self._reset_best_state()
+        budget = self.max_iter
+        self.iter = -1
+        while self.iter < budget - 1:
+            self.iter += 1
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            modified = self._solve_iteration()
+            fallback = (
+                self.line_search == "stagnation"
+                and not self._line_search_active
+            )
+            try:
+                modified = self._solve_iteration()
+            except hlp.TESPyNetworkError:
+                raise
+            except Exception:
+                if not fallback:
+                    raise
+                self._start_line_search()
+                budget = self.iter + 1 + self.max_iter
+                continue
             self.residual_history = np.append(
                 self.residual_history, self.scaled_residual().max()
             )
@@ -1671,18 +1709,28 @@ class Problem:
             if iterinfo:
                 self._print_iterinfo_body(print_results)
 
+            stagnation = self.iter > 40 and (
+                all(
+                    self.residual_history[(self.iter - 3):]
+                    >= self.residual_history[-3] * 0.95
+                )
+                and self.residual_history[-1]
+                >= self.residual_history[-2] * 0.95
+            )
+            if fallback and (
+                    self.lin_dep or stagnation or self.iter == budget - 1
+                ):
+                self._start_line_search()
+                budget = self.iter + 1 + self.max_iter
+                continue
+
             if self.lin_dep:
                 self.status = 3
                 break
 
-            elif self.iter > 40:
-                if (
-                    all(
-                        self.residual_history[(self.iter - 3):] >= self.residual_history[-3] * 0.95
-                    ) and self.residual_history[-1] >= self.residual_history[-2] * 0.95
-                ):
-                    self.status = 2
-                    break
+            elif stagnation:
+                self.status = 2
+                break
 
             # accept once two consecutive residuals and the increment are
             # small in an iteration without interference of the value
@@ -1709,7 +1757,7 @@ class Problem:
         if iterinfo:
             self._print_iterinfo_tail(print_results)
 
-        if self.iter == self.max_iter - 1:
+        if self.iter == budget - 1:
             msg = (
                 f"Reached maximum iteration count ({self.max_iter}), "
                 "calculation stopped. Scaled residual value is "
@@ -1867,6 +1915,128 @@ class Problem:
                     if step is not None:
                         overrides[col] = step
         return overrides
+
+    def _rescue_singular_step(self):
+        """Continue from a singular Jacobian instead of aborting.
+
+        A singular Jacobian in the middle of the iteration is mostly caused by
+        temperature based equations (terminal temperature differences,
+        referenced temperatures) losing their enthalpy derivative because a
+        port moved into the two phase region. Two measures are tried from the
+        current iterate:
+
+        - Ports with a declared single phase that sit inside the two phase
+          region are projected back into their phase region. The next
+          iteration re-evaluates the equations at the projected state.
+        - Otherwise a damped least squares step is computed from the current
+          Jacobian, which stays defined for a singular matrix. The iteration
+          returns to plain newton steps as soon as the Jacobian is regular.
+
+        Returns whether the iteration can continue. The number of rescue
+        iterations per solve is limited by :code:`SINGULAR_RESCUE_ITERATIONS`.
+        """
+        if (
+                not self.singular_rescue
+                or self._rescue_iterations >= SINGULAR_RESCUE_ITERATIONS
+            ):
+            return False
+        # a structurally singular problem cannot be rescued numerically, its
+        # diagnosis needs the unmodified first iteration
+        if self.iter == 0 and self._structural_summary() != "":
+            return False
+        self._rescue_iterations += 1
+
+        projected = self._project_declared_phases()
+        if projected:
+            self.lin_dep = False
+            self.increment = np.zeros(self.variable_counter)
+            msg = (
+                "Singular jacobian: projected the enthalpy of "
+                f"{', '.join(projected)} out of the two phase region into "
+                "the declared phase, continuing."
+            )
+            logger.debug(msg)
+            return True
+
+        if not self._damped_least_squares_step():
+            return False
+        self.lin_dep = False
+        msg = (
+            "Singular jacobian: continuing with a damped least squares step "
+            "from the current iterate."
+        )
+        logger.debug(msg)
+        if self.oscillation_damping or self._auto_damping:
+            self._dampen_oscillating_increments()
+        self._update_variables()
+        self._adapt_to_variable_bounds()
+        self._prev_residual = self.residual.copy()
+        # the step is not a newton step, the convergence check must not
+        # accept on its increment
+        return True
+
+    def _project_declared_phases(self):
+        """Move ports with a declared single phase out of the two phase
+        region. Ports whose enthalpy is fixed by a specification relative to
+        saturation are left to their own adjustment. Returns the labels of the
+        projected connections."""
+        projected = []
+        seen = set()
+        for c in self.network.conns["object"]:
+            if not hasattr(c, "_declared_state") or not c.h.is_var:
+                continue
+            reference = c.h._reference_container
+            if reference in seen:
+                continue
+            if (
+                    c.x.is_set or c.td_bubble.is_set or c.td_dew.is_set
+                    or c.state.is_set
+                ):
+                continue
+            state = c._declared_state()
+            if state is None or state["phase"] not in ("liquid", "gas"):
+                continue
+            try:
+                result = c._h_for_state(state)
+            except (ValueError, KeyError, IndexError, NotImplementedError):
+                continue
+            if result is None:
+                continue
+            _, lower, upper = result
+            h = c.h.val_SI
+            if lower is not None and h < lower:
+                c.h.set_reference_val_SI(lower)
+            elif upper is not None and h > upper:
+                c.h.set_reference_val_SI(upper)
+            else:
+                continue
+            seen.add(reference)
+            projected.append(c.label)
+        return projected
+
+    def _damped_least_squares_step(self):
+        """Levenberg-Marquardt step on the scaled system, stored in
+        :code:`self.increment`. Returns whether a finite step was found."""
+        jacobian = self.jacobian
+        row_scales = np.abs(jacobian).max(axis=1)
+        row_scales[row_scales == 0] = 1.0
+        J_eq = jacobian / row_scales[:, None]
+        col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
+        J_sc = J_eq / col_scales[None, :]
+        r_eq = -self.residual / row_scales
+        normal = J_sc.T @ J_sc
+        damping = SINGULAR_RESCUE_DAMPING * max(np.trace(normal) / len(normal), 1e-12)
+        try:
+            step = np.linalg.solve(
+                normal + damping * np.eye(len(normal)), J_sc.T @ r_eq
+            )
+        except np.linalg.LinAlgError:
+            return False
+        increment = step / col_scales
+        if not np.isfinite(increment).all():
+            return False
+        self.increment = increment
+        return True
 
     def _invert_jacobian(self, equations=None, variables=None):
         """Compute Newton step, storing result in self.increment. Sets self.lin_dep."""
@@ -2133,6 +2303,116 @@ class Problem:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
+    def _snapshot_variables(self):
+        return {
+            col: hlp.get_variable_value(data)
+            for col, data in self.variables_dict.items()
+        }
+
+    def _restore_variables(self, snapshot):
+        for col, value in snapshot.items():
+            hlp.set_variable_value(self.variables_dict[col], value)
+
+    def _record_best_state(self, equations=None):
+        """Keep the variable values with the lowest scaled residual so far."""
+        residual = self.scaled_residual(equations).max()
+        if residual < self._best_residual:
+            self._best_residual = residual
+            self._best_state = self._snapshot_variables()
+
+    def _reset_best_state(self):
+        self._best_residual = np.inf
+        self._best_state = None
+
+    def _start_line_search(self, variables=None):
+        """Return to the best state and continue with line search steps."""
+        msg = (
+            "The newton iteration fails, returning to the state with the "
+            f"lowest scaled residual ({self._best_residual:.2e}) and "
+            "continuing with a backtracking line search."
+        )
+        logger.debug(msg)
+        if self._best_state is not None:
+            self._restore_variables(self._best_state)
+        self._line_search_active = True
+        self._auto_damping = False
+        self._prev_residual = None
+        self.lin_dep = False
+        if variables is None:
+            self.increment = np.ones(self.variable_counter)
+        else:
+            self.increment[variables] = 1
+        self._reset_best_state()
+
+    def _merit(self, equations=None):
+        if equations is None:
+            return float(norm(self.residual / self.residual_scales))
+        return float(norm(
+            self.residual[equations] / self.residual_scales[equations]
+        ))
+
+    def _update_with_line_search(
+            self, variables=None, connections=None, components=None,
+            equations=None, objects=None
+        ):
+        """Apply the newton increment shortened by a backtracking line search.
+
+        The step is halved until the scaled residual norm decreases
+        sufficiently (Armijo condition), a failing evaluation counts as an
+        infinite residual. Without sufficient decrease the trial step with
+        the lowest residual is applied. Returns whether the value heuristics
+        modified any value.
+        """
+        if objects is None:
+            objects = (
+                self.network.comps["object"].tolist()
+                + self.network.conns["object"].tolist()
+                + list(self.network.user_defined_eq.values())
+            )
+        start = self._snapshot_variables()
+        residual = self.residual.copy()
+        counters = [obj.it for obj in objects]
+        increment = self.increment.copy()
+        merit_start = self._merit(equations)
+
+        alpha = 1.0
+        best_alpha, best_merit = alpha, np.inf
+        accepted = False
+        for _ in range(LINE_SEARCH_STEPS):
+            self.increment = increment * alpha
+            try:
+                self._update_variables(variables)
+                modified = self._adapt_to_variable_bounds(
+                    connections, components
+                )
+                self._solve_equations(objects, residual_only=True)
+                merit = self._merit(equations)
+            except hlp.TESPyNetworkError:
+                raise
+            except Exception:
+                merit = np.inf
+            if not np.isfinite(merit):
+                merit = np.inf
+            if merit <= (1 - 1e-4 * alpha) * merit_start:
+                accepted = True
+                break
+            if merit < best_merit:
+                best_alpha, best_merit = alpha, merit
+            self._restore_variables(start)
+            alpha *= 0.5
+
+        if not accepted:
+            # the shortest step if none of the trials could be evaluated
+            alpha = best_alpha if np.isfinite(best_merit) else alpha * 2
+            self.increment = increment * alpha
+            self._update_variables(variables)
+            modified = self._adapt_to_variable_bounds(connections, components)
+
+        for obj, it in zip(objects, counters):
+            obj.it = it
+        self.residual = residual
+        return modified
+
     def _variable_values(self):
         values = np.empty(self.variable_counter)
         for key, data in self.variables_dict.items():
@@ -2292,7 +2572,17 @@ class Problem:
         """
         self._solve_equations()
         self._update_residual_scales()
+        self._record_best_state()
         self._invert_jacobian()
+
+        if (
+                self.lin_dep and self.line_search == "stagnation"
+                and not self._line_search_active
+            ):
+            return True
+
+        if self.lin_dep and self._rescue_singular_step():
+            return True
 
         if self.lin_dep:
             self._diagnose_singularity()
@@ -2301,8 +2591,11 @@ class Problem:
         if self.oscillation_damping or self._auto_damping:
             self._dampen_oscillating_increments()
 
-        self._update_variables()
-        modified = self._adapt_to_variable_bounds()
+        if self._line_search_active:
+            modified = self._update_with_line_search()
+        else:
+            self._update_variables()
+            modified = self._adapt_to_variable_bounds()
         self._prev_residual = self.residual.copy()
         return modified
 

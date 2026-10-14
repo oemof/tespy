@@ -2492,7 +2492,7 @@ class Network:
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
               oscillation_damping=False, block_solve=True,
-              pause_on_block_failure=False):
+              pause_on_block_failure=False, line_search="stagnation"):
         r"""
         Solve the network.
 
@@ -2578,6 +2578,16 @@ class Network:
             :py:meth:`~tespy.networks.network.Network.solve_continue`
             retries the block and continues the solution process.
 
+        line_search : str
+            Globalization of the newton steps by a backtracking line search
+            on the scaled residual norm: :code:`"stagnation"` (default) runs
+            plain newton steps and, once the iteration stagnates or runs out
+            of iterations, the jacobian is singular or an equation evaluation
+            fails, returns to the state with the lowest residual and
+            continues with line search steps on a fresh budget of
+            :code:`max_iter` iterations. :code:`"always"` applies the line
+            search from the first iteration, :code:`"off"` disables it.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -2596,7 +2606,8 @@ class Network:
             print_results=print_results, robust_relax=robust_relax,
             skip_postprocess=skip_postprocess,
             oscillation_damping=oscillation_damping, block_solve=block_solve,
-            pause_on_block_failure=pause_on_block_failure
+            pause_on_block_failure=pause_on_block_failure,
+            line_search=line_search
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2691,7 +2702,8 @@ class Network:
     def solve_continue(self, max_iter=50, min_iter=2, use_cuda=False,
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
-                       block_solve=True, pause_on_block_failure=None):
+                       block_solve=True, pause_on_block_failure=None,
+                       line_search="stagnation"):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2743,7 +2755,8 @@ class Network:
                 oscillation_damping=oscillation_damping,
                 iterinfo=self.iterinfo, print_results=print_results,
                 block_solve=block_solve,
-                pause_on_block_failure=pause_on_block_failure
+                pause_on_block_failure=pause_on_block_failure,
+                line_search=line_search
             )
         except ValueError as e:
             self.status = 99

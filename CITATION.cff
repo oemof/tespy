@@ -46,43 +46,45 @@ authors:
     family-names: Freißmann
     alias: "@jfreissmann"
 
-  - alias: "@pjhansen"
+  - name: "@pjhansen"
 
-  - alias: "@tlmerbecks"
+  - name: "@tlmerbecks"
 
-  - alias: "@anmartens"
+  - name: "@anmartens"
 
   - given-names: Jorrit
     family-names: Wronski
     alias: "@jowr"
 
-  - alias: "@TimHoener"
+  - name: "@TimHoener"
 
-  - alias: "@Nzb0731"
+  - name: "@Nzb0731"
 
   - given-names: Jens
     family-names: Bücker
     alias: "@jbueck"
 
-  - alias: "@matbock"
+  - name: "@matbock"
 
-  - alias: "@stianchris"
+  - name: "@stianchris"
 
   - given-names: Sergio
     family-names: Tomasinelli
     alias: "@sertomas"
 
-  - alias: "@Vily-ipu"
+  - name: "@Vily-ipu"
 
-  - alias: "@ShuangChen88"
+  - name: "@ShuangChen88"
 
   - given-names: Uwe
     family-names: Krien
     alias: "@uvchik"
 
-  - alias: "@nkawerau"
+  - given-names: Nicolas
+    family-names: Kawerau
+    alias: "@nkawerau"
 
-  - alias: "@aburabazam"
+  - name: "@aburabazam"
 
   - given-names: Benjamin W.
     family-names: Portner
@@ -92,7 +94,7 @@ authors:
     family-names: Pedersen
     alias: "@dk-teknologisk-enp"
 
-  - alias: "@FranziPl"
+  - name: "@FranziPl"
 
   - given-names: Govind
     family-names: Menon
@@ -110,15 +112,17 @@ authors:
     family-names: Boussaid
     alias: "@tboussaid"
 
-  - alias: "@nilsstolze"
+  - name: "@nilsstolze"
 
-  - alias: "@lennipapa"
+  - given-names: Lennart
+    family-names: Papa
+    alias: "@lennipapa"
 
   - given-names: Jacob
     family-names: Østergaard Pedersen
     alias: "@JacobCHP"
 
-  - alias: "@pranaykasturi"
+  - name: "@pranaykasturi"
 
   - given-names: Konstantinos
     family-names: Papanikandros
@@ -127,7 +131,7 @@ authors:
     family-names: Datta
     alias: "@ronitd07"
 
-  - alias: "@Flefays"
+  - name: "@Flefays"
 
   - given-names: Yi
     family-names: Chen

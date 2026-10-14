@@ -1106,8 +1106,8 @@ class HeatExchanger(Component):
         # averages the temperature levels of all heat sources and sinks
         # coupled into a cycle, e.g. through a recuperator
         return [
-            (self.inl[0], self.outl[0], 0.0, 0.05),
-            (self.inl[1], self.outl[1], 0.0, 0.05),
+            (self.inl[0], self.outl[0], 0.0, 0.1),
+            (self.inl[1], self.outl[1], 0.0, 0.1),
             (self.outl[1], self.inl[0], ttd_upper, weight_upper),
             (self.inl[1], self.outl[0], ttd_lower, weight_lower),
         ]

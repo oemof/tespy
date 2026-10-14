@@ -694,6 +694,31 @@ class TestHeatExchangers:
         )
         assert np.isnan(instance.eff_hot.val), msg
 
+    def test_HeatExchanger_max_dh_at_saturation_temperature(self):
+        # the other stream's inlet temperature exactly at the saturation
+        # temperature leaves h(p, T) undetermined, the maximum enthalpy
+        # change is bounded by the fully condensed or evaporated state
+        nw = Network(iterinfo=False)
+        instance = HeatExchanger("heat exchanger")
+        c1 = Connection(Source("hot in"), "out1", instance, "in1")
+        c2 = Connection(instance, "out1", Sink("hot out"), "in1")
+        c3 = Connection(Source("cold in"), "out1", instance, "in2")
+        c4 = Connection(instance, "out2", Sink("cold out"), "in1")
+        nw.add_conns(c1, c2, c3, c4)
+        p_hot = 10e5
+        p_cold = 3e5
+        T_sat_hot = PSI("T", "P", p_hot, "Q", 0, "R134a")
+        T_sat_cold = PSI("T", "P", p_cold, "Q", 0, "R134a")
+        c1.set_attr(fluid={"R134a": 1}, m=1, p=p_hot, T=T_sat_cold)
+        c3.set_attr(fluid={"R134a": 1}, m=1, p=p_cold, T=T_sat_hot)
+        instance.set_attr(dp1=0, dp2=0)
+        nw.solve("design", init_only=True)
+
+        expected_hot = PSI("H", "P", p_hot, "Q", 0, "R134a") - c1.h.val_SI
+        expected_cold = PSI("H", "P", p_cold, "Q", 1, "R134a") - c3.h.val_SI
+        assert instance.calc_dh_max_hot(clip=True) == approx(expected_hot)
+        assert instance.calc_dh_max_cold(clip=True) == approx(expected_cold)
+
     def test_HeatExchanger_ttd_zero(self):
 
         instance = HeatExchanger('heat exchanger')

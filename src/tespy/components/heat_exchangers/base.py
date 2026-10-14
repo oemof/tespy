@@ -24,6 +24,8 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import T_sat_p
+from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
@@ -928,6 +930,30 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
+    @staticmethod
+    def _h_pT_bound(c, T, quality):
+        r"""Enthalpy at the pressure of a connection and a given temperature.
+
+        Exactly at the saturation temperature of a pure fluid the state is not
+        determined by pressure and temperature. As the bound of a maximum
+        enthalpy change, the fully condensed (hot side, :code:`quality=0`) or
+        fully evaporated state (cold side, :code:`quality=1`) is returned
+        there.
+        """
+        try:
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+        except ValueError:
+            fluid = single_fluid(c.fluid_data)
+            if fluid is None:
+                raise
+            p = c.p.val_SI
+            p_crit = c.fluid.wrapper[fluid]._p_crit
+            if p_crit is None or p >= p_crit:
+                raise
+            if abs(T - T_sat_p(p, c.fluid_data)) > 1e-2:
+                raise
+            return h_mix_pQ(p, quality, c.fluid_data)
+
     def calc_dh_max_cold(self, clip=False):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
 
@@ -956,9 +982,7 @@ class HeatExchanger(Component):
             T_in_hot = min(
                 max(T_in_hot, wrapper._T_min + 0.1), wrapper._T_max
             )
-        h_at_T_in_hot = h_mix_pT(
-            o2.p.val_SI, T_in_hot, o2.fluid_data, o2.mixing_rule
-        )
+        h_at_T_in_hot = self._h_pT_bound(o2, T_in_hot, quality=1)
         return h_at_T_in_hot - self.inl[1].h.val_SI
 
     def eff_cold_func(self):
@@ -1017,9 +1041,7 @@ class HeatExchanger(Component):
             T_in_cold = min(
                 max(T_in_cold, wrapper._T_min + 0.1), wrapper._T_max
             )
-        h_at_T_in_cold = h_mix_pT(
-            o1.p.val_SI, T_in_cold, o1.fluid_data, o1.mixing_rule
-        )
+        h_at_T_in_cold = self._h_pT_bound(o1, T_in_cold, quality=0)
         return h_at_T_in_cold - self.inl[0].h.val_SI
 
     def eff_hot_func(self):

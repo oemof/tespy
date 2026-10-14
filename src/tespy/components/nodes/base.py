@@ -68,6 +68,14 @@ class NodeBase(Component):
             ]
         return edges
 
+    def _flow_presolve_ignored_rows(self):
+        # mixing with positive mass flows cannot produce an outlet enthalpy
+        # outside the range of the inlet enthalpies
+        h_in = [c.h.val_SI for c in self.inl]
+        if all(min(h_in) - 1 <= c.h.val_SI <= max(h_in) + 1 for c in self.outl):
+            return []
+        return self._equation_rows("energy_balance_constraints")
+
     def _initial_temperature_edges(self):
         connections = self.inl + self.outl
         first = connections[0]

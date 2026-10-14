@@ -13,6 +13,7 @@ from time import time
 
 import numpy as np
 from numpy.linalg import norm
+from scipy.optimize import lsq_linear
 
 from tespy.connections.connection import ConnectionBase
 from tespy.solver.decomposition import dulmage_mendelsohn
@@ -24,6 +25,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import FLAT_ENTHALPY_DIFFERENCE
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
@@ -95,12 +97,9 @@ class Problem:
         """
         if self._decomposition is None:
             # variable mass fractions of one fluid vector are coupled through
-            # their normalization outside of the equation system, so they
-            # must stay within one block. Block-wise solving falls back to
-            # the simultaneous solution for variable compositions anyway -
-            # this grouping keeps the structural diagnostics (determination
-            # check, defective block reports, get_blocks) honest for such
-            # networks
+            # their normalization outside of the equation system, so they must
+            # stay within one block. Block-wise solving falls back to the
+            # simultaneous solution for variable compositions anyway
             coupled = {}
             for j_col, data in self.variables_dict.items():
                 if data["variable"] == "fluid":
@@ -1240,14 +1239,26 @@ class Problem:
         """Solve the flow variables on the completed property field.
 
         With pressures and enthalpies frozen at their starting values,
-        the equations determining the flows - mass balances, energy
-        balances, heat and power specifications, energy connector and
-        bus balances - are linear in the mass and energy flow
+        the structural equations determining the flows - mass balances,
+        energy balances, heat and power specifications, energy connector
+        and bus balances - are linear in the mass and energy flow
         variables. A single newton step restricted to those variables
-        therefore solves them exactly with respect to the guessed
-        property field, replacing the random mass flow starting values
-        by consistent levels and branch ratios. Seeded values stay
-        untouched. Returns the number of updated variables.
+        therefore solves them with respect to the guessed property field,
+        replacing the random mass flow starting values by consistent
+        levels and branch ratios. Seeded values stay untouched.
+
+        Equations depending on mass and energy flows only (e.g. the mass
+        balances of nodes) are exact and dominate that step, equations
+        evaluated on the guessed field only enter a least squares compromise
+        and no mass flow may drop below a tenth of its current value. Energy
+        balances whose mass flow coefficients, the enthalpy differences, are
+        flat on the guessed field carry no information on the flow and are left
+        out: the flows they would determine keep their propagated level instead
+        of being extrapolated. Component, connection and user defined equations
+        are treated alike; each object is evaluated on its own, so an equation
+        failing on the guessed values only drops its own rows.
+
+        Returns the number of updated variables.
         """
         columns = [
             key for key, data in self.variables_dict.items()
@@ -1273,6 +1284,9 @@ class Problem:
             if not column_set.isdisjoint(cols)
             and fluid_columns.isdisjoint(cols)
         ]
+        flow_only_rows = {
+            row for row in rows if self._is_flow_only_row(row)
+        }
         # approximate relations between the flows complement the retained rows
         # where the physical relation cannot enter the presolve, e.g. the air
         # to fuel proportion of combustion components. Without them the least
@@ -1283,6 +1297,9 @@ class Problem:
             self.variables_dict[col]["obj"]._val_SI for col in columns
         ])
         col_index = {col: idx for idx, col in enumerate(columns)}
+        mass_flow_cols = np.array([
+            self.variables_dict[col]["variable"] == "m" for col in columns
+        ])
         relation_rows = []
         relation_rhs = []
         for cp in self.network.comps["object"]:
@@ -1307,12 +1324,34 @@ class Problem:
                     relation_rows.append(row)
                     relation_rhs.append(rhs_value - row @ values)
 
-        if not rows and not relation_rows:
-            return 0
+        num = 0
+        if rows or relation_rows:
+            num = self._presolve_flow_step(
+                columns, values, rows, flow_only_rows, mass_flow_cols,
+                relation_rows, relation_rhs
+            )
+        return num
 
+    def _is_flow_only_row(self, row):
+        """Whether an equation depends on mass and energy flow variables only,
+        e.g. the mass balance of a node, a power bus balance or a heat
+        specification with known enthalpies. With pressures and enthalpies
+        frozen such an equation carries no error of the guessed property
+        field, it is exact information on the flows."""
+        cols = self._incidence_matrix.get(row, [])
+        return len(cols) > 0 and all(
+            self.variables_dict[col]["variable"] in ("m", "E") for col in cols
+        )
+
+    def _presolve_flow_step(
+            self, columns, values, rows, flow_only_rows, mass_flow_cols,
+            relation_rows, relation_rhs):
+        """Newton step for flow variables :py:meth:`presolve_flow_variables`."""
         matrix = np.zeros((0, len(columns)))
         rhs = np.zeros(0)
+        flow_only = np.zeros(0, dtype=bool)
         if rows:
+            # fresh solver arrays for a single evaluation of the equations
             n = self.variable_counter
             self.residual = np.zeros(n)
             self.jacobian = np.zeros((n, n))
@@ -1320,73 +1359,138 @@ class Problem:
             self.residual_scales = np.ones(n)
             self.variable_weights = np.ones(n)
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            try:
-                self._solve_equations()
-            except Exception as e:
-                # best effort pass: any failure of the evaluation on the g
-                # guessed values skips the flow presolve
-                msg = (
-                    "Skipping the flow variable presolve, the equation "
-                    f"evaluation on the starting values failed: {e}"
-                )
-                logger.debug(msg)
-                return 0
-            finally:
-                for obj in (
-                        self.network.comps["object"].tolist()
-                        + self.network.conns["object"].tolist()
-                    ):
+
+            # evaluate residuals and Jacobian object by object
+            objects = {
+                id(self._equation_obj_lookup[row]):
+                    self._equation_obj_lookup[row]
+                for row in rows
+            }
+            failed = set()
+            for key, obj in objects.items():
+                try:
+                    self._solve_equations(objects=[obj])
+                except Exception as e:
+                    msg = (
+                        f"Flow presolve leaves out the equations of "
+                        f"{obj.label}, their evaluation on the starting "
+                        f"values failed: {e}"
+                    )
+                    logger.debug(msg)
+                    failed.add(key)
+                finally:
                     obj.it = 0
 
+            # linearized system of the rows evaluated successfully
             rows = [
                 row for row in rows
-                if np.isfinite(self.residual[row])
+                if id(self._equation_obj_lookup[row]) not in failed
+                and np.isfinite(self.residual[row])
                 and np.isfinite(self.jacobian[row, columns]).all()
             ]
             matrix = self.jacobian[np.ix_(rows, columns)]
             rhs = -self.residual[rows]
+            flow_only = np.array(
+                [row in flow_only_rows for row in rows], dtype=bool
+            )
+            # the mass flow coefficients of an energy balance are enthalpy
+            # differences: a flat one (the propagation copied the enthalpy
+            # through that stream, or the temperature field guessed a few
+            # Kelvin) makes the flow of the other streams towards zero. This
+            # row is dropped and the flows keep their propagated level
+            incident = np.array([
+                [col in self._incidence_matrix[row] for col in columns]
+                for row in rows
+            ], dtype=bool).reshape(len(rows), len(columns))
+            incident_m = incident & mass_flow_cols
+            coefficients = np.where(incident_m, np.abs(matrix), np.inf)
+            # a row defining an energy flow (E = m * dh) stays: a small
+            # enthalpy difference means a small energy flow there and does not
+            # extrapolate the mass flow
+            defines_energy_flow = (incident & ~mass_flow_cols).any(axis=1)
+            flat = (
+                incident_m.any(axis=1) & ~defines_energy_flow
+                & (coefficients.min(axis=1) < FLAT_ENTHALPY_DIFFERENCE)
+            )
+            # a row proportional to a single flow, e.g. the energy balance of
+            # an internal heat exchanger carrying the same mass flow on both
+            # sides (homogeneous), only holds for a zero flow unless the
+            # guessed enthalpies balance exactly
+            linear_part = matrix @ values
+            homogeneous = (
+                (incident.sum(axis=1) == 1)
+                & (np.abs(-rhs - linear_part) <= 1e-6 * np.abs(linear_part))
+            )
+            # rows the components leave out on the guessed property field
+            ignored = set()
+            for cp in self.network.comps["object"]:
+                ignored.update(cp._flow_presolve_ignored_rows())
+            component_ignored = np.array(
+                [row in ignored for row in rows], dtype=bool
+            )
+            # rows of the physical equations entering the least squares
+            keep = flow_only | ~(flat | homogeneous | component_ignored)
+            # report the left out rows
+            for row, is_flat, is_homogeneous, is_component_ignored in zip(
+                    rows, flat, homogeneous, component_ignored
+                ):
+                if (
+                        (is_flat or is_homogeneous or is_component_ignored)
+                        and row not in flow_only_rows
+                    ):
+                    label, name = self._equation_lookup[row]
+                    if is_flat:
+                        reason = "flat enthalpy difference"
+                    elif is_homogeneous:
+                        reason = "proportional to a single flow"
+                    else:
+                        reason = "left out by its component on the guessed field"
+                    logger.debug(
+                        f"Flow presolve leaves out {label}.{name}: {reason}."
+                    )
+            matrix, rhs = matrix[keep], rhs[keep]
+            flow_only = flow_only[keep]
 
-        num_physical_rows = matrix.shape[0]
+        # append the approximate relations between flows
         if relation_rows:
             matrix = np.vstack([matrix] + relation_rows)
             rhs = np.append(rhs, relation_rhs)
+            flow_only = np.append(
+                flow_only, np.zeros(len(relation_rows), dtype=bool)
+            )
+        num_physical_rows = matrix.shape[0] - len(relation_rows)
 
-        # equilibrate the rows: energy balances live on a scale of watts,
-        # mass balances on kilograms per second - without normalization
-        # the least squares compromise would sacrifice the exact balances
-        # to the approximate energy rows
+        # normalization to cope with different magnitudes
         norms = np.linalg.norm(matrix, axis=1)
+        # rows with any nonzero coefficient, physical and relation rows
         keep = norms > 0
         if not keep.any():
             return 0
         matrix = matrix[keep] / norms[keep, None]
         rhs = rhs[keep] / norms[keep]
+        flow_only = flow_only[keep]
 
-        # after the row equilibration a relation would compromise equally with
-        # every physical row. The proportions are better information than the
-        # energy balances evaluated on the guessed property field, so they
-        # weigh in more heavily
+        # relations outweigh the physical rows of the guessed field
         relation_weight = 10.0
-        relation_rows = np.arange(len(keep))[keep] >= num_physical_rows
-        matrix[relation_rows] *= relation_weight
-        rhs[relation_rows] *= relation_weight
+        is_relation = np.arange(len(keep))[keep] >= num_physical_rows
+        matrix[is_relation] *= relation_weight
+        rhs[is_relation] *= relation_weight
 
-        delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
-        if not np.isfinite(delta).all():
-            return 0        # deliberately stay short of the exact solution of the linearized
-        # system: some models have degenerate jacobians exactly on the
-        # solution manifold of the flow equations (recirculation with a
-        # specified split ratio), the same way starting enthalpies are kept
-        # off the saturation lines
+        # solve the weighted, bounded least squares
+        delta = self._bounded_flow_step(
+            columns, values, matrix, rhs, flow_only
+        )
+        if delta is None or not np.isfinite(delta).all():
+            return 0
+        # deliberately stay short of the exact solution of the linearized
+        # system to avoid linear dependent Jacobian
         delta *= 0.9
 
+        # apply the step to the flow variables
         for col, increment in zip(columns, delta):
             data = self.variables_dict[col]
             value = data["obj"]._val_SI + float(increment)
-            # a previously positive mass flow crossing zero means the
-            # retained rows underdetermine this flow (e.g. a bare total
-            # mass balance distributing its correction arbitrarily) - it
-            # keeps a fraction of its previous value instead
+            # prevent negative mass flow
             if (
                     data["variable"] == "m" and data["obj"]._val_SI > 0
                     and value <= 0
@@ -1394,6 +1498,34 @@ class Problem:
                 value = data["obj"]._val_SI * 0.1
             data["obj"]._val_SI = value
         return len(columns)
+
+    def _bounded_flow_step(self, columns, values, matrix, rhs, flow_only):
+        """Least squares step on the flow variables.
+
+        Rows that depend on mass and energy flows only are exact and enter with
+        a large weight, the rows involving the guessed property field as they
+        are. A mass flow may not drop below a tenth of its current value: an
+        energy row inconsistent with the guessed field (e.g. a mixing outlet
+        enthalpy outside the range of its inlets) would otherwise drive the
+        flow negative, with the bound the remaining rows still set the flow
+        level.
+        """
+        weight = np.where(flow_only, 100.0, 1.0)
+        lower = np.array([
+            -0.9 * value
+            if self.variables_dict[col]["variable"] == "m" and value > 0
+            else -np.inf
+            for col, value in zip(columns, values)
+        ])
+        upper = np.full(len(columns), np.inf)
+        try:
+            result = lsq_linear(
+                matrix * weight[:, None], rhs * weight, bounds=(lower, upper),
+                lsmr_tol="auto"
+            )
+        except (ValueError, np.linalg.LinAlgError):
+            return None
+        return result.x
 
     def check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""

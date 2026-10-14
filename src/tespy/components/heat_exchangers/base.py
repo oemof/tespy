@@ -1122,6 +1122,15 @@ class HeatExchanger(Component):
             (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
         ]
 
+    def _flow_presolve_ignored_rows(self):
+        # with positive mass flows the energy balance only holds if the hot
+        # side cools and the cold side heats
+        dh_hot = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        dh_cold = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+        if dh_hot <= 0 <= dh_cold:
+            return []
+        return self._equation_rows("energy_balance_constraints")
+
     def _separate_flat_enthalpy_starts(self, seeded):
         # a side starting with equal enthalpies removes its mass flow from
         # the energy balance derivatives: nudge the free port apart in the

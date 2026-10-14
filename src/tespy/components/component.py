@@ -1001,6 +1001,29 @@ class Component:
         """
         return []
 
+    def _flow_presolve_ignored_rows(self):
+        r"""
+        Equations to leave out of the flow presolve of the starting values.
+
+        Called after the starting values of pressure and enthalpy are
+        complete. A component returns the solver equation numbers of those
+        of its equations that would carry misleading information on the mass
+        and energy flows when evaluated on the guessed property field.
+
+        Returns
+        -------
+        list
+            Solver equation numbers.
+        """
+        return []
+
+    def _equation_rows(self, constraint):
+        r"""Solver equation numbers of one of the component's constraints."""
+        return [
+            eq_num for eq_num, (name, _) in self._equation_lookup.items()
+            if name == constraint
+        ]
+
     def _separate_flat_enthalpy_starts(self, seeded):
         r"""
         Impose a minimum enthalpy difference on the starting values.

@@ -369,6 +369,7 @@ class NewtonStrategy:
         problem._auto_damping = False
         problem._line_search_active = problem.line_search == "always"
         problem._reset_best_state()
+        problem._rescue_iterations = 0
         budget = problem.max_iter
         block_iter = -1
         while block_iter < budget - 1:
@@ -401,7 +402,14 @@ class NewtonStrategy:
                     problem._start_line_search(variables)
                     budget = block_iter + 1 + problem.max_iter
                     continue
-                return 3
+                if not problem._rescue_singular_step(
+                        equations, variables, connections, components
+                    ):
+                    return 3
+                block.residual_history.append(
+                    float(problem.scaled_residual(equations).max())
+                )
+                continue
 
             if problem.oscillation_damping or problem._auto_damping:
                 problem._dampen_oscillating_increments()

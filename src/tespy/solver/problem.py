@@ -1916,7 +1916,10 @@ class Problem:
                         overrides[col] = step
         return overrides
 
-    def _rescue_singular_step(self):
+    def _rescue_singular_step(
+            self, equations=None, variables=None, connections=None,
+            components=None
+        ):
         """Continue from a singular Jacobian instead of aborting.
 
         A singular Jacobian in the middle of the iteration is mostly caused by
@@ -1932,8 +1935,13 @@ class Problem:
           Jacobian, which stays defined for a singular matrix. The iteration
           returns to plain newton steps as soon as the Jacobian is regular.
 
+        With :code:`equations` and :code:`variables` the rescue is restricted
+        to a block of the decomposition: only the block's ports are projected
+        and the damped step is computed from the block's jacobian.
+
         Returns whether the iteration can continue. The number of rescue
-        iterations per solve is limited by :code:`SINGULAR_RESCUE_ITERATIONS`.
+        iterations per solve or block is limited by
+        :code:`SINGULAR_RESCUE_ITERATIONS`.
         """
         if (
                 not self.singular_rescue
@@ -1942,11 +1950,15 @@ class Problem:
             return False
         # a structurally singular problem cannot be rescued numerically, its
         # diagnosis needs the unmodified first iteration
-        if self.iter == 0 and self._structural_summary() != "":
+        # the blocks of the decomposition have full structural rank
+        if (
+                equations is None and self.iter == 0
+                and self._structural_summary() != ""
+            ):
             return False
         self._rescue_iterations += 1
 
-        projected = self._project_declared_phases()
+        projected = self._project_declared_phases(connections, variables)
         if projected:
             self.lin_dep = False
             self.increment = np.zeros(self.variable_counter)
@@ -1958,7 +1970,7 @@ class Problem:
             logger.debug(msg)
             return True
 
-        if not self._damped_least_squares_step():
+        if not self._damped_least_squares_step(equations, variables):
             return False
         self.lin_dep = False
         msg = (
@@ -1968,25 +1980,34 @@ class Problem:
         logger.debug(msg)
         if self.oscillation_damping or self._auto_damping:
             self._dampen_oscillating_increments()
-        self._update_variables()
-        self._adapt_to_variable_bounds()
+        self._update_variables(
+            None if variables is None else set(variables)
+        )
+        self._adapt_to_variable_bounds(connections, components)
         self._prev_residual = self.residual.copy()
         # the step is not a newton step, the convergence check must not
         # accept on its increment
         return True
 
-    def _project_declared_phases(self):
+    def _project_declared_phases(self, connections=None, variables=None):
         """Move ports with a declared single phase out of the two phase
         region. Ports whose enthalpy is fixed by a specification relative to
         saturation are left to their own adjustment. Returns the labels of the
         projected connections."""
+        if connections is None:
+            connections = self.network.conns["object"]
+        columns = None if variables is None else set(variables)
         projected = []
         seen = set()
-        for c in self.network.conns["object"]:
+        for c in connections:
             if not hasattr(c, "_declared_state") or not c.h.is_var:
                 continue
             reference = c.h._reference_container
             if reference in seen:
+                continue
+            if columns is not None and (
+                    reference is None or reference.J_col not in columns
+                ):
                 continue
             if (
                     c.x.is_set or c.td_bubble.is_set or c.td_dew.is_set
@@ -2014,16 +2035,21 @@ class Problem:
             projected.append(c.label)
         return projected
 
-    def _damped_least_squares_step(self):
+    def _damped_least_squares_step(self, equations=None, variables=None):
         """Levenberg-Marquardt step on the scaled system, stored in
         :code:`self.increment`. Returns whether a finite step was found."""
-        jacobian = self.jacobian
+        if equations is None:
+            jacobian = self.jacobian
+            residual = self.residual
+        else:
+            jacobian = self.jacobian[np.ix_(equations, variables)]
+            residual = self.residual[equations]
         row_scales = np.abs(jacobian).max(axis=1)
         row_scales[row_scales == 0] = 1.0
         J_eq = jacobian / row_scales[:, None]
         col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
         J_sc = J_eq / col_scales[None, :]
-        r_eq = -self.residual / row_scales
+        r_eq = -residual / row_scales
         normal = J_sc.T @ J_sc
         damping = SINGULAR_RESCUE_DAMPING * max(np.trace(normal) / len(normal), 1e-12)
         try:
@@ -2035,7 +2061,11 @@ class Problem:
         increment = step / col_scales
         if not np.isfinite(increment).all():
             return False
-        self.increment = increment
+        if equations is None:
+            self.increment = increment
+        else:
+            self.increment = np.zeros(self.variable_counter)
+            self.increment[variables] = increment
         return True
 
     def _invert_jacobian(self, equations=None, variables=None):

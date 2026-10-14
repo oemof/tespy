@@ -110,8 +110,9 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         # the block solver converges this problem within two iterations, the
-        # maximum iteration stop is a mechanism of the simultaneous solution
-        self.nw.solve('design', max_iter=2, block_solve=False)
+        # maximum iteration stop is a mechanism of the simultaneous solution.
+        # The line search fallback would continue on a fresh budget
+        self.nw.solve('design', max_iter=2, block_solve=False, line_search="off")
         assert self.nw.status == 2
         msg = 'Test must result in the itercount being equal to max_iter.'
         assert self.nw.problem.max_iter == self.nw.problem.iter + 1, msg

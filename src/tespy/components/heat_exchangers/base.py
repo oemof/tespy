@@ -1101,11 +1101,13 @@ class HeatExchanger(Component):
         ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
         weight_lower = 5.0 if self.ttd_l.is_set else 0.3
         # asumption same side temperature does not change because we know
-        # nothing about duty at start. Between anchors least squares is then
-        # applied and the temperatures can shift
+        # nothing about duty at start. The weight is kept well below the
+        # terminal temperature differences, otherwise the least squares
+        # averages the temperature levels of all heat sources and sinks
+        # coupled into a cycle, e.g. through a recuperator
         return [
-            (self.inl[0], self.outl[0], 0.0, 1.0),
-            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.inl[0], self.outl[0], 0.0, 0.05),
+            (self.inl[1], self.outl[1], 0.0, 0.05),
             (self.outl[1], self.inl[0], ttd_upper, weight_upper),
             (self.inl[1], self.outl[0], ttd_lower, weight_lower),
         ]

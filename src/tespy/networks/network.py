@@ -926,41 +926,67 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def _init_connection_result_datastructure(self):
-
-        for conn_type in self.conns["conn_type"].unique():
-            if conn_type in self._results:
-                del self._results[conn_type]
-
-        for conn in self.conns["object"]:
-            conn_type = conn.__class__.__name__
-            # this will move somewhere else!
-            # set up results dataframe for connections
-            # this should be done based on the connections
-            if conn_type not in self._results:
-                cols = conn._get_result_cols(set(self.all_fluids))
-                self._results[conn_type] = pd.DataFrame(columns=cols, dtype='float64')
-
     def _init_components(self):
         r"""Set up necessary component information."""
-        for comp in self.comps["object"]:
-            source_mask = self.conns["source"] == comp
-            target_mask = self.conns["target"] == comp
+        # port ids are unique per component, see _check_connections
+        inlets = {comp: {} for comp in self.comps["object"]}
+        outlets = {comp: {} for comp in self.comps["object"]}
+        for conn in self.conns["object"]:
+            outlets[conn.source][conn.source_id] = conn
+            inlets[conn.target][conn.target_id] = conn
 
+        for comp in self.comps["object"]:
             comp.inl, comp.outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask, comp.inlets(), comp.outlets()
+                inlets[comp], outlets[comp], comp.inlets(), comp.outlets()
             )
             comp.power_inl, comp.power_outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask,
+                inlets[comp], outlets[comp],
                 comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
             )
-
             comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask,
+                inlets[comp], outlets[comp],
                 comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
             )
 
-            # set up results and specification dataframes
+    @staticmethod
+    def _resolve_comp_conn_domain(
+        inlets, outlets, inlet_ids, outlet_ids, conn_type=None
+    ):
+        """Return :code:`(inl, outl)` connection lists for one domain.
+
+        Parameters
+        ----------
+        inlets, outlets : dict
+            Connections attached to the component's inlet / outlet ports,
+            keyed by port ID.
+        inlet_ids, outlet_ids : list[str]
+            Port IDs returned by the component's :code:`*inlets()` / :code:`*outlets()`.
+        conn_type : str, optional
+            If given, further restrict to connections of this class name
+            (e.g. :code:`"PowerConnection"`).
+        """
+        def resolve(conns, port_ids):
+            return [
+                conns[port] for port in port_ids
+                if port in conns and (
+                    conn_type is None
+                    or conns[port].__class__.__name__ == conn_type
+                )
+            ]
+
+        return resolve(inlets, inlet_ids), resolve(outlets, outlet_ids)
+
+    def _ensure_result_frames(self):
+        """Create empty results DataFrames for types not holding results."""
+        for conn in self.conns["object"]:
+            conn_type = conn.__class__.__name__
+            if conn_type not in self._results:
+                cols = conn._get_result_cols(set(self.all_fluids))
+                self._results[conn_type] = pd.DataFrame(
+                    columns=cols, dtype="float64"
+                )
+
+        for comp in self.comps["object"]:
             comp_type = comp.__class__.__name__
             if comp_type not in self._results:
                 cols = [
@@ -969,40 +995,8 @@ class Network:
                     for c in [col, f"{col}_unit"]
                 ]
                 self._results[comp_type] = pd.DataFrame(
-                    columns=cols, dtype='float64'
+                    columns=cols, dtype="float64"
                 )
-
-    def _resolve_comp_conn_domain(
-        self, source_mask, target_mask, inlet_ids, outlet_ids, conn_type=None
-    ):
-        """Return :code:`(inl, outl)` connection lists for one domain.
-
-        Parameters
-        ----------
-        source_mask, target_mask : boolean Series
-            Rows in :code:`self.conns` where the component is source / target.
-        inlet_ids, outlet_ids : list[str]
-            Port IDs returned by the component's :code:`*inlets()` / :code:`*outlets()`.
-        conn_type : str, optional
-            If given, further restrict to rows whose :code:`conn_type` column
-            matches this class name (e.g. :code:`"PowerConnection"`).
-        """
-        if conn_type is not None:
-            type_mask = self.conns["conn_type"] == conn_type
-            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids) & type_mask]
-            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids) & type_mask]
-        else:
-            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
-            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
-
-        inlet_order = {port: i for i, port in enumerate(inlet_ids)}
-        outlet_order = {port: i for i, port in enumerate(outlet_ids)}
-        tgt_sorted = tgt["target_id"].sort_values(key=lambda s: s.map(inlet_order))
-        src_sorted = src["source_id"].sort_values(key=lambda s: s.map(outlet_order))
-        return (
-            self.conns.loc[tgt_sorted.index, "object"].tolist(),
-            self.conns.loc[src_sorted.index, "object"].tolist(),
-        )
 
     def _check_components(self):
         for comp in self.comps['object']:
@@ -1043,7 +1037,10 @@ class Network:
                 break
 
         self._propagate_fluid_wrappers()
-        self._init_connection_result_datastructure()
+        # the fluid composition may have changed, the frames are rebuilt
+        # lazily on access of the results
+        for conn_type in self.conns["conn_type"].unique():
+            self._results.pop(conn_type, None)
 
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
@@ -2821,11 +2818,13 @@ class Network:
     def results(self):
         if self._results_stale:
             self._build_results()
+        self._ensure_result_frames()
         return self._results
 
     def _build_results(self):
         """Build the results DataFrames from the last converged solution."""
         self._results_stale = False
+        self._ensure_result_frames()
         buckets = {}
         for c in self.conns['object']:
             conn_type = c.__class__.__name__

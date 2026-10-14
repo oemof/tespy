@@ -928,8 +928,14 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
-    def calc_dh_max_cold(self):
+    def calc_dh_max_cold(self, clip=False):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
+
+        Parameters
+        ----------
+        clip : bool
+            Clip the hot side inlet temperature to the property range of
+            the cold side fluid, used while solving the equations.
 
         Returns
         -------
@@ -942,6 +948,14 @@ class HeatExchanger(Component):
         """
         o2 = self.outl[1]
         T_in_hot = self.inl[0].calc_T()
+        fluid = single_fluid(o2.fluid_data)
+        if clip and fluid is not None:
+            # during iteration the hot side temperature may lie outside
+            # of the cold side fluid's property range
+            wrapper = o2.fluid.wrapper[fluid]
+            T_in_hot = min(
+                max(T_in_hot, wrapper._T_min + 0.1), wrapper._T_max
+            )
         h_at_T_in_hot = h_mix_pT(
             o2.p.val_SI, T_in_hot, o2.fluid_data, o2.mixing_rule
         )
@@ -962,7 +976,7 @@ class HeatExchanger(Component):
                 - \left( h_{out,2} - h_{in,2} \right)
         """
         return (
-            self.eff_cold.val_SI * self.calc_dh_max_cold()
+            self.eff_cold.val_SI * self.calc_dh_max_cold(clip=True)
             - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
         )
 
@@ -975,8 +989,14 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
-    def calc_dh_max_hot(self):
+    def calc_dh_max_hot(self, clip=False):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side
+
+        Parameters
+        ----------
+        clip : bool
+            Clip the cold side inlet temperature to the property range of
+            the hot side fluid, used while solving the equations.
 
         Returns
         -------
@@ -989,6 +1009,14 @@ class HeatExchanger(Component):
         """
         o1 = self.outl[0]
         T_in_cold = self.inl[1].calc_T()
+        fluid = single_fluid(o1.fluid_data)
+        if clip and fluid is not None:
+            # during iteration the cold side temperature may lie outside
+            # of the hot side fluid's property range
+            wrapper = o1.fluid.wrapper[fluid]
+            T_in_cold = min(
+                max(T_in_cold, wrapper._T_min + 0.1), wrapper._T_max
+            )
         h_at_T_in_cold = h_mix_pT(
             o1.p.val_SI, T_in_cold, o1.fluid_data, o1.mixing_rule
         )
@@ -1009,7 +1037,7 @@ class HeatExchanger(Component):
                 - \left( h_{out,1} - h_{in,1}\right)
         """
         return (
-            self.eff_hot.val_SI * self.calc_dh_max_hot()
+            self.eff_hot.val_SI * self.calc_dh_max_hot(clip=True)
             - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
 
@@ -1044,11 +1072,11 @@ class HeatExchanger(Component):
         """
         eff_hot = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / self.calc_dh_max_hot()
+            / self.calc_dh_max_hot(clip=True)
         )
         eff_cold = (
             (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            / self.calc_dh_max_cold()
+            / self.calc_dh_max_cold(clip=True)
         )
         return self.eff_max.val_SI - max(eff_hot, eff_cold)
 

@@ -1925,19 +1925,14 @@ class Problem:
         A singular Jacobian in the middle of the iteration is mostly caused by
         temperature based equations (terminal temperature differences,
         referenced temperatures) losing their enthalpy derivative because a
-        port moved into the two phase region. Two measures are tried from the
-        current iterate:
-
-        - Ports with a declared single phase that sit inside the two phase
-          region are projected back into their phase region. The next
-          iteration re-evaluates the equations at the projected state.
-        - Otherwise a damped least squares step is computed from the current
-          Jacobian, which stays defined for a singular matrix. The iteration
-          returns to plain newton steps as soon as the Jacobian is regular.
+        port moved into the two phase region. A damped least squares step is
+        computed from the current Jacobian, which stays defined for a
+        singular matrix. The iteration returns to plain newton steps as soon
+        as the Jacobian is regular.
 
         With :code:`equations` and :code:`variables` the rescue is restricted
-        to a block of the decomposition: only the block's ports are projected
-        and the damped step is computed from the block's jacobian.
+        to a block of the decomposition: the damped step is computed from the
+        block's jacobian and updates the block's variables only.
 
         Returns whether the iteration can continue. The number of rescue
         iterations per solve or block is limited by
@@ -1949,26 +1944,14 @@ class Problem:
             ):
             return False
         # a structurally singular problem cannot be rescued numerically, its
-        # diagnosis needs the unmodified first iteration
-        # the blocks of the decomposition have full structural rank
+        # diagnosis needs the unmodified first iteration. The blocks of the
+        # decomposition have full structural rank
         if (
                 equations is None and self.iter == 0
                 and self._structural_summary() != ""
             ):
             return False
         self._rescue_iterations += 1
-
-        projected = self._project_declared_phases(connections, variables)
-        if projected:
-            self.lin_dep = False
-            self.increment = np.zeros(self.variable_counter)
-            msg = (
-                "Singular jacobian: projected the enthalpy of "
-                f"{', '.join(projected)} out of the two phase region into "
-                "the declared phase, continuing."
-            )
-            logger.debug(msg)
-            return True
 
         if not self._damped_least_squares_step(equations, variables):
             return False
@@ -1988,52 +1971,6 @@ class Problem:
         # the step is not a newton step, the convergence check must not
         # accept on its increment
         return True
-
-    def _project_declared_phases(self, connections=None, variables=None):
-        """Move ports with a declared single phase out of the two phase
-        region. Ports whose enthalpy is fixed by a specification relative to
-        saturation are left to their own adjustment. Returns the labels of the
-        projected connections."""
-        if connections is None:
-            connections = self.network.conns["object"]
-        columns = None if variables is None else set(variables)
-        projected = []
-        seen = set()
-        for c in connections:
-            if not hasattr(c, "_declared_state") or not c.h.is_var:
-                continue
-            reference = c.h._reference_container
-            if reference in seen:
-                continue
-            if columns is not None and (
-                    reference is None or reference.J_col not in columns
-                ):
-                continue
-            if (
-                    c.x.is_set or c.td_bubble.is_set or c.td_dew.is_set
-                    or c.state.is_set
-                ):
-                continue
-            state = c._declared_state()
-            if state is None or state["phase"] not in ("liquid", "gas"):
-                continue
-            try:
-                result = c._h_for_state(state)
-            except (ValueError, KeyError, IndexError, NotImplementedError):
-                continue
-            if result is None:
-                continue
-            _, lower, upper = result
-            h = c.h.val_SI
-            if lower is not None and h < lower:
-                c.h.set_reference_val_SI(lower)
-            elif upper is not None and h > upper:
-                c.h.set_reference_val_SI(upper)
-            else:
-                continue
-            seen.add(reference)
-            projected.append(c.label)
-        return projected
 
     def _damped_least_squares_step(self, equations=None, variables=None):
         """Levenberg-Marquardt step on the scaled system, stored in

@@ -183,7 +183,7 @@ class HAConnection(Connection):
                 pass
         return False
 
-    def _refine_two_phase_guess(self, has_value=True):
+    def _refine_two_phase_guess(self, seeded=False):
         return False
 
     def _precalc_guess_values_for_references(self):

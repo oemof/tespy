@@ -1255,7 +1255,14 @@ class Connection(ConnectionBase):
         if two_phase and self.p.is_var:
             reference = self.p._reference_container
             if reference not in seeded:
-                p_sat = self._p_sat_for_T(T)
+                # a subcooled or superheated port sits at its specified
+                # distance from the saturation temperature
+                T_sat = T
+                if self.td_dew.is_set:
+                    T_sat = T - self.td_dew.val_SI
+                elif self.td_bubble.is_set:
+                    T_sat = T + self.td_bubble.val_SI
+                p_sat = self._p_sat_for_T(T_sat)
                 if p_sat is not None:
                     self.p.set_reference_val_SI(p_sat)
                     covered.add(reference)
@@ -1462,7 +1469,10 @@ class Connection(ConnectionBase):
                     h_sources.append(reference)
             # with a known pressure the two phase specifications generate
             # an enthalpy at the dome on their own
-            if self._refine_two_phase_guess(has_value=reference in covered):
+            seeded = (
+                self.good_starting_values or not np.isnan(self.h.val0)
+            )
+            if self._refine_two_phase_guess(seeded=seeded):
                 covered.add(reference)
                 if reference not in h_sources:
                     h_sources.append(reference)
@@ -1569,45 +1579,93 @@ class Connection(ConnectionBase):
                     elif upper is not None and self.h.val_SI > upper:
                         self.h.set_reference_val_SI(upper)
 
-        self._refine_two_phase_guess()
+        if self.h.is_var:
+            self._refine_two_phase_guess(
+                seeded=self.h._reference_container in seeded
+            )
 
         for key, variable in self.get_variables().items():
             if variable.is_var and np.isnan(variable.val0):
                 variable.set_val0_from_SI(units)
 
-    def _refine_two_phase_guess(self, has_value=True):
-        # starting values for specified quality, specified subcooling/overheating
-        # and state specification. These should be recalculated even with
-        # good starting values, for example, when one exchanges enthalpy
-        # with boiling point temperature difference. Without a present value
-        # the dome itself is the guess. Returns whether a value was assigned.
+    def _refine_two_phase_guess(self, seeded=False):
+        """Enthalpy starting value from a specification relative to
+        saturation (:code:`td_dew`, :code:`td_bubble`, :code:`state`).
+
+        The specification determines a target state at the current pressure:
+        at the specified distance from the saturation temperature for a non
+        zero temperature difference, just outside the two phase region on the
+        implied side otherwise. A seeded enthalpy (user value, previous
+        solution, :code:`init_path`) is kept while it lies on the implied side
+        of the two phase region, every other enthalpy is set to the target.
+        This is recalculated on every start, so a changed specification takes
+        effect even with good starting values.
+
+        Parameters
+        ----------
+        seeded : bool
+            Whether the enthalpy comes from a user value or a previous
+            solution.
+
+        Returns
+        -------
+        bool
+            Whether a value was assigned.
+        """
         if not self.h.is_var:
             return False
+        side = self._saturation_side()
+        if side is None:
+            return False
 
-        if (self.state.is_set or self.td_dew.is_set or self.td_bubble.is_set):
-            fluid = fp.single_fluid(self.fluid_data)
-            if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
-            if (
-                    (self.state.val == 'g' and self.state.is_set)
-                    or (self.td_dew.val_SI >= 0 and self.td_dew.is_set)
-                    or (self.td_bubble.val_SI < 0 and self.td_bubble.is_set)
-                ):
-                h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
-                if not has_value or self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
-                    return True
+        fluid = fp.single_fluid(self.fluid_data)
+        if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+            self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
 
-            elif (
-                    (self.state.val == 'l' and self.state.is_set)
-                    or (self.td_bubble.val_SI >= 0 and self.td_bubble.is_set)
-                    or (self.td_dew.val_SI < 0 and self.td_dew.is_set)
-                ):
-                h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
-                if not has_value or self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
-                    return True
-        return False
+        p = self.p.val_SI
+        try:
+            h_edge = fp.h_mix_pQ(p, 1 if side == "gas" else 0, self.fluid_data)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return False
+
+        def on_side(h):
+            return h > h_edge if side == "gas" else h < h_edge
+
+        if seeded and on_side(self.h.val_SI):
+            return False
+
+        target = self._h_from_td_specification()
+        if target is None or not on_side(target):
+            target = h_edge + 1e3 if side == "gas" else h_edge - 1e3
+        self.h.set_reference_val_SI(target)
+        return True
+
+    def _saturation_side(self):
+        """Side of the two phase region a saturation relative specification
+        implies, :code:`"gas"`, :code:`"liquid"` or None."""
+        if self.state.is_set:
+            return "gas" if self.state.val == "g" else "liquid"
+        if self.td_dew.is_set:
+            return "gas" if self.td_dew.val_SI >= 0 else "liquid"
+        if self.td_bubble.is_set:
+            return "liquid" if self.td_bubble.val_SI >= 0 else "gas"
+        return None
+
+    def _h_from_td_specification(self):
+        """Enthalpy at the specified temperature difference to the dew or
+        bubble temperature at the current pressure guess, or None for a zero
+        difference, no such specification or a failed property call."""
+        p = self.p.val_SI
+        try:
+            if self.td_dew.is_set and self.td_dew.val_SI != 0:
+                T = T_dew_p(p, self.fluid_data) + self.td_dew.val_SI
+            elif self.td_bubble.is_set and self.td_bubble.val_SI != 0:
+                T = T_bubble_p(p, self.fluid_data) - self.td_bubble.val_SI
+            else:
+                return None
+            return fp.h_mix_pT(p, T, self.fluid_data, self.mixing_rule)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return None
 
     def _precalc_guess_values_for_references(self):
         """precalculate starting values for specified temperature

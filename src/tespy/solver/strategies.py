@@ -21,10 +21,6 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
-# blocks with at least this many equations report every iteration like
-# the full system does
-ITERINFO_BLOCK_SIZE = 10
-
 
 def scalar_residual_closure(problem, row, col):
     """Build an evaluator of equation row over variable col.
@@ -372,9 +368,10 @@ class NewtonStrategy:
                 problem._equation_obj_lookup[eq] for eq in block.equations
             ))
         label = "the full system" if full else f"block {block.id}"
-        verbose = iterinfo and (
-            full or len(block.equations) >= ITERINFO_BLOCK_SIZE
-        )
+        # the iteration progress is reported when the block is the whole
+        # system: the full block, a decomposition with a single block or the
+        # remainder after a failed first block
+        verbose = iterinfo and len(block.equations) == problem.variable_counter
 
         problem._reset_iteration_counters(equation_objects)
         problem._reset_attempt_state(cols)

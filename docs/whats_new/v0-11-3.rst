@@ -16,6 +16,13 @@ New Features
 - New :py:class:`~tespy.components.nodes.equilibrium_separator.EquilibriumSeparator`
   component: a phase separator that also handles single phase inlet states
   (`PR #1036 <https://github.com/oemof/tespy/pull/1036>`__).
+- A Newton iteration that fails returns to the state with the lowest scaled
+  residual and continues with a backtracking line search instead. Converging
+  calculations are not affected. The behavior is controlled by the new
+  :code:`line_search` argument of
+  :py:meth:`~tespy.networks.network.Network.solve`: :code:`"stagnation"`
+  (default), :code:`"always"` or :code:`"off"`
+  (`PR #1094 <https://github.com/oemof/tespy/pull/1094>`__).
 
 Bug Fixes
 #########
@@ -83,6 +90,9 @@ Bug Fixes
 
 Other Changes
 #############
+- A singular Jacobian during no longer aborts the calculation immediately.
+  Instead a dampened step (Levenberg-Marquardt) is performed
+  (`PR #1094 <https://github.com/oemof/tespy/pull/1094>`__).
 - Saved and exported data contain a :code:`meta` block (kind, format and tespy
   version, git commit, timestamp), which is checked on load for clear errors
   (`PR #1088 <https://github.com/oemof/tespy/pull/1088>`__).

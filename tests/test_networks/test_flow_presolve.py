@@ -305,3 +305,40 @@ def test_three_zone_condenser_converges_without_starting_values():
     assert sum(c.m.val_SI for c in a_in) == approx(1.6)
     assert all(c.m.val_SI > 0 for c in a_in)
     assert r1.p.val_SI == approx(9.49e5, rel=2e-2)
+
+def _counterflow_problem():
+    nw = _network()
+    he = HeatExchanger("heat exchanger")
+    c1 = Connection(Source("hot in"), "out1", he, "in1", label="1")
+    c2 = Connection(he, "out1", Sink("hot out"), "in1", label="2")
+    c3 = Connection(Source("cold in"), "out1", he, "in2", label="3")
+    c4 = Connection(he, "out2", Sink("cold out"), "in1", label="4")
+    nw.add_conns(c1, c2, c3, c4)
+    c1.set_attr(fluid={"water": 1}, T=80, p=2, m=1)
+    c3.set_attr(fluid={"water": 1}, T=20, p=2)
+    he.set_attr(dp1=0, dp2=0, Q=-1e5, kA=5000)
+    nw.solve("design", init_only=True)
+    problem = nw._problem
+    problem._solve_equations()
+    return problem
+
+
+def test_damped_least_squares_step_restricted_to_all_equations_is_the_full_step():
+    problem = _counterflow_problem()
+    assert problem._damped_least_squares_step()
+    full = problem.increment.copy()
+    rows = list(range(problem.variable_counter))
+    assert problem._damped_least_squares_step(rows, rows)
+    assert problem.increment == approx(full)
+
+
+def test_damped_least_squares_step_of_a_block_leaves_other_variables():
+    problem = _counterflow_problem()
+    block = problem.decompose().blocks[-1]
+    assert problem._damped_least_squares_step(block.equations, block.variables)
+    others = [
+        col for col in range(problem.variable_counter)
+        if col not in block.variables
+    ]
+    assert (problem.increment[others] == 0).all()
+    assert (problem.increment[block.variables] != 0).any()

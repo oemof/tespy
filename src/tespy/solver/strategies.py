@@ -9,16 +9,12 @@ available from its original location tespy/solver/strategies.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
-from numpy.linalg import norm
 from scipy.optimize import brentq
 
-from tespy.components.component import Component
-from tespy.connections.connection import ConnectionBase
 from tespy.solver.decomposition import Block
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.global_vars import ERR
-from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
 
@@ -296,8 +292,8 @@ class NewtonStrategy:
                 )
                 block.failure_cause = (
                     "no acceptance within the iteration budget of "
-                    f"{problem.max_iter} iterations, the last scaled "
-                    f"residual is {residual:.2e}"
+                    f"{problem.max_iter} iterations, the last scaled residual "
+                    f"is {residual:.2e}"
                 )
             else:
                 block.failure_cause = None
@@ -607,9 +603,8 @@ class BlockDriver:
                 )
                 var_str = ", ".join(block.variable_labels)
                 msg = (
-                    f"Block {block.id} did not converge, solving the "
-                    f"remaining {num_blocks - position} blocks "
-                    "simultaneously.\n"
+                    f"Block {block.id} did not converge, solving remaining "
+                    f"{num_blocks - position} blocks simultaneously.\n"
                     f"  Cause: {block.failure_cause}\n"
                     f"  Equations: {eq_str}\n"
                     f"  Variables: {var_str}"
@@ -785,9 +780,6 @@ class BlockDriver:
             logger.info(msg)
             return False
 
-        msg = (
-            "Block solution verified, global residual "
-            f"{residual_norm:.2e}."
-        )
+        msg = f"Block solution verified, global residual {residual_norm:.2e}."
         logger.debug(msg)
         return True

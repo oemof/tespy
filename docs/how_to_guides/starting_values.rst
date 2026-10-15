@@ -131,8 +131,8 @@ problem it fails on and reports it, in this case it looked like this:
           Variables: h0, h1, h4, m6, h7, p11
         The remaining system did not converge either, restarting with the
         simultaneous solution of the full system from its initial state.
-        The solver does not seem to make any progress, aborting calculation.
-        Scaled residual value is 1.86e-02 (1: x)
+        The calculation did not converge, the last scaled residual is
+        1.86e-02 (1: x).
         Possible reasons include:
          - fluid properties moving outside the valid range of the property
            database (consider adjusting p_range or h_range),

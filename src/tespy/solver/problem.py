@@ -16,8 +16,10 @@ from numpy.linalg import norm
 from scipy.optimize import lsq_linear
 
 from tespy.connections.connection import ConnectionBase
+from tespy.solver.decomposition import Block
 from tespy.solver.decomposition import dulmage_mendelsohn
 from tespy.solver.strategies import BlockDriver
+from tespy.solver.strategies import NewtonStrategy
 from tespy.solver.strategies import search_reducing_step
 from tespy.solver.structure import StructureGraph
 from tespy.tools import helpers as hlp
@@ -1665,116 +1667,101 @@ class Problem:
         self.end_time = time()
 
     def _solve_simultaneous(self, iterinfo, print_results=True):
-        if iterinfo:
-            self._print_iterinfo_head(print_results)
-
-        self._auto_damping = False
-        self._rescue_iterations = 0
-        self._line_search_active = self.line_search == "always"
-        self._reset_best_state()
-        budget = self.max_iter
-        self.iter = -1
-        while self.iter < budget - 1:
-            self.iter += 1
-            self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            fallback = (
-                self.line_search == "stagnation"
-                and not self._line_search_active
-            )
-            try:
-                modified = self._solve_iteration()
-            except hlp.TESPyNetworkError:
-                raise
-            except Exception:
-                if not fallback:
-                    raise
-                self._start_line_search()
-                budget = self.iter + 1 + self.max_iter
-                continue
-            self.residual_history = np.append(
-                self.residual_history, self.scaled_residual().max()
-            )
-            if (
-                    self.iter >= 3 and not self._auto_damping
-                    and self._detect_residual_oscillation(
-                        self.residual_history[-4:]
-                    )
-                ):
-                self._auto_damping = True
-                msg = (
-                    "The residual norm alternates between two values, "
-                    "dampening the oscillating increments."
-                )
-                logger.debug(msg)
-            if iterinfo:
-                self._print_iterinfo_body(print_results)
-
-            stagnation = self.iter > 40 and (
-                all(
-                    self.residual_history[(self.iter - 3):]
-                    >= self.residual_history[-3] * 0.95
-                )
-                and self.residual_history[-1]
-                >= self.residual_history[-2] * 0.95
-            )
-            if fallback and (
-                    self.lin_dep or stagnation or self.iter == budget - 1
-                ):
-                self._start_line_search()
-                budget = self.iter + 1 + self.max_iter
-                continue
-
-            if self.lin_dep:
-                self.status = 3
-                break
-
-            elif stagnation:
-                self.status = 2
-                break
-
-            # accept once two consecutive residuals and the increment are
-            # small in an iteration without interference of the value
-            # heuristics
-            if (
-                    self.iter >= self.min_iter - 1
-                    and not modified
-                    and (
-                        self.residual_history[-2:]
-                        < SCALED_RESIDUAL_TOLERANCE
-                    ).all()
-                    # the increment should also be small, but it does not need
-                    # to be that small
-                    and (
-                        abs(self.increment) / self.variable_weights
-                        < SCALED_INCREMENT_TOLERANCE
-                    ).all()
-                ):
-                self.status = 0
-                break
-
+        """Solve the full system as a single block."""
+        block = self._full_block()
+        self.status = NewtonStrategy().solve(
+            self, block, iterinfo, print_results
+        )
+        self.residual_history = np.append(
+            self.residual_history, block.residual_history
+        )
         self.end_time = time()
-
         if iterinfo:
             self._print_iterinfo_tail(print_results)
 
-        if self.iter == budget - 1:
-            msg = (
-                f"Reached maximum iteration count ({self.max_iter}), "
-                "calculation stopped. Scaled residual value is "
-                "{:.2e}{}. ".format(
-                    self.scaled_residual().max(),
-                    self._worst_equation_hint()
-                ) +
-                "\nPossible reasons include:\n"
-                " - fluid properties moving outside the valid range of the "
-                "property database (consider adjusting p_range or h_range),\n"
-                " - an impossible constraint that can never be satisfied \n"
-                " - bad starting values causing the Newton solver to diverge.\n"
-                "Use nw.print_residuals() to identify which equations have "
-                "the largest residuals."
-            )
-            logger.warning(msg)
-            self.status = 2
+    def _full_block(self):
+        """The full equation system in the shape of a decomposition block."""
+        n = self.variable_counter
+        return Block(
+            id=-1, kind="full", equations=list(range(n)),
+            variables=list(range(n))
+        )
+
+    def _all_objects(self):
+        return (
+            self.network.comps["object"].tolist()
+            + self.network.conns["object"].tolist()
+            + list(self.network.user_defined_eq.values())
+        )
+
+    def _block_owners(self, block):
+        """Objects owning the equations or the variables of a block."""
+        owners = {self._equation_obj_lookup[eq] for eq in block.equations}
+        for col in block.variables:
+            for sm_col in self.variables_dict[col]["_represents"]:
+                owners.add(self._variable_lookup[sm_col]["object"])
+        return owners
+
+    def _reset_iteration_counters(self, objects=None):
+        # stabilization measures of the equations are staged on the objects'
+        # iteration counters, every solution attempt starts a fresh count
+        for obj in self._all_objects() if objects is None else objects:
+            obj.it = 0
+
+    def _reset_attempt_state(self, variables=None):
+        """Fresh solver state for a solution attempt of a block or the full
+        system. The increment is seeded so the increment filter does not
+        suppress the first derivative evaluation."""
+        if variables is None:
+            self.increment = np.ones(self.variable_counter)
+        else:
+            self.increment[variables] = 1
+        self._prev_residual = None
+        self._auto_damping = False
+        self._line_search_active = self.line_search == "always"
+        self._rescue_iterations = 0
+        self._reset_best_state()
+
+    def _fallback_available(self):
+        return (
+            self.line_search == "stagnation" and not self._line_search_active
+        )
+
+    def _accepts(self, history, variables=None):
+        """Convergence acceptance on the scaled residual history.
+
+        At least one newton update must have been applied before the
+        residual evaluation. A deeply converged residual is accepted right
+        away (exactly solved blocks), otherwise two consecutive small
+        residuals are required, forcing another newton iteration while
+        convergence is still in progress. The increment must be small as
+        well, but it does not need to be that small.
+        """
+        if self.iter < max(1, self.min_iter - 1):
+            return False
+        deep = history[-1] < SCALED_RESIDUAL_TOLERANCE ** 2
+        confirmed = (
+            len(history) >= 2 and max(history[-2:]) < SCALED_RESIDUAL_TOLERANCE
+        )
+        if not (deep or confirmed):
+            return False
+        increment = self.increment
+        weights = self.variable_weights
+        if variables is not None:
+            increment = increment[variables]
+            weights = weights[variables]
+        return bool(
+            (np.abs(increment) / weights < SCALED_INCREMENT_TOLERANCE).all()
+        )
+
+    def _stagnating(self, history):
+        """The scaled residual has not dropped by 5 % over the last three
+        iterations of a long iteration."""
+        return (
+            self.iter > 40 and len(history) >= 4
+            and all(h >= history[-3] * 0.95 for h in history[-4:])
+            and history[-1] >= history[-2] * 0.95
+        )
 
     def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
@@ -1916,26 +1903,19 @@ class Problem:
                         overrides[col] = step
         return overrides
 
-    def _rescue_singular_step(
-            self, equations=None, variables=None, connections=None,
-            components=None
-        ):
-        """Continue from a singular Jacobian instead of aborting.
+    def _singular_step(self, equations=None, variables=None):
+        """Damped least squares increment for a singular jacobian.
 
         A singular Jacobian in the middle of the iteration is mostly caused by
         temperature based equations (terminal temperature differences,
         referenced temperatures) losing their enthalpy derivative because a
-        port moved into the two phase region. A damped least squares step is
-        computed from the current Jacobian, which stays defined for a
-        singular matrix. The iteration returns to plain newton steps as soon
-        as the Jacobian is regular.
+        port moved into the two phase region. The damped step stays defined
+        for a singular matrix, the iteration returns to plain newton steps as
+        soon as the Jacobian is regular.
 
-        With :code:`equations` and :code:`variables` the rescue is restricted
-        to a block of the decomposition: the damped step is computed from the
-        block's jacobian and updates the block's variables only.
-
-        Returns whether the iteration can continue. The number of rescue
-        iterations per solve or block is limited by
+        Returns whether an increment was computed, applying it is left to
+        the caller so it takes the same route as a newton step. The number
+        of such steps per solution attempt is limited by
         :code:`SINGULAR_RESCUE_ITERATIONS`.
         """
         if (
@@ -1948,11 +1928,10 @@ class Problem:
         # decomposition have full structural rank
         if (
                 equations is None and self.iter == 0
-                and self._structural_summary() != ""
+                and self.decompose().defective_blocks
             ):
             return False
         self._rescue_iterations += 1
-
         if not self._damped_least_squares_step(equations, variables):
             return False
         self.lin_dep = False
@@ -1961,26 +1940,21 @@ class Problem:
             "from the current iterate."
         )
         logger.debug(msg)
-        if self.oscillation_damping or self._auto_damping:
-            self._dampen_oscillating_increments()
-        self._update_variables(
-            None if variables is None else set(variables)
-        )
-        self._adapt_to_variable_bounds(connections, components)
-        self._prev_residual = self.residual.copy()
-        # the step is not a newton step, the convergence check must not
-        # accept on its increment
         return True
 
     def _damped_least_squares_step(self, equations=None, variables=None):
-        """Levenberg-Marquardt step on the scaled system, stored in
-        :code:`self.increment`. Returns whether a finite step was found."""
+        """
+        Increment calculated by Levenberg-Marquardt step on the scaled system.
+        """
+        # simultaneous
         if equations is None:
             jacobian = self.jacobian
             residual = self.residual
+        # block
         else:
             jacobian = self.jacobian[np.ix_(equations, variables)]
             residual = self.residual[equations]
+
         row_scales = np.abs(jacobian).max(axis=1)
         row_scales[row_scales == 0] = 1.0
         J_eq = jacobian / row_scales[:, None]
@@ -2006,7 +1980,7 @@ class Problem:
         return True
 
     def _invert_jacobian(self, equations=None, variables=None):
-        """Compute Newton step, storing result in self.increment. Sets self.lin_dep."""
+        """Compute Newton step and store result in self.increment."""
         self.lin_dep = False
         self.increment = self.residual * 0
         if len(self.variables_dict) == 0:
@@ -2053,12 +2027,9 @@ class Problem:
     def _check_residual_and_jacobian_for_nan(self, equations=None):
         """Raise an informative error if a NaN or inf entry is found.
 
-        A single NaN in the residual or Jacobian typically contaminates the
-        whole solution vector once the linear system is solved, so the bad
-        value has to be located here, before the solve, to be able to point
-        at the equation that produced it. Otherwise it propagates silently
-        into the next iteration's variable values and only surfaces several
-        iterations later as an unrelated and confusing error.
+        NaN or inf in the residual or Jacobian breaks the whole solution vector
+        This helps to identify the respective equation and prevents surfacing
+        of a otherwise difficult to understand error masses downstream.
         """
         if equations is None:
             nan_rows = set(np.where(~np.isfinite(self.residual))[0])
@@ -2077,28 +2048,26 @@ class Problem:
             for lbl, eq_name in self._get_equations_by_number(nan_rows).values()
         )
         msg = (
-            "The residual or one of the partial derivatives of the "
-            f"following equation(s) is NaN or inf: {eq_str}. Please check "
-            "the inputs to and the implementation of these equations, e.g. "
-            "a UserDefinedEquation."
+            "The residual or one of the partial derivatives of the following "
+            f"equation(s) is NaN or inf: {eq_str}. Please check the inputs to "
+            "and the implementation of these equations."
         )
         logger.error(msg)
         raise hlp.TESPyNetworkError(msg)
 
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""
-        if self.iter == 0:
-            summary = self._structural_summary()
-            if summary != "":
-                self.singularity_msg = (
-                    "Detected singularity in Jacobian matrix. This "
-                    "singularity is caused by the structure of your problem "
-                    "and NOT a numerical issue. Double check your setup."
-                    f"{summary}\nUse nw.print_structural_analysis() for the "
-                    "affected equations and variables.\n"
-                )
-                self._find_linear_dependencies(self.jacobian)
-                return
+        if self.iter == 0 and self.decompose().defective_blocks:
+            self.singularity_msg = (
+                "Detected singularity in Jacobian matrix. This "
+                "singularity is caused by the structure of your problem "
+                "and NOT a numerical issue. Double check your setup."
+                f"{self._structural_summary()}\nUse "
+                "nw.print_structural_analysis() for the affected equations "
+                "and variables.\n"
+            )
+            self._find_linear_dependencies(self.jacobian)
+            return
 
         if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
             self.singularity_msg = (
@@ -2299,17 +2268,12 @@ class Problem:
             "continuing with a backtracking line search."
         )
         logger.debug(msg)
-        if self._best_state is not None:
-            self._restore_variables(self._best_state)
+        best = self._best_state
+        self._reset_attempt_state(variables)
+        if best is not None:
+            self._restore_variables(best)
         self._line_search_active = True
-        self._auto_damping = False
-        self._prev_residual = None
         self.lin_dep = False
-        if variables is None:
-            self.increment = np.ones(self.variable_counter)
-        else:
-            self.increment[variables] = 1
-        self._reset_best_state()
 
     def _merit(self, equations=None):
         if equations is None:
@@ -2331,11 +2295,7 @@ class Problem:
         modified any value.
         """
         if objects is None:
-            objects = (
-                self.network.comps["object"].tolist()
-                + self.network.conns["object"].tolist()
-                + list(self.network.user_defined_eq.values())
-            )
+            objects = self._all_objects()
         start = self._snapshot_variables()
         residual = self.residual.copy()
         counters = [obj.it for obj in objects]
@@ -2527,45 +2487,6 @@ class Problem:
                 )
                 logger.debug(msg)
 
-    def _solve_iteration(self):
-        r"""
-        Control iteration step of the newton algorithm.
-
-        - Calculate the residual value for each equation
-        - Calculate the jacobian matrix
-        - Calculate new values for variables
-        - Restrict fluid properties to value ranges
-        - Check component parameters for consistency
-        """
-        self._solve_equations()
-        self._update_residual_scales()
-        self._record_best_state()
-        self._invert_jacobian()
-
-        if (
-                self.lin_dep and self.line_search == "stagnation"
-                and not self._line_search_active
-            ):
-            return True
-
-        if self.lin_dep and self._rescue_singular_step():
-            return True
-
-        if self.lin_dep:
-            self._diagnose_singularity()
-            return True
-
-        if self.oscillation_damping or self._auto_damping:
-            self._dampen_oscillating_increments()
-
-        if self._line_search_active:
-            modified = self._update_with_line_search()
-        else:
-            self._update_variables()
-            modified = self._adapt_to_variable_bounds()
-        self._prev_residual = self.residual.copy()
-        return modified
-
     def _update_residual_scales(self):
         """Per equation scales from the current jacobian.
 
@@ -2595,14 +2516,7 @@ class Problem:
         r"""
         Calculate the residual and derivatives of all equations.
         """
-        if objects is None:
-            to_solve = (
-                self.network.comps["object"].tolist()
-                + self.network.conns["object"].tolist()
-                + list(self.network.user_defined_eq.values())
-            )
-        else:
-            to_solve = objects
+        to_solve = self._all_objects() if objects is None else objects
 
         if residual_only:
             for obj in to_solve:
@@ -2840,10 +2754,13 @@ class Problem:
     def _connection_states(self, block):
         """Collect the state of every connection the block touches."""
         columns = set(block.variables)
-        objects = [self._equation_obj_lookup[eq] for eq in block.equations]
-        for col in block.variables:
-            for sm_col in self.variables_dict[col]["_represents"]:
-                objects.append(self._variable_lookup[sm_col]["object"])
+        owners = self._block_owners(block)
+        network = self.network
+        objects = [
+            o for o in
+            network.conns["object"].tolist() + network.comps["object"].tolist()
+            if o in owners
+        ]
 
         states = []
         seen = set()

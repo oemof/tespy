@@ -21,6 +21,10 @@ from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
+# blocks with at least this many equations report every iteration like
+# the full system does
+ITERINFO_BLOCK_SIZE = 10
+
 
 def scalar_residual_closure(problem, row, col):
     """Build an evaluator of equation row over variable col.
@@ -275,18 +279,16 @@ class NewtonStrategy:
     solution attempt.
     """
 
-    def solve(self, problem, block):
+    def solve(self, problem, block, iterinfo=False, print_results=True):
         """Solve the block and return its status (0, 2 or 3)."""
+        full = block.kind == "full"
         # the value heuristics can modify variables outside of the block -
         # other properties of the block's connections - so a failed attempt
         # must restore the full variable state to be side effect free
-        snapshot = {
-            col: hlp.get_variable_value(data)
-            for col, data in problem.variables_dict.items()
-        }
+        snapshot = problem._snapshot_variables()
 
         try:
-            status = self._iterate(problem, block)
+            status = self._iterate(problem, block, iterinfo, print_results)
             if status == 3:
                 block.failure_cause = (
                     "a linear dependency in the jacobian of the block"
@@ -308,6 +310,9 @@ class NewtonStrategy:
             # equation that produced them, must reach the user
             raise
         except Exception as e:
+            # the network reports an error of the full system
+            if full:
+                raise
             msg = f"Solving the block raised an error: {e}"
             logger.warning(msg)
             block.failure_cause = (
@@ -315,7 +320,8 @@ class NewtonStrategy:
             )
             status = 2
 
-        if status != 0:
+        # the failed state of the full system stays for inspection
+        if status != 0 and not full:
             # record the linear system of the failing iteration for
             # inspection before the variables are restored
             block.jacobian = problem.jacobian[
@@ -327,153 +333,134 @@ class NewtonStrategy:
                 for col in block.variables
             ]
             block.connection_states = problem._connection_states(block)
-            for col, value in snapshot.items():
-                hlp.set_variable_value(problem.variables_dict[col], value)
+            problem._restore_variables(snapshot)
 
         return status
 
-    def _iterate(self, problem, block):
-        equations = block.equations
-        variables = block.variables
-        variable_set = set(variables)
+    def _iterate(self, problem, block, iterinfo=False, print_results=True):
+        r"""
+        Newton iteration on a block or on the full system.
 
-        objects = {problem._equation_obj_lookup[eq] for eq in equations}
-        for col in variables:
-            for sm_col in problem.variables_dict[col]["_represents"]:
-                objects.add(problem._variable_lookup[sm_col]["object"])
+        Every iteration evaluates the residuals and the jacobian of the
+        block's equations, computes the newton increment, updates the
+        block's variables and applies the value heuristics. A failing
+        iteration (an evaluation error, a singular jacobian, stagnation or
+        the exhausted iteration budget) returns to the state with the lowest
+        residual and continues with line search steps on a fresh budget, if
+        the line search option allows. A singular jacobian without that
+        fallback takes a damped least squares step instead.
+        """
+        full = block.kind == "full"
+        # the full system takes the unrestricted code paths of the problem
+        rows = None if full else block.equations
+        cols = None if full else block.variables
+        variable_set = None if full else set(block.variables)
+        if full:
+            connections = components = equation_objects = None
+        else:
+            owners = problem._block_owners(block)
+            # the value heuristics applied to these objects can interact
+            # through shared values - iterate them in the deterministic
+            # network order, not in the per process id order of the set
+            network = problem.network
+            connections = [
+                o for o in network.conns["object"] if o in owners
+            ]
+            components = [
+                o for o in network.comps["object"] if o in owners
+            ]
+            equation_objects = list(dict.fromkeys(
+                problem._equation_obj_lookup[eq] for eq in block.equations
+            ))
+        label = "the full system" if full else f"block {block.id}"
+        verbose = iterinfo and (
+            full or len(block.equations) >= ITERINFO_BLOCK_SIZE
+        )
 
-        # the value heuristics applied to these objects can interact
-        # through shared values - iterate them in the deterministic
-        # network order, not in the per process id order of the set
-        network = problem.network
-        connections = [
-            o for o in network.conns["object"] if o in objects
-        ]
-        components = [
-            o for o in network.comps["object"] if o in objects
-        ]
-        equation_objects = [
-            problem._equation_obj_lookup[eq] for eq in equations
-        ]
-        equation_objects = list(dict.fromkeys(equation_objects))
+        problem._reset_iteration_counters(equation_objects)
+        problem._reset_attempt_state(cols)
+        history = block.residual_history = []
+        if verbose:
+            problem._print_iterinfo_head(print_results)
 
-        block.residual_history = []
-        # seed the increment so the increment filter does not suppress the
-        # first derivative evaluation of the block's variables
-        problem.increment[variables] = 1
-        # stabilization measures of the equations are staged on the objects'
-        # iteration counters, every block starts a fresh count
-        for obj in equation_objects:
-            obj.it = 0
-        problem._prev_residual = None
-        problem._auto_damping = False
-        problem._line_search_active = problem.line_search == "always"
-        problem._reset_best_state()
-        problem._rescue_iterations = 0
         budget = problem.max_iter
-        block_iter = -1
-        while block_iter < budget - 1:
-            block_iter += 1
-            # a failing block returns to its best state and continues with
-            # line search steps on a fresh iteration budget
-            fallback = (
-                problem.line_search == "stagnation"
-                and not problem._line_search_active
-            )
-            problem.iter = block_iter
+        it = -1
+        while it < budget - 1:
+            it += 1
+            problem.iter = it
             problem.increment_filter = (
                 np.absolute(problem.increment) < ERR ** 2
             )
+            fallback = problem._fallback_available()
+            failed = rescued = False
             try:
                 problem._solve_equations(equation_objects)
                 problem._update_residual_scales()
-                problem._record_best_state(equations)
-                problem._invert_jacobian(equations, variables)
+                problem._record_best_state(rows)
+                problem._invert_jacobian(rows, cols)
             except hlp.TESPyNetworkError:
                 raise
             except Exception:
                 if not fallback:
                     raise
-                problem._start_line_search(variables)
-                budget = block_iter + 1 + problem.max_iter
-                continue
-            if problem.lin_dep:
+                failed = True
+
+            if not failed and problem.lin_dep:
                 if fallback:
-                    problem._start_line_search(variables)
-                    budget = block_iter + 1 + problem.max_iter
-                    continue
-                if not problem._rescue_singular_step(
-                        equations, variables, connections, components
-                    ):
-                    return 3
-                block.residual_history.append(
-                    float(problem.scaled_residual(equations).max())
-                )
-                continue
+                    failed = True
+                else:
+                    rescued = problem._singular_step(rows, cols)
+                    if not rescued:
+                        if full:
+                            problem._diagnose_singularity()
+                        return 3
 
-            if problem.oscillation_damping or problem._auto_damping:
-                problem._dampen_oscillating_increments()
-            self._modify_increment(problem, block)
-            if problem._line_search_active:
-                modified = problem._update_with_line_search(
-                    variable_set, connections, components, equations,
-                    equation_objects
-                )
-            else:
-                problem._update_variables(variable_set)
-                modified = problem._adapt_to_variable_bounds(
-                    connections, components
-                )
-            problem._prev_residual = problem.residual.copy()
-
-            block.residual_history.append(
-                float(problem.scaled_residual(equations).max())
-            )
-            if (
-                    not problem._auto_damping
-                    and problem._detect_residual_oscillation(
-                        block.residual_history
+            stagnating = False
+            if not failed:
+                if problem.oscillation_damping or problem._auto_damping:
+                    problem._dampen_oscillating_increments()
+                self._modify_increment(problem, block)
+                if problem._line_search_active:
+                    modified = problem._update_with_line_search(
+                        variable_set, connections, components, rows,
+                        equation_objects
                     )
-                ):
-                problem._auto_damping = True
-                msg = (
-                    f"The residual norm of block {block.id} alternates "
-                    "between two values, dampening the oscillating "
-                    "increments."
-                )
-                logger.debug(msg)
-            # accept once the residual and the increment are small in an
-            # iteration without interference of the value heuristics and at
-            # least one newton update has been applied before the residual
-            # evaluation. A deeply converged residual is accepted right
-            # away (exactly solved blocks), otherwise two consecutive small
-            # residuals are required, forcing another newton iteration
-            # while convergence is still in progress
-            deep = (
-                block.residual_history[-1] < SCALED_RESIDUAL_TOLERANCE ** 2
-            )
-            confirmed = (
-                len(block.residual_history) >= 2
-                and (
-                    np.array(block.residual_history[-2:])
-                    < SCALED_RESIDUAL_TOLERANCE
-                ).all()
-            )
-            if (
-                    block_iter >= 1
-                    and not modified
-                    and (deep or confirmed)
-                    and (
-                        np.abs(problem.increment[variables])
-                        / problem.variable_weights[variables]
-                        < SCALED_INCREMENT_TOLERANCE
-                    ).all()
-                ):
-                return 0
+                else:
+                    problem._update_variables(variable_set)
+                    modified = problem._adapt_to_variable_bounds(
+                        connections, components
+                    )
+                problem._prev_residual = problem.residual.copy()
+                history.append(float(problem.scaled_residual(rows).max()))
+                if verbose:
+                    problem._print_iterinfo_body(print_results)
 
-            if fallback and block_iter == budget - 1:
-                problem._start_line_search(variables)
-                budget = block_iter + 1 + problem.max_iter
+                if (
+                        not problem._auto_damping
+                        and problem._detect_residual_oscillation(history)
+                    ):
+                    problem._auto_damping = True
+                    msg = (
+                        f"The residual norm of {label} alternates between "
+                        "two values, dampening the oscillating increments."
+                    )
+                    logger.debug(msg)
+                # a damped step is not a newton step, convergence is not
+                # accepted on it
+                if not (modified or rescued) and problem._accepts(history, cols):
+                    return 0
+                # the stagnation rule judges plain newton steps, line search
+                # steps decrease slowly by construction
+                stagnating = (
+                    not problem._line_search_active
+                    and problem._stagnating(history)
+                )
+
+            if failed or (fallback and (stagnating or it == budget - 1)):
+                problem._start_line_search(cols)
+                budget = it + 1 + problem.max_iter
+            elif stagnating:
+                return 2
 
         return 2
 
@@ -602,10 +589,7 @@ class BlockDriver:
 
         # snapshot to restore the starting state in the final escalation
         # stage, so it behaves exactly like the default simultaneous solver
-        self._snapshot = {
-            key: hlp.get_variable_value(data)
-            for key, data in problem.variables_dict.items()
-        }
+        self._snapshot = problem._snapshot_variables()
         self._decomposition = decomposition
 
         self._run(0, iterinfo, print_results)
@@ -672,7 +656,6 @@ class BlockDriver:
 
         if not self._verified():
             self._unfreeze()
-            problem.increment = np.ones([problem.variable_counter])
             problem._solve_simultaneous(iterinfo, print_results)
             return
 
@@ -712,7 +695,9 @@ class BlockDriver:
             strategy = ScalarBracketingStrategy()
         else:
             strategy = NewtonStrategy()
-        block.status = strategy.solve(self.problem, block)
+        block.status = strategy.solve(
+            self.problem, block, iterinfo, print_results
+        )
 
         residual = (
             block.residual_history[-1] if block.residual_history else 0.0
@@ -801,19 +786,7 @@ class BlockDriver:
     def _restart(self, snapshot, iterinfo, print_results):
         problem = self.problem
         self._unfreeze()
-        for key, value in snapshot.items():
-            hlp.set_variable_value(problem.variables_dict[key], value)
-        # iteration counters stage stabilization measures of the equations,
-        # the restart must begin from counter zero like a fresh solve
-        network = problem.network
-        to_reset = (
-            network.comps["object"].tolist()
-            + network.conns["object"].tolist()
-            + list(network.user_defined_eq.values())
-        )
-        for obj in to_reset:
-            obj.it = 0
-        problem.increment = np.ones([problem.variable_counter])
+        problem._restore_variables(snapshot)
         problem._solve_simultaneous(iterinfo, print_results)
 
     def _verified(self):

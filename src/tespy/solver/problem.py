@@ -1390,8 +1390,7 @@ class Problem:
                     )
                     logger.debug(msg)
                     failed.add(key)
-                finally:
-                    obj.it = 0
+            self._reset_iteration_counters(objects.values())
 
             # linearized system of the rows evaluated successfully
             rows = [
@@ -1581,9 +1580,8 @@ class Problem:
 
     def no_progress_message(self):
         return (
-            "The solver does not seem to make any progress, aborting "
-            "calculation. Scaled residual value is "
-            "{:.2e}{}".format(
+            "The calculation did not converge, the last scaled residual is "
+            "{:.2e}{}.".format(
                 self.scaled_residual().max(), self._worst_equation_hint()
             ) +
             "\nPossible reasons include:\n"
@@ -1634,6 +1632,16 @@ class Problem:
             self.end_time = time()
             return
 
+        if block_solve and self._variable_composition():
+            msg = (
+                "The fluid composition is part of the variable space. The "
+                "dependency declarations of the fluid property equations do "
+                "not cover the composition, so a block ordering is not "
+                "reliable in this case: solving the full system "
+                "simultaneously instead."
+            )
+            logger.info(msg)
+            block_solve = False
         if pause_on_block_failure and not block_solve:
             msg = (
                 "Pausing on a failed block is not possible for the "
@@ -1678,6 +1686,11 @@ class Problem:
         self.end_time = time()
         if iterinfo:
             self._print_iterinfo_tail(print_results)
+
+    def _variable_composition(self):
+        return any(
+            data["variable"] == "fluid" for data in self.variables_dict.values()
+        )
 
     def _full_block(self):
         """The full equation system in the shape of a decomposition block."""
@@ -1942,25 +1955,28 @@ class Problem:
         logger.debug(msg)
         return True
 
-    def _damped_least_squares_step(self, equations=None, variables=None):
-        """
-        Increment calculated by Levenberg-Marquardt step on the scaled system.
-        """
-        # simultaneous
+    def _scaled_system(self, equations=None, variables=None):
+        """Jacobian and negative residual of the full or a block system,
+        equilibrated by the largest entry of every row and column. Returns
+        the scaled matrix, the scaled right hand side and the column scales
+        mapping a solution back to the increment."""
         if equations is None:
             jacobian = self.jacobian
             residual = self.residual
-        # block
         else:
             jacobian = self.jacobian[np.ix_(equations, variables)]
             residual = self.residual[equations]
-
         row_scales = np.abs(jacobian).max(axis=1)
         row_scales[row_scales == 0] = 1.0
         J_eq = jacobian / row_scales[:, None]
         col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
-        J_sc = J_eq / col_scales[None, :]
-        r_eq = -residual / row_scales
+        return J_eq / col_scales[None, :], -residual / row_scales, col_scales
+
+    def _damped_least_squares_step(self, equations=None, variables=None):
+        """
+        Increment calculated by Levenberg-Marquardt step on the scaled system.
+        """
+        J_sc, r_eq, col_scales = self._scaled_system(equations, variables)
         normal = J_sc.T @ J_sc
         damping = SINGULAR_RESCUE_DAMPING * max(np.trace(normal) / len(normal), 1e-12)
         try:
@@ -1990,13 +2006,6 @@ class Problem:
 
         overrides = self._fill_jacobian_surrogates(equations, variables)
 
-        if equations is None:
-            jacobian = self.jacobian
-            residual = self.residual
-        else:
-            jacobian = self.jacobian[np.ix_(equations, variables)]
-            residual = self.residual[equations]
-
         try:
             if self.use_cuda and equations is None:
                 self.increment = cu.asnumpy(cu.dot(
@@ -2004,14 +2013,9 @@ class Problem:
                     -cu.asarray(self.residual)
                 ))
             else:
-                row_scales = np.abs(jacobian).max(axis=1)
-                row_scales[row_scales == 0] = 1.0
-                J_eq = jacobian / row_scales[:, None]
-
-                col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
-                J_sc = J_eq / col_scales[None, :]
-                r_eq = -residual / row_scales
-
+                J_sc, r_eq, col_scales = self._scaled_system(
+                    equations, variables
+                )
                 increment = np.linalg.solve(J_sc, r_eq) / col_scales
                 if equations is None:
                     self.increment = increment
@@ -2069,7 +2073,15 @@ class Problem:
             self._find_linear_dependencies(self.jacobian)
             return
 
-        if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
+        # the numerical rank of the incidence pattern is below its term rank
+        # (the matching above) if equations share identical dependency
+        # patterns: no structural defect, but a singular jacobian then points
+        # at the parametrization rather than at missing derivatives
+        if (
+                self.iter == 0
+                and np.linalg.matrix_rank(self._incidence_matrix_dense)
+                < self._incidence_matrix_dense.shape[0]
+            ):
             self.singularity_msg = (
                 "Detected singularity in Jacobian matrix. This singularity "
                 "is most likely caused by the parametrization of your "
@@ -2239,22 +2251,16 @@ class Problem:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
-    def _snapshot_variables(self):
-        return {
-            col: hlp.get_variable_value(data)
-            for col, data in self.variables_dict.items()
-        }
-
-    def _restore_variables(self, snapshot):
-        for col, value in snapshot.items():
-            hlp.set_variable_value(self.variables_dict[col], value)
+    def _restore_variables(self, values):
+        for col, data in self.variables_dict.items():
+            hlp.set_variable_value(data, values[col])
 
     def _record_best_state(self, equations=None):
         """Keep the variable values with the lowest scaled residual so far."""
         residual = self.scaled_residual(equations).max()
         if residual < self._best_residual:
             self._best_residual = residual
-            self._best_state = self._snapshot_variables()
+            self._best_state = self._variable_values()
 
     def _reset_best_state(self):
         self._best_residual = np.inf
@@ -2276,11 +2282,7 @@ class Problem:
         self.lin_dep = False
 
     def _merit(self, equations=None):
-        if equations is None:
-            return float(norm(self.residual / self.residual_scales))
-        return float(norm(
-            self.residual[equations] / self.residual_scales[equations]
-        ))
+        return float(norm(self.scaled_residual(equations)))
 
     def _update_with_line_search(
             self, variables=None, connections=None, components=None,
@@ -2296,7 +2298,7 @@ class Problem:
         """
         if objects is None:
             objects = self._all_objects()
-        start = self._snapshot_variables()
+        start = self._variable_values()
         residual = self.residual.copy()
         counters = [obj.it for obj in objects]
         increment = self.increment.copy()

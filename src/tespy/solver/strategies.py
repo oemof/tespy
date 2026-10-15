@@ -285,7 +285,7 @@ class NewtonStrategy:
         # the value heuristics can modify variables outside of the block -
         # other properties of the block's connections - so a failed attempt
         # must restore the full variable state to be side effect free
-        snapshot = problem._snapshot_variables()
+        snapshot = problem._variable_values()
 
         try:
             status = self._iterate(problem, block, iterinfo, print_results)
@@ -328,10 +328,9 @@ class NewtonStrategy:
                 np.ix_(block.equations, block.variables)
             ].copy()
             block.residual = problem.residual[block.equations].copy()
-            block.variable_values = [
-                hlp.get_variable_value(problem.variables_dict[col])
-                for col in block.variables
-            ]
+            block.variable_values = (
+                problem._variable_values()[block.variables].tolist()
+            )
             block.connection_states = problem._connection_states(block)
             problem._restore_variables(snapshot)
 
@@ -553,24 +552,6 @@ class BlockDriver:
 
     def solve(self, iterinfo, print_results=True):
         problem = self.problem
-        if self._variable_composition():
-            msg = (
-                "The fluid composition is part of the variable space. The "
-                "dependency declarations of the fluid property equations do "
-                "not cover the composition, so a block ordering is not "
-                "reliable in this case: solving the full system "
-                "simultaneously instead."
-            )
-            logger.info(msg)
-            if self.pause_on_block_failure:
-                msg = (
-                    "Pausing on a failed block is not possible for the "
-                    "simultaneous solution, the option has no effect."
-                )
-                logger.info(msg)
-            problem._solve_simultaneous(iterinfo, print_results)
-            return
-
         decomposition = problem.decompose()
         if decomposition.defective_blocks:
             problem.singularity_msg = (
@@ -589,7 +570,7 @@ class BlockDriver:
 
         # snapshot to restore the starting state in the final escalation
         # stage, so it behaves exactly like the default simultaneous solver
-        self._snapshot = problem._snapshot_variables()
+        self._snapshot = problem._variable_values()
         self._decomposition = decomposition
 
         self._run(0, iterinfo, print_results)
@@ -661,12 +642,6 @@ class BlockDriver:
 
         self._unfreeze()
         problem.status = 0
-
-    def _variable_composition(self):
-        return any(
-            data["variable"] == "fluid"
-            for data in self.problem.variables_dict.values()
-        )
 
     def _log_decomposition(self, decomposition):
         kinds = {}

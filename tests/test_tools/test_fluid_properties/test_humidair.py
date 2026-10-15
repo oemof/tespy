@@ -10,6 +10,7 @@ tests/test_tools/test_fluid_properties/test_humidair.py
 SPDX-License-Identifier: MIT
 """
 from CoolProp.CoolProp import HAPropsSI
+from pytest import approx
 from pytest import fixture
 
 from tespy.components import MovingBoundaryHeatExchanger
@@ -91,3 +92,27 @@ def test_specification_relative_humidity(humidair_network):
 
     nw.solve("design")
     nw.assert_convergence()
+
+
+def test_specification_relative_humidity_without_temperature(humidair_network):
+    """The relative humidity equation must evaluate the temperature from the
+    state, if the temperature is not specified"""
+    nw = humidair_network
+    a1, a2, c1, c2 = nw.get_conn(["a1", "a2", "c1", "c2"])
+    hex = nw.get_comp("heat exchanger")
+
+    a1.set_attr(fluid={"NH3": 1}, m=2, x=0.3)
+    a2.set_attr(td_dew=5, T_dew=-20)
+
+    c1.set_attr(
+        p=1, m=90, r=0.9, fluid0={"air": 0.9, "water": 0.1}, fluid_balance=True
+    )
+    c2.set_attr(T=5)
+
+    hex.set_attr(dp1=0, dp2=0)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    r = HAPropsSI("R", "P", c1.p.val_SI, "T", c1.T.val_SI, "W", c1.w.val_SI)
+    assert r == approx(0.9)

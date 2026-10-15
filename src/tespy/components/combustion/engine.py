@@ -1063,7 +1063,7 @@ class CombustionEngine(CombustionChamber):
             inl = self.inl[i]
             out = self.outl[i]
             p_star = inl.p.val_SI * (
-                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+                self.get_attr(f"pr{i + 1}").val) ** 0.5
             s_i_star = s_mix_ph(
                 p_star, inl.h.val_SI, inl.fluid_data, inl.mixing_rule,
                 T0=inl.T.val_SI
@@ -1074,16 +1074,16 @@ class CombustionEngine(CombustionChamber):
             )
 
             setattr(
-                self, 'S_Q' + str(i + 1) + '2',
+                self, f"S_Q{i + 1}2",
                 inl.m.val_SI * (s_o_star - s_i_star)
             )
-            S_Q = self.get_attr('S_Q' + str(i + 1) + '2')
+            S_Q = self.get_attr(f"S_Q{i + 1}2")
             setattr(
-                self, 'S_irr' + str(i + 1),
+                self, f"S_irr{i + 1}",
                 inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q
             )
             setattr(
-            self, 'T_mQ' + str(i + 1),
+            self, f"T_mQ{i + 1}",
             inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q
         )
 

@@ -17,15 +17,16 @@ Navigate to your favorite section here:
         :link-type: ref
         :class-card: landing-card
 
-        - Learn what tespy is about
-        - Understand the modelling concept
-        - Install tespy
+        - Learn what TESPy is about
+        - Install TESPy
+        - Check the development roadmap of TESPy
 
     .. grid-item-card::  :material-outlined:`school;2.5em;sd-text-logo-main` Introductory tutorials
         :link: basics_label
         :link-type: ref
         :class-card: landing-card
 
+        - Understand the modelling concept
         - Build a heat pump and a Rankine cycle
         - Model a gas turbine
         - Set up a district heating network
@@ -82,7 +83,7 @@ Navigate to your favorite section here:
 
         - Explore example applications
         - Check the validation benchmarks
-        - Browse publications using tespy
+        - Browse publications using TESPy
 
     .. grid-item-card::  :material-outlined:`groups;2.5em;sd-text-logo-main` Community & support
         :link: community_support_label
@@ -111,5 +112,5 @@ Navigate to your favorite section here:
 
         - :ref:`Frequently asked questions <faq_label>`
         - :ref:`Validation and benchmarks <benchmarks_label>`
-        - :ref:`Contribute to tespy <developing_label>`
+        - :ref:`Contribute to TESPy <developing_label>`
         - `GitHub repository <https://github.com/oemof/tespy/>`__

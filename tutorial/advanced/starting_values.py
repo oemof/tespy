@@ -114,8 +114,10 @@ except ValueError as e:
     print(e)
 
 # %%[sec_3_end]
-# the tutorial narrative relies on this first attempt failing
-assert not nw.converged
+# this model did not solve in previous versions of TESPy, therefore the steps
+# below now show the general procedure of how to bring good initial guesses
+# into a model
+assert nw.converged
 # %%[sec_4]
 # evaporation point
 c1.set_attr(T_dew=T_hs_bf - 5)

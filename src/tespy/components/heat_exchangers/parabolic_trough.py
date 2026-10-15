@@ -187,7 +187,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> nw = Network(iterinfo=False)
     >>> nw.units.set_defaults(**{
     ...     "pressure": "bar", "pressure_difference": "bar",
-    ...     "temperature": "degC", "enthalpy": "kJ/kg"
+    ...     "temperature": "degC", "enthalpy": "kJ/kg", "heat": "kW"
     ... })
     >>> so = Source('source')
     >>> si = Sink('sink')
@@ -199,10 +199,12 @@ class ParabolicTrough(SimpleHeatExchanger):
     The pressure ratio is at a constant level of 1. However, it is possible to
     specify the pressure losses from the absorber tube length, roughness and
     diameter, too. The aperture surface :math:`A` is specified to 1
-    :math:`\text{m}^2` for simplicity reasons.
+    :math:`\text{m}^2` for simplicity reasons. Since the heat unit of the
+    network is set to kW, the irradiation :math:`E` is specified in
+    :math:`\text{kW}/\text{m}^2`.
 
     >>> aoi = 20
-    >>> E = 1000 * math.cos(aoi / 180 * math.pi)
+    >>> E = 1 * math.cos(aoi / 180 * math.pi)
     >>> pt.set_attr(
     ...     pr=1, aoi=aoi, doc=1,
     ...     Tamb=20, A=1, eta_opt=0.816, c_1=0.0622, c_2=0.00023, E=E,
@@ -211,13 +213,13 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'INCOMP::S800': 1}, T=220, p=10)
     >>> outg.set_attr(T=260)
     >>> nw.solve('design')
-    >>> round(pt.Q.val, 0)
-    736.0
+    >>> round(pt.Q.val, 3)
+    0.736
 
     For example, it is possible to calculate the aperture area of the parabolic
     trough given the total heat production, outflow temperature and mass flow.
 
-    >>> pt.set_attr(A='var', Q=5e6, Tamb=25)
+    >>> pt.set_attr(A='var', Q=5000, Tamb=25)
     >>> inc.set_attr(T=None)
     >>> outg.set_attr(T=350, m=20)
     >>> nw.solve('design')
@@ -230,7 +232,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     well as the heat transfer at different operating points.
 
     >>> aoi = 30
-    >>> E = 800 * math.cos(aoi / 180 * math.pi)
+    >>> E = 0.8 * math.cos(aoi / 180 * math.pi)
     >>> pt.set_attr(A=pt.A.val, aoi=aoi, Q=None, E=E)
     >>> inc.set_attr(T=150)
     >>> outg.set_attr(T=None)
@@ -238,7 +240,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     >>> round(outg.T.val, 0)
     244.0
     >>> round(pt.Q.val, 0)
-    3602817.0
+    3603.0
     """
 
     def get_parameters(self):

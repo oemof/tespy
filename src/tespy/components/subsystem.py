@@ -291,9 +291,11 @@ class Subsystem:
         """
         from tespy.components.component import component_registry
         from tespy.connections.connection import connection_registry
+        from tespy.networks.network import _check_meta
         from tespy.networks.network import _construct_components
         from tespy.networks.network import _construct_connections
 
+        _check_meta(subsystem_data, "subsystem")
         subsystem_data = copy.deepcopy(subsystem_data)
 
         if label is None:
@@ -504,10 +506,11 @@ class Subsystem:
                                 param_data["is_var"] = False
                             if "val" in param_data and "unit" in param_data:
                                 if keep == "starting_values":
-                                    param_data["val0"] = param_data["val"]
+                                    param_data["val0"] = param_data.pop("val")
+                                    param_data["val0_unit"] = param_data.pop("unit")
                                 else:
                                     param_data.pop("val")
-                                    param_data.pop("val_SI", None)
+                                param_data.pop("val_SI", None)
 
         for comps in nw_dict["Component"].values():
             for reserved in ("inlet", "outlet"):
@@ -524,6 +527,7 @@ class Subsystem:
         interfaces.update(SubsystemInterface("inlet")._serialize())
         interfaces.update(SubsystemInterface("outlet")._serialize())
 
+        nw_dict["meta"]["kind"] = "subsystem"
         nw_dict["Subsystem"] = {"label": label}
         for attr in [
                 "num_in", "num_out", "num_heat_in", "num_heat_out",

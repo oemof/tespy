@@ -9,6 +9,13 @@ one additional predefined engine, which can be used to fit functions to simple
 custom fluid property data, the :code:`IncompressibleFluidWrapper`. See
 :ref:`this section <incompressible_wrapper_label>` for more information.
 
+TESPy also includes a wrapper for
+`thermopack <https://github.com/thermotools/thermopack>`__, which provides
+cubic and SAFT type equations of state with fast and robust mixture flash
+routines. See :ref:`this section <thermopack_wrapper_label>` for more
+information. The performance of the different engines is compared in this
+:ref:`notebook <fluid_property_backends_label>`.
+
 On top, there are two additional predefined engines, which are untested but may
 serve as an inspiration for you to create your own one, i.e.
 
@@ -120,6 +127,9 @@ To use this in a connection, specify the full name as the fluid key:
 
     c.set_attr(fluid={"REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass": 1})
 
+A complete heat pump example with a zeotropic mixture is available as a
+:ref:`how-to guide <zeotropic_heat_pump_label>`.
+
 .. _incompressible_wrapper_label:
 
 IncompressibleFluidWrapper
@@ -224,6 +234,76 @@ We can specify missing boundary conditions and solve the problem.
     >>> nw.solve("design")
     >>> nw.assert_convergence()
 
+.. _thermopack_wrapper_label:
+
+ThermopackWrapper
+-----------------
+The :code:`ThermopackWrapper` class let's you use TESPy with
+`thermopack <https://github.com/thermotools/thermopack>`__. It is not installed
+with TESPy by default, you can install it with :code:`uv add thermopack` or
+:code:`pip install thermopack`.
+
+Thermopack provides a variety of equations of state, which can be selected
+through the back end specification of the fluid:
+
+- the cubic equations of state :code:`PR` (default), :code:`SRK`,
+  :code:`VdW`, :code:`RK`, :code:`SW` and :code:`PT`
+- the SAFT variants :code:`PC-SAFT`, :code:`sPC-SAFT`, :code:`PCP-SAFT` and
+  :code:`SAFT-VR-MIE`
+- the CPA variants :code:`CPA-SRK` and :code:`CPA-PR`
+- Lee-Kesler :code:`LK`
+- the multiparameter back ends :code:`NIST_MEOS`, :code:`MBWR32` and
+  :code:`MBWR19`
+
+The fluid names must match thermopack's identifiers, e.g. :code:`C3` for
+propane. Mixtures follow the same convention as the CoolProp/REFPROP mixtures
+shown above, e.g. :code:`PR::C1[0.9]&C2[0.1]|molar`. In contrast to the
+CoolProp HEOS mixture back end, the thermopack flash routines are fast and
+converge robustly, which makes the engine especially interesting for zeotropic
+mixtures if you do not have a REFPROP license available. For a complete
+zeotropic heat pump example comparing thermopack with REFPROP see
+:ref:`this notebook <zeotropic_heat_pump_label>`.
+
+.. code-block:: python
+
+    >>> from tespy.components import Sink
+    >>> from tespy.components import Source
+    >>> from tespy.components import Compressor
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> from tespy.tools.fluid_properties.wrappers import ThermopackWrapper
+
+    >>> nwk = Network(iterinfo=False)
+    >>> nwk.units.set_defaults(temperature="degC", pressure="bar")
+
+    >>> so = Source("Source")
+    >>> cp = Compressor("Compressor")
+    >>> si = Sink("Sink")
+
+    >>> c1 = Connection(so, "out1", cp, "in1", label="1")
+    >>> c2 = Connection(cp, "out1", si, "in1", label="2")
+
+    >>> nwk.add_conns(c1, c2)
+
+    >>> cp.set_attr(eta_s=0.85)
+    >>> c1.set_attr(
+    ...     m=1, p=30, T=20,
+    ...     fluid={"PR::CO2": 1}, fluid_engines={"CO2": ThermopackWrapper}
+    ... )
+    >>> c2.set_attr(p=60)
+
+    >>> nwk.solve("design")
+    >>> nwk.assert_convergence()
+    >>> float(round(c2.T.val, 1))
+    81.4
+
+.. attention::
+
+    Thermopack does not implement transport properties, therefore viscosity and
+    thermal conductivity are not available. For mixtures, intermediate vapor
+    qualities in saturation based lookups are linear interpolations between the
+    bubble and dew state.
+
 Using other engines
 -------------------
 To use any of the other fluid property engines, you can do the following, e.g.
@@ -273,13 +353,13 @@ Implementing a custom engine
 ----------------------------
 The fluid property calls to different engines have to be masqueraded with
 respective wrappers. The implementation of the wrappers for `CoolProp`,
-`iapws` and `pyromat` can be found in the
+`thermopack`, `iapws` and `pyromat` can be found in the
 :py:mod:`fluid_properties.wrappers <tespy.tools.fluid_properties.wrappers>`
 module, and serve as example implementations for your own wrappers:
 
 The wrapper for your own engine (or an engine from a different library) has to
 inherit from the
-:py:class:`FluidPropertyWrapper <tespy.tools.fluid_properties.wrappers.FluidPropertyWrapper>`
+:py:class:`FluidPropertyWrapper <tespy.tools.fluid_properties.wrappers.base.FluidPropertyWrapper>`
 class. Below we will use the polynomial formulation for **gaseous water** from
 :cite:`Knacke1991` as an example. First we import the necessary dependencies.
 

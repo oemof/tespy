@@ -20,6 +20,7 @@ from pytest import mark
 from pytest import raises
 from pytest import warns
 
+from tespy import __version__
 from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
@@ -39,6 +40,7 @@ from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
 from tespy.networks import Network
+from tespy.networks.network import FORMAT_VERSION
 from tespy.tools.characteristics import CharLine
 from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import conductivity_mix_ph
@@ -108,8 +110,9 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         # the block solver converges this problem within two iterations, the
-        # maximum iteration stop is a mechanism of the simultaneous solution
-        self.nw.solve('design', max_iter=2, block_solve=False)
+        # maximum iteration stop is a mechanism of the simultaneous solution.
+        # The line search fallback would continue on a fresh budget
+        self.nw.solve('design', max_iter=2, block_solve=False, line_search="off")
         assert self.nw.status == 2
         msg = 'Test must result in the itercount being equal to max_iter.'
         assert self.nw.problem.max_iter == self.nw.problem.iter + 1, msg
@@ -1570,10 +1573,10 @@ class TestSaveClearRestoreSpecifications:
         # the starting values are interpreted in stored units
         c2 = self.nw.get_conn("c2")
         m_SI, p_SI, h_SI = results["c2"]
-        assert str(c2.p.val0.units) == "bar"
-        assert approx(c2.m.val0.m_as("kg/s")) == m_SI
-        assert approx(c2.p.val0.m_as("Pa")) == p_SI
-        assert approx(c2.h.val0.m_as("J/kg")) == h_SI
+        assert str(c2.p.val0_with_unit.units) == "bar"
+        assert approx(c2.m.val0_with_unit.m_as("kg/s")) == m_SI
+        assert approx(c2.p.val0_with_unit.m_as("Pa")) == p_SI
+        assert approx(c2.h.val0_with_unit.m_as("J/kg")) == h_SI
 
     def test_restore_specifications_saved_before_solving(self):
         specs = self.nw.save_specifications()
@@ -1794,3 +1797,124 @@ class TestSharedObjectsBetweenNetworks:
 
         nw1.del_udv(udv)
         nw2.add_udv(udv)
+
+
+class TestSerializationMeta:
+
+    def setup_method(self):
+        self.nw = Network(iterinfo=False)
+        so = Source("source")
+        pi = Pipe("pipe", pr=0.95, Q=-1e4)
+        si = Sink("sink")
+        c1 = Connection(so, "out1", pi, "in1", label="c1")
+        c2 = Connection(pi, "out1", si, "in1", label="c2")
+        self.nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"water": 1}, m=1, p=5e5, T=320)
+        self.nw.solve("design")
+        self.data = {
+            "network": self.nw.export(),
+            "state": self.nw.save(as_dict=True),
+            "specifications": self.nw.save_specifications(),
+        }
+
+    def _load(self, kind, data):
+        if kind == "network":
+            Network.from_dict(deepcopy(data))
+        elif kind == "state":
+            self.nw.solve("offdesign", design_path=deepcopy(data))
+        else:
+            self.nw.restore_specifications(data)
+
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_meta_block_in_dict(self, kind):
+        meta = self.data[kind]["meta"]
+        assert meta["kind"] == kind
+        assert meta["format_version"] == FORMAT_VERSION
+        assert meta["tespy_version"] == __version__
+        assert "tespy_commit" in meta
+        assert "created" in meta
+
+    def test_meta_block_in_json(self, tmp_path):
+        self.nw.save(tmp_path / "state.json")
+        self.nw.export(tmp_path / "export.json")
+        self.nw.save_specifications(tmp_path / "specs.json")
+        for name, kind in [
+                ("state", "state"), ("export", "network"),
+                ("specs", "specifications")]:
+            with open(tmp_path / f"{name}.json") as f:
+                assert json.load(f)["meta"]["kind"] == kind
+
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_matching_kind_loads_without_warning(self, kind):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", FutureWarning)
+            self._load(kind, self.data[kind])
+
+    @mark.parametrize("expected, found", [
+        (expected, found)
+        for expected in ["network", "state", "specifications"]
+        for found in ["network", "state", "specifications"]
+        if expected != found
+    ])
+    @mark.parametrize("legacy", [False, True])
+    def test_mismatched_kind_raises(self, expected, found, legacy):
+        data = deepcopy(self.data[found])
+        if legacy:
+            del data["meta"]
+        with raises(TESPyNetworkError, match="Expected"):
+            self._load(expected, data)
+
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_legacy_data_warns(self, kind):
+        data = deepcopy(self.data[kind])
+        del data["meta"]
+        with warns(FutureWarning, match="'meta' block"):
+            self._load(kind, data)
+
+    def test_status_in_meta(self):
+        assert self.data["network"]["meta"]["status"] == 0
+        assert self.data["state"]["meta"]["status"] == 0
+        assert "status" not in self.data["specifications"]["meta"]
+
+    def test_import_converged_export_seeds_starting_values(self):
+        imported = Network.from_dict(deepcopy(self.data["network"]))
+        for c in imported.conns["object"]:
+            original = self.nw.get_conn(c.label)
+            assert c.good_starting_values
+            for key, variable in c.get_variables().items():
+                assert variable.val0 == approx(original.get_attr(key).val)
+            assert c.fluid.val0 == original.fluid.val
+        imported.solve("design")
+        imported.assert_convergence()
+        assert imported.problem.iter <= self.nw.problem.iter
+
+    @mark.parametrize("status", [2, 3, 99, None])
+    def test_import_without_converged_export_regenerates(self, status):
+        data = deepcopy(self.data["network"])
+        if status is None:
+            del data["meta"]["status"]
+        else:
+            data["meta"]["status"] = status
+        imported = Network.from_dict(data)
+        for c in imported.conns["object"]:
+            assert not c.good_starting_values
+            for variable in c.get_variables().values():
+                assert np.isnan(variable.val0)
+
+    def test_unknown_data_raises(self):
+        with raises(TESPyNetworkError, match="do not look like"):
+            self.nw.solve("offdesign", design_path={"foo": 1})
+
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_newer_format_version_raises(self, kind):
+        data = deepcopy(self.data[kind])
+        data["meta"]["format_version"] = FORMAT_VERSION + 1
+        with raises(TESPyNetworkError, match="Please update tespy"):
+            self._load(kind, data)
+
+    def test_subsystem_kind(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", FutureWarning)
+            Subsystem.from_network("sub", self.nw)
+        with raises(TESPyNetworkError, match="Expected a subsystem"):
+            Subsystem.from_dict(self.nw.export(), label="sub")

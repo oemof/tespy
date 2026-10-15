@@ -13,10 +13,13 @@ from time import time
 
 import numpy as np
 from numpy.linalg import norm
+from scipy.optimize import lsq_linear
 
 from tespy.connections.connection import ConnectionBase
+from tespy.solver.decomposition import Block
 from tespy.solver.decomposition import dulmage_mendelsohn
 from tespy.solver.strategies import BlockDriver
+from tespy.solver.strategies import NewtonStrategy
 from tespy.solver.strategies import search_reducing_step
 from tespy.solver.structure import StructureGraph
 from tespy.tools import helpers as hlp
@@ -24,6 +27,8 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import FLAT_ENTHALPY_DIFFERENCE
+from tespy.tools.global_vars import LINE_SEARCH_STEPS
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 
@@ -31,6 +36,9 @@ from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
 # squares: low enough that any information transported by the guess edges
 # dominates, only holding the absolute level where nothing else reaches
 PRIOR_WEIGHT = 0.1
+# rescue measures of the simultaneous solve on a singular jacobian
+SINGULAR_RESCUE_ITERATIONS = 20
+SINGULAR_RESCUE_DAMPING = 1e-3
 
 # Only require cupy if Cuda shall be used
 try:
@@ -67,6 +75,10 @@ class Problem:
 
         self.status = 99
         self.iter = 0
+        self.line_search = "stagnation"
+        self._line_search_active = False
+        self._best_residual = np.inf
+        self._best_state = None
         self.residual = None
         self.jacobian = None
         self.increment = None
@@ -74,6 +86,8 @@ class Problem:
         self.variable_weights = None
         self.lin_dep = False
         self.singularity_msg = ""
+        self.singular_rescue = True
+        self._rescue_iterations = 0
 
         self.structure_graph = None
         self._decomposition = None
@@ -95,12 +109,9 @@ class Problem:
         """
         if self._decomposition is None:
             # variable mass fractions of one fluid vector are coupled through
-            # their normalization outside of the equation system, so they
-            # must stay within one block. Block-wise solving falls back to
-            # the simultaneous solution for variable compositions anyway -
-            # this grouping keeps the structural diagnostics (determination
-            # check, defective block reports, get_blocks) honest for such
-            # networks
+            # their normalization outside of the equation system, so they must
+            # stay within one block. Block-wise solving falls back to the
+            # simultaneous solution for variable compositions anyway
             coupled = {}
             for j_col, data in self.variables_dict.items():
                 if data["variable"] == "fluid":
@@ -635,7 +646,16 @@ class Problem:
                     # remaining fluids are variable, create wrappers for them
                     all_fluids = reference_conn._potential_fluids
                     num_remaining_fluids = len(all_fluids) - len(fixed_fractions)
-                    if num_remaining_fluids == 1:
+                    if num_remaining_fluids == 0:
+                        msg = (
+                            "The specified mass fractions within a linear "
+                            "branch of connections sum up to "
+                            f"{mass_fraction_sum:.4g} instead of 1: "
+                            f"{', '.join([c.label for c in all_connections])}."
+                        )
+                        logger.warning(msg)
+                        variable = set()
+                    elif num_remaining_fluids == 1:
                         missing_fluid = list(
                             set(all_fluids) - set(fixed_fractions.keys())
                         )[0]
@@ -1231,14 +1251,26 @@ class Problem:
         """Solve the flow variables on the completed property field.
 
         With pressures and enthalpies frozen at their starting values,
-        the equations determining the flows - mass balances, energy
-        balances, heat and power specifications, energy connector and
-        bus balances - are linear in the mass and energy flow
+        the structural equations determining the flows - mass balances,
+        energy balances, heat and power specifications, energy connector
+        and bus balances - are linear in the mass and energy flow
         variables. A single newton step restricted to those variables
-        therefore solves them exactly with respect to the guessed
-        property field, replacing the random mass flow starting values
-        by consistent levels and branch ratios. Seeded values stay
-        untouched. Returns the number of updated variables.
+        therefore solves them with respect to the guessed property field,
+        replacing the random mass flow starting values by consistent
+        levels and branch ratios. Seeded values stay untouched.
+
+        Equations depending on mass and energy flows only (e.g. the mass
+        balances of nodes) are exact and dominate that step, equations
+        evaluated on the guessed field only enter a least squares compromise
+        and no mass flow may drop below a tenth of its current value. Energy
+        balances whose mass flow coefficients, the enthalpy differences, are
+        flat on the guessed field carry no information on the flow and are left
+        out: the flows they would determine keep their propagated level instead
+        of being extrapolated. Component, connection and user defined equations
+        are treated alike; each object is evaluated on its own, so an equation
+        failing on the guessed values only drops its own rows.
+
+        Returns the number of updated variables.
         """
         columns = [
             key for key, data in self.variables_dict.items()
@@ -1264,6 +1296,9 @@ class Problem:
             if not column_set.isdisjoint(cols)
             and fluid_columns.isdisjoint(cols)
         ]
+        flow_only_rows = {
+            row for row in rows if self._is_flow_only_row(row)
+        }
         # approximate relations between the flows complement the retained rows
         # where the physical relation cannot enter the presolve, e.g. the air
         # to fuel proportion of combustion components. Without them the least
@@ -1274,6 +1309,9 @@ class Problem:
             self.variables_dict[col]["obj"]._val_SI for col in columns
         ])
         col_index = {col: idx for idx, col in enumerate(columns)}
+        mass_flow_cols = np.array([
+            self.variables_dict[col]["variable"] == "m" for col in columns
+        ])
         relation_rows = []
         relation_rhs = []
         for cp in self.network.comps["object"]:
@@ -1298,12 +1336,34 @@ class Problem:
                     relation_rows.append(row)
                     relation_rhs.append(rhs_value - row @ values)
 
-        if not rows and not relation_rows:
-            return 0
+        num = 0
+        if rows or relation_rows:
+            num = self._presolve_flow_step(
+                columns, values, rows, flow_only_rows, mass_flow_cols,
+                relation_rows, relation_rhs
+            )
+        return num
 
+    def _is_flow_only_row(self, row):
+        """Whether an equation depends on mass and energy flow variables only,
+        e.g. the mass balance of a node, a power bus balance or a heat
+        specification with known enthalpies. With pressures and enthalpies
+        frozen such an equation carries no error of the guessed property
+        field, it is exact information on the flows."""
+        cols = self._incidence_matrix.get(row, [])
+        return len(cols) > 0 and all(
+            self.variables_dict[col]["variable"] in ("m", "E") for col in cols
+        )
+
+    def _presolve_flow_step(
+            self, columns, values, rows, flow_only_rows, mass_flow_cols,
+            relation_rows, relation_rhs):
+        """Newton step for flow variables :py:meth:`presolve_flow_variables`."""
         matrix = np.zeros((0, len(columns)))
         rhs = np.zeros(0)
+        flow_only = np.zeros(0, dtype=bool)
         if rows:
+            # fresh solver arrays for a single evaluation of the equations
             n = self.variable_counter
             self.residual = np.zeros(n)
             self.jacobian = np.zeros((n, n))
@@ -1311,73 +1371,137 @@ class Problem:
             self.residual_scales = np.ones(n)
             self.variable_weights = np.ones(n)
             self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            try:
-                self._solve_equations()
-            except Exception as e:
-                # best effort pass: any failure of the evaluation on the g
-                # guessed values skips the flow presolve
-                msg = (
-                    "Skipping the flow variable presolve, the equation "
-                    f"evaluation on the starting values failed: {e}"
-                )
-                logger.debug(msg)
-                return 0
-            finally:
-                for obj in (
-                        self.network.comps["object"].tolist()
-                        + self.network.conns["object"].tolist()
-                    ):
-                    obj.it = 0
 
+            # evaluate residuals and Jacobian object by object
+            objects = {
+                id(self._equation_obj_lookup[row]):
+                    self._equation_obj_lookup[row]
+                for row in rows
+            }
+            failed = set()
+            for key, obj in objects.items():
+                try:
+                    self._solve_equations(objects=[obj])
+                except Exception as e:
+                    msg = (
+                        f"Flow presolve leaves out the equations of "
+                        f"{obj.label}, their evaluation on the starting "
+                        f"values failed: {e}"
+                    )
+                    logger.debug(msg)
+                    failed.add(key)
+            self._reset_iteration_counters(objects.values())
+
+            # linearized system of the rows evaluated successfully
             rows = [
                 row for row in rows
-                if np.isfinite(self.residual[row])
+                if id(self._equation_obj_lookup[row]) not in failed
+                and np.isfinite(self.residual[row])
                 and np.isfinite(self.jacobian[row, columns]).all()
             ]
             matrix = self.jacobian[np.ix_(rows, columns)]
             rhs = -self.residual[rows]
+            flow_only = np.array(
+                [row in flow_only_rows for row in rows], dtype=bool
+            )
+            # the mass flow coefficients of an energy balance are enthalpy
+            # differences: a flat one (the propagation copied the enthalpy
+            # through that stream, or the temperature field guessed a few
+            # Kelvin) makes the flow of the other streams towards zero. This
+            # row is dropped and the flows keep their propagated level
+            incident = np.array([
+                [col in self._incidence_matrix[row] for col in columns]
+                for row in rows
+            ], dtype=bool).reshape(len(rows), len(columns))
+            incident_m = incident & mass_flow_cols
+            coefficients = np.where(incident_m, np.abs(matrix), np.inf)
+            # a row defining an energy flow (E = m * dh) stays: a small
+            # enthalpy difference means a small energy flow there and does not
+            # extrapolate the mass flow
+            defines_energy_flow = (incident & ~mass_flow_cols).any(axis=1)
+            flat = (
+                incident_m.any(axis=1) & ~defines_energy_flow
+                & (coefficients.min(axis=1) < FLAT_ENTHALPY_DIFFERENCE)
+            )
+            # a row proportional to a single flow, e.g. the energy balance of
+            # an internal heat exchanger carrying the same mass flow on both
+            # sides (homogeneous), only holds for a zero flow unless the
+            # guessed enthalpies balance exactly
+            linear_part = matrix @ values
+            homogeneous = (
+                (incident.sum(axis=1) == 1)
+                & (np.abs(-rhs - linear_part) <= 1e-6 * np.abs(linear_part))
+            )
+            # rows the components leave out on the guessed property field
+            ignored = set()
+            for cp in self.network.comps["object"]:
+                ignored.update(cp._flow_presolve_ignored_rows())
+            component_ignored = np.array(
+                [row in ignored for row in rows], dtype=bool
+            )
+            # rows of the physical equations entering the least squares
+            keep = flow_only | ~(flat | homogeneous | component_ignored)
+            # report the left out rows
+            for row, is_flat, is_homogeneous, is_component_ignored in zip(
+                    rows, flat, homogeneous, component_ignored
+                ):
+                if (
+                        (is_flat or is_homogeneous or is_component_ignored)
+                        and row not in flow_only_rows
+                    ):
+                    label, name = self._equation_lookup[row]
+                    if is_flat:
+                        reason = "flat enthalpy difference"
+                    elif is_homogeneous:
+                        reason = "proportional to a single flow"
+                    else:
+                        reason = "left out by its component on the guessed field"
+                    logger.debug(
+                        f"Flow presolve leaves out {label}.{name}: {reason}."
+                    )
+            matrix, rhs = matrix[keep], rhs[keep]
+            flow_only = flow_only[keep]
 
-        num_physical_rows = matrix.shape[0]
+        # append the approximate relations between flows
         if relation_rows:
             matrix = np.vstack([matrix] + relation_rows)
             rhs = np.append(rhs, relation_rhs)
+            flow_only = np.append(
+                flow_only, np.zeros(len(relation_rows), dtype=bool)
+            )
+        num_physical_rows = matrix.shape[0] - len(relation_rows)
 
-        # equilibrate the rows: energy balances live on a scale of watts,
-        # mass balances on kilograms per second - without normalization
-        # the least squares compromise would sacrifice the exact balances
-        # to the approximate energy rows
+        # normalization to cope with different magnitudes
         norms = np.linalg.norm(matrix, axis=1)
+        # rows with any nonzero coefficient, physical and relation rows
         keep = norms > 0
         if not keep.any():
             return 0
         matrix = matrix[keep] / norms[keep, None]
         rhs = rhs[keep] / norms[keep]
+        flow_only = flow_only[keep]
 
-        # after the row equilibration a relation would compromise equally with
-        # every physical row. The proportions are better information than the
-        # energy balances evaluated on the guessed property field, so they
-        # weigh in more heavily
+        # relations outweigh the physical rows of the guessed field
         relation_weight = 10.0
-        relation_rows = np.arange(len(keep))[keep] >= num_physical_rows
-        matrix[relation_rows] *= relation_weight
-        rhs[relation_rows] *= relation_weight
+        is_relation = np.arange(len(keep))[keep] >= num_physical_rows
+        matrix[is_relation] *= relation_weight
+        rhs[is_relation] *= relation_weight
 
-        delta = np.linalg.lstsq(matrix, rhs, rcond=None)[0]
-        if not np.isfinite(delta).all():
-            return 0        # deliberately stay short of the exact solution of the linearized
-        # system: some models have degenerate jacobians exactly on the
-        # solution manifold of the flow equations (recirculation with a
-        # specified split ratio), the same way starting enthalpies are kept
-        # off the saturation lines
+        # solve the weighted, bounded least squares
+        delta = self._bounded_flow_step(
+            columns, values, matrix, rhs, flow_only
+        )
+        if delta is None or not np.isfinite(delta).all():
+            return 0
+        # deliberately stay short of the exact solution of the linearized
+        # system to avoid linear dependent Jacobian
         delta *= 0.9
 
+        # apply the step to the flow variables
         for col, increment in zip(columns, delta):
             data = self.variables_dict[col]
             value = data["obj"]._val_SI + float(increment)
-            # a previously positive mass flow crossing zero means the
-            # retained rows underdetermine this flow (e.g. a bare total
-            # mass balance distributing its correction arbitrarily) - it
-            # keeps a fraction of its previous value instead
+            # prevent negative mass flow
             if (
                     data["variable"] == "m" and data["obj"]._val_SI > 0
                     and value <= 0
@@ -1385,6 +1509,34 @@ class Problem:
                 value = data["obj"]._val_SI * 0.1
             data["obj"]._val_SI = value
         return len(columns)
+
+    def _bounded_flow_step(self, columns, values, matrix, rhs, flow_only):
+        """Least squares step on the flow variables.
+
+        Rows that depend on mass and energy flows only are exact and enter with
+        a large weight, the rows involving the guessed property field as they
+        are. A mass flow may not drop below a tenth of its current value: an
+        energy row inconsistent with the guessed field (e.g. a mixing outlet
+        enthalpy outside the range of its inlets) would otherwise drive the
+        flow negative, with the bound the remaining rows still set the flow
+        level.
+        """
+        weight = np.where(flow_only, 100.0, 1.0)
+        lower = np.array([
+            -0.9 * value
+            if self.variables_dict[col]["variable"] == "m" and value > 0
+            else -np.inf
+            for col, value in zip(columns, values)
+        ])
+        upper = np.full(len(columns), np.inf)
+        try:
+            result = lsq_linear(
+                matrix * weight[:, None], rhs * weight, bounds=(lower, upper),
+                lsmr_tol="auto"
+            )
+        except (ValueError, np.linalg.LinAlgError):
+            return None
+        return result.x
 
     def check_determination(self):
         r"""Check, if the number of supplied parameters is sufficient."""
@@ -1428,9 +1580,8 @@ class Problem:
 
     def no_progress_message(self):
         return (
-            "The solver does not seem to make any progress, aborting "
-            "calculation. Scaled residual value is "
-            "{:.2e}{}".format(
+            "The calculation did not converge, the last scaled residual is "
+            "{:.2e}{}.".format(
                 self.scaled_residual().max(), self._worst_equation_hint()
             ) +
             "\nPossible reasons include:\n"
@@ -1454,8 +1605,17 @@ class Problem:
 
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True,
-                   block_solve=False, pause_on_block_failure=None):
+                   block_solve=False, pause_on_block_failure=None,
+                   line_search="stagnation"):
         r"""Loop of the newton algorithm."""
+        if line_search not in ("off", "stagnation", "always"):
+            msg = (
+                "The line_search option must be one of 'off', 'stagnation' "
+                f"or 'always', got {line_search!r}."
+            )
+            raise ValueError(msg)
+        self.line_search = line_search
+        self._line_search_active = line_search == "always"
         self.max_iter = max_iter
         self.min_iter = min_iter
         self.use_cuda = use_cuda
@@ -1472,6 +1632,16 @@ class Problem:
             self.end_time = time()
             return
 
+        if block_solve and self._variable_composition():
+            msg = (
+                "The fluid composition is part of the variable space. The "
+                "dependency declarations of the fluid property equations do "
+                "not cover the composition, so a block ordering is not "
+                "reliable in this case: solving the full system "
+                "simultaneously instead."
+            )
+            logger.info(msg)
+            block_solve = False
         if pause_on_block_failure and not block_solve:
             msg = (
                 "Pausing on a failed block is not possible for the "
@@ -1505,87 +1675,106 @@ class Problem:
         self.end_time = time()
 
     def _solve_simultaneous(self, iterinfo, print_results=True):
-        if iterinfo:
-            self._print_iterinfo_head(print_results)
-
-        self._auto_damping = False
-        for self.iter in range(self.max_iter):
-            self.increment_filter = np.absolute(self.increment) < ERR ** 2
-            modified = self._solve_iteration()
-            self.residual_history = np.append(
-                self.residual_history, self.scaled_residual().max()
-            )
-            if (
-                    self.iter >= 3 and not self._auto_damping
-                    and self._detect_residual_oscillation(
-                        self.residual_history[-4:]
-                    )
-                ):
-                self._auto_damping = True
-                msg = (
-                    "The residual norm alternates between two values, "
-                    "dampening the oscillating increments."
-                )
-                logger.debug(msg)
-            if iterinfo:
-                self._print_iterinfo_body(print_results)
-
-            if self.lin_dep:
-                self.status = 3
-                break
-
-            elif self.iter > 40:
-                if (
-                    all(
-                        self.residual_history[(self.iter - 3):] >= self.residual_history[-3] * 0.95
-                    ) and self.residual_history[-1] >= self.residual_history[-2] * 0.95
-                ):
-                    self.status = 2
-                    break
-
-            # accept once two consecutive residuals and the increment are
-            # small in an iteration without interference of the value
-            # heuristics
-            if (
-                    self.iter >= self.min_iter - 1
-                    and not modified
-                    and (
-                        self.residual_history[-2:]
-                        < SCALED_RESIDUAL_TOLERANCE
-                    ).all()
-                    # the increment should also be small, but it does not need
-                    # to be that small
-                    and (
-                        abs(self.increment) / self.variable_weights
-                        < SCALED_INCREMENT_TOLERANCE
-                    ).all()
-                ):
-                self.status = 0
-                break
-
+        """Solve the full system as a single block."""
+        block = self._full_block()
+        self.status = NewtonStrategy().solve(
+            self, block, iterinfo, print_results
+        )
+        self.residual_history = np.append(
+            self.residual_history, block.residual_history
+        )
         self.end_time = time()
-
         if iterinfo:
             self._print_iterinfo_tail(print_results)
 
-        if self.iter == self.max_iter - 1:
-            msg = (
-                f"Reached maximum iteration count ({self.max_iter}), "
-                "calculation stopped. Scaled residual value is "
-                "{:.2e}{}. ".format(
-                    self.scaled_residual().max(),
-                    self._worst_equation_hint()
-                ) +
-                "\nPossible reasons include:\n"
-                " - fluid properties moving outside the valid range of the "
-                "property database (consider adjusting p_range or h_range),\n"
-                " - an impossible constraint that can never be satisfied \n"
-                " - bad starting values causing the Newton solver to diverge.\n"
-                "Use nw.print_residuals() to identify which equations have "
-                "the largest residuals."
-            )
-            logger.warning(msg)
-            self.status = 2
+    def _variable_composition(self):
+        return any(
+            data["variable"] == "fluid" for data in self.variables_dict.values()
+        )
+
+    def _full_block(self):
+        """The full equation system in the shape of a decomposition block."""
+        n = self.variable_counter
+        return Block(
+            id=-1, kind="full", equations=list(range(n)),
+            variables=list(range(n))
+        )
+
+    def _all_objects(self):
+        return (
+            self.network.comps["object"].tolist()
+            + self.network.conns["object"].tolist()
+            + list(self.network.user_defined_eq.values())
+        )
+
+    def _block_owners(self, block):
+        """Objects owning the equations or the variables of a block."""
+        owners = {self._equation_obj_lookup[eq] for eq in block.equations}
+        for col in block.variables:
+            for sm_col in self.variables_dict[col]["_represents"]:
+                owners.add(self._variable_lookup[sm_col]["object"])
+        return owners
+
+    def _reset_iteration_counters(self, objects=None):
+        # stabilization measures of the equations are staged on the objects'
+        # iteration counters, every solution attempt starts a fresh count
+        for obj in self._all_objects() if objects is None else objects:
+            obj.it = 0
+
+    def _reset_attempt_state(self, variables=None):
+        """Fresh solver state for a solution attempt of a block or the full
+        system. The increment is seeded so the increment filter does not
+        suppress the first derivative evaluation."""
+        if variables is None:
+            self.increment = np.ones(self.variable_counter)
+        else:
+            self.increment[variables] = 1
+        self._prev_residual = None
+        self._auto_damping = False
+        self._line_search_active = self.line_search == "always"
+        self._rescue_iterations = 0
+        self._reset_best_state()
+
+    def _fallback_available(self):
+        return (
+            self.line_search == "stagnation" and not self._line_search_active
+        )
+
+    def _accepts(self, history, variables=None):
+        """Convergence acceptance on the scaled residual history.
+
+        At least one newton update must have been applied before the
+        residual evaluation. A deeply converged residual is accepted right
+        away (exactly solved blocks), otherwise two consecutive small
+        residuals are required, forcing another newton iteration while
+        convergence is still in progress. The increment must be small as
+        well, but it does not need to be that small.
+        """
+        if self.iter < max(1, self.min_iter - 1):
+            return False
+        deep = history[-1] < SCALED_RESIDUAL_TOLERANCE ** 2
+        confirmed = (
+            len(history) >= 2 and max(history[-2:]) < SCALED_RESIDUAL_TOLERANCE
+        )
+        if not (deep or confirmed):
+            return False
+        increment = self.increment
+        weights = self.variable_weights
+        if variables is not None:
+            increment = increment[variables]
+            weights = weights[variables]
+        return bool(
+            (np.abs(increment) / weights < SCALED_INCREMENT_TOLERANCE).all()
+        )
+
+    def _stagnating(self, history):
+        """The scaled residual has not dropped by 5 % over the last three
+        iterations of a long iteration."""
+        return (
+            self.iter > 40 and len(history) >= 4
+            and all(h >= history[-3] * 0.95 for h in history[-4:])
+            and history[-1] >= history[-2] * 0.95
+        )
 
     def _print_iterinfo_head(self, print_results=True):
         """Print head of convergence progress."""
@@ -1610,7 +1799,7 @@ class Problem:
 
         logger.progress(0, msg2)
         if print_results and not logger.console_logging_enabled():
-            print('\n' + msg + '\n' + msg2)
+            print(f"\n{msg}\n{msg2}")
 
     def _print_iterinfo_body(self, print_results=True):
         """Print convergence progress."""
@@ -1727,8 +1916,87 @@ class Problem:
                         overrides[col] = step
         return overrides
 
+    def _singular_step(self, equations=None, variables=None):
+        """Damped least squares increment for a singular jacobian.
+
+        A singular Jacobian in the middle of the iteration is mostly caused by
+        temperature based equations (terminal temperature differences,
+        referenced temperatures) losing their enthalpy derivative because a
+        port moved into the two phase region. The damped step stays defined
+        for a singular matrix, the iteration returns to plain newton steps as
+        soon as the Jacobian is regular.
+
+        Returns whether an increment was computed, applying it is left to
+        the caller so it takes the same route as a newton step. The number
+        of such steps per solution attempt is limited by
+        :code:`SINGULAR_RESCUE_ITERATIONS`.
+        """
+        if (
+                not self.singular_rescue
+                or self._rescue_iterations >= SINGULAR_RESCUE_ITERATIONS
+            ):
+            return False
+        # a structurally singular problem cannot be rescued numerically, its
+        # diagnosis needs the unmodified first iteration. The blocks of the
+        # decomposition have full structural rank
+        if (
+                equations is None and self.iter == 0
+                and self.decompose().defective_blocks
+            ):
+            return False
+        self._rescue_iterations += 1
+        if not self._damped_least_squares_step(equations, variables):
+            return False
+        self.lin_dep = False
+        msg = (
+            "Singular jacobian: continuing with a damped least squares step "
+            "from the current iterate."
+        )
+        logger.debug(msg)
+        return True
+
+    def _scaled_system(self, equations=None, variables=None):
+        """Jacobian and negative residual of the full or a block system,
+        equilibrated by the largest entry of every row and column. Returns
+        the scaled matrix, the scaled right hand side and the column scales
+        mapping a solution back to the increment."""
+        if equations is None:
+            jacobian = self.jacobian
+            residual = self.residual
+        else:
+            jacobian = self.jacobian[np.ix_(equations, variables)]
+            residual = self.residual[equations]
+        row_scales = np.abs(jacobian).max(axis=1)
+        row_scales[row_scales == 0] = 1.0
+        J_eq = jacobian / row_scales[:, None]
+        col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
+        return J_eq / col_scales[None, :], -residual / row_scales, col_scales
+
+    def _damped_least_squares_step(self, equations=None, variables=None):
+        """
+        Increment calculated by Levenberg-Marquardt step on the scaled system.
+        """
+        J_sc, r_eq, col_scales = self._scaled_system(equations, variables)
+        normal = J_sc.T @ J_sc
+        damping = SINGULAR_RESCUE_DAMPING * max(np.trace(normal) / len(normal), 1e-12)
+        try:
+            step = np.linalg.solve(
+                normal + damping * np.eye(len(normal)), J_sc.T @ r_eq
+            )
+        except np.linalg.LinAlgError:
+            return False
+        increment = step / col_scales
+        if not np.isfinite(increment).all():
+            return False
+        if equations is None:
+            self.increment = increment
+        else:
+            self.increment = np.zeros(self.variable_counter)
+            self.increment[variables] = increment
+        return True
+
     def _invert_jacobian(self, equations=None, variables=None):
-        """Compute Newton step, storing result in self.increment. Sets self.lin_dep."""
+        """Compute Newton step and store result in self.increment."""
         self.lin_dep = False
         self.increment = self.residual * 0
         if len(self.variables_dict) == 0:
@@ -1738,13 +2006,6 @@ class Problem:
 
         overrides = self._fill_jacobian_surrogates(equations, variables)
 
-        if equations is None:
-            jacobian = self.jacobian
-            residual = self.residual
-        else:
-            jacobian = self.jacobian[np.ix_(equations, variables)]
-            residual = self.residual[equations]
-
         try:
             if self.use_cuda and equations is None:
                 self.increment = cu.asnumpy(cu.dot(
@@ -1752,14 +2013,9 @@ class Problem:
                     -cu.asarray(self.residual)
                 ))
             else:
-                row_scales = np.abs(jacobian).max(axis=1)
-                row_scales[row_scales == 0] = 1.0
-                J_eq = jacobian / row_scales[:, None]
-
-                col_scales = np.maximum(np.abs(J_eq).max(axis=0), 1e-10)
-                J_sc = J_eq / col_scales[None, :]
-                r_eq = -residual / row_scales
-
+                J_sc, r_eq, col_scales = self._scaled_system(
+                    equations, variables
+                )
                 increment = np.linalg.solve(J_sc, r_eq) / col_scales
                 if equations is None:
                     self.increment = increment
@@ -1775,12 +2031,9 @@ class Problem:
     def _check_residual_and_jacobian_for_nan(self, equations=None):
         """Raise an informative error if a NaN or inf entry is found.
 
-        A single NaN in the residual or Jacobian typically contaminates the
-        whole solution vector once the linear system is solved, so the bad
-        value has to be located here, before the solve, to be able to point
-        at the equation that produced it. Otherwise it propagates silently
-        into the next iteration's variable values and only surfaces several
-        iterations later as an unrelated and confusing error.
+        NaN or inf in the residual or Jacobian breaks the whole solution vector
+        This helps to identify the respective equation and prevents surfacing
+        of a otherwise difficult to understand error masses downstream.
         """
         if equations is None:
             nan_rows = set(np.where(~np.isfinite(self.residual))[0])
@@ -1799,30 +2052,36 @@ class Problem:
             for lbl, eq_name in self._get_equations_by_number(nan_rows).values()
         )
         msg = (
-            "The residual or one of the partial derivatives of the "
-            f"following equation(s) is NaN or inf: {eq_str}. Please check "
-            "the inputs to and the implementation of these equations, e.g. "
-            "a UserDefinedEquation."
+            "The residual or one of the partial derivatives of the following "
+            f"equation(s) is NaN or inf: {eq_str}. Please check the inputs to "
+            "and the implementation of these equations."
         )
         logger.error(msg)
         raise hlp.TESPyNetworkError(msg)
 
     def _diagnose_singularity(self):
         """Build singularity_msg after a failed matrix solve."""
-        if self.iter == 0:
-            summary = self._structural_summary()
-            if summary != "":
-                self.singularity_msg = (
-                    "Detected singularity in Jacobian matrix. This "
-                    "singularity is caused by the structure of your problem "
-                    "and NOT a numerical issue. Double check your setup."
-                    f"{summary}\nUse nw.print_structural_analysis() for the "
-                    "affected equations and variables.\n"
-                )
-                self._find_linear_dependencies(self.jacobian)
-                return
+        if self.iter == 0 and self.decompose().defective_blocks:
+            self.singularity_msg = (
+                "Detected singularity in Jacobian matrix. This "
+                "singularity is caused by the structure of your problem "
+                "and NOT a numerical issue. Double check your setup."
+                f"{self._structural_summary()}\nUse "
+                "nw.print_structural_analysis() for the affected equations "
+                "and variables.\n"
+            )
+            self._find_linear_dependencies(self.jacobian)
+            return
 
-        if self.iter == 0 and np.linalg.matrix_rank(self._incidence_matrix_dense) < self._incidence_matrix_dense.shape[0]:
+        # the numerical rank of the incidence pattern is below its term rank
+        # (the matching above) if equations share identical dependency
+        # patterns: no structural defect, but a singular jacobian then points
+        # at the parametrization rather than at missing derivatives
+        if (
+                self.iter == 0
+                and np.linalg.matrix_rank(self._incidence_matrix_dense)
+                < self._incidence_matrix_dense.shape[0]
+            ):
             self.singularity_msg = (
                 "Detected singularity in Jacobian matrix. This singularity "
                 "is most likely caused by the parametrization of your "
@@ -1992,6 +2251,97 @@ class Problem:
                 elif data["obj"].val_SI > data["obj"].max_val:
                     data["obj"].val_SI = data["obj"].max_val
 
+    def _restore_variables(self, values):
+        for col, data in self.variables_dict.items():
+            hlp.set_variable_value(data, values[col])
+
+    def _record_best_state(self, equations=None):
+        """Keep the variable values with the lowest scaled residual so far."""
+        residual = self.scaled_residual(equations).max()
+        if residual < self._best_residual:
+            self._best_residual = residual
+            self._best_state = self._variable_values()
+
+    def _reset_best_state(self):
+        self._best_residual = np.inf
+        self._best_state = None
+
+    def _start_line_search(self, variables=None):
+        """Return to the best state and continue with line search steps."""
+        msg = (
+            "The newton iteration fails, returning to the state with the "
+            f"lowest scaled residual ({self._best_residual:.2e}) and "
+            "continuing with a backtracking line search."
+        )
+        logger.debug(msg)
+        best = self._best_state
+        self._reset_attempt_state(variables)
+        if best is not None:
+            self._restore_variables(best)
+        self._line_search_active = True
+        self.lin_dep = False
+
+    def _merit(self, equations=None):
+        return float(norm(self.scaled_residual(equations)))
+
+    def _update_with_line_search(
+            self, variables=None, connections=None, components=None,
+            equations=None, objects=None
+        ):
+        """Apply the newton increment shortened by a backtracking line search.
+
+        The step is halved until the scaled residual norm decreases
+        sufficiently (Armijo condition), a failing evaluation counts as an
+        infinite residual. Without sufficient decrease the trial step with
+        the lowest residual is applied. Returns whether the value heuristics
+        modified any value.
+        """
+        if objects is None:
+            objects = self._all_objects()
+        start = self._variable_values()
+        residual = self.residual.copy()
+        counters = [obj.it for obj in objects]
+        increment = self.increment.copy()
+        merit_start = self._merit(equations)
+
+        alpha = 1.0
+        best_alpha, best_merit = alpha, np.inf
+        accepted = False
+        for _ in range(LINE_SEARCH_STEPS):
+            self.increment = increment * alpha
+            try:
+                self._update_variables(variables)
+                modified = self._adapt_to_variable_bounds(
+                    connections, components
+                )
+                self._solve_equations(objects, residual_only=True)
+                merit = self._merit(equations)
+            except hlp.TESPyNetworkError:
+                raise
+            except Exception:
+                merit = np.inf
+            if not np.isfinite(merit):
+                merit = np.inf
+            if merit <= (1 - 1e-4 * alpha) * merit_start:
+                accepted = True
+                break
+            if merit < best_merit:
+                best_alpha, best_merit = alpha, merit
+            self._restore_variables(start)
+            alpha *= 0.5
+
+        if not accepted:
+            # the shortest step if none of the trials could be evaluated
+            alpha = best_alpha if np.isfinite(best_merit) else alpha * 2
+            self.increment = increment * alpha
+            self._update_variables(variables)
+            modified = self._adapt_to_variable_bounds(connections, components)
+
+        for obj, it in zip(objects, counters):
+            obj.it = it
+        self.residual = residual
+        return modified
+
     def _variable_values(self):
         values = np.empty(self.variable_counter)
         for key, data in self.variables_dict.items():
@@ -2139,32 +2489,6 @@ class Problem:
                 )
                 logger.debug(msg)
 
-    def _solve_iteration(self):
-        r"""
-        Control iteration step of the newton algorithm.
-
-        - Calculate the residual value for each equation
-        - Calculate the jacobian matrix
-        - Calculate new values for variables
-        - Restrict fluid properties to value ranges
-        - Check component parameters for consistency
-        """
-        self._solve_equations()
-        self._update_residual_scales()
-        self._invert_jacobian()
-
-        if self.lin_dep:
-            self._diagnose_singularity()
-            return True
-
-        if self.oscillation_damping or self._auto_damping:
-            self._dampen_oscillating_increments()
-
-        self._update_variables()
-        modified = self._adapt_to_variable_bounds()
-        self._prev_residual = self.residual.copy()
-        return modified
-
     def _update_residual_scales(self):
         """Per equation scales from the current jacobian.
 
@@ -2194,14 +2518,7 @@ class Problem:
         r"""
         Calculate the residual and derivatives of all equations.
         """
-        if objects is None:
-            to_solve = (
-                self.network.comps["object"].tolist()
-                + self.network.conns["object"].tolist()
-                + list(self.network.user_defined_eq.values())
-            )
-        else:
-            to_solve = objects
+        to_solve = self._all_objects() if objects is None else objects
 
         if residual_only:
             for obj in to_solve:
@@ -2439,10 +2756,13 @@ class Problem:
     def _connection_states(self, block):
         """Collect the state of every connection the block touches."""
         columns = set(block.variables)
-        objects = [self._equation_obj_lookup[eq] for eq in block.equations]
-        for col in block.variables:
-            for sm_col in self.variables_dict[col]["_represents"]:
-                objects.append(self._variable_lookup[sm_col]["object"])
+        owners = self._block_owners(block)
+        network = self.network
+        objects = [
+            o for o in
+            network.conns["object"].tolist() + network.comps["object"].tolist()
+            if o in owners
+        ]
 
         states = []
         seen = set()

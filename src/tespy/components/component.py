@@ -42,7 +42,6 @@ from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import _validate_dependents
-from tespy.tools.units import _UNITS
 from tespy.tools.units import SI_UNITS
 
 
@@ -142,6 +141,13 @@ class Component:
     _parameter_aliases = {}
     _is_wrapper_branch_source = False
 
+    @classmethod
+    def _get_parameter_aliases(cls):
+        aliases = {}
+        for klass in reversed(cls.__mro__):
+            aliases.update(klass.__dict__.get("_parameter_aliases", {}))
+        return aliases
+
     def __init__(self, label, **kwargs):
 
         if not isinstance(label, str):
@@ -195,16 +201,14 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
-        for old, new in self._parameter_aliases.items():
-            if old in kwargs:
+        for old, new in self._get_parameter_aliases().items():
+            if old in kwargs and new in self.parameters:
                 warnings.warn(
                     f"The parameter '{old}' of component {self.label!r} is "
                     f"deprecated. Use '{new}' instead.",
                     FutureWarning, stacklevel=2
                 )
-                kwargs[new] = kwargs[old]
-                if kwargs[old] == 'var':
-                    del kwargs[old]
+                kwargs[new] = kwargs.pop(old)
         for key, value in kwargs.items():
             if key in self.parameters:
                 self._set_parameter(key, value)
@@ -330,13 +334,13 @@ class Component:
             logger.error(msg)
             raise KeyError(msg)
 
-    def _serialize(self):
+    def _serialize(self, units=None):
         export = {}
         for k in self._serializable():
             export.update({k: self.get_attr(k)})
         for k in self.parameters:
             data = self.get_attr(k)
-            export.update({k: data._serialize()})
+            export.update({k: data._serialize(units)})
 
         return {self.label: export}
 
@@ -347,7 +351,7 @@ class Component:
             "design_path", "printout", "fkt_group", "char_warnings", "bypass"
         ]
 
-    def _save_specifications(self):
+    def _save_specifications(self, units):
         specs = {}
         for key, container in self.parameters.items():
             if not container.is_set:
@@ -355,7 +359,7 @@ class Component:
             if isinstance(container, dc_cp):
                 specs[key] = {
                     "val": container.val,
-                    "unit": container.unit,
+                    "unit": container._unit_for_export(units),
                     "is_set": True,
                     "is_var": container.is_var
                 }
@@ -458,7 +462,7 @@ class Component:
 
             sum_eq += constraint.num_eq_sets
 
-        for old, new in self._parameter_aliases.items():
+        for old, new in self._get_parameter_aliases().items():
             if old not in self.parameters or new not in self.parameters:
                 continue
             for lst_name in ('design', 'offdesign'):
@@ -997,6 +1001,29 @@ class Component:
         """
         return []
 
+    def _flow_presolve_ignored_rows(self):
+        r"""
+        Equations to leave out of the flow presolve of the starting values.
+
+        Called after the starting values of pressure and enthalpy are
+        complete. A component returns the solver equation numbers of those
+        of its equations that would carry misleading information on the mass
+        and energy flows when evaluated on the guessed property field.
+
+        Returns
+        -------
+        list
+            Solver equation numbers.
+        """
+        return []
+
+    def _equation_rows(self, constraint):
+        r"""Solver equation numbers of one of the component's constraints."""
+        return [
+            eq_num for eq_num, (name, _) in self._equation_lookup.items()
+            if name == constraint
+        ]
+
     def _separate_flat_enthalpy_starts(self, seeded):
         r"""
         Impose a minimum enthalpy difference on the starting values.
@@ -1072,7 +1099,7 @@ class Component:
         """
         return 0
 
-    def _set_design_parameters(self, mode, data):
+    def _set_design_parameters(self, mode, data, units):
         r"""
         Set or unset design values of component parameters.
 
@@ -1097,9 +1124,9 @@ class Component:
                         (data.get(key) is not None)
                     ):
                     if f"{key}_unit" in data:
-                        value = _UNITS.ureg.Quantity(
-                            data[key], data[f"{key}_unit"]
-                        ).m_as(SI_UNITS[dc.quantity])
+                        value = units.value_to_SI(
+                            data[key], data[f"{key}_unit"], dc.quantity
+                        )
                     else:
                         value = data[key]
                     self.get_attr(key).design = float(value)
@@ -1172,12 +1199,13 @@ class Component:
                 if value.is_set and not value.is_var:
                     if self.bypass:
                         continue
-                    result = value._get_val_from_SI(units)
-                    if not np.isclose(result.magnitude, value.val, 1e-3, 1e-3):
+                    result = value.value_from_SI(units)
+                    if not np.isclose(result, value.val, 1e-3, 1e-3):
                         _specifications_matched = False
                         msg = (
                             "The simulation converged but the calculated "
-                            f"result {result} for the fixed input parameter "
+                            f"result {result} {value.unit} for the fixed "
+                            "input parameter "
                             f"{key} is not equal to the originally specified "
                             f"value: {value.val}. Usually, this can happen, "
                             "when a method internally manipulates the "

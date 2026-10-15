@@ -17,6 +17,100 @@ import platformdirs
 
 from tespy import __datapath__
 
+_SI_DEFAULTS = {
+    "temperature": "kelvin",
+    "temperature_difference": "delta_degC",
+    "enthalpy": "J/kg",
+    "specific_energy": "J/kg",
+    "entropy": "J/kg/K",
+    "pressure": "Pa",
+    "pressure_difference": "Pa",
+    "mass_flow": "kg/s",
+    "volumetric_flow": "m3/s",
+    "specific_volume": "m3/kg",
+    "power": "W",
+    "heat": "W",
+    "quality": "1",
+    "vapor_mass_fraction": "1",  # backwards compatibility network import
+    "efficiency": "1",
+    "ratio": "1",
+    "length": "m",
+    "speed": "m/s",
+    "area": "m2",
+    "thermal_conductivity": "W/m/K",
+    "heat_transfer_coefficient": "W/K",
+    "heat_transfer_coefficient_per_area": "W/m**2/K",
+    "thermal_resistance": "K/W",
+    "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
+    "frequency": "1/s",
+    # None is the default if not quantity is supplied
+    None: "1"
+}
+
+
+def _create_registry():
+    # necessary, because pint cannot auto detect environment changes and
+    # pint version changes
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    path = platformdirs.user_cache_dir(
+        "tespy", False, f"py{major}{minor}pint{pint.__version__}"
+    )
+    try:
+        ureg = pint.UnitRegistry(cache_folder=path)
+    except FileNotFoundError:
+        # this is necessary, because inside the cache folder, pint points
+        # to the pint installation inside (any) of the venvs (potentially
+        # the first ever created?). If that venv moves or gets deleted,
+        # then the link cannot be found any more and we have to recreated
+        # the cache
+        shutil.rmtree(path)
+        ureg = pint.UnitRegistry(cache_folder=path)
+    ureg.define("m3 = m ** 3")
+    ureg.define("m2 = m ** 2")
+    ureg.define("kgK = kg * K")
+    return ureg
+
+
+_VALIDATION_REGISTRY = None
+_COMPATIBILITY = {}
+
+
+def is_compatible(quantity, unit):
+    """Check a unit string against the dimension of a quantity.
+
+    A parse only registry is created on first use: the check needs no
+    network, e.g. for units read from a file. Units the registry does not
+    know are not rejected, their conversion fails on the unit system of the
+    network instead.
+    """
+    global _VALIDATION_REGISTRY
+    key = (quantity, str(unit))
+    try:
+        return _COMPATIBILITY[key]
+    except KeyError:
+        pass
+    if _VALIDATION_REGISTRY is None:
+        _VALIDATION_REGISTRY = _create_registry()
+    try:
+        compatible = _is_compatible(_VALIDATION_REGISTRY, quantity, key[1])
+    except pint.errors.UndefinedUnitError:
+        compatible = True
+    _COMPATIBILITY[key] = compatible
+    return compatible
+
+
+def _is_compatible(ureg, quantity, unit):
+    if quantity == "temperature_difference" and not unit.startswith("delta_"):
+        _units = ureg._units
+        kelvin = list(_units["K"].aliases) + [_units["K"].name]
+        rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
+        return unit in kelvin or unit in rankine
+    return (
+        ureg.Quantity(1, unit).dimensionality
+        == ureg.Quantity(1, SI_UNITS[quantity]).dimensionality
+    )
+
 
 class Units:
 
@@ -27,62 +121,12 @@ class Units:
         return instance
 
     def __init__(self):
-        self.default = {
-            "temperature": "kelvin",
-            "temperature_difference": "delta_degC",
-            "enthalpy": "J/kg",
-            "specific_energy": "J/kg",
-            "entropy": "J/kg/K",
-            "pressure": "Pa",
-            "pressure_difference": "Pa",
-            "mass_flow": "kg/s",
-            "volumetric_flow": "m3/s",
-            "specific_volume": "m3/kg",
-            "power": "W",
-            "heat": "W",
-            "quality": "1",
-            "vapor_mass_fraction": "1",  # backwards compatibility network import
-            "efficiency": "1",
-            "ratio": "1",
-            "length": "m",
-            "speed": "m/s",
-            "area": "m2",
-            "thermal_conductivity": "W/m/K",
-            "heat_transfer_coefficient": "W/K",
-            "heat_transfer_coefficient_per_area": "W/m**2/K",
-            "thermal_resistance": "K/W",
-            "angle": "degree",  # the SI unit for angle would be radians, but that would break things in the compressor
-            "frequency": "1/s",
-            # None is the default if not quantity is supplied
-            None: "1"
-        }
+        self.default = dict(_SI_DEFAULTS)
         self._conversions_applied = False
-        # necessary, because pint cannot auto detect environment changes and
-        # pint version changes
-        major = sys.version_info.major
-        minor = sys.version_info.minor
-        path = platformdirs.user_cache_dir(
-            "tespy", False, f"py{major}{minor}pint{pint.__version__}"
-        )
-        try:
-            self._ureg = pint.UnitRegistry(cache_folder=path)
-        except FileNotFoundError:
-            # this is necessary, because inside the cache folder, pint points
-            # to the pint installation inside (any) of the venvs (potentially
-            # the first ever created?). If that venv moves or gets deleted,
-            # then the link cannot be found any more and we have to recreated
-            # the cache
-            shutil.rmtree(path)
-            self._ureg = pint.UnitRegistry(cache_folder=path)
-        # cannot use the setter here because we have to define m3 first!
-        self.ureg.define("m3 = m ** 3")
-        self.ureg.define("m2 = m ** 2")
-        self.ureg.define("kgK = kg * K")
-        self._quantities = {
-            k: self.ureg.Quantity(1, v) for k, v in self.default.items()
-        }
-        self._from_SI = {}
+        self._ureg = _create_registry()
+        self._conversions = {}
         self._parsed_units = {}
+        self._canonical = {}
 
     def parsed_unit(self, unit):
         """Return the pint Unit for a unit string.
@@ -96,25 +140,47 @@ class Units:
             self._parsed_units[unit] = parsed
             return parsed
 
-    def value_from_SI(self, value_SI, base_unit, target_unit):
-        """Convert a value in SI units to its magnitude in the target unit.
+    def canonical(self, unit):
+        """Return the canonical name of a unit string, e.g. degC becomes
+        degree_Celsius. The names are parsed once and then cached."""
+        try:
+            return self._canonical[unit]
+        except KeyError:
+            canonical = str(self.parsed_unit(unit))
+            self._canonical[unit] = canonical
+            return canonical
+
+    def convert(self, value, from_unit, to_unit):
+        """Convert a magnitude from one unit to another.
 
         Unit conversions are affine, so factor and offset are computed once
         per unit pair and cached, bypassing the pint conversion machinery
-        for every subsequent value.
+        for every subsequent value. The cache is keyed by the unit strings,
+        pint objects of any registry are accepted.
         """
+        from_unit = str(from_unit)
+        to_unit = str(to_unit)
         try:
-            factor, offset = self._from_SI[(base_unit, target_unit)]
+            factor, offset = self._conversions[(from_unit, to_unit)]
         except KeyError:
-            offset = self.ureg.Quantity(0.0, base_unit).m_as(target_unit)
+            offset = self.ureg.Quantity(0.0, from_unit).m_as(to_unit)
             # probe at a large power of two: the division is exact and the
             # cancellation error of the offset subtraction becomes negligible
             probe = 2.0 ** 20
             factor = (
-                self.ureg.Quantity(probe, base_unit).m_as(target_unit) - offset
+                self.ureg.Quantity(probe, from_unit).m_as(to_unit) - offset
             ) / probe
-            self._from_SI[(base_unit, target_unit)] = (factor, offset)
-        return value_SI * factor + offset
+            self._conversions[(from_unit, to_unit)] = (factor, offset)
+        return value * factor + offset
+
+    def value_from_SI(self, value_SI, base_unit, target_unit):
+        """Convert a value in SI units to its magnitude in the target unit."""
+        return self.convert(value_SI, base_unit, target_unit)
+
+    def value_to_SI(self, value, unit, quantity):
+        """Convert a magnitude in the given unit to the SI unit of the
+        quantity."""
+        return self.convert(value, unit, SI_UNITS[quantity])
 
     def quantity_from_SI(self, value_SI, base_unit, target_unit):
         return self.ureg.Quantity(
@@ -206,16 +272,7 @@ class Units:
                 raise ValueError(msg)
 
     def _is_compatible(self, quantity, unit):
-        if quantity == "temperature_difference":
-            if unit.startswith("delta_"):
-                return self._quantities[quantity].is_compatible_with(unit)
-            else:
-                _units = self.ureg._units
-                kelvin = list(_units["K"].aliases) + [_units["K"].name]
-                rankine = list(_units["rankine"].aliases) + [_units["rankine"].name]
-                return unit in kelvin or unit in rankine
-        else:
-            return self._quantities[quantity].is_compatible_with(unit)
+        return _is_compatible(self.ureg, quantity, unit)
 
     def get_default(self, quantity):
         self._check_quantity_exists(quantity)
@@ -242,12 +299,11 @@ class Units:
         self._ureg = ureg
         self.ureg.define("m3 = m ** 3")
         self.ureg.define("m2 = m ** 2")
-        self._quantities = {
-            k: self.ureg.Quantity(1, v) for k, v in self.default.items()
-        }
+        self.ureg.define("kgK = kg * K")
         # cached objects belong to the replaced registry
-        self._from_SI = {}
+        self._conversions = {}
         self._parsed_units = {}
+        self._canonical = {}
 
     def get_ureg(self):
         return self._ureg
@@ -258,5 +314,4 @@ class Units:
     ureg = property(get_ureg, set_ureg)
 
 
-_UNITS = Units()
-SI_UNITS = _UNITS.default.copy()
+SI_UNITS = dict(_SI_DEFAULTS)

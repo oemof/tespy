@@ -694,6 +694,31 @@ class TestHeatExchangers:
         )
         assert np.isnan(instance.eff_hot.val), msg
 
+    def test_HeatExchanger_max_dh_at_saturation_temperature(self):
+        # the other stream's inlet temperature exactly at the saturation
+        # temperature leaves h(p, T) undetermined, the maximum enthalpy
+        # change is bounded by the fully condensed or evaporated state
+        nw = Network(iterinfo=False)
+        instance = HeatExchanger("heat exchanger")
+        c1 = Connection(Source("hot in"), "out1", instance, "in1")
+        c2 = Connection(instance, "out1", Sink("hot out"), "in1")
+        c3 = Connection(Source("cold in"), "out1", instance, "in2")
+        c4 = Connection(instance, "out2", Sink("cold out"), "in1")
+        nw.add_conns(c1, c2, c3, c4)
+        p_hot = 10e5
+        p_cold = 3e5
+        T_sat_hot = PSI("T", "P", p_hot, "Q", 0, "R134a")
+        T_sat_cold = PSI("T", "P", p_cold, "Q", 0, "R134a")
+        c1.set_attr(fluid={"R134a": 1}, m=1, p=p_hot, T=T_sat_cold)
+        c3.set_attr(fluid={"R134a": 1}, m=1, p=p_cold, T=T_sat_hot)
+        instance.set_attr(dp1=0, dp2=0)
+        nw.solve("design", init_only=True)
+
+        expected_hot = PSI("H", "P", p_hot, "Q", 0, "R134a") - c1.h.val_SI
+        expected_cold = PSI("H", "P", p_cold, "Q", 1, "R134a") - c3.h.val_SI
+        assert instance.calc_dh_max_hot(clip=True) == approx(expected_hot)
+        assert instance.calc_dh_max_cold(clip=True) == approx(expected_cold)
+
     def test_HeatExchanger_ttd_zero(self):
 
         instance = HeatExchanger('heat exchanger')
@@ -765,7 +790,7 @@ class TestHeatExchangers:
         # test upper terminal temperature difference. For the component
         # condenser the temperature of the condensing fluid is relevant.
         ttd_u = round(self.c1.calc_T_sat() - self.c4.T.val_SI, 1)
-        p = round(self.c1.p.val_SI, 5)
+        p = self.c1.p.val_SI
         msg = (
             'Value of terminal temperature difference must be '
             f'{round(instance.ttd_u.val, 1)}, is {ttd_u}.'
@@ -789,10 +814,9 @@ class TestHeatExchangers:
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()
         msg = (
-            f'Value of condensing pressure be {p}, is '
-            f'{round(self.c1.p.val_SI, 5)}.'
+            f'Value of condensing pressure be {p}, is {self.c1.p.val_SI}.'
         )
-        assert p == round(self.c1.p.val_SI, 5), msg
+        assert self.c1.p.val_SI == approx(p, rel=1e-8), msg
 
     def test_CondenserWithEvaporation(self):
         """Test a Condenser that evaporates a fluid."""
@@ -1476,3 +1500,22 @@ class TestParameterAliases:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert approx(zeta) == _calc_zeta(self.c1, self.c2)
+
+    def test_set_attr_old_name_does_not_set_old_parameter(self):
+        """Only the new parameter is set and serialized, not the deprecated one."""
+        with pytest.warns(FutureWarning, match="kA"):
+            self.he.set_attr(kA=5000)
+        assert self.he.UA.is_set
+        assert not self.he.kA.is_set
+        data = self.he._serialize()[self.he.label]
+        assert data["UA"]["is_set"]
+        assert not data["kA"]["is_set"]
+
+    def test_subclass_inherits_parent_aliases(self):
+        """Aliases of the parent class remain active on subclasses defining own aliases."""
+        he = SectionedHeatExchanger("sectioned heat exchanger")
+        with pytest.warns(FutureWarning, match="kA"):
+            he.set_attr(kA=5000)
+        assert he.UA.is_set
+        assert he.UA.val == pytest.approx(5000)
+        assert not he.kA.is_set

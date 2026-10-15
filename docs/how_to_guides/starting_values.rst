@@ -26,6 +26,12 @@ working fluids.
 
 .. note::
 
+    In a previous version of TESPy the models shown in this tutorial did not
+    solve successfully, now they do. Therefore, this tutorial only demonstrates
+    the approach to generating good starting values.
+
+.. note::
+
     If the heat pump operates in trans- or supercritical range, some
     modifications have to be made on this setup. We plan to include respective
     examples here in the future.
@@ -62,7 +68,9 @@ with water on both the heat source and heat sink side of the system.
 
 Running into errors
 -------------------
-As always, we start by importing the necessary TESPy classes.
+This section shows what a convergence failure looks like and how to read it,
+using the state of this model in earlier TESPy versions. As always, we start
+by importing the necessary TESPy classes.
 
 .. literalinclude:: /../tutorial/advanced/starting_values.py
     :language: python
@@ -104,9 +112,10 @@ following way:
         :start-after: [sec_3]
         :end-before: [sec_3_end]
 
-The system should be well defined with the parameter settings, however the
-solver does not find a solution from the automatically generated starting
-values. It isolates the part of the problem it fails on and reports it:
+The system is well defined with the parameter settings. In earlier versions
+the solver did not find a solution from the automatically generated starting
+values for this model. When a model fails, the solver isolates the part of the
+problem it fails on and reports it, in this case it looked like this:
 
 .. error::
 
@@ -122,8 +131,8 @@ values. It isolates the part of the problem it fails on and reports it:
           Variables: h0, h1, h4, m6, h7, p11
         The remaining system did not converge either, restarting with the
         simultaneous solution of the full system from its initial state.
-        The solver does not seem to make any progress, aborting calculation.
-        Scaled residual value is 1.86e-02 (1: x)
+        The calculation did not converge, the last scaled residual is
+        1.86e-02 (1: x).
         Possible reasons include:
          - fluid properties moving outside the valid range of the property
            database (consider adjusting p_range or h_range),
@@ -136,8 +145,8 @@ The messages already narrow the failure down: the equation system was
 :ref:`decomposed into blocks <solver_decomposition_label>` and every block
 solved fine except one. The group of six coupled equations determining the
 evaporation side of the cycle failed. Neither solving the remaining blocks in
-one coupled system nor restarting with the full system finds the solution, so
-the calculation ends with :code:`nw.status == 2`.
+one coupled system nor restarting with the full system found the solution, so
+the calculation ended with :code:`nw.status == 2`.
 
 .. tip::
 
@@ -161,10 +170,11 @@ Fixing the errors
 
 All equations of the failed block are tied to the pressure and enthalpy levels
 of the evaporation side of the cycle, so this is where better starting values
-are required. To provide them, it is recommended to fix the saturation levels
-of the cycle directly instead of the temperature differences in a first
-calculation. In this example, the fixed points can be identified with the help
-of the logph diagram which you can see in the figure below.
+would be required. To provide them, it is recommended to fix the saturation
+levels of the cycle directly instead of the temperature differences in a first
+calculation. The steps below show this on the model, even though it does not
+need them anymore. In this example, the fixed points can be identified with the
+help of the logph diagram which you can see in the figure below.
 
 .. figure:: /_static/images/tutorials/heat_pump_starting_values/logph.svg
     :align: center
@@ -197,9 +207,10 @@ are set instead.
     :start-after: [sec_4]
     :end-before: [sec_5]
 
-The model was solved successfully and has stored the starting values for any
-follow-up. Therefore, we can undo our recent changes and restart the
-simulation. For example, the COP is then calculated.
+The model is solved successfully and has stored the starting values for any
+follow-up. Therefore, we can undo our recent changes and restart the simulation
+with the actual specifications. For example, the COP is subsequently
+calculated.
 
 .. literalinclude:: /../tutorial/advanced/starting_values.py
     :language: python

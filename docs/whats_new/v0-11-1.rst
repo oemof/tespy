@@ -82,7 +82,7 @@ New Features
 Bug Fixes
 #########
 - The enthalpy to temperature inversion of the
-  :py:class:`~tespy.tools.fluid_properties.wrappers.IncompressibleFluidWrapper`
+  :py:class:`~tespy.tools.fluid_properties.wrappers.incompressible.IncompressibleFluidWrapper`
   returned wrong temperatures for (nearly) constant heat capacity data. The
   quadratic formula is now evaluated in its numerically stable form.
 - The section result arrays of the

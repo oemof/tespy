@@ -56,7 +56,8 @@ class TestSEGS:
         self.nw = Network()
         self.nw.units.set_defaults(**{
             "pressure": "bar", "pressure_difference": "bar",
-            "temperature": "degC", "enthalpy": "kJ/kg", "entropy": "kJ/kgK"
+            "temperature": "degC", "enthalpy": "kJ/kg", "entropy": "kJ/kgK",
+            "power": "MW"
         })
 
         # components definition
@@ -382,22 +383,24 @@ class TestSEGS:
 
     def test_model(self):
         """Test the thermodynamic model."""
+        # tolerances account for differences in the fluid property data of
+        # the heat transfer fluid between CoolProp versions
         power_ebsilon = 31.769
-        power_tespy = round(self.nw.get_conn("e25").E.val_SI / 1e6, 3)
+        power_tespy = self.nw.get_conn("e25").E.val
         msg = (
             f"The total power calculated ({power_tespy}) does not match the "
             f"power calculated with the EBSILON model ({power_ebsilon})."
         )
-        assert power_tespy == power_ebsilon, msg
+        assert power_tespy == pytest.approx(power_ebsilon, rel=5e-4), msg
 
         T_c79_ebsilon = 296.254
-        T_c79_tespy = round(self.nw.get_conn("79").T.val, 3)
+        T_c79_tespy = self.nw.get_conn("79").T.val
         msg = (
             f"The temperature at connection 79 calculated ({T_c79_tespy}) "
             "does not match the temperature calculated with the EBSILON model "
             f"({T_c79_ebsilon})."
         )
-        assert T_c79_tespy == T_c79_ebsilon, msg
+        assert T_c79_tespy == pytest.approx(T_c79_ebsilon, abs=0.05), msg
 
     # this test sometimes fails on gh actions and simetimes passes, and I
     # cannot reproduce that behavior locally, there it may be just skipped.

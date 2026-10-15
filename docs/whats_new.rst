@@ -7,6 +7,7 @@ What's New
 Notable new features and improvements of the current release series. The
 changelogs of the earlier series are linked at the bottom of this page.
 
+.. include::  whats_new/v0-11-3.rst
 .. include::  whats_new/v0-11-2.rst
 .. include::  whats_new/v0-11-1.rst
 .. include::  whats_new/v0-11-0.rst

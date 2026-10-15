@@ -34,6 +34,8 @@ def _create_connection_instances() -> dict:
             instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
         elif cls_name == "PowerConnection":
             instance = cls_ref(PowerSource("source"), "power", PowerSink("sink"), "power")
+        elif cls_name == "HAConnection":
+            instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
         else:
             # do not add to the dict of not any of both classes
             continue
@@ -546,8 +548,8 @@ html_sidebars = {
 }
 
 html_theme_options = {
-    "light_logo": "./images/logo_tespy_mid.svg",
-    "dark_logo": "./images/logo_tespy_mid_darkmode.svg",
+    "light_logo": "./images/logo_tespy_mid_dr_ing.svg",
+    "dark_logo": "./images/logo_tespy_mid_darkmode_dr_ing.svg",
     "announcement": """
     <div oemof-announcement=\"https://raw.githubusercontent.com/oemof/tespy/announcements/announcement.html\"></div>
     """,
@@ -596,7 +598,15 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
     r"^https://.*\.svg$",
     "https://product-selection.grundfos.com/",
     "https://docutils.sourceforge.io/rst.html",
+    r"https://github\.com/tub-hofmann",
 ]
+
+# the publication list is curated by hand and the repository hosts it links to
+# routinely block crawlers
+linkcheck_exclude_documents = [r"^in_use/literature$"]
+
+# dollarmath in notebooks
+myst_enable_extensions = ["dollarmath"]
 
 # Notebook execution
 # "cache" re-uses stored outputs while a notebook's content hash is unchanged,

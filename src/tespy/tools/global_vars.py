@@ -106,3 +106,12 @@ class CombustionGases:
 
 
 COMBUSTION_FLUIDS = CombustionGases()
+
+# enthalpy difference in J/kg below which an energy balance on the starting
+# value field is considered flat: it carries no information on the mass flow
+# and is left out of the flow presolve (a few Kelvin of a liquid or a gas)
+FLAT_ENTHALPY_DIFFERENCE = 5e3
+
+# maximum number of trial steps of the backtracking line search, each halving
+# the newton increment
+LINE_SEARCH_STEPS = 5

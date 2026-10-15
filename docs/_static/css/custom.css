@@ -134,3 +134,67 @@ span.backrefs {
 .cell_output table.dataframe tbody tr:hover {
     background: var(--color-background-hover);
 }
+
+/* Roadmap timeline (docs/community/roadmap.rst) */
+
+ul.roadmap-timeline {
+    list-style: none;
+    margin: 1.5em 0;
+    padding-left: 0;
+    position: relative;
+}
+
+ul.roadmap-timeline::before {
+    content: "";
+    position: absolute;
+    left: calc(0.5em + 2px);
+    top: 0.4em;
+    bottom: 0.4em;
+    width: 2px;
+    background: var(--color-background-border);
+}
+
+ul.roadmap-timeline > li {
+    position: relative;
+    padding-left: 2.2em;
+    margin-bottom: 1.8em;
+}
+
+ul.roadmap-timeline > li::before {
+    box-sizing: border-box;
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.35em;
+    width: calc(1em + 6px);
+    height: calc(1em + 6px);
+    border-radius: 50%;
+    background: var(--color-background-primary);
+    border: 3px solid var(--color-logo-main);
+}
+
+.roadmap-timeline p.rubric {
+    margin: 1em 0 0.4em 0;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-logo-main);
+}
+
+.roadmap-timeline p.rubric.roadmap-release {
+    margin: 0 0 0.4em 0;
+    font-size: 1.15em;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--color-foreground-primary);
+}
+
+.roadmap-additions {
+    color: var(--color-foreground-secondary);
+    font-size: 0.95em;
+}
+
+.roadmap-additions p.rubric {
+    color: var(--color-foreground-secondary);
+}

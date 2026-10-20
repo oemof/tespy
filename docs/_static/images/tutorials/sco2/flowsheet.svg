@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   inkscape:export-ydpi="1012"
+   inkscape:export-xdpi="1012"
+   inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\1 Bachelor EPT\1 Bachelorarbeit\1 Paper TESPy_Exergie\Abbildungen\sCO2_draft.png"
+   sodipodi:docname="flowsheet.svg"
+   inkscape:version="1.1.1 (eb90963e84, 2021-10-02)"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 242.03023 102.17961"
+   height="102.17961mm"
+   width="242.03023mm"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs2">
+    <linearGradient
+       id="linearGradient2073"
+       inkscape:collect="always">
+      <stop
+         id="stop2069"
+         offset="0"
+         style="stop-color:#000000;stop-opacity:1;" />
+      <stop
+         id="stop2071"
+         offset="1"
+         style="stop-color:#000000;stop-opacity:0;" />
+    </linearGradient>
+    <rect
+       id="rect1009"
+       height="0"
+       width="12.5"
+       y="-75"
+       x="50" />
+    <linearGradient
+       gradientTransform="translate(0.29243162,-2.3779876)"
+       gradientUnits="userSpaceOnUse"
+       y2="204.98201"
+       x2="223.36507"
+       y1="204.98201"
+       x1="221.6942"
+       id="linearGradient2075"
+       xlink:href="#linearGradient2073"
+       inkscape:collect="always" />
+  </defs>
+  <sodipodi:namedview
+     inkscape:window-maximized="1"
+     inkscape:window-y="27"
+     inkscape:window-x="72"
+     inkscape:window-height="1016"
+     inkscape:window-width="1848"
+     inkscape:snap-to-guides="false"
+     inkscape:guide-bbox="true"
+     showguides="true"
+     inkscape:bbox-nodes="false"
+     inkscape:snap-grids="true"
+     inkscape:snap-bbox="true"
+     inkscape:snap-nodes="true"
+     inkscape:object-paths="true"
+     inkscape:snap-center="true"
+     showgrid="true"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="330.13924"
+     inkscape:cx="490.19075"
+     inkscape:zoom="0.9465703"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-right="5"
+     fit-margin-bottom="5"
+     inkscape:pagecheckerboard="0">
+    <inkscape:grid
+       spacingy="1"
+       spacingx="1"
+       units="cm"
+       dotted="true"
+       enabled="true"
+       id="grid835"
+       type="xygrid"
+       originx="-24.316589"
+       originy="-51.042675" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Ebene 1"
+     transform="translate(-24.316588,-51.042674)">
+    <path
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       id="path1031-6-0-0"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 241.02772,79.998797 -15,5.00001 v 19.999943 l 15,5.04535 z" />
+    <path
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       id="path1855"
+       d="m 135.02772,124.99881 h 30"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+       x="148.42766"
+       y="126.79421"
+       id="text1437-2-732-1-8"><tspan
+         sodipodi:role="line"
+         id="tspan1435-1-9-8-4"
+         x="148.42766"
+         y="126.79421"
+         style="font-size:4.9389px;fill:#ffffff;fill-opacity:1;stroke-width:0.264583">0</tspan></text>
+    <circle
+       r="2.3507555"
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.622948;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path1304-2-1-0-0"
+       cx="60.027721"
+       cy="84.998802"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       id="path1948"
+       d="m 241.02772,94.998757 h 8"
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <circle
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       r="6"
+       cy="94.998756"
+       cx="255.02782"
+       id="path1088-4"
+       style="fill:none;stroke:#000000;stroke-width:0.638;stroke-miterlimit:4;stroke-dasharray:none" />
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.9389px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="253.15031"
+       y="96.791756"
+       id="text1171-5"><tspan
+         sodipodi:role="line"
+         id="tspan1169-3"
+         x="253.15031"
+         y="96.791756"
+         style="font-size:4.9389px;stroke-width:0.264583">G</tspan></text>
+    <path
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       id="rect1213-2"
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 215,122.49881 5,2.50583 v 0 l -5,2.49417 z"
+       sodipodi:nodetypes="ccccc" />
+    <g
+       transform="rotate(90,0.01445668,-19.986735)"
+       id="g2115"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012">
+      <path
+         inkscape:export-ydpi="1012"
+         inkscape:export-xdpi="1012"
+         sodipodi:nodetypes="csssssc"
+         d="m 152.48359,-105 c 0,2.25377 -0.99629,4.27485 -2.57249,5.646841 -1.3143,1.144024 -3.0318,1.836742 -4.9111,1.836742 -1.94235,0 -3.71188,-0.739983 -5.04203,-1.953416 -1.50024,-1.368587 -2.44156,-3.339447 -2.44156,-5.530167 0,-4.13307 3.35052,-7.48358 7.48359,-7.48358 4.13307,0 7.48359,3.35051 7.48359,7.48358"
+         style="fill:#fffbff;stroke:#00000e;stroke-width:1.03282;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+         id="path1764" />
+      <path
+         inkscape:export-ydpi="1012"
+         inkscape:export-xdpi="1012"
+         sodipodi:nodetypes="cc"
+         id="path1792"
+         d="m 143,-112 -3.04203,12.530167"
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1012"
+         inkscape:export-xdpi="1012"
+         sodipodi:nodetypes="cc"
+         id="path1794"
+         d="M 149.9174,-99.358653 147,-112"
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+    <g
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       id="g1624-4"
+       transform="translate(-20.972278,-57.001193)">
+      <rect
+         y="176"
+         x="144"
+         height="12"
+         width="12"
+         id="rect958-2-4-4"
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path
+         id="path960-8-0-25"
+         d="m 156,182 -6,3.6 v -7.2 l -6,3.6"
+         style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+    <rect
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       y="122.65722"
+       x="147.68616"
+       height="4.6831565"
+       width="4.6831574"
+       id="rect1435-2-23-1-5-9-5-4-7-5"
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.310258;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0" />
+    <g
+       transform="translate(21.027722,-57.001193)"
+       id="g1624-4-1"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012">
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect958-2-4-4-3"
+         width="12"
+         height="12"
+         x="144"
+         y="176" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 156,182 -6,3.6 v -7.2 l -6,3.6"
+         id="path960-8-0-25-9" />
+    </g>
+    <g
+       transform="translate(48.027722,-57.001193)"
+       id="g1624-4-7"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012">
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect958-2-4-4-9"
+         width="12"
+         height="12"
+         x="144"
+         y="176" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 156,182 -6,3.6 v -7.2 l -6,3.6"
+         id="path960-8-0-25-4" />
+    </g>
+    <g
+       transform="rotate(90,25.014456,-4.9867403)"
+       id="g2293"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012">
+      <g
+         style="stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none"
+         transform="rotate(90,253.37823,13.544864)"
+         id="g1632-9-8"
+         inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+         inkscape:export-xdpi="1012"
+         inkscape:export-ydpi="1012">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 213.91668,127.84617 h -18 l 3.91668,4.07692 -3.91668,3.92308 h 8 10"
+           id="path984-0-9" />
+        <path
+           id="rect986-1-1"
+           style="fill:none;stroke:#000000;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none"
+           d="m 192.75003,124.99999 h 14.16665 v 13.84618 h -14.16665 z"
+           sodipodi:nodetypes="ccccc" />
+      </g>
+    </g>
+    <path
+       id="path2208-4"
+       d="M 93.027723,124.99881 H 123.02772"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2295"
+       d="m 77.02772,124.99881 h -17 v -13"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2297"
+       d="m 60.02772,97.998807 v -13"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <g
+       id="g2115-1"
+       transform="rotate(90,27.514456,-47.486735)"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012">
+      <path
+         id="path1764-9"
+         style="fill:#fffbff;stroke:#00000e;stroke-width:1.03282;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
+         d="m 152.48359,-105 c 0,2.25377 -0.99629,4.27485 -2.57249,5.646841 -1.3143,1.144024 -3.0318,1.836742 -4.9111,1.836742 -1.94235,0 -3.71188,-0.739983 -5.04203,-1.953416 -1.50024,-1.368587 -2.44156,-3.339447 -2.44156,-5.530167 0,-4.13307 3.35052,-7.48358 7.48359,-7.48358 4.13307,0 7.48359,3.35051 7.48359,7.48358"
+         sodipodi:nodetypes="csssssc"
+         inkscape:export-xdpi="1012"
+         inkscape:export-ydpi="1012" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 143,-112 -3.04203,12.530167"
+         id="path1792-8"
+         sodipodi:nodetypes="cc"
+         inkscape:export-xdpi="1012"
+         inkscape:export-ydpi="1012" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="M 149.9174,-99.358653 147,-112"
+         id="path1794-0"
+         sodipodi:nodetypes="cc"
+         inkscape:export-xdpi="1012"
+         inkscape:export-ydpi="1012" />
+    </g>
+    <path
+       id="path2329"
+       d="m 60.02772,84.998807 h 69 v 34.000003"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2331"
+       d="m 129.02772,130.99881 v 9 h 42 v -9"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2337"
+       d="m 60.02772,84.998807 v -15 h 17"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2339"
+       d="M 85.02772,77.998807 V 116.99881"
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2341"
+       d="m 93.02772,69.998807 h 57 v 55.000003"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       id="path2343"
+       d="m 177.02772,124.99881 h 15"
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.426257;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path1088-4-5-55-3"
+       cx="84.891647"
+       cy="144.00046"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012"
+       r="4.0087013" />
+    <text
+       id="text1171-5-7-3-0"
+       y="145.19836"
+       x="83.637253"
+       style="font-style:normal;font-weight:normal;font-size:3.29975px;line-height:1.25;font-family:sans-serif;fill:#ffb400;fill-opacity:1;stroke:none;stroke-width:0.176772"
+       xml:space="preserve"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012"><tspan
+         style="font-size:3.29975px;fill:#000000;fill-opacity:1;stroke-width:0.176772"
+         y="145.19836"
+         x="83.637253"
+         id="tspan1169-0-6-4-6"
+         sodipodi:role="line">M</tspan></text>
+    <path
+       id="path2370"
+       d="m 85.02772,132.99881 v 7"
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 204.02772,124.99881 h 22 v -20"
+       id="path1763"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 171.02772,118.99881 V 69.998807 h 70 v 10"
+       id="path1765"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012" />
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="220.9187"
+       y="122.80024"
+       id="text1297-7"><tspan
+         sodipodi:role="line"
+         id="tspan1295-4"
+         x="220.9187"
+         y="122.80024"
+         style="stroke-width:0.264583">4</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="208.59363"
+       y="67.80024"
+       id="text1297-0"><tspan
+         sodipodi:role="line"
+         id="tspan1295-2"
+         x="208.59363"
+         y="67.80024"
+         style="stroke-width:0.264583">5</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="126.33501"
+       y="67.80024"
+       id="text1297-74"><tspan
+         sodipodi:role="line"
+         id="tspan1295-7"
+         x="126.33501"
+         y="67.80024"
+         style="stroke-width:0.264583">11</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="183.1778"
+       y="122.80024"
+       id="text1297-6"><tspan
+         sodipodi:role="line"
+         id="tspan1295-6"
+         x="183.1778"
+         y="122.80024"
+         style="stroke-width:0.264583">3</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="155.89755"
+       y="122.80024"
+       id="text1297-03"><tspan
+         sodipodi:role="line"
+         id="tspan1295-73"
+         x="155.89755"
+         y="122.80024"
+         style="stroke-width:0.264583">13</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="138.65811"
+       y="122.80024"
+       id="text1297-5"><tspan
+         sodipodi:role="line"
+         id="tspan1295-41"
+         x="138.65811"
+         y="122.80024"
+         style="stroke-width:0.264583">12</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="104.32732"
+       y="122.80024"
+       id="text1297-8"><tspan
+         sodipodi:role="line"
+         id="tspan1295-8"
+         x="104.32732"
+         y="122.80024"
+         style="stroke-width:0.264583">2</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="71.263939"
+       y="122.80024"
+       id="text1297-65"><tspan
+         sodipodi:role="line"
+         id="tspan1295-5"
+         x="71.263939"
+         y="122.80024"
+         style="stroke-width:0.264583">1</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="61.315823"
+       y="94.71244"
+       id="text1297-82"><tspan
+         sodipodi:role="line"
+         id="tspan1295-55"
+         x="61.315823"
+         y="94.71244"
+         style="stroke-width:0.264583">6</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="104.55913"
+       y="90.716286"
+       id="text1297-2"><tspan
+         sodipodi:role="line"
+         id="tspan1295-51"
+         x="104.55913"
+         y="90.716286"
+         style="stroke-width:0.264583">15</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="61.315823"
+       y="75.298027"
+       id="text1297-86"><tspan
+         sodipodi:role="line"
+         id="tspan1295-88"
+         x="61.315823"
+         y="75.298027"
+         style="stroke-width:0.264583">10</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="146.72388"
+       y="137.80023"
+       id="text1297-9"><tspan
+         sodipodi:role="line"
+         id="tspan1295-0"
+         x="146.72388"
+         y="137.80023"
+         style="stroke-width:0.264583">14</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="207.43007"
+       y="122.80024"
+       id="text1297-64"><tspan
+         sodipodi:role="line"
+         id="tspan1295-62"
+         x="207.43007"
+         y="122.80024"
+         style="stroke-width:0.264583">0</tspan></text>
+    <text
+       id="text1297-74-7"
+       y="137.21919"
+       x="46.863274"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       inkscape:export-xdpi="1012"
+       inkscape:export-ydpi="1012"><tspan
+         style="stroke-width:0.264583"
+         y="137.21919"
+         x="46.863274"
+         id="tspan1295-7-2"
+         sodipodi:role="line">Compressor 1</tspan></text>
+    <text
+       id="text1025"
+       y="59.708263"
+       x="69.931259"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="59.708263"
+         x="69.931259"
+         id="tspan1023"
+         sodipodi:role="line">Compressor 2</tspan></text>
+    <text
+       id="text1029"
+       y="106.97114"
+       x="29.039257"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="106.97114"
+         x="29.039257"
+         id="tspan1027"
+         sodipodi:role="line">Cooler</tspan></text>
+    <text
+       id="text1033"
+       y="139.2699"
+       x="189.34779"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="139.2699"
+         x="189.34779"
+         id="tspan1031"
+         sodipodi:role="line">Heater</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="112.20296"
+       y="146.52747"
+       id="text1297-74-7-2"><tspan
+         sodipodi:role="line"
+         id="tspan1295-7-2-1"
+         x="112.20296"
+         y="146.52747"
+         style="stroke-width:0.264583">Recuperator 1</tspan></text>
+    <text
+       inkscape:export-ydpi="1012"
+       inkscape:export-xdpi="1012"
+       inkscape:export-filename="C:\Users\meinm\Documents\1 Uni\8. Semester SS20\1 Bachelorarbeit\Inhalt\Abbildungen\SEGSvi_Tespy.png"
+       xml:space="preserve"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="156.35448"
+       y="146.52747"
+       id="text1297-74-7-4"><tspan
+         sodipodi:role="line"
+         id="tspan1295-7-2-6"
+         x="156.35448"
+         y="146.52747"
+         style="stroke-width:0.264583">Recuperator 2</tspan></text>
+    <text
+       id="text1025-3"
+       y="96.863678"
+       x="202.0808"
+       style="font-size:4.9389px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="96.863678"
+         x="202.0808"
+         id="tspan1023-6"
+         sodipodi:role="line">Turbine</tspan></text>
+  </g>
+</svg>

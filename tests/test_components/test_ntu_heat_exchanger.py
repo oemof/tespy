@@ -211,7 +211,9 @@ class TestNTUHeatExchanger:
 
         self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
         self.c3.set_attr(fluid={"water": 1}, m=0.5, T=25, p=3)
-        instance.set_attr(pr1=1, pr2=1, UA=1500)
+        instance.set_attr(
+            flow_arrangement="counterflow", pr1=1, pr2=1, UA=1500
+        )
 
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -345,7 +347,7 @@ class TestNTUHeatExchanger:
             m=2, T=100, p=1
         )
         self.c3.set_attr(fluid={"water": 1}, m=0.48, T=20, p=1)
-        instance.set_attr(dp1=0, dp2=0, UA=UA)
+        instance.set_attr(flow_arrangement="counterflow", dp1=0, dp2=0, UA=UA)
 
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -438,7 +440,10 @@ class TestNTUHeatExchanger:
 
         self.c1.set_attr(fluid={"water": 1}, m=0.014, T=90, p=4)
         self.c3.set_attr(fluid={"water": 1}, m=0.08, T=12, p=4)
-        instance.set_attr(dp1=0, dp2=0, UA=132.0695860401553)
+        instance.set_attr(
+            flow_arrangement="counterflow", dp1=0, dp2=0,
+            UA=132.069586
+        )
 
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -448,6 +453,24 @@ class TestNTUHeatExchanger:
         assert approx(-instance.Q.val, rel=2e-3) == 3961.899
         assert approx(self.c2.T.val_SI, abs=0.1) == 295.54
         assert approx(self.c4.T.val_SI, abs=0.1) == 296.98
+
+    def test_unspecified_arrangement(self):
+        """The flow arrangement has no default and has to be specified."""
+        instance = NTUHeatExchanger("heat exchanger")
+        self.setup_network(instance)
+
+        self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
+        self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=3)
+        instance.set_attr(pr1=1, pr2=1, UA=1500)
+
+        assert not instance.flow_arrangement.is_set
+        with pytest.raises(ValueError, match="not specified"):
+            self.nw.solve("design", init_only=True)
+
+        # specifying it resolves the error
+        instance.set_attr(flow_arrangement="counterflow")
+        self.nw.solve("design")
+        self.nw.assert_convergence()
 
     def test_invalid_arrangement(self):
         instance = NTUHeatExchanger("heat exchanger")

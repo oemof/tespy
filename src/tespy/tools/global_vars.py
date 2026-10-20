@@ -29,6 +29,28 @@ LIMIT_RTOL = 1e-6
 GAS_CONSTANT_UNI = 8.314462618
 GRAVITY = 9.80665
 
+_display = {"mode": "compact"}
+
+
+def set_display_mode(mode):
+    """Set how tespy objects render in print, repl and debugger output.
+
+    Parameters
+    ----------
+    mode : str
+        :code:`"none"` for plain python reprs, :code:`"compact"` for
+        constructor-like one-liners (default), :code:`"extensive"` for
+        tabular views.
+    """
+    if mode not in ("none", "compact", "extensive"):
+        msg = "The display mode must be 'none', 'compact' or 'extensive'."
+        raise ValueError(msg)
+    _display["mode"] = mode
+
+
+def get_display_mode():
+    return _display["mode"]
+
 
 class FluidAliases:
     # this method should be able to handle different wrappers:
@@ -84,3 +106,12 @@ class CombustionGases:
 
 
 COMBUSTION_FLUIDS = CombustionGases()
+
+# enthalpy difference in J/kg below which an energy balance on the starting
+# value field is considered flat: it carries no information on the mass flow
+# and is left out of the flow presolve (a few Kelvin of a liquid or a gas)
+FLAT_ENTHALPY_DIFFERENCE = 5e3
+
+# maximum number of trial steps of the backtracking line search, each halving
+# the newton increment
+LINE_SEARCH_STEPS = 5

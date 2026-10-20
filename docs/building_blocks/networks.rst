@@ -25,6 +25,13 @@ The solver will simplify the variable space in a presolving step and then solve
 for the remaining variables. In the following, you will find information on the
 :code:`Network` setup, solving and debugging.
 
+.. tip::
+
+    Some configurations for the behavior printing components or connections and
+    their respective properties can be customized, see
+    :ref:`general configuration <general_configuration_label>`. Further
+    customizations (e.g. predefined unit sets etc.) are planned.
+
 .. _units_label:
 
 Unit specifications
@@ -115,21 +122,22 @@ transform it into what ever unit we need:
 
 .. code-block:: python
 
-    >>> round(compressor.P.val_with_unit, 0)
-    <Quantity(185.0, 'horsepower')>
-    >>> round(compressor.P.val_with_unit.to("kW"), 0)
-    <Quantity(138.0, 'kilowatt')>
+    >>> print(round(compressor.P.val_with_unit, 0))
+    185.0 horsepower
+    >>> print(round(compressor.P.val_with_unit.to("kW"), 0))
+    138.0 kilowatt
 
 Alternatively, we can specify an individual unit using the :code:`Quantity`
-class of pint. For that you have to utilize the :code:`UnitRegistry` of
-your :code:`Network.units`: :code:`ureg`.
+class of pint, e.g. with the :code:`UnitRegistry` of your
+:code:`Network.units`. Quantities of any other pint registry are accepted as
+well.
 
 .. code-block:: python
 
     >>> ureg = nw.units.ureg
     >>> c1.set_attr(m=ureg.Quantity(1, "t/h"))
-    >>> c1.m.val_with_unit
-    <Quantity(1, 'metric_ton / hour')>
+    >>> print(c1.m.val_with_unit)
+    1 metric_ton / hour
 
 .. caution::
 
@@ -147,8 +155,8 @@ your :code:`Network.units`: :code:`ureg`.
     .. code-block:: python
 
         >>> nw.solve("design")
-        >>> c1.m.val_with_unit
-        <Quantity(5, 'kilogram / second')>
+        >>> print(c1.m.val_with_unit)
+        5 kilogram / second
 
 To understand, what quantity is associated with a specific parameter, you can
 do the following:
@@ -167,9 +175,6 @@ It is also possible to use your own :code:`UnitRegistry`:
     >>> from pint import UnitRegistry
     >>> ureg = UnitRegistry()
     >>> nw.units.set_ureg(ureg)
-
-Changing the ureg will only have effect on future specifications. Existing
-quantities are not changed.
 
 .. attention::
 
@@ -350,7 +355,7 @@ To solve your offdesign calculation, use:
     nw.solve(mode='offdesign', design_path='path/to/designpoint.json')
 
 Component-level design references
-*********************************
+"""""""""""""""""""""""""""""""""
 
 In some situations a single component - or a small group of components - has
 been redesigned or replaced, so its individual design point differs from the

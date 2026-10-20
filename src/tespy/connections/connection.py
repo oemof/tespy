@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 """
 
 import numpy as np
+import pint
+from tabulate import tabulate
 
 from tespy.components import Subsystem
 from tespy.components.component import Component
@@ -20,6 +22,8 @@ from tespy.tools.data_containers import FluidComposition as dc_flu
 from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import _display_repr
+from tespy.tools.data_containers import _format_value
 from tespy.tools.data_containers import _is_numeric
 from tespy.tools.fluid_properties import CoolPropWrapper
 from tespy.tools.fluid_properties import Q_mix_ph
@@ -68,6 +72,12 @@ def connection_registry(type):
 
 
 connection_registry.items = {}
+
+
+def _deserialize_ref_delta(data, units=None):
+    if data.get("delta_unit") is not None and units is not None:
+        return units.ureg.Quantity(data["delta"], data["delta_unit"])
+    return data["delta"]
 
 
 class ConnectionBase:
@@ -171,11 +181,68 @@ class ConnectionBase:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Connection has no attribute \"' + key + '\".'
+            msg = f"Connection has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 
-    def _serialize(self):
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.label!r}, "
+            f"{self.source.label}:{self.source_id} -> "
+            f"{self.target.label}:{self.target_id})"
+        )
+
+    def _repr_extensive(self):
+        title = self._repr_compact()
+        rows = []
+        for key, data in self.property_data.items():
+            if isinstance(data, dc_prop):
+                if not data.is_set and np.isnan(data.val):
+                    # only prints specified values before first solve
+                    continue
+                rows.append([
+                    key,
+                    _format_value(data.val),
+                    data._display_unit(),
+                    f"{data.val_SI:.4e}",
+                    "set" if data.is_set else ""
+                ])
+            elif isinstance(data, dc_ref):
+                if data.is_set:
+                    ref = data.ref
+                    variable = key.removesuffix("_ref")
+                    rows.append([
+                        key,
+                        f"{ref.factor} * {variable}({ref.obj.label!r}) "
+                        f"+ {ref.delta}",
+                        "", "", "set"
+                    ])
+            elif isinstance(data, dc_flu):
+                for fluid, x in data.val.items():
+                    rows.append([
+                        f"{key}[{fluid}]",
+                        _format_value(x),
+                        "", "",
+                        "set" if fluid in data.is_set else ""
+                    ])
+            elif isinstance(data, dc_simple):
+                if data.is_set:
+                    rows.append([key, str(data.val), "", "", "set"])
+        if not rows:
+            return f"{title}\nno specifications or results"
+        table = tabulate(
+            rows, headers=["property", "value", "unit", "SI value", "spec"],
+            tablefmt="simple", disable_numparse=True,
+            colalign=("left", "right", "left", "right", "left")
+        )
+        return "\n".join([title, "", table])
+
+    def _serialize(self, units=None):
         export = {}
         export.update({"source": self.source.label})
         export.update({"target": self.target.label})
@@ -183,7 +250,7 @@ class ConnectionBase:
             export.update({k: self.get_attr(k)})
         for k in self.property_data:
             data = self.get_attr(k)
-            export.update({k: data._serialize()})
+            export.update({k: data._serialize(units)})
 
         return {self.label: export}
 
@@ -228,7 +295,7 @@ class ConnectionBase:
         self.printout = True
 
         self.property_data = self.get_parameters()
-        self.property_data0 = [x + '0' for x in self.property_data.keys()]
+        self.property_data0 = [f"{x}0" for x in self.property_data.keys()]
         self.parameters = self._build_parameters()
         self.__dict__.update(self.property_data)
         logger.debug(
@@ -431,9 +498,9 @@ class ConnectionBase:
             elif unit == "-":
                 unit = "1"
             param = self.get_attr(var)
-            state[var] = units.ureg.Quantity(
-                float(data[var]), unit
-            ).m_as(SI_UNITS[param.quantity])
+            state[var] = units.value_to_SI(
+                float(data[var]), unit, param.quantity
+            )
         return state
 
     def _set_design_params(self, data, units):
@@ -448,7 +515,7 @@ class ConnectionBase:
                 data[f"{prop}_unit"]
             )
 
-    def _deserialize(self, data, all_connections):
+    def _deserialize(self, data, all_connections, units=None):
         arglist = [
             _ for _ in data
             if _ not in ["source", "source_id", "target", "target_id", "label", "fluid"]
@@ -469,6 +536,78 @@ class ConnectionBase:
                 container.set_attr(**data[arg])
             else:
                 self.set_attr(**{arg: data[arg]})
+
+    def _save_specifications(self, units):
+        specs = {}
+        for key, container in self.property_data.items():
+            data = {}
+            if container.is_set:
+                if isinstance(container, dc_ref):
+                    data = container._serialize()
+                elif isinstance(container, dc_flu):
+                    data = {
+                        "val": {f: container.val[f] for f in container.is_set},
+                        "is_set": list(container.is_set)
+                    }
+                elif isinstance(container, dc_prop):
+                    data = {
+                        "val": container.val,
+                        "unit": container._unit_for_export(units),
+                        "is_set": True
+                    }
+                else:
+                    data = {"val": container.val, "is_set": True}
+            if isinstance(container, dc_prop) and not np.isnan(container._val0):
+                data["val0"] = float(container._val0)
+                if container._val0_unit is None:
+                    data["val0_unit"] = units.canonical(
+                        units.default[container.quantity]
+                    )
+                else:
+                    data["val0_unit"] = container._val0_unit
+            elif isinstance(container, dc_flu) and container.val0:
+                data["val0"] = {
+                    f: float(x) for f, x in container.val0.items()
+                }
+            if data:
+                specs[key] = data
+        if specs and self.good_starting_values:
+            specs["good_starting_values"] = True
+        return specs
+
+    def _clear_specifications(self):
+        for container in self.property_data.values():
+            if isinstance(container, dc_flu):
+                container.is_set = set()
+            else:
+                container.is_set = False
+
+    def _restore_specifications(self, data, all_connections, units):
+        self.good_starting_values = data.pop("good_starting_values", False)
+        for key, param_data in data.items():
+            container = self.get_attr(key)
+            if isinstance(container, dc_ref):
+                ref = Ref(
+                    all_connections[param_data["conn"]],
+                    param_data["factor"],
+                    _deserialize_ref_delta(param_data, units)
+                )
+                container.set_attr(
+                    ref=ref, is_set=True, unit=param_data["unit"]
+                )
+            elif isinstance(container, dc_flu):
+                if "val" in param_data:
+                    container.val.update(param_data["val"])
+                    container.is_set = set(param_data["is_set"])
+                if "val0" in param_data:
+                    container.val0.update(param_data["val0"])
+            else:
+                val0 = param_data.pop("val0", None)
+                val0_unit = param_data.pop("val0_unit", None)
+                if param_data:
+                    container.set_attr(**param_data)
+                if val0 is not None:
+                    container.val0 = units.ureg.Quantity(val0, val0_unit)
 
 
 @connection_registry
@@ -873,13 +1012,13 @@ class Connection(ConnectionBase):
                 logger.error(msg)
                 raise TypeError(msg)
 
-    def _serialize(self):
-        export = super()._serialize()
+    def _serialize(self, units=None):
+        export = super()._serialize(units)
         export[self.label].update({"state": self.state._serialize()})
         return export
 
-    def _deserialize(self, data, all_connections):
-        super()._deserialize(data, all_connections)
+    def _deserialize(self, data, all_connections, units=None):
+        super()._deserialize(data, all_connections, units)
 
         for f, engine in data["fluid"]["engine"].items():
             data["fluid"]["engine"][f] = wrapper_registry.items[engine]
@@ -894,7 +1033,7 @@ class Connection(ConnectionBase):
                 ref = Ref(
                     all_connections[data[arg]["conn"]],
                     data[arg]["factor"],
-                    data[arg]["delta"]
+                    _deserialize_ref_delta(data[arg], units)
                 )
                 # do not use set_attr here: it would force is_set to True on
                 # the reference and False on the base property, discarding the
@@ -1116,7 +1255,14 @@ class Connection(ConnectionBase):
         if two_phase and self.p.is_var:
             reference = self.p._reference_container
             if reference not in seeded:
-                p_sat = self._p_sat_for_T(T)
+                # a subcooled or superheated port sits at its specified
+                # distance from the saturation temperature
+                T_sat = T
+                if self.td_dew.is_set:
+                    T_sat = T - self.td_dew.val_SI
+                elif self.td_bubble.is_set:
+                    T_sat = T + self.td_bubble.val_SI
+                p_sat = self._p_sat_for_T(T_sat)
                 if p_sat is not None:
                     self.p.set_reference_val_SI(p_sat)
                     covered.add(reference)
@@ -1323,7 +1469,10 @@ class Connection(ConnectionBase):
                     h_sources.append(reference)
             # with a known pressure the two phase specifications generate
             # an enthalpy at the dome on their own
-            if self._refine_two_phase_guess(has_value=reference in covered):
+            seeded = (
+                self.good_starting_values or not np.isnan(self.h.val0)
+            )
+            if self._refine_two_phase_guess(seeded=seeded):
                 covered.add(reference)
                 if reference not in h_sources:
                     h_sources.append(reference)
@@ -1430,45 +1579,93 @@ class Connection(ConnectionBase):
                     elif upper is not None and self.h.val_SI > upper:
                         self.h.set_reference_val_SI(upper)
 
-        self._refine_two_phase_guess()
+        if self.h.is_var:
+            self._refine_two_phase_guess(
+                seeded=self.h._reference_container in seeded
+            )
 
         for key, variable in self.get_variables().items():
             if variable.is_var and np.isnan(variable.val0):
                 variable.set_val0_from_SI(units)
 
-    def _refine_two_phase_guess(self, has_value=True):
-        # starting values for specified quality, specified subcooling/overheating
-        # and state specification. These should be recalculated even with
-        # good starting values, for example, when one exchanges enthalpy
-        # with boiling point temperature difference. Without a present value
-        # the dome itself is the guess. Returns whether a value was assigned.
+    def _refine_two_phase_guess(self, seeded=False):
+        """Enthalpy starting value from a specification relative to
+        saturation (:code:`td_dew`, :code:`td_bubble`, :code:`state`).
+
+        The specification determines a target state at the current pressure:
+        at the specified distance from the saturation temperature for a non
+        zero temperature difference, just outside the two phase region on the
+        implied side otherwise. A seeded enthalpy (user value, previous
+        solution, :code:`init_path`) is kept while it lies on the implied side
+        of the two phase region, every other enthalpy is set to the target.
+        This is recalculated on every start, so a changed specification takes
+        effect even with good starting values.
+
+        Parameters
+        ----------
+        seeded : bool
+            Whether the enthalpy comes from a user value or a previous
+            solution.
+
+        Returns
+        -------
+        bool
+            Whether a value was assigned.
+        """
         if not self.h.is_var:
             return False
+        side = self._saturation_side()
+        if side is None:
+            return False
 
-        if (self.state.is_set or self.td_dew.is_set or self.td_bubble.is_set):
-            fluid = fp.single_fluid(self.fluid_data)
-            if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
-                self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
-            if (
-                    (self.state.val == 'g' and self.state.is_set)
-                    or (self.td_dew.val_SI >= 0 and self.td_dew.is_set)
-                    or (self.td_bubble.val_SI < 0 and self.td_bubble.is_set)
-                ):
-                h = fp.h_mix_pQ(self.p.val_SI, 1, self.fluid_data)
-                if not has_value or self.h.val_SI < h:
-                    self.h.set_reference_val_SI(h + 1e3)
-                    return True
+        fluid = fp.single_fluid(self.fluid_data)
+        if self.p.is_var and self.p.val_SI > self.fluid.wrapper[fluid]._p_crit:
+            self.p.set_reference_val_SI(self.fluid.wrapper[fluid]._p_crit * 0.9)
 
-            elif (
-                    (self.state.val == 'l' and self.state.is_set)
-                    or (self.td_bubble.val_SI >= 0 and self.td_bubble.is_set)
-                    or (self.td_dew.val_SI < 0 and self.td_dew.is_set)
-                ):
-                h = fp.h_mix_pQ(self.p.val_SI, 0, self.fluid_data)
-                if not has_value or self.h.val_SI > h:
-                    self.h.set_reference_val_SI(h - 1e3)
-                    return True
-        return False
+        p = self.p.val_SI
+        try:
+            h_edge = fp.h_mix_pQ(p, 1 if side == "gas" else 0, self.fluid_data)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return False
+
+        def on_side(h):
+            return h > h_edge if side == "gas" else h < h_edge
+
+        if seeded and on_side(self.h.val_SI):
+            return False
+
+        target = self._h_from_td_specification()
+        if target is None or not on_side(target):
+            target = h_edge + 1e3 if side == "gas" else h_edge - 1e3
+        self.h.set_reference_val_SI(target)
+        return True
+
+    def _saturation_side(self):
+        """Side of the two phase region a saturation relative specification
+        implies, :code:`"gas"`, :code:`"liquid"` or None."""
+        if self.state.is_set:
+            return "gas" if self.state.val == "g" else "liquid"
+        if self.td_dew.is_set:
+            return "gas" if self.td_dew.val_SI >= 0 else "liquid"
+        if self.td_bubble.is_set:
+            return "liquid" if self.td_bubble.val_SI >= 0 else "gas"
+        return None
+
+    def _h_from_td_specification(self):
+        """Enthalpy at the specified temperature difference to the dew or
+        bubble temperature at the current pressure guess, or None for a zero
+        difference, no such specification or a failed property call."""
+        p = self.p.val_SI
+        try:
+            if self.td_dew.is_set and self.td_dew.val_SI != 0:
+                T = T_dew_p(p, self.fluid_data) + self.td_dew.val_SI
+            elif self.td_bubble.is_set and self.td_bubble.val_SI != 0:
+                T = T_bubble_p(p, self.fluid_data) - self.td_bubble.val_SI
+            else:
+                return None
+            return fp.h_mix_pT(p, T, self.fluid_data, self.mixing_rule)
+        except (ValueError, KeyError, IndexError, NotImplementedError):
+            return None
 
     def _precalc_guess_values_for_references(self):
         """precalculate starting values for specified temperature
@@ -1793,7 +1990,6 @@ class Connection(ConnectionBase):
             "fluid_balance": dc_simple(
                 dtype="bool",
                 func=self.fluid_balance_func,
-                deriv=self.fluid_balance_deriv,
                 _val=False, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
@@ -2116,10 +2312,6 @@ class Connection(ConnectionBase):
         residual -= sum(self.fluid.val[f] for f in self.fluid.is_var)
         return residual
 
-    def fluid_balance_deriv(self, increment_filter, k, **kwargs):
-        for f in self.fluid.is_var:
-            self.jacobian[k, self.fluid.J_col[f]] = -self.fluid.val[f]
-
     def fluid_balance_dependents(self):
         return {
             "scalars": [[]],
@@ -2227,12 +2419,13 @@ class Connection(ConnectionBase):
         for prop in self._result_attributes():
             param = self.get_attr(prop)
             if param.is_set:
-                result = param._get_val_from_SI(units)
-                if not np.isclose(result.magnitude, param.val, 1e-3, 1e-3):
+                result = param.value_from_SI(units)
+                if not np.isclose(result, param.val, 1e-3, 1e-3):
                     _converged = False
                     msg = (
                         "The simulation converged but the calculated result "
-                        f"{result} for the fixed input parameter {prop} of "
+                        f"{result} {param.unit} for the fixed input parameter "
+                        f"{prop} of "
                         f"connection {self.label} is not equal to the originally "
                         f"specified value of {param.val}. Usually, this can "
                         "happen, when a method internally manipulates the "
@@ -2532,8 +2725,9 @@ class Ref:
     factor : float
         Factor to multiply specified property with.
 
-    delta : float
-        Delta to add after multiplication.
+    delta : float, pint.Quantity
+        Delta to add after multiplication. Plain numeric value uses the
+        network's default unit.
     """
 
     def __init__(self, ref_obj, factor, delta):
@@ -2548,8 +2742,10 @@ class Ref:
             logger.error(msg)
             raise TypeError(msg)
 
-        if not (isinstance(delta, int) or isinstance(delta, float)):
-            msg = 'Third parameter must be of type int or float.'
+        if not isinstance(delta, (int, float, pint.Quantity)):
+            msg = (
+                "Third parameter must be of type int, float or pint.Quantity."
+            )
             logger.error(msg)
             raise TypeError(msg)
 
@@ -2557,12 +2753,24 @@ class Ref:
         self.factor = factor
         self.delta = delta
         self.delta_SI = None
+        self._delta_unit = None
 
         msg = (
             f"Created reference object with factor {self.factor} and delta "
             f"{self.delta} referring to connection {ref_obj.label}"
         )
         logger.debug(msg)
+
+    def __repr__(self):
+        return _display_repr(self)
+
+    __str__ = __repr__
+
+    def _repr_compact(self):
+        return (
+            f"{type(self).__name__}({self.obj.label!r}, "
+            f"factor={self.factor}, delta={self.delta})"
+        )
 
     def get_attr(self, key):
         r"""

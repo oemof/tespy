@@ -1,0 +1,15 @@
+.. _whats_new_v0_4_label:
+
+####
+v0.4
+####
+
+Changelog of the v0.4 release series.
+
+.. include::  /whats_new/v0-4-4.rst
+.. include::  /whats_new/v0-4-3-003.rst
+.. include::  /whats_new/v0-4-3-001.rst
+.. include::  /whats_new/v0-4-3.rst
+.. include::  /whats_new/v0-4-2.rst
+.. include::  /whats_new/v0-4-1.rst
+.. include::  /whats_new/v0-4-0.rst

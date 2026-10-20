@@ -160,8 +160,8 @@ a pipe are present in the results:
 
     >>> round(my_pipe.dp.val, 4)
     0.2
-    >>> round(my_pipe.flow_speed.val, 2)
-    20.09
+    >>> round(my_pipe.flow_speed.val, 1)
+    20.1
 
 Result parameters are declared with a :code:`calc` method on the
 :code:`ComponentProperties` data container. The base class

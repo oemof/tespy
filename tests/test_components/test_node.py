@@ -14,6 +14,7 @@ from pytest import fixture
 
 from tespy.components import Merge
 from tespy.components import Node
+from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Splitter
@@ -163,3 +164,47 @@ def test_node_with_set_pressure_at_outlet(node_network):
         approx(c3.h.val_SI * (c1.m.val_SI + c2.m.val_SI))
         == (c1.h.val_SI * c1.m.val_SI + c2.h.val_SI * c2.m.val_SI)
     )
+
+
+def test_splitter_outlet_order_beyond_nine_ports():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
+    num_out = 11
+    sp = Splitter("splitter", num_out=num_out)
+
+    conns = []
+    for i in range(1, num_out + 1):
+        c = Connection(sp, f"out{i}", Sink(f"sink {i}"), "in1", label=f"out{i}")
+        c.set_attr(m=i)
+        conns.append(c)
+
+    c_in = Connection(Source("source"), "out1", sp, "in1", label="in")
+    nw.add_conns(c_in, *conns)
+    c_in.set_attr(fluid={"water": 1}, p=1, h=100)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert [c.source_id for c in sp.outl] == [f"out{i}" for i in range(1, num_out + 1)]
+
+
+def test_node_closing_recirculation_loop():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    node = Node("node")
+    heater = SimpleHeatExchanger("heater")
+    c1 = Connection(Source("source"), "out1", node, "in1", label="1")
+    c2 = Connection(node, "out1", Sink("sink"), "in1", label="2")
+    c3 = Connection(node, "out2", heater, "in1", label="3")
+    c4 = Connection(heater, "out1", node, "in2", label="4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(fluid={"water": 1}, m=1, p=1, T=20)
+    c3.set_attr(m=0.5)
+    heater.set_attr(Q=1e4)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert c2.m.val_SI == approx(1)
+    assert c2.h.val_SI == approx(c3.h.val_SI)

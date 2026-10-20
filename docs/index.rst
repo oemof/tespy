@@ -3,29 +3,43 @@
 .. include:: landing.rst
 
 ..  toctree::
-    :maxdepth: 3
-    :caption:  First steps
+    :maxdepth: 2
+    :caption: Get started
     :hidden:
 
     getting_started
     basic_tutorials
+
+..  toctree::
+    :maxdepth: 2
+    :caption: Explore
+    :hidden:
+
     building_blocks
-    examples_benchmarks
+    model_library
 
 ..  toctree::
     :maxdepth: 2
-    :caption:  Advanced topics
+    :caption: Build
     :hidden:
 
-    advanced_features
-    integration
-    advanced_tutorials
-    documentation
+    how_to_guides
+    extend
+    integrate
 
 ..  toctree::
     :maxdepth: 2
-    :caption: Community
+    :caption: Project
     :hidden:
 
+    in_use
     community
-    knowledge_center
+
+..  toctree::
+    :maxdepth: 1
+    :caption: Reference
+    :hidden:
+
+    api
+    whats_new
+    literature

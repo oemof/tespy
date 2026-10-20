@@ -1,8 +1,9 @@
 .. _api_label:
+.. _documentation_label:
 
-~~~~~~~~~~~~~~~~~
+#################
 API Documentation
-~~~~~~~~~~~~~~~~~
+#################
 
 All component and connection property equations derive from balance equations
 for fluid composition, mass flow and energy in regarding thermal as well as

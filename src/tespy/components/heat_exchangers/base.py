@@ -24,11 +24,75 @@ from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
 from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
 from tespy.tools.fluid_properties import T_mix_ph
+from tespy.tools.fluid_properties import T_sat_p
+from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _numeric_deriv
+
+_LMTD_SMOOTHING_EPS = 0.001
+_LMTD_SMOOTHING_XI = 5.0
+
+
+def smoothed_lmtd(td_a, td_b):
+    r"""Calculate logarithmic mean temperature difference based on
+    :cite:`Quoilin2011`.
+
+    If both temperature differences are larger than the threshold
+    :math:`\epsilon` (:code:`_LMTD_SMOOTHING_EPS`) this returns the standard
+    lmtd. Otherwise linear extrapolation with the slope :math:`\xi`
+    (:code:`_LMTD_SMOOTHING_XI`) is applied. The value of lmtd is then
+    continuous even with :math:`\Delta T \leq 0`. :cite:`Quoilin2011` uses
+    a threshold of 1 K and a slope of 1e4. We choose much lower threshold for
+    achieving lower pinches and lower slope for lower stiffness.
+
+    .. math::
+
+        \Delta T_\text{log} = \begin{cases}
+        \frac{\Delta T_a - \Delta T_b}
+        {\ln \frac{\Delta T_a}{\Delta T_b}} &
+        \Delta T_a > \epsilon \land \Delta T_b > \epsilon \\
+        \frac{\Delta T_a - \epsilon}
+        {\ln \frac{\Delta T_a}{\epsilon} \cdot
+        \left(1 - \xi \left(\Delta T_b - \epsilon\right)\right)} &
+        \Delta T_a > \epsilon \land \Delta T_b \leq \epsilon \\
+        \frac{\Delta T_b - \epsilon}
+        {\ln \frac{\Delta T_b}{\epsilon} \cdot
+        \left(1 - \xi \left(\Delta T_a - \epsilon\right)\right)} &
+        \Delta T_b > \epsilon \land \Delta T_a \leq \epsilon \\
+        \frac{\epsilon}
+        {\left(1 - \xi \left(\Delta T_a - \epsilon\right)\right) \cdot
+        \left(1 - \xi \left(\Delta T_b - \epsilon\right)\right)} &
+        \text{else}
+        \end{cases}
+
+    Parameters
+    ----------
+    td_a : float
+        Temperature difference a.
+    td_b : float
+        Temperature difference b.
+
+    Returns
+    -------
+    float
+        Smoothed logarithmic mean temperature difference
+    """
+    eps = _LMTD_SMOOTHING_EPS
+    xi = _LMTD_SMOOTHING_XI
+    if td_a > eps and td_b > eps:
+        # round is required because tiny differences may cause inconsistencies
+        # due to rounding errors
+        if round(td_a, 6) == round(td_b, 6):
+            return (td_a + td_b) / 2
+        return (td_a - td_b) / math.log(td_a / td_b)
+    if td_a > eps:
+        return (td_a - eps) / (math.log(td_a / eps) * (1 - xi * (td_b - eps)))
+    if td_b > eps:
+        return (td_b - eps) / (math.log(td_b / eps) * (1 - xi * (td_a - eps)))
+    return eps / ((1 - xi * (td_a - eps)) * (1 - xi * (td_b - eps)))
 
 
 @component_registry
@@ -55,8 +119,8 @@ class HeatExchanger(Component):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (hot side), in2 (cold side)
+    - Fluid outlets: out1 (hot side), out2 (cold side)
 
     Mandatory Equations
     -------------------
@@ -637,25 +701,24 @@ class HeatExchanger(Component):
     def _calc_eff_max(self):
         return max(self.eff_hot.val_SI, self.eff_cold.val_SI)
 
-    def calculate_td_log(self):
-        """Method to calculate logarithmic temperature difference during
-        iteration. It returns the minimal temperature difference value instead
-        of the logarithmic temperature difference if the minimal temperature
-        difference is negative during iteration to progress in convergence
+    def calculate_lmtd(self):
+        r"""Calculate the logarithmic mean temperature difference during
+        iteration, see :py:func:`smoothed_lmtd
+        <tespy.components.heat_exchangers.base.smoothed_lmtd>`.
         """
         T_i1 = self.inl[0].calc_T()
         T_i2 = self.inl[1].calc_T()
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
+        return smoothed_lmtd(T_i1 - T_o2, T_o1 - T_i2)
 
-        ttd_u = T_i1 - T_o2
-        ttd_l = T_o1 - T_i2
-        min_ttd = min(ttd_u, ttd_l)
-        if min_ttd <= 0:
-            return min_ttd
-        if round(ttd_u, 6) == round(ttd_l, 6):
-            return ttd_l
-        return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
+    def calculate_td_log(self):
+        msg = (
+            "The method 'calculate_td_log' is deprecated. Use "
+            "'calculate_lmtd' instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        return self.calculate_lmtd()
 
     def UA_func(self):
         r"""
@@ -674,7 +737,7 @@ class HeatExchanger(Component):
                 {\ln{\frac{T_{out,1} - T_{in,2}}{T_{in,1} - T_{out,2}}}}
         """
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.UA.val_SI * self.calculate_td_log()
+        return Q + self.UA.val_SI * self.calculate_lmtd()
 
     def UA_deriv(self, increment_filter, k, dependents=None):
         r"""
@@ -754,7 +817,7 @@ class HeatExchanger(Component):
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-        return Q + self.UA.design * fUA * self.calculate_td_log()
+        return Q + self.UA.design * fUA * self.calculate_lmtd()
 
     def UA_char_dependents(self):
         return [
@@ -867,8 +930,38 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
-    def calc_dh_max_cold(self):
+    @staticmethod
+    def _h_pT_bound(c, T, quality):
+        r"""Enthalpy at the pressure of a connection and a given temperature.
+
+        Exactly at the saturation temperature of a pure fluid the state is not
+        determined by pressure and temperature. As the bound of a maximum
+        enthalpy change, the fully condensed (hot side, :code:`quality=0`) or
+        fully evaporated state (cold side, :code:`quality=1`) is returned
+        there.
+        """
+        try:
+            return h_mix_pT(c.p.val_SI, T, c.fluid_data, c.mixing_rule)
+        except ValueError:
+            fluid = single_fluid(c.fluid_data)
+            if fluid is None:
+                raise
+            p = c.p.val_SI
+            p_crit = c.fluid.wrapper[fluid]._p_crit
+            if p_crit is None or p >= p_crit:
+                raise
+            if abs(T - T_sat_p(p, c.fluid_data)) > 1e-2:
+                raise
+            return h_mix_pQ(p, quality, c.fluid_data)
+
+    def calc_dh_max_cold(self, clip=False):
         r"""Calculate the theoretical maximum enthalpy increase on the cold side
+
+        Parameters
+        ----------
+        clip : bool
+            Clip the hot side inlet temperature to the property range of
+            the cold side fluid, used while solving the equations.
 
         Returns
         -------
@@ -881,9 +974,15 @@ class HeatExchanger(Component):
         """
         o2 = self.outl[1]
         T_in_hot = self.inl[0].calc_T()
-        h_at_T_in_hot = h_mix_pT(
-            o2.p.val_SI, T_in_hot, o2.fluid_data, o2.mixing_rule
-        )
+        fluid = single_fluid(o2.fluid_data)
+        if clip and fluid is not None:
+            # during iteration the hot side temperature may lie outside
+            # of the cold side fluid's property range
+            wrapper = o2.fluid.wrapper[fluid]
+            T_in_hot = min(
+                max(T_in_hot, wrapper._T_min + 0.1), wrapper._T_max
+            )
+        h_at_T_in_hot = self._h_pT_bound(o2, T_in_hot, quality=1)
         return h_at_T_in_hot - self.inl[1].h.val_SI
 
     def eff_cold_func(self):
@@ -901,7 +1000,7 @@ class HeatExchanger(Component):
                 - \left( h_{out,2} - h_{in,2} \right)
         """
         return (
-            self.eff_cold.val_SI * self.calc_dh_max_cold()
+            self.eff_cold.val_SI * self.calc_dh_max_cold(clip=True)
             - (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
         )
 
@@ -914,8 +1013,14 @@ class HeatExchanger(Component):
             self.outl[1].h,
         ]
 
-    def calc_dh_max_hot(self):
+    def calc_dh_max_hot(self, clip=False):
         r"""Calculate the theoretical maximum enthalpy decrease on the hot side
+
+        Parameters
+        ----------
+        clip : bool
+            Clip the cold side inlet temperature to the property range of
+            the hot side fluid, used while solving the equations.
 
         Returns
         -------
@@ -928,9 +1033,15 @@ class HeatExchanger(Component):
         """
         o1 = self.outl[0]
         T_in_cold = self.inl[1].calc_T()
-        h_at_T_in_cold = h_mix_pT(
-            o1.p.val_SI, T_in_cold, o1.fluid_data, o1.mixing_rule
-        )
+        fluid = single_fluid(o1.fluid_data)
+        if clip and fluid is not None:
+            # during iteration the cold side temperature may lie outside
+            # of the hot side fluid's property range
+            wrapper = o1.fluid.wrapper[fluid]
+            T_in_cold = min(
+                max(T_in_cold, wrapper._T_min + 0.1), wrapper._T_max
+            )
+        h_at_T_in_cold = self._h_pT_bound(o1, T_in_cold, quality=0)
         return h_at_T_in_cold - self.inl[0].h.val_SI
 
     def eff_hot_func(self):
@@ -948,7 +1059,7 @@ class HeatExchanger(Component):
                 - \left( h_{out,1} - h_{in,1}\right)
         """
         return (
-            self.eff_hot.val_SI * self.calc_dh_max_hot()
+            self.eff_hot.val_SI * self.calc_dh_max_hot(clip=True)
             - (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
         )
 
@@ -983,11 +1094,11 @@ class HeatExchanger(Component):
         """
         eff_hot = (
             (self.outl[0].h.val_SI - self.inl[0].h.val_SI)
-            / self.calc_dh_max_hot()
+            / self.calc_dh_max_hot(clip=True)
         )
         eff_cold = (
             (self.outl[1].h.val_SI - self.inl[1].h.val_SI)
-            / self.calc_dh_max_cold()
+            / self.calc_dh_max_cold(clip=True)
         )
         return self.eff_max.val_SI - max(eff_hot, eff_cold)
 
@@ -1012,11 +1123,13 @@ class HeatExchanger(Component):
         ttd_lower = self.ttd_l.val_SI if self.ttd_l.is_set else 10.0
         weight_lower = 5.0 if self.ttd_l.is_set else 0.3
         # asumption same side temperature does not change because we know
-        # nothing about duty at start. Between anchors least squares is then
-        # applied and the temperatures can shift
+        # nothing about duty at start. The weight is kept well below the
+        # terminal temperature differences, otherwise the least squares
+        # averages the temperature levels of all heat sources and sinks
+        # coupled into a cycle, e.g. through a recuperator
         return [
-            (self.inl[0], self.outl[0], 0.0, 1.0),
-            (self.inl[1], self.outl[1], 0.0, 1.0),
+            (self.inl[0], self.outl[0], 0.0, 0.1),
+            (self.inl[1], self.outl[1], 0.0, 0.1),
             (self.outl[1], self.inl[0], ttd_upper, weight_upper),
             (self.inl[1], self.outl[0], ttd_lower, weight_lower),
         ]
@@ -1030,6 +1143,15 @@ class HeatExchanger(Component):
             (self.inl[0].h, self.outl[0].h, 1.0, 0.0),
             (self.inl[1].h, self.outl[1].h, 1.0, 0.0),
         ]
+
+    def _flow_presolve_ignored_rows(self):
+        # with positive mass flows the energy balance only holds if the hot
+        # side cools and the cold side heats
+        dh_hot = self.outl[0].h.val_SI - self.inl[0].h.val_SI
+        dh_cold = self.outl[1].h.val_SI - self.inl[1].h.val_SI
+        if dh_hot <= 0 <= dh_cold:
+            return []
+        return self._equation_rows("energy_balance_constraints")
 
     def _separate_flat_enthalpy_starts(self, seeded):
         # a side starting with equal enthalpies removes its mass flow from
@@ -1167,7 +1289,7 @@ class HeatExchanger(Component):
             inl = self.inl[i]
             out = self.outl[i]
             p_star = inl.p.val_SI * (
-                self.get_attr('pr' + str(i + 1)).val) ** 0.5
+                self.get_attr(f"pr{i + 1}").val) ** 0.5
             s_i_star = s_mix_ph(
                 p_star, inl.h.val_SI, inl.fluid_data, inl.mixing_rule,
                 T0=inl.T.val_SI
@@ -1178,20 +1300,20 @@ class HeatExchanger(Component):
             )
 
             setattr(
-                self, 'S_Q' + str(i + 1),
+                self, f"S_Q{i + 1}",
                 inl.m.val_SI * (s_o_star - s_i_star)
             )
-            S_Q = self.get_attr('S_Q' + str(i + 1))
+            S_Q = self.get_attr(f"S_Q{i + 1}")
             setattr(
-                self, 'S_irr' + str(i + 1),
+                self, f"S_irr{i + 1}",
                 inl.m.val_SI * (out.s.val_SI - inl.s.val_SI) - S_Q
             )
             setattr(
-                self, 'T_mQ' + str(i + 1),
+                self, f"T_mQ{i + 1}",
                 inl.m.val_SI * (out.h.val_SI - inl.h.val_SI) / S_Q
             )
 
-            self.S_irr += self.get_attr('S_irr' + str(i + 1))
+            self.S_irr += self.get_attr(f"S_irr{i + 1}")
 
         self.S_irr += self.S_Q1 + self.S_Q2
 
@@ -1327,7 +1449,7 @@ class HeatExchanger(Component):
 
     @staticmethod
     def _calc_lmtd_per_section(T_steps_hot, T_steps_cold, postprocess=False):
-        """Calculate the logarithmic temperature difference values per section
+        r"""Calculate the logarithmic temperature difference values per section
         of heat exchanged.
 
         Parameters
@@ -1339,8 +1461,9 @@ class HeatExchanger(Component):
         postprocess : bool
             When :code:`True`, returns an array of :code:`nan` if any
             temperature difference is non-positive (used for result reporting).
-            When :code:`False` (default), clips negative differences to 1e-3 K
-            so the solver can continue iterating.
+            When :code:`False` (default), each section is evaluated with
+            :py:func:`smoothed_lmtd
+            <tespy.components.heat_exchangers.base.smoothed_lmtd>`.
 
         Returns
         -------
@@ -1353,14 +1476,18 @@ class HeatExchanger(Component):
             if len(truly_negative) and (truly_negative < -1e-6).any():
                 return np.ones(len(td_at_steps) - 1) * np.nan
             td_at_steps[td_at_steps <= 0] = abs(td_at_steps[td_at_steps <= 0])
-        td_at_steps[td_at_steps <= 0] = 1e-6
+            td_at_steps[td_at_steps <= 0] = 1e-6
+            return np.array([
+                (td_at_steps[i + 1] - td_at_steps[i])
+                / math.log(td_at_steps[i + 1] / td_at_steps[i])
+                # round is required because tiny differences may cause
+                # inconsistencies due to rounding errors
+                if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
+                else td_at_steps[i + 1]
+                for i in range(len(td_at_steps) - 1)
+            ])
         return np.array([
-            (td_at_steps[i + 1] - td_at_steps[i])
-            / math.log(td_at_steps[i + 1] / td_at_steps[i])
-            # round is required because tiny differences may cause
-            # inconsistencies due to rounding errors
-            if round(td_at_steps[i + 1], 6) != round(td_at_steps[i], 6)
-            else td_at_steps[i + 1]
+            smoothed_lmtd(td_at_steps[i], td_at_steps[i + 1])
             for i in range(len(td_at_steps) - 1)
         ])
 

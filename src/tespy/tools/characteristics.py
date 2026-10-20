@@ -146,7 +146,7 @@ class CharLine:
         elif x < self.x[0]:
             msg = (
                 "Operating point below characteristic line range: X="
-                f"{round(x, 3)} with minimum of {self.x[1]} at component {c}."
+                f"{round(x, 3)} with minimum of {self.x[0]} at component {c}."
             )
             logger.warning(msg)
 
@@ -167,7 +167,7 @@ class CharLine:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Char_map has no attribute \"' + key + '\".'
+            msg = f"CharLine has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 
@@ -240,20 +240,22 @@ class CharMap:
 
         if self.x.shape[0] != self.y.shape[0]:
             msg = (
-                'The number of x-values determines the number of dimension '
-                'for the characteristic map. You have provided ' +
-                str(len(self.x)) + 'x-values. Thus, the y- and z-arrays must '
-                'have ' + str(len(self.x)) + ' number of dimensions.')
+                "The number of x-values determines the number of dimension "
+                f"for the characteristic map. You have provided {len(self.x)} "
+                f"x-values. Thus, the y- and z-arrays must have {len(self.x)} "
+                "dimensions."
+            )
             logger.error(msg)
             raise ValueError(msg)
         elif self.y.shape != self.z.shape:
             msg = (
-                'Make sure that the number of dimensions and the number of '
-                'values in the y-, z-arrays are identical!')
+                "Make sure that the number of dimensions and the number of "
+                "values in the y-, z-arrays are identical!"
+            )
             logger.error(msg)
             raise ValueError(msg)
 
-        msg = ('Created characteristic map function.')
+        msg = "Created characteristic map function."
         logger.debug(msg)
 
     def evaluate_x(self, x):
@@ -392,15 +394,17 @@ class CharMap:
         xpos = np.searchsorted(self.x, x)
         if xpos == len(self.x) and x != self.x[-1]:
             yarr = self.y[xpos - 1]
-            msg = ('Operating point above CharMap range: '
-                   'X=' + str(round(x, 3)) + ' with maximum of ' +
-                   str(self.x[-1]) + ' at component ' + c + '.')
+            msg = (
+                f"Operating point above CharMap range: X={round(x, 3)} with "
+                "maximum of {self.x[-1]} at component {c}."
+            )
             logger.warning(msg)
         elif xpos == 0 and x != self.x[0]:
             yarr = self.y[0]
-            msg = ('Operating point below CharMap range: '
-                   'X=' + str(round(x, 3)) + ' with minimum of ' +
-                   str(self.x[0]) + ' at component ' + c + '.')
+            msg = (
+                f"Operating point below CharMap range: X={round(x, 3)} with "
+                f"minimum of {self.x[0]} at component {c}."
+            )
             logger.warning(msg)
         else:
             yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
@@ -427,15 +431,15 @@ class CharMap:
         ypos = np.searchsorted(yarr, y)
         if ypos == len(yarr) and y != yarr[-1]:
             msg = (
-                'Operating point above compressor map range: Y=' +
-                str(round(y, 3)) + ' with maximum of ' + str(yarr[-1]) +
-                ' at component ' + c + '.')
+                f"Operating point above compressor map range: Y={round(y, 3)} "
+                f"with maximum of {yarr[-1]} at component {c}."
+            )
             logger.warning(msg)
         elif ypos == 0 and y != yarr[0]:
             msg = (
-                'Operating point below compressor map range: Y=' +
-                str(round(y, 3)) + ' with minimum of ' + str(yarr[0]) +
-                ' at component ' + c + '.')
+                f"Operating point below compressor map range: Y={round(y, 3)} "
+                f"with minimum of {yarr[0]} at component {c}."
+            )
             logger.warning(msg)
 
     def get_domain_errors(self, x, y, c):
@@ -470,7 +474,7 @@ class CharMap:
         if key in self.__dict__:
             return self.__dict__[key]
         else:
-            msg = 'Char_map has no attribute \"' + key + '\".'
+            msg = f"CharMap has no attribute '{key}'."
             logger.error(msg)
             raise KeyError(msg)
 

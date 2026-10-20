@@ -16,6 +16,10 @@ import importlib
 import json
 import os
 import warnings
+import weakref
+from copy import deepcopy
+from datetime import datetime
+from datetime import timezone
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +34,6 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
 from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
 from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
 from tespy.tools.data_containers import ComponentProperties as dc_cp
@@ -45,6 +48,29 @@ try:
     import cupy as cu
 except ModuleNotFoundError:
     cu = None
+
+# track which network a connection or component belongs to without attaching
+# state to the objects themselves, keeping them picklable and making
+# (deep)copies of a network independent of the original
+_network_ownership = weakref.WeakKeyDictionary()
+
+
+def _claim_ownership(obj, network):
+    owner = _network_ownership.get(obj)
+    owner = owner() if owner is not None else None
+    if owner is not None and owner is not network:
+        msg = (
+            f"The {obj.__class__.__name__} {obj.label} is already part of a "
+            "different network. Sharing objects between networks is not "
+            "supported, because their specifications, results and design "
+            "point data would be a single shared state. To use the same "
+            "model in a second network create an independent copy of it, e.g. "
+            "by exporting and reloading the topology with Network.export() "
+            "and Network.from_json()."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+    _network_ownership[obj] = weakref.ref(network)
 
 
 class Network:
@@ -193,7 +219,8 @@ class Network:
         self.user_defined_var = {}
         self.subsystems = {}
         # results and specification dictionary
-        self.results = {}
+        self._results = {}
+        self._results_stale = False
 
         # in case of a design calculation after an offdesign calculation
         self.redesign = False
@@ -524,6 +551,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             c.good_starting_values = False
 
             conn_type = c.__class__.__name__
@@ -553,8 +582,9 @@ class Network:
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
             self.conns.drop(c.label, inplace=True)
-            if c.__class__.__name__ in self.results:
-                self.results[c.__class__.__name__].drop(
+            _network_ownership.pop(c, None)
+            if c.__class__.__name__ in self._results:
+                self._results[c.__class__.__name__].drop(
                     c.label, inplace=True, errors="ignore"
                 )
             msg = f'Deleted connection {c.label} from network.'
@@ -595,6 +625,8 @@ class Network:
                     )
                     raise hlp.TESPyNetworkError(msg)
 
+            _claim_ownership(comp, self)
+
             comp_type = comp.__class__.__name__
             self.comps.loc[comp.label, 'comp_type'] = comp_type
             self.comps.loc[comp.label, 'object'] = comp
@@ -619,9 +651,10 @@ class Network:
                 comp not in self.conns["target"].values
             ):
                 self.comps.drop(comp.label, inplace=True)
+                _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
-                if comp_type in self.results:
-                    self.results[comp_type].drop(
+                if comp_type in self._results:
+                    self._results[comp_type].drop(
                         comp.label, inplace=True, errors="ignore"
                     )
                 msg = f"Deleted component {comp.label} from network."
@@ -655,6 +688,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_eq[c.label] = c
             msg = f"Added UserDefinedEquation {c.label} to network."
             logger.debug(msg)
@@ -671,6 +706,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_eq[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedEquation {c.label} from network."
             logger.debug(msg)
 
@@ -728,6 +764,8 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            _claim_ownership(c, self)
+
             self.user_defined_var[c.label] = c
             msg = f"Added UserDefinedVariable {c.label} to network."
             logger.debug(msg)
@@ -744,6 +782,7 @@ class Network:
         """
         for c in args:
             del self.user_defined_var[c.label]
+            _network_ownership.pop(c, None)
             msg = f"Deleted UserDefinedVariable {c.label} from network."
             logger.debug(msg)
 
@@ -765,8 +804,8 @@ class Network:
 
     def assert_convergence(self):
         """Check convergence status of a simulation."""
-        msg = 'Calculation did not converge!'
-        assert self.converged, msg
+        if not self.converged:
+            raise AssertionError("Calculation did not converge!")
 
     @property
     def converged(self):
@@ -887,83 +926,77 @@ class Network:
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)
 
-    def _init_connection_result_datastructure(self):
-
-        for conn_type in self.conns["conn_type"].unique():
-            if conn_type in self.results:
-                del self.results[conn_type]
-
-        for conn in self.conns["object"]:
-            conn_type = conn.__class__.__name__
-            # this will move somewhere else!
-            # set up results dataframe for connections
-            # this should be done based on the connections
-            if conn_type not in self.results:
-                cols = conn._get_result_cols(set(self.all_fluids))
-                self.results[conn_type] = pd.DataFrame(columns=cols, dtype='float64')
-
     def _init_components(self):
         r"""Set up necessary component information."""
-        for comp in self.comps["object"]:
-            source_mask = self.conns["source"] == comp
-            target_mask = self.conns["target"] == comp
+        # port ids are unique per component, see _check_connections
+        inlets = {comp: {} for comp in self.comps["object"]}
+        outlets = {comp: {} for comp in self.comps["object"]}
+        for conn in self.conns["object"]:
+            outlets[conn.source][conn.source_id] = conn
+            inlets[conn.target][conn.target_id] = conn
 
+        for comp in self.comps["object"]:
             comp.inl, comp.outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask, comp.inlets(), comp.outlets()
+                inlets[comp], outlets[comp], comp.inlets(), comp.outlets()
             )
             comp.power_inl, comp.power_outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask,
+                inlets[comp], outlets[comp],
                 comp.powerinlets(), comp.poweroutlets(), "PowerConnection"
             )
-            comp.num_power_i = len(comp.powerinlets())
-            comp.num_power_o = len(comp.poweroutlets())
-
             comp.heat_inl, comp.heat_outl = self._resolve_comp_conn_domain(
-                source_mask, target_mask,
+                inlets[comp], outlets[comp],
                 comp.heatinlets(), comp.heatoutlets(), "HeatConnection"
             )
-            comp.num_heat_i = len(comp.heatinlets())
-            comp.num_heat_o = len(comp.heatoutlets())
 
-            # set up results and specification dataframes
-            comp_type = comp.__class__.__name__
-            if comp_type not in self.results:
-                cols = [
-                    c for col, data in comp.parameters.items()
-                    if isinstance(data, dc_cp)
-                    for c in [col, f"{col}_unit"]
-                ]
-                self.results[comp_type] = pd.DataFrame(
-                    columns=cols, dtype='float64'
-                )
-
+    @staticmethod
     def _resolve_comp_conn_domain(
-        self, source_mask, target_mask, inlet_ids, outlet_ids, conn_type=None
+        inlets, outlets, inlet_ids, outlet_ids, conn_type=None
     ):
         """Return :code:`(inl, outl)` connection lists for one domain.
 
         Parameters
         ----------
-        source_mask, target_mask : boolean Series
-            Rows in :code:`self.conns` where the component is source / target.
+        inlets, outlets : dict
+            Connections attached to the component's inlet / outlet ports,
+            keyed by port ID.
         inlet_ids, outlet_ids : list[str]
             Port IDs returned by the component's :code:`*inlets()` / :code:`*outlets()`.
         conn_type : str, optional
-            If given, further restrict to rows whose :code:`conn_type` column
-            matches this class name (e.g. :code:`"PowerConnection"`).
+            If given, further restrict to connections of this class name
+            (e.g. :code:`"PowerConnection"`).
         """
-        if conn_type is not None:
-            type_mask = self.conns["conn_type"] == conn_type
-            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids) & type_mask]
-            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids) & type_mask]
-        else:
-            src = self.conns[source_mask & self.conns["source_id"].isin(outlet_ids)]
-            tgt = self.conns[target_mask & self.conns["target_id"].isin(inlet_ids)]
+        def resolve(conns, port_ids):
+            return [
+                conns[port] for port in port_ids
+                if port in conns and (
+                    conn_type is None
+                    or conns[port].__class__.__name__ == conn_type
+                )
+            ]
 
-        return (
-            self.conns.loc[tgt["target_id"].sort_values().index, "object"].tolist(),
-            self.conns.loc[src["source_id"].sort_values().index, "object"].tolist(),
-        )
+        return resolve(inlets, inlet_ids), resolve(outlets, outlet_ids)
+
+    def _ensure_result_frames(self):
+        """Create empty results DataFrames for types not holding results."""
+        for conn in self.conns["object"]:
+            conn_type = conn.__class__.__name__
+            if conn_type not in self._results:
+                cols = conn._get_result_cols(set(self.all_fluids))
+                self._results[conn_type] = pd.DataFrame(
+                    columns=cols, dtype="float64"
+                )
+
+        for comp in self.comps["object"]:
+            comp_type = comp.__class__.__name__
+            if comp_type not in self._results:
+                cols = [
+                    c for col, data in comp.parameters.items()
+                    if isinstance(data, dc_cp)
+                    for c in [col, f"{col}_unit"]
+                ]
+                self._results[comp_type] = pd.DataFrame(
+                    columns=cols, dtype="float64"
+                )
 
     def _check_components(self):
         for comp in self.comps['object']:
@@ -1004,7 +1037,10 @@ class Network:
                 break
 
         self._propagate_fluid_wrappers()
-        self._init_connection_result_datastructure()
+        # the fluid composition may have changed, the frames are rebuilt
+        # lazily on access of the results
+        for conn_type in self.conns["conn_type"].unique():
+            self._results.pop(conn_type, None)
 
         self._prepare_solve_mode()
         # this method will distribute units and set SI values from given values
@@ -1202,19 +1238,14 @@ class Network:
 
                 param = c.get_attr(key)
                 if param.is_set:
-                    if "ref" in key:
-                        unit = self.units.default[param.quantity]
-                        param.ref.delta_SI = self.units.ureg.Quantity(
-                            param.ref.delta,
-                            unit
-                        ).m_as(SI_UNITS[param.quantity])
-                    else:
-                        param.set_SI_from_val(self.units)
+                    param.set_SI_from_val(self.units)
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
                 if isinstance(value, dc_prop) and value.is_set:
                     value.set_SI_from_val(self.units)
+
+        self.units._conversions_applied = True
 
     def _prepare_design(self):
         r"""
@@ -1248,7 +1279,9 @@ class Network:
                 for var in c.offdesign:
                     c.get_attr(var).is_set = True
 
-                entries = self._load_network_state(path)[c.__class__.__name__]
+                entries = self._load_network_state(path).get(
+                    c.__class__.__name__, {}
+                )
                 # write data to connections
                 self._write_design_state_to_connection(c, entries)
 
@@ -1316,7 +1349,8 @@ class Network:
 
                     # take nominal values from design point
                     if isinstance(data, dc_cp):
-                        cp.get_attr(var).val = cp.get_attr(var).design
+                        data.val_SI = data.design
+                        data.set_val_from_SI(self.units)
                         set_values.append(var)
                     else:
                         activated.append(var)
@@ -1347,7 +1381,7 @@ class Network:
                     for var in cp.offdesign:
                         cp.get_attr(var).is_set = False
 
-                cp._set_design_parameters(self.mode, series)
+                cp._set_design_parameters(self.mode, series, self.units)
 
     def _prepare_offdesign(self):
         r"""
@@ -1452,7 +1486,7 @@ class Network:
         state = self._load_network_state(self.design_path)
         # iter through all components of this type and set data
         for _, row in df_comps.iterrows():
-            entries = state[row["comp_type"]]
+            entries = state.get(row["comp_type"], {})
             comp = row["object"]
             path = comp.design_path
             # in offdesign mode any individually specified design_path is used
@@ -1460,7 +1494,7 @@ class Network:
             # local_offdesign
             if path is not None:
                 _individual_design = self._load_network_state(path)
-                data = _individual_design[row["comp_type"]]
+                data = _individual_design.get(row["comp_type"], {})
                 label = self._find_isolated_comp_label(comp, data)
                 self._write_design_state_to_component(comp, data, label)
                 # write adjacent connections design state from individual
@@ -1491,11 +1525,11 @@ class Network:
         # iter through connections
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
-            entries = state[conn_type]
+            entries = state.get(conn_type, {})
             # read data of connections with individual design_path
             path = c.design_path
             if path is not None:
-                entries = self._load_network_state(path)[conn_type]
+                entries = self._load_network_state(path).get(conn_type, {})
 
             self._write_design_state_to_connection(c, entries)
 
@@ -1516,8 +1550,9 @@ class Network:
             return next(iter(comp_entries))
         msg = (
             f"Could not unambiguously resolve the label for component "
-            f"'{comp.label}' in the isolated design file: multiple entries "
-            f"exist ({', '.join(comp_entries)}) and none match exactly."
+            f"'{comp.label}' in the isolated design file: "
+            f"{len(comp_entries)} entries of this component type exist "
+            "and none match exactly."
         )
         raise hlp.TESPyNetworkError(msg)
 
@@ -1604,7 +1639,7 @@ class Network:
             logger.debug(msg)
             return
         # write component design data
-        c._set_design_parameters(self.mode, entries[label])
+        c._set_design_parameters(self.mode, entries[label], self.units)
 
     def _write_design_state_to_connection(self, c, entries):
         r"""
@@ -1674,7 +1709,7 @@ class Network:
         num_generic = 0
         for c in self.conns['object']:
             if self.init_path is not None and self._write_starting_values_to_connection(
-                    c, state[c.__class__.__name__]
+                    c, state.get(c.__class__.__name__, {})
                 ):
                 num_init_path += 1
             elif c.good_starting_values:
@@ -1792,19 +1827,14 @@ class Network:
             if data is None:
                 with open(json_path, "r") as f:
                     data = json.load(f)
+        _check_meta(data, "state")
 
         def _row(d):
             return {col: np.nan if val is None else val for col, val in d.items()}
 
         state = {}
-        # TODO: Let this somehow run through connection-registry and not hardcoded names
-        if any(k in data["Connection"] for k in ("Connection", "PowerConnection", "HeatConnection")):
-            for key, value in data["Connection"].items():
-                state[key] = {str(k): _row(v) for k, v in value.items()}
-        # TODO: deprecate
-        # this is for compatibility of older savestates
-        else:
-            state["Connection"] = {str(k): _row(v) for k, v in data["Connection"].items()}
+        for key, value in data["Connection"].items():
+            state[key] = {str(k): _row(v) for k, v in value.items()}
 
         for key, value in data["Component"].items():
             state[key] = {str(k): _row(v) for k, v in value.items()}
@@ -2462,7 +2492,7 @@ class Network:
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
               oscillation_damping=False, block_solve=True,
-              pause_on_block_failure=False):
+              pause_on_block_failure=False, line_search="stagnation"):
         r"""
         Solve the network.
 
@@ -2533,8 +2563,7 @@ class Network:
             Decompose the equation system into its block lower triangular
             form and solve the blocks in precedence order instead of solving
             the full system simultaneously. Scalar blocks are solved with a
-            bracketing fallback on oscillation. Experimental, default:
-            :code:`False`.
+            bracketing fallback on oscillation, default: :code:`True`.
 
         pause_on_block_failure : boolean
             Pause the block-wise solution process at the first block that
@@ -2548,6 +2577,16 @@ class Network:
             and
             :py:meth:`~tespy.networks.network.Network.solve_continue`
             retries the block and continues the solution process.
+
+        line_search : str
+            Globalization of the newton steps by a backtracking line search
+            on the scaled residual norm: :code:`"stagnation"` (default) runs
+            plain newton steps and, once the iteration stagnates or runs out
+            of iterations, the jacobian is singular or an equation evaluation
+            fails, returns to the state with the lowest residual and
+            continues with line search steps on a fresh budget of
+            :code:`max_iter` iterations. :code:`"always"` applies the line
+            search from the first iteration, :code:`"off"` disables it.
 
         Note
         ----
@@ -2567,7 +2606,8 @@ class Network:
             print_results=print_results, robust_relax=robust_relax,
             skip_postprocess=skip_postprocess,
             oscillation_damping=oscillation_damping, block_solve=block_solve,
-            pause_on_block_failure=pause_on_block_failure
+            pause_on_block_failure=pause_on_block_failure,
+            line_search=line_search
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2662,7 +2702,8 @@ class Network:
     def solve_continue(self, max_iter=50, min_iter=2, use_cuda=False,
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
-                       block_solve=True, pause_on_block_failure=None):
+                       block_solve=True, pause_on_block_failure=None,
+                       line_search="stagnation"):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2714,7 +2755,8 @@ class Network:
                 oscillation_damping=oscillation_damping,
                 iterinfo=self.iterinfo, print_results=print_results,
                 block_solve=block_solve,
-                pause_on_block_failure=pause_on_block_failure
+                pause_on_block_failure=pause_on_block_failure,
+                line_search=line_search
             )
         except ValueError as e:
             self.status = 99
@@ -2751,6 +2793,9 @@ class Network:
         _converged = self._postprocess_connections()
         _converged = self._postprocess_components() and _converged
 
+        if not self.skip_postprocess:
+            self._results_stale = True
+
         if self.status == 0 and not _converged:
             self.status = 1
 
@@ -2760,69 +2805,49 @@ class Network:
     def _postprocess_connections(self):
         """Process the Connection results."""
         _converged = True
-        buckets = {}
         for c in self.conns['object']:
             c.good_starting_values = True
             _converged = c.calc_results(self.units, self.skip_postprocess) and _converged
-            if self.skip_postprocess:
-                continue
+        return _converged
+
+    def _postprocess_components(self):
+        """Process the component results."""
+        _converged = True
+        if self.skip_postprocess:
+            return _converged
+
+        for cp in self.comps['object']:
+            _bounds_ok, _specifications_matched = cp.calc_results(self.units)
+            _converged = _converged and _bounds_ok
+            if not _specifications_matched:
+                self.status = 2
+
+        if self.status == 2:
+            return False
+
+        return _converged
+
+    @property
+    def results(self):
+        if self._results_stale:
+            self._build_results()
+        self._ensure_result_frames()
+        return self._results
+
+    def _build_results(self):
+        """Build the results DataFrames from the last converged solution."""
+        self._results_stale = False
+        self._ensure_result_frames()
+        buckets = {}
+        for c in self.conns['object']:
             conn_type = c.__class__.__name__
             if conn_type not in buckets:
                 buckets[conn_type] = ([], [])
             buckets[conn_type][0].append(c.label)
             buckets[conn_type][1].append(c.collect_results(self.all_fluids))
         for conn_type, (labels, rows) in buckets.items():
-            cols = self.results[conn_type].columns
-            self.results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
-        return _converged
-
-    def _postprocess_components(self):
-        """Process the component results."""
-        # components
-        _converged = True
-        if self.skip_postprocess:
-            return _converged
-
-        for cp in self.comps['object']:
-            cp.calc_parameters()
-            _converged = _converged and cp.check_parameter_bounds()
-            # this thing could be somewhere else
-            for key, value in cp.parameters.items():
-                if isinstance(value, dc_cap):
-                    value.set_val_from_SI(self.units)
-                elif isinstance(value, dc_prop):
-                    result = value._get_val_from_SI(self.units)
-                    if (
-                        value.is_set
-                        and not value.is_var
-                        and not np.isclose(result.magnitude, value.val, 1e-3, 1e-3)
-                        and not cp.bypass
-                    ):
-                        _converged = False
-                        msg = (
-                            "The simulation converged but the calculated "
-                            f"result {result} for the fixed input parameter "
-                            f"{key} is not equal to the originally specified "
-                            f"value: {value.val}. Usually, this can happen, "
-                            "when a method internally manipulates the "
-                            "associated equation during iteration in order to "
-                            "allow progress in situations, when the equation "
-                            "is otherwise not well defined for the current"
-                            "values of the variables, e.g. in case a negative "
-                            "root would need to be evaluated.  Often, this "
-                            "can happen during the first iterations and then "
-                            "will resolve itself as convergence progresses. "
-                            "In this case it did not, meaning convergence was "
-                            "not actually achieved."
-                        )
-                        logger.warning(msg)
-                        self.status = 2
-                    else:
-                        if not value.is_set or value.is_var:
-                            value.set_val_from_SI(self.units)
-
-        if self.status == 2:
-            return False
+            cols = self._results[conn_type].columns
+            self._results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
 
         buckets = {}
         for cp in self.comps['object']:
@@ -2835,10 +2860,8 @@ class Network:
             buckets[key][0].append(cp.label)
             buckets[key][1].append(result)
         for key, (labels, rows) in buckets.items():
-            cols = self.results[key].columns
-            self.results[key] = pd.DataFrame(rows, index=labels, columns=cols)
-
-        return _converged
+            cols = self._results[key].columns
+            self._results[key] = pd.DataFrame(rows, index=labels, columns=cols)
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""Print the calculations results to prompt."""
@@ -2921,7 +2944,10 @@ class Network:
             df = self.results[c_type].copy().loc[:, cols]
 
             if subsystem is not None:
-                connection_labels = [c.label for c in subsystem.conns.values()]
+                connection_labels = [
+                    c.label for c in subsystem.conns.values()
+                    if c.label in df.index
+                ]
                 df = df.loc[connection_labels]
 
             df = df.astype(str)
@@ -2991,6 +3017,7 @@ class Network:
 
     @classmethod
     def from_dict(cls, network_data):
+        _check_meta(network_data, "network")
         # create network
         # get method to ensure compatibility with old style export
         units = Units.from_json(network_data["Network"].get("units", {}))
@@ -3015,37 +3042,40 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             target_class = component_registry.items[component]
-            comps.update(_construct_components(target_class, data, nw))
+            comps.update(_construct_components(target_class, data))
 
         msg = 'Created network components.'
         logger.info(msg)
 
         conns = {}
         # load connections
-        if "Connection" not in network_data["Connection"]:
-            # v0.8 compatibility
-            target_class = connection_registry.items["Connection"]
-            conns.update(_construct_connections(
-                target_class, network_data["Connection"], comps)
-            )
-        else:
-            for connection, data in network_data["Connection"].items():
-                if connection not in connection_registry.items:
-                    msg = (
-                        f"A class {connection} is not available through the "
-                        "tespy.connections.connection.connection_registry "
-                        "decorator. If you are using a custom connection make "
-                        "sure to decorate the class."
-                    )
-                    logger.error(msg)
-                    raise hlp.TESPyNetworkError(msg)
+        for connection, data in network_data["Connection"].items():
+            if connection not in connection_registry.items:
+                msg = (
+                    f"A class {connection} is not available through the "
+                    "tespy.connections.connection.connection_registry "
+                    "decorator. If you are using a custom connection make "
+                    "sure to decorate the class."
+                )
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
 
-                target_class = connection_registry.items[connection]
-                conns.update(_construct_connections(target_class, data, comps))
+            target_class = connection_registry.items[connection]
+            conns.update(_construct_connections(target_class, data, comps, nw.units))
 
         # add connections to network
         for c in conns.values():
             nw.add_conns(c)
+
+        # the results of a converged simulation are a starting point as good
+        # as the previous solution within the same session
+        if network_data.get("meta", {}).get("status") in (0, 1):
+            for c in conns.values():
+                for variable in c.get_variables().values():
+                    variable.set_val0_from_SI(nw.units)
+                if "fluid" in c.property_data:
+                    c.fluid.val0 = c.fluid.val.copy()
+                c.good_starting_values = True
 
         msg = 'Created connections.'
         logger.info(msg)
@@ -3238,29 +3268,8 @@ class Network:
         dict
             Parametrization and structure of the Network instance.
         """
-        # a plain numeric specification means "in the network's default
-        # units". The unit is only attached to the containers when the
-        # network is transformed to SI for solving: exporting before that
-        # would serialize such values with the global default units,
-        # misinterpreting them on import
-        containers = [
-            c.get_attr(key)
-            for c in self.conns["object"] for key in c.property_data
-        ] + [
-            cp.get_attr(key)
-            for cp in self.comps["object"] for key in cp.parameters
-        ]
-        for container in containers:
-            if not isinstance(container, dc_prop) or not container.is_set:
-                continue
-            if container._val_is_quantity or container.quantity is None:
-                continue
-            try:
-                container._assign_default_unit_to_val(self.units)
-            except KeyError:
-                continue
-
         export = {}
+        export["meta"] = _create_meta("network", getattr(self, "status", 99))
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
@@ -3306,7 +3315,10 @@ class Network:
         dump["Connection"] = self._save_connections()
         dump["Component"] = self._save_components()
 
-        dump = hlp._nested_dict_of_dataframes_to_dict(dump)
+        dump = {
+            "meta": _create_meta("state", getattr(self, "status", 99)),
+            **hlp._nested_dict_of_dataframes_to_dict(dump)
+        }
 
         if json_file_path is None:
             if as_dict:
@@ -3323,6 +3335,142 @@ class Network:
         os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
         with open(json_file_path, "w") as f:
             json.dump(dump, f)
+
+    def save_specifications(self, json_file_path=None):
+        r"""
+        Save the currently set specifications of the network.
+
+        The result holds all specified values of connections, components,
+        activity of :code:`UserDefinedEquation` and state of
+        :code:`UserDefinedVariable` objects. It can be reapplied to the
+        topologically unchanged network with :py:meth:`restore_specifications`.
+
+        Parameters
+        ----------
+        json_file_path : str, optional
+            Path for exporting to filesystem. If path is None, the data are
+            only returned and not written to the filesystem, by default None.
+
+        Returns
+        -------
+        dict
+            Currently set specifications of the network.
+
+        Example
+        -------
+        Save the specifications of a network, clear them and restore them
+        afterwards.
+
+        >>> from tespy.components import Pipe, Sink, Source
+        >>> from tespy.connections import Connection
+        >>> from tespy.networks import Network
+        >>> nw = Network()
+        >>> nw.iterinfo = False
+        >>> so = Source('source')
+        >>> pi = Pipe('pipe', pr=1, Q=0)
+        >>> si = Sink('sink')
+        >>> c1 = Connection(so, 'out1', pi, 'in1')
+        >>> c2 = Connection(pi, 'out1', si, 'in1')
+        >>> nw.add_conns(c1, c2)
+        >>> c1.set_attr(fluid={'water': 1}, m=1, p=1e5, T=300)
+        >>> specs = nw.save_specifications()
+        >>> nw.clear_specifications()
+        >>> c1.m.is_set or pi.pr.is_set
+        False
+        >>> nw.restore_specifications(specs)
+        >>> c1.m.is_set and pi.pr.is_set
+        True
+        """
+        specs = {
+            "meta": _create_meta("specifications"),
+            "Connection": {}, "Component": {},
+            "UserDefinedEquation": {}, "UserDefinedVariable": {}
+        }
+        for c in self.conns["object"]:
+            data = c._save_specifications(self.units)
+            if data:
+                specs["Connection"][c.label] = data
+        for cp in self.comps["object"]:
+            data = cp._save_specifications(self.units)
+            if data:
+                specs["Component"][cp.label] = data
+        for label, ude in self.user_defined_eq.items():
+            specs["UserDefinedEquation"][label] = {"is_set": ude.is_set}
+        for label, udv in self.user_defined_var.items():
+            specs["UserDefinedVariable"][label] = {
+                "val": udv.variable.val_SI, "is_var": udv.variable.is_var
+            }
+
+        # decouple mutable values (e.g. dict or list type specifications)
+        # from the live containers, so the snapshot is unaffected by later
+        # in-place modifications
+        specs = deepcopy(specs)
+
+        if json_file_path:
+            os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
+            with open(json_file_path, "w") as f:
+                json.dump(specs, f, indent=2)
+
+        return specs
+
+    def clear_specifications(self):
+        r"""
+        Unset all specifications of the network.
+
+        Unsets every connection and component specification, deactivates all
+        :code:`UserDefinedEquation` objects and turns all
+        :code:`UserDefinedVariable` objects into constants. The network
+        topology, fluid property engines, design/offdesign setup and starting
+        values remain untouched.
+        """
+        for c in self.conns["object"]:
+            c._clear_specifications()
+        for cp in self.comps["object"]:
+            cp._clear_specifications()
+        for ude in self.user_defined_eq.values():
+            ude.is_set = False
+        for udv in self.user_defined_var.values():
+            udv.set_attr(is_var=False)
+
+    def restore_specifications(self, data):
+        r"""
+        Restore a set of specifications saved with
+        :py:meth:`save_specifications`.
+
+        All current specifications are cleared first, then the saved ones are
+        reapplied. The network must be topologically unchanged, i.e. all
+        labels in the saved data must still resolve to the same connections,
+        components, :code:`UserDefinedEquation` and
+        :code:`UserDefinedVariable` objects.
+
+        Parameters
+        ----------
+        data : dict, str
+            Specification data from :py:meth:`save_specifications` or path to a
+            json file holding them.
+        """
+        if not isinstance(data, dict):
+            with open(data, "r") as f:
+                data = json.load(f)
+        else:
+            data = deepcopy(data)
+        _check_meta(data, "specifications")
+
+        self.clear_specifications()
+
+        all_connections = {c.label: c for c in self.conns["object"]}
+        for label, specs in data.get("Connection", {}).items():
+            all_connections[label]._restore_specifications(
+                specs, all_connections, self.units
+            )
+        for label, specs in data.get("Component", {}).items():
+            self.get_comp(label)._restore_specifications(specs)
+        for label, specs in data.get("UserDefinedEquation", {}).items():
+            self.user_defined_eq[label].is_set = specs["is_set"]
+        for label, specs in data.get("UserDefinedVariable", {}).items():
+            self.user_defined_var[label].set_attr(
+                val=specs["val"], is_var=specs["is_var"]
+            )
 
     def save_csv(self, folder_path):
         """Export the results in multiple csv files in a folder structure
@@ -3393,7 +3541,7 @@ class Network:
             conn_type = c.__class__.__name__
             if conn_type not in connections:
                 connections[conn_type] = {}
-            connections[conn_type].update(c._serialize())
+            connections[conn_type].update(c._serialize(self.units))
         return connections
 
     def _export_components(self):
@@ -3408,19 +3556,155 @@ class Network:
         for c in self.comps["comp_type"].unique():
             components[c] = {}
             for cp in self.comps.loc[self.comps["comp_type"] == c, "object"]:
-                components[c].update(cp._serialize())
+                components[c].update(cp._serialize(self.units))
 
         return components
 
 
-def _construct_components(target_class, data, nw):
+FORMAT_VERSION = 1
+
+_FILE_KINDS = {
+    "network": (
+        "a network export written by Network.export(), which is loaded with "
+        "Network.from_json() or Network.from_dict()"
+    ),
+    "state": (
+        "a network state written by Network.save(), which is passed as "
+        "design_path or init_path to Network.solve()"
+    ),
+    "specifications": (
+        "a set of specifications written by Network.save_specifications(), "
+        "which is loaded with Network.restore_specifications()"
+    ),
+    "subsystem": (
+        "a subsystem serialization created by Subsystem.from_network(), which "
+        "is loaded with Subsystem.from_dict()"
+    ),
+}
+
+
+def _create_meta(kind, status=None):
+    r"""
+    Create the :code:`meta` block of a serialized tespy artifact.
+
+    Parameters
+    ----------
+    kind : str
+        Kind of the artifact, one of :code:`network`, :code:`state`,
+        :code:`specifications` or :code:`subsystem`.
+
+    status : int, optional
+        Status of the last simulation of the network, only for data holding
+        results.
+
+    Returns
+    -------
+    dict
+        The meta block.
+    """
+    from tespy import __version__
+
+    meta = {
+        "kind": kind,
+        "format_version": FORMAT_VERSION,
+        "tespy_version": __version__,
+        "tespy_commit": logger.check_git_branch(),
+        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    if status is not None:
+        meta["status"] = status
+    return meta
+
+
+def _guess_kind(data):
+    # files written before the meta block was introduced can only be told
+    # apart by their top level keys
+    if "Subsystem" in data:
+        return "subsystem"
+    if "Network" in data:
+        return "network"
+    if "UserDefinedEquation" in data or "UserDefinedVariable" in data:
+        return "specifications"
+    if "Connection" in data and "Component" in data:
+        return "state"
+    return None
+
+
+def _check_meta(data, expected_kind):
+    r"""
+    Check that serialized data are of the expected kind and format version.
+
+    Data without a :code:`meta` block originate from tespy versions before the
+    block was introduced. Their kind is guessed from the top level keys and a
+    warning is issued.
+
+    Parameters
+    ----------
+    data : dict
+        The serialized data.
+
+    expected_kind : str
+        Kind of artifact the caller is able to load.
+    """
+    expected = _FILE_KINDS[expected_kind]
+    if not isinstance(data, dict):
+        msg = (
+            f"Expected {expected}, but the data are of type "
+            f"{type(data).__name__}."
+        )
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+
+    meta = data.get("meta")
+    if meta is None:
+        kind = _guess_kind(data)
+        if kind is None:
+            msg = (
+                f"Expected {expected}, but the data do not look like any file "
+                f"written by tespy. Found the top level keys {list(data)}."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        if kind == expected_kind:
+            msg = (
+                "The data do not contain a 'meta' block, so they were "
+                "probably created with a tespy version older than 0.11.3. "
+                "Their compatibility cannot be checked. Support for data "
+                "without a 'meta' block will be removed in a future release, "
+                "please save or export them again."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+            return
+    else:
+        kind = meta.get("kind")
+        format_version = meta.get("format_version")
+        if kind == expected_kind and (
+                not isinstance(format_version, int)
+                or format_version > FORMAT_VERSION):
+            msg = (
+                f"The data have the format version {format_version} and were "
+                f"created with tespy {meta.get('tespy_version')}, but this "
+                f"tespy version only supports format versions up to "
+                f"{FORMAT_VERSION}. Please update tespy."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+    if kind != expected_kind:
+        found = _FILE_KINDS.get(kind, f"data of unknown kind '{kind}'")
+        msg = f"Expected {expected}, but got {found}."
+        logger.error(msg)
+        raise hlp.TESPyNetworkError(msg)
+
+
+def _construct_components(target_class, data):
     r"""
     Create TESPy component from class name and set parameters.
 
     Parameters
     ----------
-    component : str
-        Name of the component class to be constructed.
+    target_class : class
+        Class of the components to be constructed.
 
     data : dict
         Dictionary with component information.
@@ -3451,13 +3735,6 @@ def _construct_components(target_class, data, nw):
                     elif isinstance(container, dc_cm):
                         param_data["char_func"] = CharMap(**param_data["char_func"])
 
-                if "val" in param_data:
-                    if "unit" in param_data and param_data["unit"] is not None:
-                        param_data["val"] = nw.units.ureg.Quantity(
-                            param_data["val"], param_data["unit"]
-                        )
-                    if "val0" in param_data:
-                        param_data["val0"] = param_data["val"]
                 container.set_attr(**param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})
@@ -3465,7 +3742,7 @@ def _construct_components(target_class, data, nw):
     return instances
 
 
-def _construct_connections(target_class, data, comps):
+def _construct_connections(target_class, data, comps, units=None):
     r"""
     Create TESPy connection from data in the .json-file and its parameters.
 
@@ -3495,6 +3772,6 @@ def _construct_connections(target_class, data, comps):
         )
 
     for label, conn_data in data.items():
-        conns[label]._deserialize(conn_data, conns)
+        conns[label]._deserialize(conn_data, conns, units)
 
     return conns

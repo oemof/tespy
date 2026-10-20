@@ -1,0 +1,12 @@
+.. _whats_new_v0_6_label:
+
+####
+v0.6
+####
+
+Changelog of the v0.6 release series.
+
+.. include::  /whats_new/v0-6-3.rst
+.. include::  /whats_new/v0-6-2.rst
+.. include::  /whats_new/v0-6-1.rst
+.. include::  /whats_new/v0-6-0.rst

@@ -899,6 +899,42 @@ class CombustionChamber(Component):
             if fuel_found:
                 fuel_inlet.m.set_reference_val_SI(air_tmp / 25)
 
+    def _initial_flow_relations(self):
+        # force a reasonable ratio between oxygen and fuel flow
+        inl, _ = self._get_combustion_connections()
+        lamb = self.lamb.val_SI if self.lamb.is_set else 2
+
+        def molar_mass(fluid):
+            for c in inl:
+                if fluid in c.fluid.wrapper:
+                    return c.fluid.wrapper[fluid]._molar_mass
+            return None
+
+        if molar_mass(self.o2) is None:
+            return []
+
+        relation = {}
+        for i in inl:
+            # available oxygen and demand for oxygen by fuel
+            supply = i.fluid.val.get(self.o2, 0) / molar_mass(self.o2)
+            demand = 0
+            for f in self.fuel_list:
+                x = i.fluid.val.get(f, 0)
+                if x > 0:
+                    demand += x / molar_mass(f) * (
+                        self.fuels[f]["C"] + self.fuels[f]["H"] / 4
+                        - self.fuels[f]["O"] / 2
+                    )
+            relation[i.m] = supply - lamb * demand
+
+        coefficients = list(relation.values())
+        if min(coefficients) < 0 < max(coefficients):
+            return [relation]
+
+        # a single inlet carrying the premixed reactants leaves nothing
+        # to relate
+        return []
+
     def _initial_affine_edges(self):
         # the reaction enthalpy dominates the outlet enthalpy, only the
         # pressure relations are usable guesses

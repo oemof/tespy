@@ -184,9 +184,6 @@ class Drum(DropletSeparator):
             return {"phase": "gas", "saturated": True}
         return {"phase": "two-phase", "saturated": True}
 
-    def propagate_wrapper_to_target(self, branch):
-        return super().propagate_wrapper_to_target(branch)
-
     def get_plotting_data(self):
         """
         Generate a dictionary containing FluProDia plotting information.

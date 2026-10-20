@@ -1,0 +1,13 @@
+.. _whats_new_v0_8_label:
+
+####
+v0.8
+####
+
+Changelog of the v0.8 release series.
+
+.. include::  /whats_new/v0-8-3.rst
+.. include::  /whats_new/v0-8-2.rst
+.. include::  /whats_new/v0-8-1.rst
+.. include::  /whats_new/v0-8-0-001.rst
+.. include::  /whats_new/v0-8-0.rst

@@ -11,7 +11,6 @@ SPDX-License-Identifier: MIT
 """
 import logging
 import os
-import shutil
 import warnings
 
 from pytest import raises
@@ -22,6 +21,7 @@ from tespy.components import Compressor
 from tespy.components import Merge
 from tespy.components import Pipe
 from tespy.components import Sink
+from tespy.components import SolarCollector
 from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import Subsystem
@@ -41,7 +41,6 @@ from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
-from tespy.tools.helpers import extend_basic_path
 from tespy.tools.logger import FutureWarningHandler
 
 ##############################################################################
@@ -435,46 +434,24 @@ def test_CharMap_y_z_dimension_mismatch():
                 z=[[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
 
 
-def test_missing_CharLine_files():
+def test_missing_CharLine_files(monkeypatch, tmp_path):
     """Test missing files."""
-    path = extend_basic_path('data')
-    tmp_path = extend_basic_path('tmp_dir_for_testing')
-
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
-
-        shutil.rmtree(path, ignore_errors=True)
-
+    monkeypatch.setattr(
+        "tespy.tools.helpers.extend_basic_path",
+        lambda subfolder: os.path.join(tmp_path, subfolder)
+    )
     with raises(FileNotFoundError):
-        load_custom_char('stuff', CharLine)
-
-    if os.path.exists(tmp_path):
-        for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
-
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        load_custom_char("stuff", CharLine)
 
 
-def test_missing_CharMap_files():
+def test_missing_CharMap_files(monkeypatch, tmp_path):
     """Test missing files."""
-    path = extend_basic_path('data')
-    tmp_path = extend_basic_path('tmp_dir_for_testing')
-
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            shutil.copy(src=path + '/' + f, dst=tmp_path)
-
-        shutil.rmtree(path, ignore_errors=True)
-
+    monkeypatch.setattr(
+        "tespy.tools.helpers.extend_basic_path",
+        lambda subfolder: os.path.join(tmp_path, subfolder)
+    )
     with raises(FileNotFoundError):
-        load_custom_char('some other stuff', CharMap)
-
-    if os.path.exists(tmp_path):
-        for f in os.listdir(tmp_path):
-            shutil.copy(src=tmp_path + '/' + f, dst=path)
-
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        load_custom_char("some other stuff", CharMap)
 
 
 ##############################################################################
@@ -502,3 +479,57 @@ def test_warning_logged_with_correct_category(caplog):
             "UserWarning: Custom test message" in msg
             for msg in caplog.messages
         ])
+
+
+def test_CharLine_below_range_reports_minimum(caplog):
+    char = CharLine(x=[0.5, 1, 1.5], y=[0.9, 1, 1.1])
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        char.get_domain_errors(0.2, "test")
+
+    assert any("minimum of 0.5" in msg for msg in caplog.messages)
+
+
+def test_CharLine_get_attr_error_message():
+    with raises(KeyError, match="CharLine"):
+        CharLine().get_attr("missing")
+
+
+def test_alias_ignored_if_target_parameter_missing():
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        with raises(KeyError):
+            SolarCollector("solar collector").set_attr(kA=1)
+
+    assert not any(issubclass(w.category, FutureWarning) for w in record)
+
+
+def test_assert_convergence_raises_without_assert_statement():
+    nw = Network()
+    nw.status = 99
+    with raises(AssertionError):
+        nw.assert_convergence()
+
+
+def test_UserDefinedEquation_defaults_not_shared():
+    ude1 = UserDefinedEquation("ude1", udf_dummy, udf_dummy)
+    ude2 = UserDefinedEquation("ude2", udf_dummy, udf_dummy)
+    ude1.conns.append("conn")
+    ude1.params["key"] = "value"
+
+    assert ude2.conns == []
+    assert ude2.params == {}
+
+
+def test_warning_fixed_mass_fractions_below_one(caplog):
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    c1 = Connection(Source("source"), "out1", Pipe("pipe"), "in1", label="1")
+    c2 = Connection(c1.target, "out1", Sink("sink"), "in1", label="2")
+    nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"N2": 0.6, "O2": 0.3}, m=1, p=1, T=20)
+    c2.set_attr(p=1, T=30)
+
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        nw.solve("design")
+
+    assert any("sum up to 0.9 instead of 1" in msg for msg in caplog.messages)

@@ -144,7 +144,9 @@ class TestCGAM:
     def test_ebsilon(self):
         """Test the deviation with to an Ebsilon model"""
         path = os.path.dirname(__file__)
-        ebsilon = pd.read_csv(path + "/cgam-ebsilon-results.csv", index_col=0)
+        ebsilon = pd.read_csv(
+            os.path.join(path, "cgam-ebsilon-results.csv"), index_col=0
+        )
         tespy = self.result.loc[ebsilon.index, ebsilon.columns]
 
         tespy.loc[:, ["h", "s"]] /= 1e3

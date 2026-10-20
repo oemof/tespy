@@ -9,11 +9,15 @@ available from its original location tespy/tools/logger.py
 SPDX-License-Identifier: MIT
 """
 
+import importlib.metadata
+import json
 import logging
 import os
 import sys
 import warnings
 from logging import handlers
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 import tespy
 
@@ -425,8 +429,8 @@ def get_version():
     """
     Return a string part of the used version.
 
-    If the commit and the branch is available the commit and the branch will b
-    returned otherwise the version number.
+    If the git commit is available it is returned, otherwise the version
+    number.
 
     Example
     -------
@@ -435,10 +439,7 @@ def get_version():
     >>> type(v)
     <class 'str'>
     """
-    try:
-        return check_git_branch()
-    except FileNotFoundError:
-        return '{0}'.format(check_version())
+    return check_git_branch() or check_version()
 
 
 def check_version():
@@ -460,37 +461,70 @@ def check_version():
 
 
 def check_git_branch():
-    """
-    Pass the used branch and commit to the logger.
+    r"""
+    Return the git commit of the installed tespy, if it can be determined.
 
-    The following test reacts on a local system different than on Travis-CI.
-    Therefore, a try/except test is created.
+    The commit is taken from the installation metadata for installations from
+    a git repository, e.g. :code:`pip install git+https://...`. For editable
+    installations it is read from the :code:`.git` folder of the repository.
+
+    Returns
+    -------
+    str, None
+        Commit hash or :code:`None` for regular installations, e.g. from
+        PyPI.
 
     Example
     -------
-    >>> from tespy import logger
-    >>> try:
-    ...    v = logger.check_git_branch()
-    ... except FileNotFoundError:
-    ...    v = 'dsfafasdfsdf'
-    >>> type(v)
-    <class 'str'>
+    >>> from tespy.tools import logger
+    >>> v = logger.check_git_branch()
+    >>> v is None or isinstance(v, str)
+    True
     """
-    path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), os.pardir, os.pardir, os.pardir, '.git')
+    try:
+        direct_url = json.loads(
+            importlib.metadata.distribution("tespy").read_text(
+                "direct_url.json"
+            ) or "{}"
+        )
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
-    # Reads the name of the branch
-    f_branch = os.path.join(path, 'HEAD')
-    f = open(f_branch, "r")
-    first_line = f.readlines(1)
-    name_full = first_line[0].replace("\n", "")
-    name_branch = name_full.replace("ref: refs/heads/", "")
-    f.close()
+    if "vcs_info" in direct_url:
+        return direct_url["vcs_info"].get("commit_id")
+    if not direct_url.get("dir_info", {}).get("editable", False):
+        return None
 
-    # Reads the code of the last commit used
-    f_commit = os.path.join(path, 'refs', 'heads', name_branch)
-    f = open(f_commit, "r")
-    last_commit = f.read(8)
-    f.close()
+    git_dir = os.path.join(url2pathname(urlparse(direct_url["url"]).path), ".git")
+    try:
+        # in a worktree .git is a file pointing to the actual git folder
+        if os.path.isfile(git_dir):
+            with open(git_dir) as f:
+                gitdir = f.read().strip().removeprefix("gitdir:").strip()
+            git_dir = os.path.join(os.path.dirname(git_dir), gitdir)
 
-    return "{0}@{1}".format(last_commit, name_branch)
+        with open(os.path.join(git_dir, "HEAD")) as f:
+            head = f.read().strip()
+        if not head.startswith("ref:"):
+            return head
+        ref = head.removeprefix("ref:").strip()
+
+        # worktrees share the branch refs of the main repository
+        common_dir = git_dir
+        if os.path.isfile(os.path.join(git_dir, "commondir")):
+            with open(os.path.join(git_dir, "commondir")) as f:
+                common_dir = os.path.join(git_dir, f.read().strip())
+
+        ref_file = os.path.join(common_dir, ref)
+        if os.path.isfile(ref_file):
+            with open(ref_file) as f:
+                return f.read().strip()
+        # git gc moves loose refs to packed-refs
+        with open(os.path.join(common_dir, "packed-refs")) as f:
+            for line in f:
+                commit, _, name = line.strip().partition(" ")
+                if name == ref:
+                    return commit
+    except OSError:
+        return None
+    return None

@@ -323,3 +323,25 @@ class TestCyclicMerging:
         target = c1.m.val_SI
         msg = f"Target value for mass flow at connection 3 is {target}"
         assert c6.m.val_SI == approx(target), msg
+
+
+def test_inlet_order_beyond_nine_ports():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
+    num_in = 11
+    me = Merge("merge", num_in=num_in)
+
+    conns = []
+    for i in range(1, num_in + 1):
+        c = Connection(Source(f"source {i}"), "out1", me, f"in{i}", label=f"in{i}")
+        c.set_attr(fluid={"water": 1}, m=i, h=100 + 10 * i)
+        conns.append(c)
+
+    c_out = Connection(me, "out1", Sink("sink"), "in1", label="out")
+    nw.add_conns(*conns, c_out)
+    c_out.set_attr(p=1)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert [c.target_id for c in me.inl] == [f"in{i}" for i in range(1, num_in + 1)]

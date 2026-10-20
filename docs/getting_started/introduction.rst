@@ -1,8 +1,8 @@
 .. _introduction_label:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=====================================
 Thermal Engineering Systems in Python
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=====================================
 
 TESPy stands for "Thermal Engineering Systems in Python" and provides a
 powerful simulation toolkit for thermal engineering plants such as various
@@ -37,7 +37,7 @@ own GitHub account and make changes as described in the GitHub guidelines:
 https://guides.github.com/activities/hello-world/
 
 Key Features
-============
+------------
 * **Free** and **Open** Source Software
 * **Flexible** models of thermal engineering applications due to component
   based architecture
@@ -47,7 +47,7 @@ Key Features
 * **Postprocessing** features like exergy analysis and fluid property plotting
 
 Quick installation
-==================
+------------------
 
 The recommended way to install TESPy is with
 `uv <https://docs.astral.sh/uv/>`_:
@@ -72,7 +72,7 @@ If you want to use the latest features, you might want to install the
 :ref:`this section <development_how_label>` for more information.
 
 Getting into TESPy
-==================
+------------------
 
 For a good start on how TESPy works and how you can use it, we provide some
 :ref:`basic <basics_label>` and :ref:`advanced <advanced_tutorials_label>`
@@ -81,7 +81,7 @@ tutorials in the User Guide section. The
 information on the different modules of TESPy.
 
 Citation
-========
+--------
 
 The scope and functionalities of TESPy have been documented in a paper
 published in the Journal of Open Source Software with an Open-Access license.
@@ -111,6 +111,6 @@ make your work reproducible. The source code of every version is published on
 zenodo. Find your version here: https://doi.org/10.5281/zenodo.2555866.
 
 License
-=======
+-------
 
 .. include:: ../../LICENSE

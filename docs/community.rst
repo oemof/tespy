@@ -1,8 +1,10 @@
+.. _community_support_label:
 .. _community_and_support_label:
+.. _knowledge_center_label:
 
-#####################
-Community and Support
-#####################
+###################
+Community & Support
+###################
 
 .. grid:: 1 2 3 3
     :gutter: 1
@@ -37,6 +39,16 @@ Community and Support
         .. image:: /_static/images/thumbnails/community/support_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Explore educational Resources
+        :link: education_label
+        :link-type: ref
+
+        .. image:: /_static/images/thumbnails/community/education.svg
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/community/education_darkmode.svg
+            :class: only-dark
+
 ..  toctree::
     :maxdepth: 1
     :hidden:
@@ -44,3 +56,4 @@ Community and Support
     community/community
     community/contribute
     community/support
+    community/educational_resources

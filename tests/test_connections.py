@@ -18,6 +18,7 @@ from pytest import approx
 from pytest import fixture
 from pytest import mark
 
+from tespy.components import Merge
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import SimpleHeatExchanger
@@ -53,69 +54,69 @@ class TestConnections:
             "mass_flow": "t/h"
         })
 
-        so1 = Source('source 1')
-        so2 = Source('source 2')
-        si1 = Sink('sink 1')
-        si2 = Sink('sink 2')
+        so1 = Source("source 1")
+        so2 = Source("source 2")
+        si1 = Sink("sink 1")
+        si2 = Sink("sink 2")
 
-        c1 = Connection(so1, 'out1', si1, 'in1', label='Some example label')
-        c2 = Connection(so2, 'out1', si2, 'in1')
+        c1 = Connection(so1, "out1", si1, "in1", label="Some example label")
+        c2 = Connection(so2, "out1", si2, "in1")
 
         self.nw.add_conns(c1, c2)
 
-        c1.set_attr(m=1, p=1, T=25, fluid={'Air': 1})
-        c2.set_attr(m=0.5, p=10, T=25, fluid={'Air': 1})
+        c1.set_attr(m=1, p=1, T=25, fluid={"Air": 1})
+        c2.set_attr(m=0.5, p=10, T=25, fluid={"Air": 1})
 
-        self.nw.solve('design')
+        self.nw.solve("design")
 
     def test_volumetric_flow_reference(self):
         """Test the referenced volumetric flow."""
         c1, c2 = self.nw.get_conn(
-            ['Some example label', 'source 2:out1_sink 2:in1']
+            ["Some example label", "source 2:out1_sink 2:in1"]
         )
         c2.set_attr(m=None, v=Ref(c1, 1, 0))
-        self.nw.solve('design')
+        self.nw.solve("design")
 
         m_expected = round(c1.m.val * c1.vol.val / c2.vol.val, 4)
         m_is = round(c2.m.val, 4)
         msg = (
-            'The mass flow of the connection 2 should be equal to '
-            f'{m_expected} kg/s, but is {m_is} kg/s'
+            "The mass flow of the connection 2 should be equal to "
+            f"{m_expected} kg/s, but is {m_is} kg/s"
         )
         assert m_is == m_expected, msg
 
         c2.set_attr(v=Ref(c1, 2, 10))
-        self.nw.solve('design')
+        self.nw.solve("design")
 
         v_expected = round(c1.v.val * 2 + 10, 4)
         v_is = round(c2.v.val, 4)
         msg = (
-            'The mass flow of the connection 2 should be equal to '
-            f'{v_expected} l/s, but is {v_is} l/s'
+            "The mass flow of the connection 2 should be equal to "
+            f"{v_expected} l/s, but is {v_is} l/s"
         )
         assert v_is == v_expected, msg
 
     def test_temperature_reference(self):
         """Test the referenced temperature."""
         c1, c2 = self.nw.get_conn(
-            ['Some example label', 'source 2:out1_sink 2:in1']
+            ["Some example label", "source 2:out1_sink 2:in1"]
         )
         c2.set_attr(T=None)
         c2.set_attr(T=Ref(c1, 1, 0))
 
-        self.nw.solve('design')
+        self.nw.solve("design")
 
         T_expected = round(c1.T.val, 4)
         T_is = round(c2.T.val, 4)
         msg = (
-            'The temperature of the connection 2 should be equal to '
-            f'{T_expected} C, but is {T_is} C'
+            "The temperature of the connection 2 should be equal to "
+            f"{T_expected} C, but is {T_is} C"
         )
         assert T_is == T_expected, msg
 
         delta = -75
         c2.set_attr(T=Ref(c1, 1.5, delta))
-        self.nw.solve('design')
+        self.nw.solve("design")
 
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["temperature_difference"]
@@ -125,32 +126,32 @@ class TestConnections:
         T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
         T_is = round(c2.T.val_SI, 4)
         msg = (
-            'The temperature of the connection 2 should be equal to '
-            f'{T_expected} C, but is {T_is} C'
+            "The temperature of the connection 2 should be equal to "
+            f"{T_expected} C, but is {T_is} C"
         )
         assert T_is == T_expected, msg
 
     def test_primary_reference(self):
         """Test referenced primary variable."""
         c1, c2 = self.nw.get_conn(
-            ['Some example label', 'source 2:out1_sink 2:in1']
+            ["Some example label", "source 2:out1_sink 2:in1"]
         )
         c2.set_attr(m=None)
         c2.set_attr(m=Ref(c1, 1, 0))
 
-        self.nw.solve('design')
+        self.nw.solve("design")
 
         m_expected = round(c1.m.val, 4)
         m_is = round(c2.m.val, 4)
         msg = (
-            'The mass flow of the connection 2 should be equal to '
-            f'{m_expected} kg/s, but is {m_is} kg/s'
+            "The mass flow of the connection 2 should be equal to "
+            f"{m_expected} kg/s, but is {m_is} kg/s"
         )
         assert m_is == m_expected, msg
 
         delta = -0.5
         c2.set_attr(m=Ref(c1, 2, delta))
-        self.nw.solve('design')
+        self.nw.solve("design")
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["mass_flow"]
         ).m_as(SI_UNITS["mass_flow"])
@@ -159,22 +160,22 @@ class TestConnections:
         m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)
         m_is = round(c2.m.val_SI, 4)
         msg = (
-            'The mass flow of the connection 2 should be equal to '
-            f'{m_expected} kg/s, but is {m_is} kg/s'
+            "The mass flow of the connection 2 should be equal to "
+            f"{m_expected} kg/s, but is {m_is} kg/s"
         )
         assert m_is == m_expected, msg
 
     def test_ref_and_numerical_value_are_mutually_exclusive(self):
         """Setting a Ref clears any numerical value and vice versa."""
         c1, c2 = self.nw.get_conn(
-            ['Some example label', 'source 2:out1_sink 2:in1']
+            ["Some example label", "source 2:out1_sink 2:in1"]
         )
         # numerical value → Ref: numerical value must be unset
         c2.set_attr(m=0.5)
         c2.set_attr(m=Ref(c1, 1, 0))
         assert not c2.m.is_set
         assert c2.m_ref.is_set
-        self.nw.solve('design')
+        self.nw.solve("design")
         self.nw.assert_convergence()
         assert round(c2.m.val_SI, 4) == round(c1.m.val_SI, 4)
 
@@ -182,7 +183,7 @@ class TestConnections:
         c2.set_attr(m=0.3)
         assert not c2.m_ref.is_set
         assert c2.m.is_set
-        self.nw.solve('design')
+        self.nw.solve("design")
         self.nw.assert_convergence()
         assert round(c2.m.val, 4) == round(0.3, 4)
 
@@ -248,7 +249,7 @@ def test_td_bubble_convergence_helper(simple_test_network):
 
 @mark.skipif(
     get_global_param_string("REFPROP_version") == "n/a",
-    reason='This test requires REFPROP, dependency is missing.'
+    reason="This test requires REFPROP, dependency is missing."
 )
 def test_td_bubble_and_td_dew_in_iterations(simple_test_network):
     nw = simple_test_network
@@ -658,7 +659,7 @@ class TestZeotropicConnectionPresolve:
 
     def _solve(self, T_degC, x):
         self.c_in.set_attr(
-            fluid={"REFPROP::" + _ZEOTROPIC_FLUID: 1}, T=T_degC, x=x, m=1
+            fluid={f"REFPROP::{_ZEOTROPIC_FLUID}": 1}, T=T_degC, x=x, m=1
         )
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -704,3 +705,27 @@ def test_wrapper_kwargs_injection():
     # if kwargs could not be passed to the Wrapper instantiation this would
     # raise an error
     c._create_fluid_wrapper()
+
+
+def test_fluid_balance_converges_with_variable_fractions():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", temperature="degC")
+    merge = Merge("merge", num_in=3)
+    c1 = Connection(Source("air"), "out1", merge, "in1", label="1")
+    c2 = Connection(Source("carbon dioxide"), "out1", merge, "in2", label="2")
+    c3 = Connection(Source("nitrogen"), "out1", merge, "in3", label="3")
+    c4 = Connection(merge, "out1", Sink("sink"), "in1", label="4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(
+        fluid={"O2": 0.23, "N2": 0.76, "Ar": 0.01, "CO2": 0}, p=1, T=20, m=5
+    )
+    c2.set_attr(fluid={"CO2": 1}, T=20, m=5)
+    c3.set_attr(fluid={"N2": 1}, T=20)
+    c4.set_attr(fluid={"N2": 0.4}, fluid_balance=True)
+
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert sum(c4.fluid.val.values()) == approx(1)
+    assert c3.m.val_SI == approx(1 / 3)

@@ -23,6 +23,7 @@ from pytest import warns
 from tespy import __version__
 from tespy.components import Compressor
 from tespy.components import Merge
+from tespy.components import Motor
 from tespy.components import MovingBoundaryHeatExchanger
 from tespy.components import Pipe
 from tespy.components import PowerSource
@@ -1918,3 +1919,41 @@ class TestSerializationMeta:
             Subsystem.from_network("sub", self.nw)
         with raises(TESPyNetworkError, match="Expected a subsystem"):
             Subsystem.from_dict(self.nw.export(), label="sub")
+
+
+def _compressor_with_motor_network():
+    nw = Network(iterinfo=False)
+    so = Source("source")
+    si = Sink("sink")
+    cp = Compressor("compressor")
+    motor = Motor("motor")
+    grid = PowerSource("grid")
+    c1 = Connection(so, "out1", cp, "in1", label="c1")
+    c2 = Connection(cp, "out1", si, "in1", label="c2")
+    e1 = PowerConnection(grid, "power", motor, "power_in", label="e1")
+    e2 = PowerConnection(motor, "power_out", cp, "power", label="e2")
+    nw.add_conns(c1, c2, e1, e2)
+    c1.set_attr(fluid={"air": 1}, m=1, p=1e5, T=293.15)
+    c2.set_attr(p=3e5)
+    cp.set_attr(eta_s=0.8)
+    motor.set_attr(eta=0.95)
+    return nw
+
+
+def test_init_path_seeds_power_connection_starting_values():
+    nw = _compressor_with_motor_network()
+    nw.solve("design")
+    nw.assert_convergence()
+    state = nw.save(as_dict=True)
+
+    fresh = _compressor_with_motor_network()
+    fresh.solve("design", init_path=state, init_only=True)
+    for label in ["e1", "e2"]:
+        E_saved = state["Connection"]["PowerConnection"][label]["E"]
+        E_start = fresh.get_conn(label).E.val_SI
+        assert E_start == approx(E_saved)
+
+    fresh = _compressor_with_motor_network()
+    fresh.solve("design", init_path=state)
+    fresh.assert_convergence()
+    assert fresh.get_conn("e1").E.val_SI == approx(nw.get_conn("e1").E.val_SI)

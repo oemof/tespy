@@ -1,3 +1,5 @@
+import numpy as np
+
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.tools.data_containers import FluidProperties as dc_prop
@@ -69,19 +71,18 @@ class PowerConnection(ConnectionBase):
                 logger.error(msg)
                 raise KeyError(msg)
 
+    def _seed_starting_values(self, units):
+        if self.E.is_var and (
+                self.good_starting_values or not np.isnan(self.E.val0)
+        ):
+            self.E.set_SI_from_val0(units)
+            self.E.set_reference_val_SI(self.E._val_SI)
+            return [self.E._reference_container]
+        return []
+
     def _guess_starting_values(self, units, covered):
-        if self.E.is_var:
-            if not self.good_starting_values:
-                self.E.set_reference_val_SI(0.0)
-            else:
-                # Push the value preserved across the previous solve's
-                # `detach()` into the freshly (re-)built reference
-                # container, mirroring what `Connection._guess_starting_values`
-                # does for m/p/h. Without this, presolve's fresh
-                # `_reference_container` for `E` starts uninitialized on
-                # every solve call after the first, discarding the warm
-                # start even when good_starting_values is True.
-                self.E.set_reference_val_SI(self.E._val_SI)
+        if self.E.is_var and self.E._reference_container not in covered:
+            self.E.set_reference_val_SI(0.0)
         return []
 
     def get_variables(self):

@@ -18,11 +18,9 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
@@ -167,7 +165,7 @@ class Compressor(Turbomachine):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if len(self.power_inl) > 0:
-            constraints["energy_connector_balance"] = dc_cmc(**{
+            constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
                 "num_eq_sets": 1
@@ -181,7 +179,7 @@ class Compressor(Turbomachine):
         parameters["pr"].min_val = 1
         parameters["dp"].max_val = 0
         parameters.update({
-            'eta_s': dc_cp(
+            'eta_s': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 deriv=self.eta_s_deriv,
@@ -190,13 +188,13 @@ class Compressor(Turbomachine):
                 description="isentropic efficiency",
                 calc=self._calc_eta_s
             ),
-            'eta_s_char': dc_cc(
+            'eta_s_char': CharacteristicEquation(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
                 description="isentropic efficiency lookup table for offdesign"
             ),
-            'igva': dc_cp(
+            'igva': ComponentParameter(
                 min_val=-90, max_val=90, val=0, quantity="angle",
                 description="inlet guide vane angle", _allows_var=True
             ),

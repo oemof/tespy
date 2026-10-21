@@ -1,6 +1,7 @@
 from tespy.connections.connection import connection_registry
 from tespy.connections.powerconnection import PowerConnection
-from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import ReferenceEquation
 
 
 @connection_registry
@@ -13,4 +14,16 @@ class HeatConnection(PowerConnection):
         return target.heatinlets()
 
     def get_parameters(self):
-        return {"E": dc_prop(d=1e-4, quantity="heat")}
+        return {
+            "E": ConnectionParameter(
+                d=1e-4, quantity="heat",
+                description="heat flow (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "E"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="heat",
+                    description="equation for linear relationship between two heat flows"
+                )
+            )
+        }

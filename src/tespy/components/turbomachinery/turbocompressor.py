@@ -15,9 +15,9 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.compressor import Compressor
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import isentropic
 
 
@@ -60,7 +60,7 @@ class TurboCompressor(Compressor):
         2D lookup table for efficiency over non-dimensional mass flow and speed
         line.
 
-    char_map_eta_s_group : GroupedComponentProperties
+    char_map_eta_s_group : ParameterGroup
         Map for isentropic efficiency over speedlines and non-dimensional mass
         flow. Elements: :code:`char_map_eta_s`, :code:`igva`.
         Equation: :py:meth:`char_map_eta_s_func <tespy.components.turbomachinery.turbocompressor.TurboCompressor.char_map_eta_s_func>`.
@@ -69,7 +69,7 @@ class TurboCompressor(Compressor):
         2D lookup table for pressure ratio over non-dimensional mass flow and
         speed line.
 
-    char_map_pr_group : GroupedComponentProperties
+    char_map_pr_group : ParameterGroup
         Map for pressure ratio over speedlines and non-dimensional mass flow.
         Elements: :code:`char_map_pr`, :code:`igva`.
         Equation: :py:meth:`char_map_pr_func <tespy.components.turbomachinery.turbocompressor.TurboCompressor.char_map_pr_func>`.
@@ -188,23 +188,25 @@ class TurboCompressor(Compressor):
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters.update({
-            'igva': dc_cp(
+            'igva': ComponentParameter(
                 min_val=-90, max_val=90, val=0, quantity="angle",
                 description="inlet guide vane angle", _allows_var=True
             ),
-            'char_map_eta_s': dc_cm(
+            'char_map_eta_s': CharacteristicData(
+                input_quantities=[None, None],
                 description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
             ),
-            'char_map_eta_s_group': dc_gcp(
+            'char_map_eta_s_group': ParameterGroup(
                 elements=['char_map_eta_s', 'igva'], num_eq_sets=1,
                 func=self.char_map_eta_s_func,
                 dependents=self.char_map_dependents,
                 description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
-            'char_map_pr': dc_cm(
+            'char_map_pr': CharacteristicData(
+                input_quantities=[None, None],
                 description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
             ),
-            'char_map_pr_group': dc_gcp(
+            'char_map_pr_group': ParameterGroup(
                 elements=['char_map_pr', 'igva'],
                 num_eq_sets=1,
                 func=self.char_map_pr_func,

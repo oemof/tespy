@@ -9,6 +9,8 @@ available from its original location tespy/connections/connection.py
 SPDX-License-Identifier: MIT
 """
 
+import warnings
+
 import numpy as np
 import pint
 from tabulate import tabulate
@@ -17,11 +19,12 @@ from tespy.components import Subsystem
 from tespy.components.component import Component
 from tespy.tools import fluid_properties as fp
 from tespy.tools import logger
-from tespy.tools.data_containers import DataContainer as dc
-from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import DataContainer
+from tespy.tools.data_containers import FluidComposition
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
 from tespy.tools.data_containers import _is_numeric
@@ -143,26 +146,26 @@ class ConnectionBase:
                 logger.error(msg)
                 raise TypeError(msg)
 
-        ref_key = f"{key}_ref"
-        has_ref_sibling = ref_key in self.property_data
+        container = self.get_attr(key)
+        reference = getattr(container, "reference", None)
 
         if value is None:
-            self.get_attr(key).is_set = False
-            if has_ref_sibling:
-                self.get_attr(ref_key).is_set = False
+            container.is_set = False
+            if reference is not None:
+                reference.is_set = False
 
         elif isinstance(value, Ref):
-            if not has_ref_sibling:
+            if reference is None:
                 msg = f"Referencing {key} is not implemented."
                 logger.error(msg)
                 raise NotImplementedError(msg)
-            self.get_attr(key).is_set = False
-            self.get_attr(ref_key).set_attr(ref=value, is_set=True)
+            container.is_set = False
+            reference.accept(value)
 
         else:
-            if has_ref_sibling:
-                self.get_attr(ref_key).is_set = False
-            self.get_attr(key).accept(value)
+            if reference is not None:
+                reference.is_set = False
+            container.accept(value)
 
     def get_attr(self, key):
         r"""
@@ -180,10 +183,36 @@ class ConnectionBase:
         """
         if key in self.__dict__:
             return self.__dict__[key]
-        else:
-            msg = f"Connection has no attribute '{key}'."
-            logger.error(msg)
-            raise KeyError(msg)
+        reference = self._deprecated_reference(key)
+        if reference is not None:
+            return reference
+        msg = f"Connection has no attribute '{key}'."
+        logger.error(msg)
+        raise KeyError(msg)
+
+    def _deprecated_reference(self, key):
+        """The reference equation of a parameter addressed by the former
+        :code:`<parameter>_ref` name."""
+        if not key.endswith("_ref"):
+            return None
+        container = self.__dict__.get("property_data", {}).get(key[:-4])
+        reference = getattr(container, "reference", None)
+        if reference is None:
+            return None
+        warnings.warn(
+            f"The attribute '{key}' is deprecated, use "
+            f"'{key[:-4]}.reference' instead.",
+            FutureWarning, stacklevel=3
+        )
+        return reference
+
+    def __getattr__(self, key):
+        reference = self._deprecated_reference(key)
+        if reference is None:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{key}'"
+            )
+        return reference
 
     def __repr__(self):
         return _display_repr(self)
@@ -201,7 +230,17 @@ class ConnectionBase:
         title = self._repr_compact()
         rows = []
         for key, data in self.property_data.items():
-            if isinstance(data, dc_prop):
+            if isinstance(data, ConnectionParameter):
+                reference = data.reference
+                if reference is not None and reference.is_set:
+                    ref = reference.ref
+                    rows.append([
+                        key,
+                        f"{ref.factor} * {key}({ref.obj.label!r}) "
+                        f"+ {ref.delta}",
+                        "", "", "set"
+                    ])
+                    continue
                 if not data.is_set and np.isnan(data.val):
                     # only prints specified values before first solve
                     continue
@@ -212,17 +251,7 @@ class ConnectionBase:
                     f"{data.val_SI:.4e}",
                     "set" if data.is_set else ""
                 ])
-            elif isinstance(data, dc_ref):
-                if data.is_set:
-                    ref = data.ref
-                    variable = key.removesuffix("_ref")
-                    rows.append([
-                        key,
-                        f"{ref.factor} * {variable}({ref.obj.label!r}) "
-                        f"+ {ref.delta}",
-                        "", "", "set"
-                    ])
-            elif isinstance(data, dc_flu):
+            elif isinstance(data, FluidComposition):
                 for fluid, x in data.val.items():
                     rows.append([
                         f"{key}[{fluid}]",
@@ -230,9 +259,9 @@ class ConnectionBase:
                         "", "",
                         "set" if fluid in data.is_set else ""
                     ])
-            elif isinstance(data, dc_simple):
+            elif isinstance(data, ParameterGroup):
                 if data.is_set:
-                    rows.append([key, str(data.val), "", "", "set"])
+                    rows.append([key, "equation", "", "", "set"])
         if not rows:
             return f"{title}\nno specifications or results"
         table = tabulate(
@@ -251,8 +280,18 @@ class ConnectionBase:
         for k in self.property_data:
             data = self.get_attr(k)
             export.update({k: data._serialize(units)})
+            reference = getattr(data, "reference", None)
+            if reference is not None:
+                export.update({f"{k}_ref": reference._serialize(units)})
 
         return {self.label: export}
+
+    def _references(self):
+        """Reference equations of the parameters by the parameter name."""
+        return {
+            k: v.reference for k, v in self.property_data.items()
+            if getattr(v, "reference", None) is not None
+        }
 
     @staticmethod
     def _serializable():
@@ -267,10 +306,14 @@ class ConnectionBase:
         return {}
 
     def _build_parameters(self):
-        return {
-            k: v for k, v in self.get_parameters().items()
-            if hasattr(v, "func") and v.func is not None
-        }
+        parameters = {}
+        for k, v in self.property_data.items():
+            if v.func is not None or v.structure_matrix is not None:
+                parameters[k] = v
+            reference = getattr(v, "reference", None)
+            if reference is not None:
+                parameters[f"{k}_ref"] = reference
+        return parameters
 
     def _init_common(self, source, outlet_id, target, inlet_id, label, **kwargs):
         self.label = f"{source.label}:{outlet_id}_{target.label}:{inlet_id}"
@@ -379,6 +422,27 @@ class ConnectionBase:
         """
         pass
 
+    def primary_ref_structure_matrix(self, k, **kwargs):
+        r"""Create a linear relationship between two variables
+
+        .. math::
+
+            0 = var - \left(
+            var_\text{ref} \cdot \text{factor} + \text{delta}
+            \right)
+
+        Parameters
+        ----------
+        k : int
+            equation set number to create the structure matrix for Network
+            preprocessing
+        """
+        variable = kwargs["variable"]
+        ref = self.get_attr(variable).reference.ref
+        self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
+        self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
+        self._rhs[k] = ref.delta_SI
+
     def _preprocess(self, row_idx):
         self.num_eq = 0
 
@@ -386,10 +450,9 @@ class ConnectionBase:
         self._rhs = {}
         self._equation_set_lookup = {}
 
-        for parameter in self.parameters:
-            container = self.get_attr(parameter)
+        for parameter, container in self.parameters.items():
             if container.is_set and (container.func is not None or container.structure_matrix is not None):
-                num_eq = self.parameters[parameter].num_eq
+                num_eq = container.num_eq
                 # the row index matches the location in the network's rhs
                 # and matrix
                 for i in range(self.num_eq, self.num_eq + num_eq):
@@ -532,32 +595,51 @@ class ConnectionBase:
                 logger.warning(msg)
                 continue
             container = self.get_attr(arg)
-            if isinstance(container, dc):
+            if isinstance(container, DataContainer):
                 container.set_attr(**data[arg])
             else:
                 self.set_attr(**{arg: data[arg]})
 
+        for key, reference in self._references().items():
+            ref_data = data.get(f"{key}_ref")
+            if not ref_data:
+                continue
+            ref = Ref(
+                all_connections[ref_data["conn"]],
+                ref_data["factor"],
+                _deserialize_ref_delta(ref_data, units)
+            )
+            # do not use accept here: it would force is_set to True on the
+            # reference and False on the base property, discarding the
+            # serialized flags
+            reference.set_attr(
+                ref=ref,
+                is_set=ref_data.get("is_set", True),
+                unit=ref_data.get("unit")
+            )
+
     def _save_specifications(self, units):
         specs = {}
+        for key, reference in self._references().items():
+            if reference.is_set:
+                specs[f"{key}_ref"] = reference._serialize()
         for key, container in self.property_data.items():
             data = {}
             if container.is_set:
-                if isinstance(container, dc_ref):
-                    data = container._serialize()
-                elif isinstance(container, dc_flu):
+                if isinstance(container, FluidComposition):
                     data = {
                         "val": {f: container.val[f] for f in container.is_set},
                         "is_set": list(container.is_set)
                     }
-                elif isinstance(container, dc_prop):
+                elif isinstance(container, ConnectionParameter):
                     data = {
                         "val": container.val,
                         "unit": container._unit_for_export(units),
                         "is_set": True
                     }
                 else:
-                    data = {"val": container.val, "is_set": True}
-            if isinstance(container, dc_prop) and not np.isnan(container._val0):
+                    data = {"is_set": True}
+            if isinstance(container, ConnectionParameter) and not np.isnan(container._val0):
                 data["val0"] = float(container._val0)
                 if container._val0_unit is None:
                     data["val0_unit"] = units.canonical(
@@ -565,7 +647,7 @@ class ConnectionBase:
                     )
                 else:
                     data["val0_unit"] = container._val0_unit
-            elif isinstance(container, dc_flu) and container.val0:
+            elif isinstance(container, FluidComposition) and container.val0:
                 data["val0"] = {
                     f: float(x) for f, x in container.val0.items()
                 }
@@ -577,16 +659,22 @@ class ConnectionBase:
 
     def _clear_specifications(self):
         for container in self.property_data.values():
-            if isinstance(container, dc_flu):
+            if isinstance(container, FluidComposition):
                 container.is_set = set()
             else:
                 container.is_set = False
+        for reference in self._references().values():
+            reference.is_set = False
 
     def _restore_specifications(self, data, all_connections, units):
         self.good_starting_values = data.pop("good_starting_values", False)
+        references = self._references()
         for key, param_data in data.items():
-            container = self.get_attr(key)
-            if isinstance(container, dc_ref):
+            if key.endswith("_ref") and key[:-4] in references:
+                container = references[key[:-4]]
+            else:
+                container = self.get_attr(key)
+            if isinstance(container, ReferenceEquation):
                 ref = Ref(
                     all_connections[param_data["conn"]],
                     param_data["factor"],
@@ -595,7 +683,7 @@ class ConnectionBase:
                 container.set_attr(
                     ref=ref, is_set=True, unit=param_data["unit"]
                 )
-            elif isinstance(container, dc_flu):
+            elif isinstance(container, FluidComposition):
                 if "val" in param_data:
                     container.val.update(param_data["val"])
                     container.is_set = set(param_data["is_set"])
@@ -815,15 +903,6 @@ class Connection(ConnectionBase):
 
     _has_fluid_vector = True
 
-    def _build_parameters(self):
-        return {
-            k: v for k, v in self.get_parameters().items()
-            if (
-                (hasattr(v, "func") and v.func is not None)
-                or (hasattr(v, "structure_matrix") and v.structure_matrix is not None)
-            )
-        }
-
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
@@ -833,8 +912,8 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.state = dc_simple(dtype="str")
-        self.phase = dc_simple(dtype="str")
+        self.state = ConfigParameter(dtype="str")
+        self.phase = ConfigParameter(dtype="str")
         self.mixing_rule = None
         self._fluid_data = None
         self._init_common(source, outlet_id, target, inlet_id, label, **kwargs)
@@ -1025,24 +1104,6 @@ class Connection(ConnectionBase):
 
         self.fluid.set_attr(**data["fluid"])
         self._create_fluid_wrapper()
-
-        arglist_ref = [_ for _ in data if "ref" in _]
-
-        for arg in arglist_ref:
-            if len(data[arg]) > 0:
-                ref = Ref(
-                    all_connections[data[arg]["conn"]],
-                    data[arg]["factor"],
-                    _deserialize_ref_delta(data[arg], units)
-                )
-                # do not use set_attr here: it would force is_set to True on
-                # the reference and False on the base property, discarding the
-                # serialized flags
-                self.get_attr(arg).set_attr(
-                    ref=ref,
-                    is_set=data[arg].get("is_set", True),
-                    unit=data[arg].get("unit")
-                )
 
     def _serializable(self):
         return super()._serializable() + ["mixing_rule"]
@@ -1671,8 +1732,8 @@ class Connection(ConnectionBase):
         """precalculate starting values for specified temperature
         references
         """
-        if self.T_ref.is_set:
-            ref = self.T_ref.ref
+        if self.T.reference.is_set:
+            ref = self.T.reference.ref
             T_target = ref.obj.calc_T() * ref.factor + ref.delta_SI
             h = h_mix_pT(self.p.val_SI, T_target, self.fluid_data, self.mixing_rule)
             self.h.set_reference_val_SI(h)
@@ -1864,7 +1925,7 @@ class Connection(ConnectionBase):
             self.jacobian[eq_num, var.J_col[dx]] = result
 
     def reset_fluid_vector(self):
-        self.fluid = dc_flu(
+        self.fluid = FluidComposition(
             d=1e-5, description="Mass fractions of the fluid composition"
         )
 
@@ -1885,112 +1946,111 @@ class Connection(ConnectionBase):
 
     def get_parameters(self):
         return {
-            "m": dc_prop(
+            "m": ConnectionParameter(
                 quantity="mass_flow",
-                description="mass flow of the fluid (system variable)"
+                description="mass flow of the fluid (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "m"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="mass_flow",
+                    description="equation for linear relationship between two mass flows"
+                )
             ),
-            "p": dc_prop(
+            "p": ConnectionParameter(
                 quantity="pressure",
-                description="absolute pressure of the fluid (system variable)"
+                description="absolute pressure of the fluid (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "p"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="pressure_difference",
+                    description="equation for linear relationship between two pressure values"
+                )
             ),
-            "h": dc_prop(
+            "h": ConnectionParameter(
                 quantity="enthalpy",
-                description="mass specific enthalpy of the fluid (system variable)"
+                description="mass specific enthalpy of the fluid (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "h"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="enthalpy",
+                    description="equation for linear relationship between two enthalpy values"
+                )
             ),
-            "T": dc_prop(
+            "T": ConnectionParameter(
                 func=self.T_func,
                 deriv=self.T_deriv,
                 dependents=self.T_dependents,
                 num_eq=1,
                 quantity="temperature",
-                description="temperature of the fluid"
+                description="temperature of the fluid",
+                reference=ReferenceEquation(
+                    func=self.T_ref_func,
+                    deriv=self.T_ref_deriv,
+                    dependents=self.T_ref_dependents,
+                    num_eq=1,
+                    quantity="temperature_difference",
+                    description="equation for linear relationship between two temperature values"
+                )
             ),
-            "T_bubble": dc_prop(
+            "T_bubble": ConnectionParameter(
                 quantity="temperature",
                 description="determine pressure based on the provided bubble temperature of the fluid"
             ),
-            "T_dew": dc_prop(
+            "T_dew": ConnectionParameter(
                 quantity="temperature",
                 description="determine pressure based on the provided dew temperature of the fluid"
             ),
-            "v": dc_prop(
+            "v": ConnectionParameter(
                 func=self.v_func, deriv=self.v_deriv,
                 dependents=self.v_dependents, num_eq=1,
                 quantity="volumetric_flow",
-                description="volumetric flow of the fluid"
+                description="volumetric flow of the fluid",
+                reference=ReferenceEquation(
+                    func=self.v_ref_func,
+                    deriv=self.v_ref_deriv,
+                    dependents=self.v_ref_dependents,
+                    num_eq=1,
+                    quantity="volumetric_flow",
+                    description="equation for linear relationship between two volumetric flows"
+                )
             ),
-            "x": dc_prop(
+            "x": ConnectionParameter(
                 func=self.x_func, deriv=self.x_deriv,
                 dependents=self.x_dependents, num_eq=1,
                 quantity="quality",
                 description="vapor mass fraction/quality of the two-phase fluid"
             ),
-            "td_dew": dc_prop(
+            "td_dew": ConnectionParameter(
                 func=self.td_dew_func,
                 dependents=self.td_dew_dependents,
                 num_eq=1,
                 quantity="temperature_difference",
                 description="superheating temperature difference to dew line temperature"
             ),
-            "td_bubble": dc_prop(
+            "td_bubble": ConnectionParameter(
                 func=self.td_bubble_func, #deriv=self.td_bubble_deriv,
                 dependents=self.td_bubble_dependents,
                 num_eq=1,
                 quantity="temperature_difference",
                 description="subcooling temperature difference to bubble line temperature"
             ),
-            "m_ref": dc_ref(
-                num_eq=1,
-                func_params={"variable": "m"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="mass_flow",
-                description="equation for linear relationship between two mass flows"
-            ),
-            "p_ref": dc_ref(
-                num_eq=1,
-                func_params={"variable": "p"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="pressure_difference",
-                description="equation for linear relationship between two pressure values"
-            ),
-            "h_ref": dc_ref(
-                num_eq=1,
-                func_params={"variable": "h"},
-                structure_matrix=self.primary_ref_structure_matrix,
-                quantity="enthalpy",
-                description="equation for linear relationship between two enthalpy values"
-            ),
-            "T_ref": dc_ref(
-                func=self.T_ref_func,
-                deriv=self.T_ref_deriv,
-                dependents=self.T_ref_dependents,
-                num_eq=1,
-                quantity="temperature_difference",  # reference has delta T
-                description="equation for linear relationship between two temperature values"
-            ),
-            "v_ref": dc_ref(
-                func=self.v_ref_func,
-                deriv=self.v_ref_deriv,
-                dependents=self.v_ref_dependents,
-                num_eq=1,
-                quantity="volumetric_flow",
-                description="equation for linear relationship between two volumetric flows"
-            ),
-            "vol": dc_prop(
+            "vol": ConnectionParameter(
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
-            "s": dc_prop(
+            "s": ConnectionParameter(
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),
-            "fluid": dc_flu(
+            "fluid": FluidComposition(
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"
             ),
-            "fluid_balance": dc_simple(
-                dtype="bool",
-                func=self.fluid_balance_func,
-                _val=False, num_eq_sets=1,
+            "fluid_balance": ParameterGroup(
+                auto_activate=False,
+                func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
             )
@@ -2012,27 +2072,6 @@ class Connection(ConnectionBase):
         return self._fluid_data
 
     fluid_data = property(get_fluid_data)
-
-    def primary_ref_structure_matrix(self, k, **kwargs):
-        r"""Create a linear relationship between two variables
-
-        .. math::
-
-            0 = var - \left(
-            var_\text{ref} \cdot \text{factor} + \text{delta}
-            \right)
-
-        Parameters
-        ----------
-        k : int
-            equation set number to create the structure matrix for Network
-            preprocessing
-        """
-        variable = kwargs["variable"]
-        ref = self.get_attr(f"{variable}_ref").ref
-        self._structure_matrix[k, self.get_attr(variable).sm_col] = 1
-        self._structure_matrix[k, ref.obj.get_attr(variable).sm_col] = -ref.factor
-        self._rhs[k] = ref.delta_SI
 
     def calc_T(self, T0=None):
         if T0 is None:
@@ -2080,13 +2119,13 @@ class Connection(ConnectionBase):
         float
             residual value of equation
         """
-        ref = self.T_ref.ref
+        ref = self.T.reference.ref
         return self.calc_T() - (ref.obj.calc_T() * ref.factor + ref.delta_SI)
 
     def T_ref_deriv(self, increment_filter, k, **kwargs):
         # first part of sum is identical to direct temperature specification
         self.T_deriv(increment_filter, k, **kwargs)
-        ref = self.T_ref.ref
+        ref = self.T.reference.ref
         if _is_variable(ref.obj.p):
             self.jacobian[k, ref.obj.p.J_col] = -(
                 dT_mix_dph(ref.obj.p.val_SI, ref.obj.h.val_SI, ref.obj.fluid_data, ref.obj.mixing_rule)
@@ -2097,7 +2136,7 @@ class Connection(ConnectionBase):
             ) * ref.factor
 
     def T_ref_dependents(self):
-        ref = self.T_ref.ref
+        ref = self.T.reference.ref
         return self.T_dependents() + ref.obj.T_dependents()
 
     def calc_viscosity(self, T0=None, postprocess=False):
@@ -2166,7 +2205,7 @@ class Connection(ConnectionBase):
         float
             residual value of equation
         """
-        ref = self.v_ref.ref
+        ref = self.v.reference.ref
         return (
             self.calc_vol(T0=self.T.val_SI) * self.m.val_SI
             - (
@@ -2179,7 +2218,7 @@ class Connection(ConnectionBase):
         # first part of sum is identical to direct volumetric flow specification
         self.v_deriv(increment_filter, k, **kwargs)
 
-        ref = self.v_ref.ref
+        ref = self.v.reference.ref
         if ref.obj.m.is_var:
             self.jacobian[k, ref.obj.m.J_col] = -(
                 ref.obj.calc_vol(T0=ref.obj.T.val_SI) * ref.factor
@@ -2196,7 +2235,7 @@ class Connection(ConnectionBase):
             )
 
     def v_ref_dependents(self):
-        ref = self.v_ref.ref
+        ref = self.v.reference.ref
         return self.v_dependents() + ref.obj.v_dependents()
 
     def calc_x(self):
@@ -2732,7 +2771,7 @@ class Ref:
 
     def __init__(self, ref_obj, factor, delta):
 
-        if not isinstance(ref_obj, Connection):
+        if not isinstance(ref_obj, ConnectionBase):
             msg = 'First parameter must be object of type connection.'
             logger.error(msg)
             raise TypeError(msg)

@@ -15,7 +15,8 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.components.heat_exchangers.base import smoothed_lmtd
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
 
@@ -90,7 +91,7 @@ class Condenser(HeatExchanger):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : GroupedComponentCharacteristics
+    kA_char : ParameterGroup
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -183,7 +184,7 @@ class Condenser(HeatExchanger):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : ParameterGroup
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.condenser.Condenser.UA_char_func>`.
@@ -290,20 +291,23 @@ class Condenser(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'subcooling': dc_simple(
-                _val=False, dtype="bool", num_eq_sets=1,
-                func=self.subcooling_func,
-                dependents=self.subcooling_dependents,
+            'subcooling': ConfigParameter(
+                _val=False, dtype="bool",
                 description="allow subcooling in the condenser"
             )
         })
         return params
 
-    def _preprocess(self, row_idx):
-
-        # if subcooling is True, outlet state method must not be calculated
-        self.subcooling.is_set = not self.subcooling.val
-        super()._preprocess(row_idx)
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if not (self.subcooling.is_set and self.subcooling.val):
+            constraints["saturated_outlet_constraints"] = MandatoryConstraint(
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+                num_eq_sets=1,
+                description="saturated liquid at the hot side outlet"
+            )
+        return constraints
 
     def subcooling_func(self):
         r"""

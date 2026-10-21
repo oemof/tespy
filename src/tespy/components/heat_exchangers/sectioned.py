@@ -18,11 +18,10 @@ from scipy.optimize import brentq
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
@@ -117,7 +116,7 @@ class SectionedHeatExchanger(HeatExchanger):
         ratio instead, this will change to cold to hot side in version 0.12.
         Quantity: :code:`ratio`.
 
-    area_zones : GroupedComponentProperties
+    area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
         set for the group to activate. For phases that do not occur in your
         application set the corresponding alpha to any value - it only needs to
@@ -163,7 +162,7 @@ class SectionedHeatExchanger(HeatExchanger):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : GroupedComponentCharacteristics
+    kA_char : ParameterGroup
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -292,7 +291,7 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
-    UA_cecchinato : GroupedComponentProperties
+    UA_cecchinato : ParameterGroup
         Deprecated - equation for UA modification in offdesign using
         refrigerant/secondary-fluid Reynolds exponents; use
         :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
@@ -300,7 +299,7 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
 
-    UA_cecchinato_hc : GroupedComponentProperties
+    UA_cecchinato_hc : ParameterGroup
         Temporary name - equation for UA modification in offdesign using
         explicit hot/cold Reynolds exponents; in version 0.12
         :code:`UA_cecchinato` will adopt the hot/cold convention of
@@ -308,7 +307,7 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : ParameterGroup
         Equation for sectioned UA modification based on characteristic lines.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
@@ -665,11 +664,11 @@ class SectionedHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'num_sections': dc_simple(
+            'num_sections': ConfigParameter(
                 val=50, dtype="int",
                 description="number of sections of the heat exchanger"
             ),
-            'UA': dc_cp(
+            'UA': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
                 dependents=self.UA_dependents,
@@ -678,47 +677,48 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_UA_from_sections,
                 calc_deps=[]
             ),
-            'UA_char': dc_gcc(
+            'UA_char': ParameterGroup(
+                auto_activate=False,
                 elements=['UA_char1', 'UA_char2'],
                 num_eq_sets=1,
                 func=self.UA_char_func,
                 dependents=self.UA_dependents,
                 description="equation for sectioned UA modification based on characteristic lines"
             ),
-            'refrigerant_index': dc_simple(
+            'refrigerant_index': ConfigParameter(
                 val=0, dtype="int",
                 description="deprecated - side on which the refrigerant is flowing (0: hot, 1:cold)"
             ),
-            're_exp_hot': dc_cp(
+            're_exp_hot': ComponentParameter(
                 description="Reynolds exponent for UA modification based on hot side mass flow"
             ),
-            're_exp_cold': dc_cp(
+            're_exp_cold': ComponentParameter(
                 description="Reynolds exponent for UA modification based on cold side mass flow"
             ),
-            're_exp_r': dc_cp(
+            're_exp_r': ComponentParameter(
                 description="deprecated - Reynolds exponent for refrigerant side mass flow; "
                 "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
                 "the refrigerant flows on"
             ),
-            're_exp_sf': dc_cp(
+            're_exp_sf': ComponentParameter(
                 description="deprecated - Reynolds exponent for secondary fluid side mass flow; "
                 "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
                 "the secondary fluid flows on"
             ),
-            'alpha_ratio': dc_cp(
+            'alpha_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
                 description="cold to hot side convective heat transfer coefficient ratio; "
                 "with the deprecated :code:`UA_cecchinato` group it is the secondary to "
                 "refrigerant side ratio instead"
             ),
-            'area_ratio': dc_cp(
+            'area_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
                 description="cold to hot side heat transfer area ratio; with the "
                 "deprecated :code:`UA_cecchinato` group it is the secondary to "
                 "refrigerant side ratio instead, this will change to cold to hot side in "
                 "version 0.12"
             ),
-            'UA_cecchinato': dc_gcp(
+            'UA_cecchinato': ParameterGroup(
                 elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_legacy_func,
@@ -730,7 +730,7 @@ class SectionedHeatExchanger(HeatExchanger):
                     ":code:`re_exp_cold` instead"
                 )
             ),
-            'UA_cecchinato_hc': dc_gcp(
+            'UA_cecchinato_hc': ParameterGroup(
                 elements=['re_exp_hot', 're_exp_cold', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
@@ -742,7 +742,7 @@ class SectionedHeatExchanger(HeatExchanger):
                     ":code:`UA_cecchinato_hc`"
                 )
             ),
-            'td_pinch': dc_cp(
+            'td_pinch': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
@@ -751,51 +751,51 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_td_pinch,
                 calc_deps=[]
             ),
-            'alpha1_l': dc_cp(
+            'alpha1_l': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in subcooled zone"
             ),
-            'alpha1_tp': dc_cp(
+            'alpha1_tp': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha1_g': dc_cp(
+            'alpha1_g': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in superheated zone"
             ),
-            'alpha1_sc': dc_cp(
+            'alpha1_sc': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in supercritical zone"
             ),
-            'alpha2_l': dc_cp(
+            'alpha2_l': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in subcooled zone"
             ),
-            'alpha2_tp': dc_cp(
+            'alpha2_tp': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha2_g': dc_cp(
+            'alpha2_g': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in superheated zone"
             ),
-            'alpha2_sc': dc_cp(
+            'alpha2_sc': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in supercritical zone"
             ),
-            'phase_hot_per_section': dc_cap(
+            'phase_hot_per_section': ArrayParameter(
                 quantity=None,
                 description="phase index per section on hot side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
             ),
-            'phase_cold_per_section': dc_cap(
+            'phase_cold_per_section': ArrayParameter(
                 quantity=None,
                 description="phase index per section on cold side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
             ),
-            'R_cond': dc_cp(
+            'R_cond': ComponentParameter(
                 min_val=0, quantity="thermal_resistance",
                 description="wall conduction thermal resistance"
             ),
-            'area_hot': dc_cp(
+            'area_hot': ComponentParameter(
                 min_val=0, quantity="area",
                 description="hot-side heat exchange area; if not set, it is "
                 "computed as a result after each solve, in case "
@@ -804,7 +804,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_area_hot,
                 calc_deps=[]
             ),
-            'area_zones': dc_gcp(
+            'area_zones': ParameterGroup(
                 elements=[
                     'area_hot', 'area_ratio',
                     'alpha1_l', 'alpha1_tp', 'alpha1_g', 'alpha1_sc',

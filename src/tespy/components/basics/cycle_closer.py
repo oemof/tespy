@@ -14,8 +14,8 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 @component_registry
@@ -124,12 +124,12 @@ class CycleCloser(Component):
 
     def get_parameters(self):
         return {
-            'mass_deviation': dc_cp(
+            'mass_deviation': ComponentParameter(
                 _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
                 description="absolute deviation of mass flow between inlet and outlet",
                 calc=self._calc_mass_deviation
             ),
-            'fluid_deviation': dc_cp(
+            'fluid_deviation': ComponentParameter(
                 _val=0, max_val=1e-5, is_result=True,
                 description="norm of absolute deviation of fluid composition between inlet and outlet",
                 calc=self._calc_fluid_deviation
@@ -138,13 +138,13 @@ class CycleCloser(Component):
 
     def get_mandatory_constraints(self):
         return {
-            "pressure_equality_constraint": dc_cmc(**{
+            "pressure_equality_constraint": MandatoryConstraint(**{
                 "num_eq_sets": 1,
                 "structure_matrix": self.variable_equality_structure_matrix,
                 "func_params": {"variable": "p"},
                 "description": "pressure equality constraint"
             }),
-            "enthalpy_equality_constraint": dc_cmc(**{
+            "enthalpy_equality_constraint": MandatoryConstraint(**{
                 "num_eq_sets": 1,
                 "structure_matrix": self.variable_equality_structure_matrix,
                 "func_params": {"variable": "h"},

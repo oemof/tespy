@@ -32,13 +32,12 @@ from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
-from tespy.tools.characteristics import CharLine
-from tespy.tools.characteristics import CharMap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import DataContainer as dc
-from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.characteristics import characteristic_from_dict
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import DataContainer
+from tespy.tools.data_containers import ScalarParameter
 from tespy.tools.global_vars import ERR
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
@@ -991,7 +990,7 @@ class Network:
             if comp_type not in self._results:
                 cols = [
                     c for col, data in comp.parameters.items()
-                    if isinstance(data, dc_cp)
+                    if isinstance(data, ComponentParameter)
                     for c in [col, f"{col}_unit"]
                 ]
                 self._results[comp_type] = pd.DataFrame(
@@ -1239,11 +1238,17 @@ class Network:
                 param = c.get_attr(key)
                 if param.is_set:
                     param.set_SI_from_val(self.units)
+                reference = getattr(param, "reference", None)
+                if reference is not None and reference.is_set:
+                    reference.set_SI_from_val(self.units)
 
         for cp in self.comps["object"]:
             for param, value in cp.parameters.items():
-                if isinstance(value, dc_prop) and value.is_set:
-                    value.set_SI_from_val(self.units)
+                if isinstance(value, (ScalarParameter, ArrayParameter)):
+                    if value.is_set:
+                        value.set_SI_from_val(self.units)
+                elif isinstance(value, CharacteristicData):
+                    value._bind_units(self.units, f"{cp.label}: {param}")
 
         self.units._conversions_applied = True
 
@@ -1348,7 +1353,7 @@ class Network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc_cp):
+                    if isinstance(data, ComponentParameter):
                         data.val_SI = data.design
                         data.set_val_from_SI(self.units)
                         set_values.append(var)
@@ -1411,8 +1416,9 @@ class Network:
                 for var in c.design:
                     param = c.get_attr(var)
                     param.is_set = False
-                    if f"{var}_ref" in c.property_data:
-                        c.get_attr(f"{var}_ref").is_set = False
+                    reference = getattr(param, "reference", None)
+                    if reference is not None:
+                        reference.is_set = False
 
                 for var in c.offdesign:
                     param = c.get_attr(var)
@@ -1444,7 +1450,7 @@ class Network:
                     data.is_set = True
 
                     # take nominal values from design point
-                    if isinstance(data, dc_cp):
+                    if isinstance(data, ComponentParameter):
                         data.val_SI = data.design
                         data.set_val_from_SI(self.units)
                         set_values.append(var)
@@ -3728,12 +3734,11 @@ def _construct_components(target_class, data):
                 )
                 logger.warning(msg)
                 continue
-            if isinstance(container, dc):
+            if isinstance(container, DataContainer):
                 if "char_func" in param_data:
-                    if isinstance(container, dc_cc):
-                        param_data["char_func"] = CharLine(**param_data["char_func"])
-                    elif isinstance(container, dc_cm):
-                        param_data["char_func"] = CharMap(**param_data["char_func"])
+                    param_data["char_func"] = characteristic_from_dict(
+                        param_data["char_func"]
+                    )
 
                 container.set_attr(**param_data)
             else:

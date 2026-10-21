@@ -28,6 +28,7 @@ _SI_DEFAULTS = {
     "mass_flow": "kg/s",
     "volumetric_flow": "m3/s",
     "specific_volume": "m3/kg",
+    "volume": "m3",
     "power": "W",
     "heat": "W",
     "quality": "1",
@@ -214,6 +215,8 @@ class Units:
             Default unit: "m3/s"
         specific_volume : str
             Default unit: "m3/kg"
+        volume : str
+            Default unit: "m3"
         power : str
             Default unit: "W"
         heat : str

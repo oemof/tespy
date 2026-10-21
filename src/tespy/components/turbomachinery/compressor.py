@@ -315,7 +315,7 @@ class Compressor(Turbomachine):
         o = self.outl[0]
         return (
             (o.h.val_SI - i.h.val_SI)
-            * self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            * self.eta_s.design * self.eta_s_char.evaluate(expr)
             - (
                 isentropic(
                     i.p.val_SI,

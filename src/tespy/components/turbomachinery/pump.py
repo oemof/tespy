@@ -395,9 +395,9 @@ class Pump(Turbomachine):
             # this is to prevent to evaluate the map in the first iteration
             # outside its bound
             if np.isnan(self.frequency.val):
-                min_frequency = min(self.head_flow_map.char_func.x)
-                max_frequency = max(self.head_flow_map.char_func.x)
-                self.frequency.val = (max_frequency + min_frequency) / 2
+                min_frequency, max_frequency = self.head_flow_map.input_bounds(0)
+                self.frequency.val_SI = (max_frequency + min_frequency) / 2
+                self.frequency.set_val_from_SI(self.head_flow_map._units)
 
         return super()._preprocess(row_idx)
 
@@ -606,7 +606,7 @@ class Pump(Turbomachine):
         o = self.outl[0]
         return (
             (o.h.val_SI - i.h.val_SI)
-            * self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            * self.eta_s.design * self.eta_s_char.evaluate(expr)
             - (
                 isentropic(
                     i.p.val_SI,
@@ -646,7 +646,7 @@ class Pump(Turbomachine):
         expr = self.get_char_expr(p, **self.flow_char.char_params)
         return (
             self.outl[0].p.val_SI - self.inl[0].p.val_SI
-            - self.flow_char.char_func.evaluate(expr)
+            - self.flow_char.evaluate(expr)
         )
 
     def flow_char_dependents(self):
@@ -678,7 +678,7 @@ class Pump(Turbomachine):
         vol = i.calc_vol()
         flow = i.m.val_SI * vol
         frequency = self.frequency.val_SI
-        eta = self.eta_flow_map.char_func.evaluate(frequency, flow)
+        eta = self.eta_flow_map.evaluate(frequency, flow)
         return (
             eta * (o.h.val_SI - i.h.val_SI) - vol * (o.p.val_SI - i.p.val_SI)
         )
@@ -733,7 +733,7 @@ class Pump(Turbomachine):
         i = self.inl[0]
         flow = i.m.val_SI * i.calc_vol()
         frequency = self.frequency.val_SI
-        head = self.head_flow_map.char_func.evaluate(frequency, flow)
+        head = self.head_flow_map.evaluate(frequency, flow)
         return self.calc_hydraulic_head() - head
 
     def head_flow_frequency_group_dependents(self):
@@ -819,10 +819,11 @@ class Pump(Turbomachine):
         if i.m.is_var and self.flow_char.is_set:
             vol = i.calc_vol(T0=i.T.val_SI)
             expr = i.m.val_SI * vol
-            if expr > self.flow_char.char_func.x[-1]:
-                i.m.set_reference_val_SI(self.flow_char.char_func.x[-1] / vol)
-            elif expr < self.flow_char.char_func.x[1]:
-                i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
+            lower, upper = self.flow_char.input_bounds(0)
+            if expr > upper:
+                i.m.set_reference_val_SI(upper / vol)
+            elif expr < lower:
+                i.m.set_reference_val_SI(lower / vol)
 
     def initialise_source(self, c, key):
         r"""

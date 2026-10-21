@@ -623,7 +623,7 @@ class WaterElectrolyzer(Component):
 
         return (
             self.P.val_SI - self.outl[2].m.val_SI * self.e0 /
-            (self.eta.design * self.eta_char.char_func.evaluate(expr))
+            (self.eta.design * self.eta_char.evaluate(expr))
         )
 
     def eta_char_deriv(self, increment_filter, k, dependents=None):

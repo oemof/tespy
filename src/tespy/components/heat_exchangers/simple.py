@@ -721,7 +721,7 @@ class SimpleHeatExchanger(Component):
         p = self.UA_char.param
 
         expr = self.get_char_expr(p, **self.UA_char.char_params)
-        fkA = 2 / (1 + 1 / self.UA_char.char_func.evaluate(expr))
+        fkA = 2 / (1 + 1 / self.UA_char.evaluate(expr))
 
         Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         ttd_1 = i.calc_T() - self.Tamb.val_SI

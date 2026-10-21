@@ -814,8 +814,8 @@ class HeatExchanger(Component):
             f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
             f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.UA_char1.char_func.evaluate(f1)
-        fUA2 = self.UA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.evaluate(f1)
+        fUA2 = self.UA_char2.evaluate(f2)
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)

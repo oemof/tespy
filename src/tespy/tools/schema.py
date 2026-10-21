@@ -8,38 +8,37 @@ physical quantity and description.
 import json
 import warnings
 
-from tespy.tools.data_containers import ComponentCharacteristicMaps
-from tespy.tools.data_containers import ComponentCharacteristics
-from tespy.tools.data_containers import ComponentMandatoryConstraints
-from tespy.tools.data_containers import ComponentProperties
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
-from tespy.tools.data_containers import FluidProperties
-from tespy.tools.data_containers import GroupedComponentCharacteristics
-from tespy.tools.data_containers import GroupedComponentProperties
-from tespy.tools.data_containers import ReferencedFluidProperties
-from tespy.tools.data_containers import SimpleDataContainer
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ReferenceEquation
 
-# Human-readable names for each data-container class
-_DC_TYPE_NAMES = {
-    ComponentProperties: "ComponentProperty",
-    ComponentCharacteristics: "ComponentCharacteristic",
-    ComponentCharacteristicMaps: "ComponentCharacteristicMap",
-    GroupedComponentProperties: "GroupedComponentProperties",
-    GroupedComponentCharacteristics: "GroupedComponentCharacteristics",
-    ComponentMandatoryConstraints: "ComponentMandatoryConstraint",
-    FluidProperties: "FluidProperties",
-    FluidComposition: "FluidComposition",
-    ReferencedFluidProperties: "ReferencedFluidProperties",
-    SimpleDataContainer: "SimpleDataContainer",
-}
+# Human-readable names for each data-container class, most specific first
+_DC_TYPE_NAMES = [
+    (ComponentParameter, "ComponentParameter"),
+    (ConnectionParameter, "ConnectionParameter"),
+    (ArrayParameter, "ArrayParameter"),
+    (CharacteristicEquation, "CharacteristicEquation"),
+    (CharacteristicData, "CharacteristicData"),
+    (ParameterGroup, "ParameterGroup"),
+    (MandatoryConstraint, "MandatoryConstraint"),
+    (FluidComposition, "FluidComposition"),
+    (ReferenceEquation, "ReferenceEquation"),
+    (ConfigParameter, "ConfigParameter"),
+]
 
 
 def _dc_type_name(dc_instance):
     """Return the human-readable data-container type name."""
-    for cls, name in _DC_TYPE_NAMES.items():
-        if type(dc_instance) is cls:
+    for cls, name in _DC_TYPE_NAMES:
+        if isinstance(dc_instance, cls):
             return name
-    # Fallback: use the class name directly
     return type(dc_instance).__name__
 
 
@@ -51,15 +50,23 @@ def _serialize_parameter(name, dc_instance):
         "description": getattr(dc_instance, "description", None),
     }
 
-    # Physical quantity (present on ComponentProperties / FluidProperties
-    # and subclasses, absent on SimpleDataContainer etc.)
     quantity = getattr(dc_instance, "quantity", None)
     if quantity is not None:
         entry["quantity"] = quantity
 
     # For grouped containers, list the member parameter names
-    if isinstance(dc_instance, (GroupedComponentProperties, GroupedComponentCharacteristics)):
-        entry["elements"] = list(getattr(dc_instance, "elements", []))
+    if isinstance(dc_instance, ParameterGroup):
+        entry["elements"] = list(dc_instance.elements)
+        entry["auto_activate"] = dc_instance.auto_activate
+    if isinstance(dc_instance, CharacteristicData):
+        entry["input_quantities"] = dc_instance._resolved_input_quantities()
+        entry["output_quantity"] = dc_instance.output_quantity
+    if isinstance(dc_instance, ConfigParameter):
+        entry["dtype"] = dc_instance.dtype
+    if isinstance(dc_instance, (ComponentParameter, ArrayParameter)):
+        entry["result_only"] = dc_instance.result_only
+    if isinstance(dc_instance, ConnectionParameter):
+        entry["reference"] = dc_instance.reference is not None
 
     return entry
 
@@ -107,7 +114,7 @@ def generate_component_schema(
     ``get_parameters()`` and records:
 
     * the parameter name
-    * the data-container type (e.g. ``ComponentProperty``, ``ComponentCharacteristic``)
+    * the data-container type (e.g. ``ComponentParameter``, ``CharacteristicEquation``)
     * the physical quantity (e.g. ``"pressure"``, ``"efficiency"``) when available
     * the human-readable description
 

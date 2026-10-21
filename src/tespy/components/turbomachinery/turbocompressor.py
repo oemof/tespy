@@ -251,11 +251,11 @@ class TurboCompressor(Compressor):
         beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
         y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
 
-        yarr, zarr = self.char_map_pr.char_func.evaluate_x(beta)
+        yarr, zarr = self.char_map_pr.evaluate_x(beta)
         # value manipulation with igva
         yarr *= (1 - self.igva.val_SI / 100)
         zarr *= (1 - self.igva.val_SI / 100)
-        pr = self.char_map_pr.char_func.evaluate_y(y, yarr, zarr)
+        pr = self.char_map_pr.evaluate_y(y, yarr, zarr)
 
         return (o.p.val_SI / i.p.val_SI) - pr * self.pr.design
 
@@ -291,11 +291,11 @@ class TurboCompressor(Compressor):
         x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
         y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
 
-        yarr, zarr = self.char_map_eta_s.char_func.evaluate_x(x)
+        yarr, zarr = self.char_map_eta_s.evaluate_x(x)
         # value manipulation with igva
         yarr *= (1 - self.igva.val_SI / 100)
         zarr *= (1 - self.igva.val_SI ** 2 / 10000)
-        eta = self.char_map_eta_s.char_func.evaluate_y(y, yarr, zarr)
+        eta = self.char_map_eta_s.evaluate_y(y, yarr, zarr)
 
         return (
             (
@@ -332,8 +332,8 @@ class TurboCompressor(Compressor):
                     (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p'))
                     / (self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
                 )
-                yarr = data.char_func.get_domain_errors_x(x, self.label)
+                yarr = data.check_domain_x(x, self.label)
                 yarr *= (1 - self.igva.val_SI / 100)
-                data.char_func.get_domain_errors_y(y, yarr, self.label)
+                data.check_domain_y(y, yarr, self.label)
 
         return _no_limit_violations

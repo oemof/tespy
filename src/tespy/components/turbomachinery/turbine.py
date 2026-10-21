@@ -365,7 +365,7 @@ class Turbine(Turbomachine):
         outl = self.outl[0]
         return (
             -(outl.h.val_SI - inl.h.val_SI)
-            + self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            + self.eta_s.design * self.eta_s_char.evaluate(expr)
             * (
                 isentropic(
                     inl.p.val_SI,

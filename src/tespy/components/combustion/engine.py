@@ -694,7 +694,7 @@ class CombustionEngine(CombustionChamber):
         expr = self._calc_char_expr()
         return (
             self._calc_ti()
-            + self.tiP_char.char_func.evaluate(expr) * self.P.val_SI
+            + self.tiP_char.evaluate(expr) * self.P.val_SI
         )
 
     def tiP_char_dependents(self):
@@ -732,8 +732,8 @@ class CombustionEngine(CombustionChamber):
 
         expr = self._calc_char_expr()
         return (
-            self._calc_ti() * self.Q1_char.char_func.evaluate(expr)
-            + self.tiP_char.char_func.evaluate(expr) * self._calc_Q1()
+            self._calc_ti() * self.Q1_char.evaluate(expr)
+            + self.tiP_char.evaluate(expr) * self._calc_Q1()
         )
 
     def Q1_char_dependents(self):
@@ -773,8 +773,8 @@ class CombustionEngine(CombustionChamber):
 
         expr = self._calc_char_expr()
         return (
-            self._calc_ti() * self.Q2_char.char_func.evaluate(expr)
-            + self.tiP_char.char_func.evaluate(expr) * self._calc_Q2()
+            self._calc_ti() * self.Q2_char.evaluate(expr)
+            + self.tiP_char.evaluate(expr) * self._calc_Q2()
         )
 
     def Q2_char_dependents(self):
@@ -811,8 +811,8 @@ class CombustionEngine(CombustionChamber):
         """
         expr = self._calc_char_expr()
         return (
-            self._calc_ti() * self.Qloss_char.char_func.evaluate(expr)
-            + self.tiP_char.char_func.evaluate(expr) * self.Qloss.val_SI
+            self._calc_ti() * self.Qloss_char.evaluate(expr)
+            + self.tiP_char.evaluate(expr) * self.Qloss.val_SI
         )
 
     def Qloss_char_dependents(self):
@@ -848,7 +848,7 @@ class CombustionEngine(CombustionChamber):
 
         """
         expr = self._calc_char_expr()
-        return -self._calc_ti() / self.tiP_char.char_func.evaluate(expr)
+        return -self._calc_ti() / self.tiP_char.evaluate(expr)
 
     def _calc_Qloss(self):
         r"""
@@ -867,8 +867,8 @@ class CombustionEngine(CombustionChamber):
         """
         expr = self._calc_char_expr()
         return (
-            -self._calc_ti() * self.Qloss_char.char_func.evaluate(expr)
-            / self.tiP_char.char_func.evaluate(expr)
+            -self._calc_ti() * self.Qloss_char.evaluate(expr)
+            / self.tiP_char.evaluate(expr)
         )
 
     def _calc_char_expr(self):
@@ -950,10 +950,10 @@ class CombustionEngine(CombustionChamber):
         _no_limit_violations = super().check_parameter_bounds()
         # get bound errors for characteristic lines
         expr = self._calc_char_expr()
-        self.tiP_char.char_func.get_domain_errors(expr, self.label)
-        self.Qloss_char.char_func.get_domain_errors(expr, self.label)
-        self.Q1_char.char_func.get_domain_errors(expr, self.label)
-        self.Q2_char.char_func.get_domain_errors(expr, self.label)
+        self.tiP_char.check_domain(expr, self.label)
+        self.Qloss_char.check_domain(expr, self.label)
+        self.Q1_char.check_domain(expr, self.label)
+        self.Q2_char.check_domain(expr, self.label)
 
         return _no_limit_violations
 

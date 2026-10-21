@@ -387,7 +387,7 @@ class Valve(Component):
 
         return (
             self.inl[0].p.val_SI - self.outl[0].p.val_SI
-            - self.dp_char.char_func.evaluate(expr)
+            - self.dp_char.evaluate(expr)
         )
 
     def dp_char_dependents(self):
@@ -462,7 +462,7 @@ class Valve(Component):
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
                 -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
+        Kv = self.Kv_char.evaluate(self.opening.val_SI)
         return self._Kv_eq(Kv)
 
     def Kv_char_dependents(self):

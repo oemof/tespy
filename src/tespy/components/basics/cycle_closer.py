@@ -125,12 +125,13 @@ class CycleCloser(Component):
     def get_parameters(self):
         return {
             'mass_deviation': dc_cp(
-                _val=0, max_val=1e-3, is_result=True, quantity="mass_flow",
+                _val=0, max_val=1e-3, is_result=True, result_only=True,
+                quantity="mass_flow",
                 description="absolute deviation of mass flow between inlet and outlet",
                 calc=self._calc_mass_deviation
             ),
             'fluid_deviation': dc_cp(
-                _val=0, max_val=1e-5, is_result=True,
+                _val=0, max_val=1e-5, is_result=True, result_only=True,
                 description="norm of absolute deviation of fluid composition between inlet and outlet",
                 calc=self._calc_fluid_deviation
             )

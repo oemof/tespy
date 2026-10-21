@@ -26,6 +26,13 @@ New Features
 
 Bug Fixes
 #########
+- Result-only properties now reject user specifications with a
+  :code:`TypeError`, instead of accepting inputs that have no corresponding
+  equation. This includes heat exchanger :code:`lmtd`, connection :code:`s`
+  and :code:`vol`, and other calculated component and humid-air outputs.
+  Starting values for these connection properties are also rejected.
+  Calculated results and network imports remain available
+  (`issue #1070 <https://github.com/oemof/tespy/issues/1070>`__).
 - In case the outlet state was near saturated state, the Baumann rule equation
   of :py:class:`~tespy.components.turbomachinery.steam_turbine.SteamTurbine`
   sometimes crashed in the :code:`brentq` root search. The equation now assumes
@@ -125,5 +132,6 @@ Documentation
 
 Contributors
 ############
+- `@the8thbit <https://github.com/the8thbit>`__
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Chen Yi (`@chenyi6758-source <https://github.com/chenyi6758-source>`__)

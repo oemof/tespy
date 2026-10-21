@@ -447,7 +447,7 @@ class PolynomialCompressor(DisplacementMachine):
         params = super().get_parameters()
         params.update({
             "Q_diss": dc_cp(
-                max_val=0, val=0, is_result=True, quantity="heat",
+                max_val=0, val=0, is_result=True, result_only=True, quantity="heat",
                 description="heat dissipation",
                 calc=self._calc_Q_diss
             ),

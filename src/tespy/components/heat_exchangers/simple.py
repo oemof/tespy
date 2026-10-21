@@ -370,7 +370,8 @@ class SimpleHeatExchanger(Component):
                 calc=self._calc_UA, calc_deps=['Q']
             ),
             'lmtd': dc_cp(
-                min_val=0, is_result=True, quantity="temperature_difference",
+                min_val=0, is_result=True, result_only=True,
+                quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),

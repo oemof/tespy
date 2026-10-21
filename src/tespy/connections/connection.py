@@ -132,8 +132,14 @@ class ConnectionBase:
     def _parameter_specification(self, key, value):
         # Starting-value key (e.g. 'm0') - route to the base container's val0
         if key in self.property_data0:
+            container = self.get_attr(key.replace('0', ''))
+            if container.result_only and value is not None:
+                raise TypeError(
+                    f"The parameter {key} of Connection {self.label} is "
+                    "result-only and cannot have a starting value."
+                )
             if _is_numeric(value) or value is None:
-                self.get_attr(key.replace('0', '')).set_attr(val0=value)
+                container.set_attr(val0=value)
                 return
             else:
                 msg = (
@@ -1977,10 +1983,12 @@ class Connection(ConnectionBase):
                 description="equation for linear relationship between two volumetric flows"
             ),
             "vol": dc_prop(
+                result_only=True,
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
             "s": dc_prop(
+                result_only=True,
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),

@@ -431,7 +431,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         params["td_minimal"] = dc_cp(
             min_val=0,
             quantity="temperature_difference",
-            is_result=True,
+            is_result=True, result_only=True,
             description="theoretical minimal temperature difference between working and cooling fluid",
             calc=self._calc_td_minimal
         )

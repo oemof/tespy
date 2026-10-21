@@ -550,6 +550,10 @@ class FluidProperties(_NumEqMixin, DataContainer):
     unit : boolean
         Has the unit for this property been specified manually by the user?
         default: unit_set=False.
+
+    result_only : boolean
+        Is this property calculated only? User specifications are rejected,
+        while unsetting with None is allowed. Default: result_only=False.
     """
 
     @staticmethod
@@ -644,6 +648,8 @@ class FluidProperties(_NumEqMixin, DataContainer):
         )
 
     def accept(self, value):
+        if self.result_only and value is not None:
+            raise TypeError("This parameter is result-only and cannot be set by the user.")
         if value is None:
             self.is_set = False
             self._unit = None
@@ -996,7 +1002,7 @@ class ComponentProperties(FluidProperties):
         )
 
     def accept(self, value):
-        if value == "var":
+        if not self.result_only and value == "var":
             if not self._allows_var:
                 raise ValueError(
                     "This parameter cannot be made a system variable."

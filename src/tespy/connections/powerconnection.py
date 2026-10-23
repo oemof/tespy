@@ -2,7 +2,8 @@ import numpy as np
 
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
-from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.logger import logger
 
@@ -32,7 +33,7 @@ class PowerConnection(ConnectionBase):
 
         Parameters
         ----------
-        E : float
+        E : float, Ref
             Energy flow specification.
 
         design : list
@@ -89,7 +90,19 @@ class PowerConnection(ConnectionBase):
         return {"E": self.E}
 
     def get_parameters(self):
-        return {"E": dc_prop(d=1e-4, quantity="power")}
+        return {
+            "E": ConnectionParameter(
+                d=1e-4, quantity="power",
+                description="energy flow (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "E"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="power",
+                    description="equation for linear relationship between two energy flows"
+                )
+            )
+        }
 
     def calc_results(self, units, skip_postprocess):
         self.E.set_val_from_SI(units)

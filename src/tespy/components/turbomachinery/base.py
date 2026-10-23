@@ -15,8 +15,8 @@ import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
@@ -99,7 +99,7 @@ class Turbomachine(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(
+            'P': ComponentParameter(
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
@@ -107,7 +107,7 @@ class Turbomachine(Component):
                 description="power input/output of the component",
                 calc=self._calc_P
             ),
-            'pr': dc_cp(
+            'pr': ComponentParameter(
                 num_eq_sets=1,
                 func_params={'pr': 'pr'},
                 structure_matrix=self.pr_structure_matrix,
@@ -115,7 +115,7 @@ class Turbomachine(Component):
                 description="outlet to inlet pressure ratio",
                 calc=self._calc_pr
             ),
-            'dp': dc_cp(
+            'dp': ComponentParameter(
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
@@ -127,22 +127,22 @@ class Turbomachine(Component):
 
     def get_bypass_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'}
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'p'}
             }),
-            'enthalpy_constraints': dc_cmc(**{
+            'enthalpy_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'h'}
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'}

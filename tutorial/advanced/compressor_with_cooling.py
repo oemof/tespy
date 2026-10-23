@@ -5,8 +5,8 @@ from tespy.components import Source
 from tespy.connections import Connection
 from tespy.networks import Network
 # %%[sec_2]
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.helpers import TESPyComponentError
 
@@ -25,7 +25,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     def get_mandatory_constraints(self) -> dict:
         constraints = super().get_mandatory_constraints()
         # this is a dictionary
-        constraints["cooling_energy_balance_constraints"] = dc_cmc(
+        constraints["cooling_energy_balance_constraints"] = MandatoryConstraint(
             func=self.cooling_energy_balance_func,
             dependents=self.cooling_energy_balance_dependents,
             num_eq_sets=1
@@ -66,10 +66,10 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 # %%[sec_7]
     def get_parameters(self):
         params = super().get_parameters()
-        params["eta_recovery"] = dc_cp(
+        params["eta_recovery"] = ComponentParameter(
             quantity="efficiency"
         )
-        params["td_minimal"] = dc_cp(
+        params["td_minimal"] = ComponentParameter(
             min_val=0,
             quantity="temperature_difference",
             calc=self._calc_td_minimal
@@ -94,15 +94,15 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 # %%[sec_8]
     def get_parameters(self):
         params = super().get_parameters()
-        params["eta_recovery"] = dc_cp(
+        params["eta_recovery"] = ComponentParameter(
             quantity="efficiency"
         )
-        params["td_minimal"] = dc_cp(
+        params["td_minimal"] = ComponentParameter(
             min_val=0,
             quantity="temperature_difference",
             calc=self._calc_td_minimal
         )
-        params["dp_cooling"] = dc_cp(
+        params["dp_cooling"] = ComponentParameter(
             min_val=0,
             structure_matrix=self.dp_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},

@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ParameterGroup
 
 
 @component_registry
@@ -66,7 +66,7 @@ class SolarCollector(SimpleHeatExchanger):
         Diameter of channel. Quantity: :code:`length`. Can be set as a system
         variable by passing :code:`"var"` as its value.
 
-    darcy_group : GroupedComponentProperties
+    darcy_group : ParameterGroup
         Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
         :code:`ks`, :code:`D`.
         Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
@@ -89,7 +89,7 @@ class SolarCollector(SimpleHeatExchanger):
         Solar irradiation to the solar collector. Quantity: :code:`heat`. Can be
         set as a system variable by passing :code:`"var"` as its value.
 
-    energy_group : GroupedComponentProperties
+    energy_group : ParameterGroup
         Energy balance equation of the solar collector. Elements: :code:`E`,
         :code:`eta_opt`, :code:`lkf_lin`, :code:`lkf_quad`, :code:`A`,
         :code:`Tamb`.
@@ -98,7 +98,7 @@ class SolarCollector(SimpleHeatExchanger):
     eta_opt : float, dict
         Optical efficiency. Quantity: :code:`efficiency`.
 
-    hw_group : GroupedComponentProperties
+    hw_group : ParameterGroup
         Hazen-Williams equation for pressure loss. Elements: :code:`L`,
         :code:`ks_HW`, :code:`D`.
         Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
@@ -211,36 +211,36 @@ class SolarCollector(SimpleHeatExchanger):
             data.pop(k, None)
 
         data.update({
-            'E': dc_cp(
+            'E': ComponentParameter(
                 min_val=0, quantity="heat", _allows_var=True,
                 description="solar irradiation to the solar collector"
             ),
-            'A': dc_cp(
+            'A': ComponentParameter(
                 min_val=0, quantity="area", _allows_var=True,
                 description="area of the solar collector"
             ),
-            'eta_opt': dc_cp(
+            'eta_opt': ComponentParameter(
                 min_val=0, max_val=1, quantity="efficiency",
                 description="optical efficiency"
             ),
-            'lkf_lin': dc_cp(
+            'lkf_lin': ComponentParameter(
                 min_val=0,
                 description="linear heat loss factor"
             ),
-            'lkf_quad': dc_cp(
+            'lkf_quad': ComponentParameter(
                 min_val=0,
                 description="quadratic heat loss factor"
             ),
-            'Tamb': dc_cp(
+            'Tamb': ComponentParameter(
                 quantity="temperature",
                 description="ambient air temperature"
             ),
-            'Q_loss': dc_cp(
+            'Q_loss': ComponentParameter(
                 max_val=0, _val=0, quantity="heat",
                 description="heat dissipation",
                 calc=self._calc_Q_loss, calc_deps=['Q']
             ),
-            'energy_group': dc_gcp(
+            'energy_group': ParameterGroup(
                 elements=['E', 'eta_opt', 'lkf_lin', 'lkf_quad', 'A', 'Tamb'],
                 num_eq_sets=1,
                 func=self.energy_group_func,

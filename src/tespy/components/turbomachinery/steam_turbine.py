@@ -14,8 +14,8 @@ from scipy.optimize import brentq
 
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.turbine import Turbine
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import Q_mix_ph
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import isentropic
@@ -92,7 +92,7 @@ class SteamTurbine(Turbine):
     eta_s_dry : float, dict
         Isentropic efficiency of dry expansion. Quantity: :code:`efficiency`.
 
-    eta_s_dry_group : GroupedComponentProperties
+    eta_s_dry_group : ParameterGroup
         Method to apply Baumann rule. Elements: :code:`alpha`,
         :code:`eta_s_dry`.
         Equation: :py:meth:`eta_s_wet_func <tespy.components.turbomachinery.steam_turbine.SteamTurbine.eta_s_wet_func>`.
@@ -170,15 +170,15 @@ class SteamTurbine(Turbine):
     def get_parameters(self):
 
         params = super().get_parameters()
-        params["alpha"] = dc_cp(
+        params["alpha"] = ComponentParameter(
             min_val=0.4, max_val=2.5, quantity="ratio",
             description="influence factor for wetness efficiency modifier"
         )
-        params["eta_s_dry"] = dc_cp(
+        params["eta_s_dry"] = ComponentParameter(
             min_val=0.0, max_val=1.0, quantity="efficiency",
             description="isentropic efficiency of dry expansion"
         )
-        params["eta_s_dry_group"] = dc_gcp(
+        params["eta_s_dry_group"] = ParameterGroup(
             num_eq_sets=1, elements=["alpha", "eta_s_dry"],
             func=self.eta_s_wet_func,
             dependents=self.eta_s_dependents,  # same dependents!

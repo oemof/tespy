@@ -15,11 +15,12 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import single_fluid
 
 
@@ -84,11 +85,11 @@ class Valve(Component):
     Kv_char : tespy.tools.characteristics.CharLine, dict
         Lookup-table data for flow coefficient as function of opening.
 
-    Kv_char_analytical_group : GroupedComponentProperties
+    Kv_char_analytical_group : ParameterGroup
         Elements: :code:`Kv_analytical`, :code:`opening`.
         Equation: :py:meth:`Kv_char_analytical_func <tespy.components.piping.valve.Valve.Kv_char_analytical_func>`.
 
-    Kv_char_group : GroupedComponentProperties
+    Kv_char_group : ParameterGroup
         Equation for flow coefficient over opening. Elements: :code:`Kv_char`,
         :code:`opening`.
         Equation: :py:meth:`Kv_char_func <tespy.components.piping.valve.Valve.Kv_char_func>`.
@@ -240,7 +241,7 @@ class Valve(Component):
 
     def get_parameters(self):
         return {
-            'pr': dc_cp(
+            'pr': ComponentParameter(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
@@ -248,7 +249,7 @@ class Valve(Component):
                 description="outlet to inlet pressure ratio",
                 calc=self._calc_pr
             ),
-            'dp': dc_cp(
+            'dp': ComponentParameter(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
@@ -257,7 +258,7 @@ class Valve(Component):
                 description="inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta_d4': dc_cp(
+            'zeta_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_d4_func,
                 dependents=self.zeta_d4_dependents,
@@ -265,43 +266,43 @@ class Valve(Component):
                 description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta': dc_cp(
+            'zeta': ComponentParameter(
                 min_val=0, max_val=1e15, is_result=True,
                 description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
-            'dp_char': dc_cc(
-                param='m', num_eq_sets=1,
+            'dp_char': CharacteristicEquation(
+                param='m', num_eq_sets=1, output_quantity="pressure_difference",
                 dependents=self.dp_char_dependents,
                 func=self.dp_char_func,
                 char_params={'type': 'abs'},
                 description="inlet to outlet absolute pressure change as function of mass flow lookup table"
             ),
-            'Kv': dc_cp(
+            'Kv': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.Kv_func,
                 dependents=self.Kv_dependents,
                 description="flow coefficient in m3/h",
                 calc=self._calc_Kv
             ),
-            'Kv_char': dc_cc(
+            'Kv_char': CharacteristicData(
                 description="lookup-table data for flow coefficient as function of opening"
             ),
-            'opening': dc_cp(
+            'opening': ComponentParameter(
                 # opening can be more than 100 % sometimes
                 min_val=0, max_val=1.1,
                 _allows_var=True,
                 description="opening ratio of the valve",
                 quantity="ratio"
             ),
-            'Kv_char_group': dc_gcp(
+            'Kv_char_group': ParameterGroup(
                 num_eq_sets=1,
                 elements=["Kv_char", "opening"],
                 func=self.Kv_char_func,
                 dependents=self.Kv_char_dependents,
                 description="equation for flow coefficient over opening"
             ),
-            'Kv_analytical': dc_simple(
+            'Kv_analytical': ConfigParameter(
                 dtype="dict",
                 description=(
                     "fitting parameters and method for the analytical Kv "
@@ -309,7 +310,7 @@ class Valve(Component):
                     "(callable) and 'params' (list)"
                 )
             ),
-            'Kv_char_analytical_group': dc_gcp(
+            'Kv_char_analytical_group': ParameterGroup(
                 num_eq_sets=1,
                 elements=["Kv_analytical", "opening"],
                 func=self.Kv_char_analytical_func,
@@ -320,7 +321,7 @@ class Valve(Component):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'enthalpy_constraints': dc_cmc(**{
+            'enthalpy_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': 1,
                 'func_params': {'variable': 'h'},
@@ -331,22 +332,22 @@ class Valve(Component):
 
     def get_bypass_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'}
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'p'}
             }),
-            'enthalpy_constraints': dc_cmc(**{
+            'enthalpy_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'h'}
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'}
@@ -386,7 +387,7 @@ class Valve(Component):
 
         return (
             self.inl[0].p.val_SI - self.outl[0].p.val_SI
-            - self.dp_char.char_func.evaluate(expr)
+            - self.dp_char.evaluate(expr)
         )
 
     def dp_char_dependents(self):
@@ -461,7 +462,7 @@ class Valve(Component):
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
                 -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        Kv = self.Kv_char.char_func.evaluate(self.opening.val_SI)
+        Kv = self.Kv_char.evaluate(self.opening.val_SI)
         return self._Kv_eq(Kv)
 
     def Kv_char_dependents(self):

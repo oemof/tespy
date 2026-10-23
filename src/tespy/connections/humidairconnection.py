@@ -12,9 +12,9 @@ import numpy as np
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools import fluid_properties as fp
-from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import FluidComposition
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
@@ -31,67 +31,69 @@ class HAConnection(Connection):
 
     def get_parameters(self):
         return {
-            "fluid": dc_flu(
+            "fluid": FluidComposition(
                 d=1e-5,
                 description="mass fractions of the fluid composition"
             ),
-            "m": dc_prop(
+            "m": ConnectionParameter(
                 quantity="mass_flow",
                 description="mass flow of dry air (system variable)"
             ),
-            "mHA": dc_prop(
+            "mHA": ConnectionParameter(
+                is_result=True,
                 quantity="mass_flow",
                 description="mass flow of humid air"
             ),
-            "mH2O": dc_prop(
+            "mH2O": ConnectionParameter(
+                is_result=True,
                 quantity="mass_flow",
                 description="mass flow of liquid or solid water not contained in humid air"
             ),
-            "p": dc_prop(
+            "p": ConnectionParameter(
                 quantity="pressure",
                 description="absolute pressure of the fluid (system variable)"
             ),
-            "h": dc_prop(
+            "h": ConnectionParameter(
                 quantity="enthalpy",
                 description="dry air mass specific enthalpy (system variable)"
             ),
-            "w": dc_prop(
+            "w": ConnectionParameter(
                 quantity="ratio",
                 description="mass of water per mass of dry air"
             ),
-            "T": dc_prop(
+            "T": ConnectionParameter(
                 func=self.T_func,
                 dependents=self.T_dependents,
                 num_eq=1,
                 quantity="temperature",
                 description="temperature of the fluid"
             ),
-            "v": dc_prop(
+            "v": ConnectionParameter(
                 func=self.v_func,
                 dependents=self.v_dependents,
                 num_eq=1,
                 quantity="volumetric_flow",
                 description="volumetric flow of the fluid"
             ),
-            "vol": dc_prop(
+            "vol": ConnectionParameter(
+                is_result=True,
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
-            "s": dc_prop(
+            "s": ConnectionParameter(
+                is_result=True,
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),
-            "r": dc_prop(
+            "r": ConnectionParameter(
                 func=self.r_func,
                 dependents=self.r_dependents,
                 num_eq=1,
                 quantity="ratio",
                 description="relative humidity"
             ),
-            "fluid_balance": dc_simple(
-                dtype="bool",
-                func=self.fluid_balance_func,
-                _val=False, num_eq_sets=1,
+            "fluid_balance": OptionalEquation(
+                func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
             ),

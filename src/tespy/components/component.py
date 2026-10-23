@@ -24,14 +24,13 @@ from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ScalarParameter
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
 from tespy.tools.fluid_properties import h_mix_pT
@@ -173,6 +172,10 @@ class Component:
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
+        for group in self.parameters.values():
+            if isinstance(group, ParameterGroup):
+                for element in group.elements:
+                    self.parameters[element]._group_element = True
         self.__dict__.update(self.parameters)
         self.set_attr(**kwargs)
 
@@ -283,7 +286,7 @@ class Component:
         title = f"{type(self).__name__}: {self.label}"
         rows = []
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if not data.is_set and np.isnan(data.val):
                     continue
                 spec = "var" if data.is_var else ("set" if data.is_set else "")
@@ -294,16 +297,19 @@ class Component:
                     f"{data.val_SI:.4e}",
                     spec
                 ])
-            elif isinstance(data, dc_cap):
+            elif isinstance(data, ArrayParameter):
                 val = data.val if data.val is not None else data.val_SI
                 if val is not None:
                     rows.append([key, "[...]", data._display_unit(), "", ""])
-            elif isinstance(data, (dc_cc, dc_cm)):
+            elif isinstance(data, CharacteristicData):
                 if data.is_set:
                     rows.append([key, "characteristic", "", "", "set"])
-            elif isinstance(data, (dc_gcp, dc_gcc)):
+            elif isinstance(data, ParameterGroup):
                 if data.is_set:
                     rows.append([key, "parameter group", "", "", "set"])
+            elif isinstance(data, OptionalEquation):
+                if data.is_set:
+                    rows.append([key, "equation", "", "", "set"])
         if not rows:
             return f"{title}\nno specifications or results"
         table = tabulate(
@@ -356,37 +362,37 @@ class Component:
         for key, container in self.parameters.items():
             if not container.is_set:
                 continue
-            if isinstance(container, dc_cp):
+            if isinstance(container, ComponentParameter):
                 specs[key] = {
                     "val": container.val,
                     "unit": container._unit_for_export(units),
                     "is_set": True,
                     "is_var": container.is_var
                 }
-            elif isinstance(container, (dc_cc, dc_cm)):
-                specs[key] = {
-                    k: v for k, v in container._serialize().items()
-                    if k != "char_func"
-                }
-            elif isinstance(container, dc_gcp):
-                specs[key] = {"is_set": True}
             else:
-                specs[key] = {"val": container.val, "is_set": True}
+                specs[key] = container._serialize(units)
         return specs
 
     def _clear_specifications(self):
         for container in self.parameters.values():
             container.is_set = False
-            if isinstance(container, dc_cp):
+            if isinstance(container, ComponentParameter):
                 container.is_var = False
 
     def _restore_specifications(self, data):
         for key, param_data in data.items():
-            self.get_attr(key).set_attr(**param_data)
+            self._deserialize_parameter(key, param_data)
+
+    def _deserialize_parameter(self, key, data):
+        """Write the data of one parameter from a file or a specification
+        snapshot into its container. Components translate the data of
+        parameters whose container changed in earlier versions here."""
+        self.get_attr(key).set_attr(**data)
 
     def _get_result_attributes(self):
         return [
-            key for key, p in self.parameters.items() if isinstance(p, dc_cp)
+            key for key, p in self.parameters.items()
+            if isinstance(p, ComponentParameter)
         ]
 
     def collect_results(self):
@@ -415,7 +421,7 @@ class Component:
     def get_variables(self):
         variables = {}
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if data.is_var:
                     variables.update({key: data})
 
@@ -488,7 +494,7 @@ class Component:
 
     def _setup_user_imposed_constraints(self, row_idx, sum_eq):
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if data.is_var:
                     self.num_vars += 1
                     data._potential_var = True
@@ -497,36 +503,23 @@ class Component:
                 self.prop_specifications[key] = data.is_set
                 self.var_specifications[key] = data.is_var
 
-            # component characteristics
-            elif isinstance(data, dc_cc):
+            elif isinstance(data, CharacteristicData):
                 if data.func is not None:
                     self.char_specifications[key] = data.is_set
                 if data.char_func is None:
+                    char_type = CharLine if data.num_inputs == 1 else CharMap
                     for cls in type(self).__mro__:
                         try:
-                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharLine)
+                            data.set_default(
+                                ldc(cls.__name__, key, 'DEFAULT', char_type)
+                            )
                             break
                         except KeyError:
                             continue
                     else:
-                        data.char_func = CharLine()
+                        data.set_default(char_type())
 
-            # component characteristics
-            elif isinstance(data, dc_cm):
-                if data.func is not None:
-                    self.char_specifications[key] = data.is_set
-                if data.char_func is None:
-                    for cls in type(self).__mro__:
-                        try:
-                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharMap)
-                            break
-                        except KeyError:
-                            continue
-                    else:
-                        data.char_func = CharMap()
-
-            # grouped component properties
-            elif type(data) == dc_gcp:
+            elif isinstance(data, ParameterGroup):
                 is_set = True
                 for e in data.elements:
                     if not self.get_attr(e).is_set:
@@ -552,10 +545,11 @@ class Component:
                     data.set_attr(is_set=False)
                 self.group_specifications[key] = data.is_set
 
-            # grouped component characteristics
-            elif type(data) == dc_gcc:
+            elif isinstance(data, OptionalEquation):
                 self.group_specifications[key] = data.is_set
-            # add equations to structure matrix
+
+            if not hasattr(data, "num_eq_sets"):
+                continue
             structure_matrix = data.structure_matrix is not None
             func = data.func is not None
             if data.is_set and (structure_matrix or func):
@@ -657,13 +651,13 @@ class Component:
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'},
                 'description': "mass flow equality constraint(s)"
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'},
@@ -1117,7 +1111,7 @@ class Component:
             self.new_design = True
 
         for key, dc in self.parameters.items():
-            if isinstance(dc, dc_cp):
+            if isinstance(dc, ComponentParameter):
                 if (
                         ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)) and
@@ -1143,8 +1137,9 @@ class Component:
     def calc_parameters(self):
         r"""Postprocessing parameter calculation.
 
-        Each :py:class:`~tespy.tools.data_containers.ComponentProperties`
-        whose :code:`calc` attribute is set is called here in topological
+        Each :py:class:`~tespy.tools.data_containers.ComponentParameter` and
+        :py:class:`~tespy.tools.data_containers.ArrayParameter` whose
+        :code:`calc` attribute is set is called here in topological
         order (respecting :code:`calc_deps` dependencies).
 
         .. note::
@@ -1170,7 +1165,8 @@ class Component:
         """
         calc_items = {
             k: dc for k, dc in self.parameters.items()
-            if isinstance(dc, dc_cp) and dc.calc is not None
+            if isinstance(dc, (ComponentParameter, ArrayParameter))
+            and dc.calc is not None
         }
         for k in _topological_sort(calc_items):
             dc = calc_items[k]
@@ -1193,9 +1189,9 @@ class Component:
         _converged = self.check_parameter_bounds()
         _specifications_matched = True
         for key, value in self.parameters.items():
-            if isinstance(value, dc_cap):
+            if isinstance(value, ArrayParameter):
                 value.set_val_from_SI(units)
-            elif isinstance(value, dc_prop):
+            elif isinstance(value, ScalarParameter):
                 if value.is_set and not value.is_var:
                     if self.bypass:
                         continue
@@ -1238,7 +1234,7 @@ class Component:
         _no_limit_violated = True
         for p in self.parameters.keys():
             data = self.get_attr(p)
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 scale = max(abs(data.val_SI), 1.0)
                 if data.limit_scale is not None:
                     reference = self.get_attr(data.limit_scale).val_SI
@@ -1269,17 +1265,23 @@ class Component:
                 elif data.val_SI < data.min_val:
                     data.val_SI = data.min_val
 
-            elif isinstance(data, dc_cc) and data.is_set:
+            elif isinstance(data, CharacteristicData) and data.is_set:
                 if data.param is not None:
                     expr = self.get_char_expr(data.param, **data.char_params)
-                    data.char_func.get_domain_errors(expr, self.label)
+                    data.check_domain(expr, label=self.label)
 
-            elif isinstance(data, dc_gcc) and data.is_set:
+            elif (
+                isinstance(data, OptionalEquation) and data.is_set
+                and not isinstance(data, ParameterGroup)
+            ):
                 for char in data.elements:
                     char_data = self.get_attr(char)
+                    if getattr(char_data, "param", None) is None:
+                        continue
                     expr = self.get_char_expr(
-                        char_data.param, **char_data.char_params)
-                    char_data.char_func.get_domain_errors(expr, self.label)
+                        char_data.param, **char_data.char_params
+                    )
+                    char_data.check_domain(expr, label=self.label)
 
         return _no_limit_violated
 

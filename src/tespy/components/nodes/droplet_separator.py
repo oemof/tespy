@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -144,24 +144,24 @@ class DropletSeparator(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
                 'num_eq_sets': 1,
                 'description': 'mass balance constraint'
             }),
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'num_eq_sets': 1,
                 'description': 'energy balance constraint'
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.pressure_structure_matrix,
                 'num_eq_sets': self.num_i + self.num_o - 1,
                 'description': 'pressure equality constraints'
             }),
-            'outlet_constraint_liquid': dc_cmc(**{
+            'outlet_constraint_liquid': MandatoryConstraint(**{
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
@@ -169,7 +169,7 @@ class DropletSeparator(NodeBase):
                 'func_params': {'outconn': 0, 'quality': 0},
                 'description': 'outlet 0 is saturated liquid constraint'
             }),
-            'outlet_constraint_gas': dc_cmc(**{
+            'outlet_constraint_gas': MandatoryConstraint(**{
                 'func': self.saturated_outlet_func,
                 'deriv': self.saturated_outlet_deriv,
                 'dependents': self.saturated_outlet_dependents,
@@ -177,7 +177,7 @@ class DropletSeparator(NodeBase):
                 'func_params': {'outconn': 1, 'quality': 1},
                 'description': 'outlet 1 is saturated gas constraint'
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.fluid_structure_matrix,
                 'num_eq_sets': self.num_o,
                 'description': 'fluid equality constraints'

@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
@@ -184,7 +184,7 @@ class CombustionChamber(Component):
 
     def get_parameters(self):
         return {
-            "lamb": dc_cp(
+            "lamb": ComponentParameter(
                 min_val=1,
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
@@ -193,7 +193,7 @@ class CombustionChamber(Component):
                 description="available oxygen to stoichiometric oxygen ratio",
                 calc=self._calc_lambda
             ),
-            "ti": dc_cp(
+            "ti": ComponentParameter(
                 min_val=0,
                 func=self.ti_func,
                 dependents=self.ti_dependents,
@@ -202,7 +202,7 @@ class CombustionChamber(Component):
                 description="thermal input of fuel: lower heating value multiplied with mass flow",
                 calc=self._calc_ti
             ),
-            "f_nox": dc_cp(
+            "f_nox": ComponentParameter(
                 quantity="ratio",
                 min_val=0,
                 max_val=1,
@@ -218,24 +218,24 @@ class CombustionChamber(Component):
 
     def get_mandatory_constraints(self):
         return {
-            "mass_flow_constraints": dc_cmc(**{
+            "mass_flow_constraints": MandatoryConstraint(**{
                 "func": self.mass_flow_func,
                 "dependents": self.mass_flow_dependents,
                 "num_eq_sets": 1,
                 "description": "mass flow balance over all inflows and outflows"
             }),
-            "reactor_pressure_constraints": dc_cmc(**{
+            "reactor_pressure_constraints": MandatoryConstraint(**{
                 "structure_matrix": self.combustion_pressure_structure_matrix,
                 "num_eq_sets": 2,
                 "description": "pressure equality constraints"
             }),
-            "stoichiometry_constraints": dc_cmc(**{
+            "stoichiometry_constraints": MandatoryConstraint(**{
                 "func": self.stoichiometry_func,
                 "dependents": self.stoichiometry_dependents,
                 "num_eq_sets": 1,
                 "description": "constraints for stoichiometry of the reaction"
             }),
-            "energy_balance_constraints": dc_cmc(**{
+            "energy_balance_constraints": MandatoryConstraint(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
                 "num_eq_sets": 1,

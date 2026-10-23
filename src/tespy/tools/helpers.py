@@ -19,7 +19,7 @@ import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter as dc_cp
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR

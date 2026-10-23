@@ -13,8 +13,9 @@ whether it can put an equation into the system of equations.
   or as result, and can carry an equation.
 - :py:class:`ConfigParameter` holds a typed configuration value without unit
   and without equation.
-- :py:class:`ParameterGroup` activates one equation, either when all of its
-  element parameters are specified or when switched on directly.
+- :py:class:`OptionalEquation` is an equation the user switches on,
+  :py:class:`ParameterGroup` one that activates when all of its element
+  parameters are specified.
 - :py:class:`CharacteristicData` holds a characteristic function with a
   physical quantity per axis, :py:class:`CharacteristicEquation` additionally
   activates an equation.
@@ -161,7 +162,9 @@ class DataContainer:
       :py:class:`tespy.tools.data_containers.ArrayParameter`
     - configuration values
       :py:class:`tespy.tools.data_containers.ConfigParameter`
-    - parameter groups and equation switches
+    - equations switched on by the user
+      :py:class:`tespy.tools.data_containers.OptionalEquation`
+    - parameter groups
       :py:class:`tespy.tools.data_containers.ParameterGroup`
     - characteristic functions as data
       :py:class:`tespy.tools.data_containers.CharacteristicData`
@@ -1002,27 +1005,22 @@ class ConfigParameter(DataContainer):
     val = property(get_val, set_val)
 
 
-class ParameterGroup(_EquationMixin, DataContainer):
+class OptionalEquation(_EquationMixin, DataContainer):
     """
-    Data container for a group of parameters that jointly activate one
-    equation.
+    Data container for an equation the user switches on and off.
 
-    With :code:`auto_activate=True` the group is active when all of its
-    :code:`elements` are specified. With :code:`auto_activate=False` the
-    group is switched on and off by the user, e.g. with
-    :code:`component.set_attr(cone=True)`.
+    The equation is applied when :code:`is_set` is :code:`True`, e.g. after
+    :code:`component.set_attr(cone=True)` or through the offdesign parameter
+    list. :code:`elements` name the parameters the equation reads, they do
+    not activate it.
 
     Parameters
     ----------
     is_set : boolean
-        Should the equation of this group be applied? default: :code:`False`.
+        Should the equation be applied? default: :code:`False`.
 
     elements : list
-        Names of the parameters that belong to this group, default:
-        :code:`[]`.
-
-    auto_activate : boolean
-        Derive :code:`is_set` from the elements, default: :code:`True`.
+        Names of the parameters the equation reads, default: :code:`[]`.
 
     description : str
         Description of the equation for documentation and schema.
@@ -1033,7 +1031,6 @@ class ParameterGroup(_EquationMixin, DataContainer):
         return {
             "is_set": False,
             "elements": [],
-            "auto_activate": True,
             "description": None,
             **_equation_attrs(),
         }
@@ -1047,7 +1044,7 @@ class ParameterGroup(_EquationMixin, DataContainer):
             self.set_attr(**value)
         else:
             raise TypeError(
-                f"Expected a bool, dict, or None for a parameter group, "
+                f"Expected a bool, dict, or None for an optional equation, "
                 f"got {type(value).__name__}."
             )
 
@@ -1067,6 +1064,38 @@ class ParameterGroup(_EquationMixin, DataContainer):
         self.is_set = bool(value)
 
     val = property(get_val, set_val)
+
+
+class ParameterGroup(OptionalEquation):
+    """
+    Data container for a group of parameters that jointly activate one
+    equation.
+
+    The group is active when all of its :code:`elements` are specified, e.g.
+    the pressure drop of a pipe from length, diameter and roughness.
+
+    Parameters
+    ----------
+    is_set : boolean
+        Is the equation of this group applied? Derived from the elements in
+        the preprocessing, default: :code:`False`.
+
+    elements : list
+        Names of the parameters that belong to this group, default:
+        :code:`[]`.
+
+    description : str
+        Description of the equation for documentation and schema.
+    """
+
+    def accept(self, value):
+        try:
+            super().accept(value)
+        except TypeError:
+            raise TypeError(
+                f"Expected a bool, dict, or None for a parameter group, "
+                f"got {type(value).__name__}."
+            )
 
 
 class MandatoryConstraint(_EquationMixin, DataContainer):
@@ -1774,13 +1803,13 @@ SimpleDataContainer = _deprecated_container(
     "SimpleDataContainer", ConfigParameter
 )
 GroupedComponentProperties = _deprecated_container(
-    "GroupedComponentProperties", ParameterGroup,
-    lambda obj: isinstance(obj, ParameterGroup) and obj.auto_activate
+    "GroupedComponentProperties", ParameterGroup
 )
 GroupedComponentCharacteristics = _deprecated_container(
-    "GroupedComponentCharacteristics", ParameterGroup,
-    lambda obj: isinstance(obj, ParameterGroup) and not obj.auto_activate,
-    auto_activate=False
+    "GroupedComponentCharacteristics", OptionalEquation,
+    lambda obj: (
+        isinstance(obj, OptionalEquation) and not isinstance(obj, ParameterGroup)
+    )
 )
 ComponentCharacteristics = _deprecated_container(
     "ComponentCharacteristics", CharacteristicEquation,

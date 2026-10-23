@@ -16,6 +16,7 @@ from tespy.tools.data_containers import ConfigParameter
 from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
 from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.data_containers import ReferenceEquation
 
@@ -27,6 +28,7 @@ _DC_TYPE_NAMES = [
     (CharacteristicEquation, "CharacteristicEquation"),
     (CharacteristicData, "CharacteristicData"),
     (ParameterGroup, "ParameterGroup"),
+    (OptionalEquation, "OptionalEquation"),
     (MandatoryConstraint, "MandatoryConstraint"),
     (FluidComposition, "FluidComposition"),
     (ReferenceEquation, "ReferenceEquation"),
@@ -55,9 +57,8 @@ def _serialize_parameter(name, dc_instance):
         entry["quantity"] = quantity
 
     # For grouped containers, list the member parameter names
-    if isinstance(dc_instance, ParameterGroup):
+    if isinstance(dc_instance, OptionalEquation):
         entry["elements"] = list(dc_instance.elements)
-        entry["auto_activate"] = dc_instance.auto_activate
     if isinstance(dc_instance, CharacteristicData):
         entry["input_quantities"] = dc_instance._resolved_input_quantities()
         entry["output_quantity"] = dc_instance.output_quantity

@@ -23,7 +23,7 @@ from tespy.tools.data_containers import ConfigParameter
 from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.data_containers import FluidComposition
-from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
@@ -259,7 +259,7 @@ class ConnectionBase:
                         "", "",
                         "set" if fluid in data.is_set else ""
                     ])
-            elif isinstance(data, ParameterGroup):
+            elif isinstance(data, OptionalEquation):
                 if data.is_set:
                     rows.append([key, "equation", "", "", "set"])
         if not rows:
@@ -2048,8 +2048,7 @@ class Connection(ConnectionBase):
             "fluid": FluidComposition(
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"
             ),
-            "fluid_balance": ParameterGroup(
-                auto_activate=False,
+            "fluid_balance": OptionalEquation(
                 func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"

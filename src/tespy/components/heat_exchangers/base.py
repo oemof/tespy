@@ -22,7 +22,7 @@ from tespy.tools.data_containers import ArrayParameter
 from tespy.tools.data_containers import CharacteristicData
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
-from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -168,7 +168,7 @@ class HeatExchanger(Component):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : ParameterGroup
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -257,7 +257,7 @@ class HeatExchanger(Component):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : ParameterGroup
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func>`.
@@ -482,8 +482,7 @@ class HeatExchanger(Component):
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'UA_char': ParameterGroup(
-                auto_activate=False,
+            'UA_char': OptionalEquation(
                 elements=['UA_char1', 'UA_char2'],
                 num_eq_sets=1,
                 func=self.UA_char_func,
@@ -499,8 +498,7 @@ class HeatExchanger(Component):
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
                 description="cold side UA modification lookup table for offdesign"
             ),
-            'kA_char': ParameterGroup(
-                auto_activate=False,
+            'kA_char': OptionalEquation(
                 elements=['kA_char1', 'kA_char2'],
                 description="deprecated, use :code:`UA_char` instead"
             ),

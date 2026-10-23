@@ -14,7 +14,7 @@ from CoolProp.CoolProp import HAPropsSI
 from tespy.tools import fluid_properties as fp
 from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
-from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
@@ -88,8 +88,7 @@ class HAConnection(Connection):
                 quantity="ratio",
                 description="relative humidity"
             ),
-            "fluid_balance": ParameterGroup(
-                auto_activate=False,
+            "fluid_balance": OptionalEquation(
                 func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"

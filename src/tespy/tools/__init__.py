@@ -17,6 +17,7 @@ from .data_containers import FluidComposition  # noqa: F401
 from .data_containers import FluidProperties  # noqa: F401
 from .data_containers import GroupedComponentProperties  # noqa: F401
 from .data_containers import MandatoryConstraint  # noqa: F401
+from .data_containers import OptionalEquation  # noqa: F401
 from .data_containers import ParameterGroup  # noqa: F401
 from .data_containers import ReferenceEquation  # noqa: F401
 from .data_containers import SimpleDataContainer  # noqa: F401

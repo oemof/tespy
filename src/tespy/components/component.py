@@ -28,6 +28,7 @@ from tespy.tools.data_containers import ArrayParameter
 from tespy.tools.data_containers import CharacteristicData
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.data_containers import ScalarParameter
 from tespy.tools.data_containers import _display_repr
@@ -306,6 +307,9 @@ class Component:
             elif isinstance(data, ParameterGroup):
                 if data.is_set:
                     rows.append([key, "parameter group", "", "", "set"])
+            elif isinstance(data, OptionalEquation):
+                if data.is_set:
+                    rows.append([key, "equation", "", "", "set"])
         if not rows:
             return f"{title}\nno specifications or results"
         table = tabulate(
@@ -509,7 +513,7 @@ class Component:
                     else:
                         data.set_default(char_type())
 
-            elif isinstance(data, ParameterGroup) and data.auto_activate:
+            elif isinstance(data, ParameterGroup):
                 is_set = True
                 for e in data.elements:
                     if not self.get_attr(e).is_set:
@@ -535,7 +539,7 @@ class Component:
                     data.set_attr(is_set=False)
                 self.group_specifications[key] = data.is_set
 
-            elif isinstance(data, ParameterGroup):
+            elif isinstance(data, OptionalEquation):
                 self.group_specifications[key] = data.is_set
 
             if not hasattr(data, "num_eq_sets"):
@@ -1261,8 +1265,8 @@ class Component:
                     data.check_domain(expr, label=self.label)
 
             elif (
-                isinstance(data, ParameterGroup) and data.is_set
-                and not data.auto_activate
+                isinstance(data, OptionalEquation) and data.is_set
+                and not isinstance(data, ParameterGroup)
             ):
                 for char in data.elements:
                     char_data = self.get_attr(char)

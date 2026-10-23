@@ -19,7 +19,7 @@ from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import ConfigParameter
-from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import OptionalEquation
 
 FLOW_ARRANGEMENTS = (
     "counterflow",
@@ -399,7 +399,7 @@ class NTUHeatExchanger(HeatExchanger):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : ParameterGroup
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -496,7 +496,7 @@ class NTUHeatExchanger(HeatExchanger):
         through the NTU relation. Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.UA_func>`.
 
-    UA_char : ParameterGroup
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.UA_char_func>`.
@@ -628,8 +628,7 @@ class NTUHeatExchanger(HeatExchanger):
             ),
             calc=self._calc_UA, calc_deps=["Q"]
         )
-        params["UA_char"] = ParameterGroup(
-            auto_activate=False,
+        params["UA_char"] = OptionalEquation(
             elements=["UA_char1", "UA_char2"],
             num_eq_sets=1,
             func=self.UA_char_func,

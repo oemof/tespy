@@ -21,6 +21,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import ArrayParameter
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
@@ -162,7 +163,7 @@ class SectionedHeatExchanger(HeatExchanger):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : ParameterGroup
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -307,7 +308,7 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
-    UA_char : ParameterGroup
+    UA_char : OptionalEquation
         Equation for sectioned UA modification based on characteristic lines.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
@@ -677,8 +678,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_UA_from_sections,
                 calc_deps=[]
             ),
-            'UA_char': ParameterGroup(
-                auto_activate=False,
+            'UA_char': OptionalEquation(
                 elements=['UA_char1', 'UA_char2'],
                 num_eq_sets=1,
                 func=self.UA_char_func,

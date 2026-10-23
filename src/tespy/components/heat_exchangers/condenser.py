@@ -91,7 +91,7 @@ class Condenser(HeatExchanger):
         Deprecated, use :code:`UA` instead. Quantity:
         :code:`heat_transfer_coefficient`.
 
-    kA_char : ParameterGroup
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -184,7 +184,7 @@ class Condenser(HeatExchanger):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : ParameterGroup
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.condenser.Condenser.UA_char_func>`.

@@ -10,16 +10,15 @@ import tespy
 from tespy.components import Source, Sink, PowerSource, PowerSink
 from tespy.components.component import component_registry
 from tespy.connections.connection import connection_registry
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import FluidComposition
+from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.schema import _instantiate_component
 
 DOCS_ROOT_PATH = os.path.join(os.path.dirname(__file__))
@@ -111,7 +110,7 @@ def collect_component_parameters(instance):
     for key, value in instance.parameters.items():
         eq_reference = _get_eq_reference(value)
 
-        if isinstance(value, dc_cp):
+        if isinstance(value, ComponentParameter):
             if value._allows_var:
                 key = key + " [1]_"
             parameters_with_equation[key] = {
@@ -119,25 +118,31 @@ def collect_component_parameters(instance):
                 "description": value.description,
                 "quantity": value.quantity
             }
-        elif isinstance(value, dc_simple):
+        elif isinstance(value, ConfigParameter):
             parameters_with_equation[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
                 "quantity":  None
             }
-        elif isinstance(value, dc_cc) or isinstance(value, dc_cm):
+        elif isinstance(value, OptionalEquation) and not isinstance(value, ParameterGroup):
+            parameters_with_equation[key] = {
+                "eq_reference": eq_reference,
+                "description": value.description,
+                "quantity":  None
+            }
+        elif isinstance(value, CharacteristicData):
             characteristic_lines_and_maps[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description
             }
         # gcp and gcc are equivalent
-        elif isinstance(value, dc_gcp):
+        elif isinstance(value, ParameterGroup):
             grouped_parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
                 "elements": ", ".join([f":code:`{element}`" for element in value.elements])
             }
-        elif isinstance(value, dc_cap):
+        elif isinstance(value, ArrayParameter):
             array_properties[key] = {
                 "description": value.description,
                 "quantity": value.quantity
@@ -152,25 +157,25 @@ def collect_connection_parameters(instance):
     for key, value in instance.property_data.items():
         eq_reference = _get_eq_reference(value)
 
-        if isinstance(value, dc_prop):
+        if isinstance(value, ConnectionParameter):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
                 "quantity": value.quantity
             }
-        elif isinstance(value, dc_flu):
+        elif isinstance(value, FluidComposition):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
                 "quantity": value.quantity
             }
-        elif isinstance(value, dc_ref):
+        elif isinstance(value, ReferenceEquation):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
                 "quantity": value.quantity
             }
-        elif isinstance(value, dc_simple):
+        elif isinstance(value, (ConfigParameter, OptionalEquation)):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,

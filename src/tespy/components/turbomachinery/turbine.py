@@ -18,7 +18,7 @@ from tespy.tools import logger
 from tespy.tools.data_containers import CharacteristicEquation
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
-from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
@@ -224,7 +224,7 @@ class Turbine(Turbomachine):
                 dependents=self.eta_s_char_dependents,
                 description="isentropic efficiency lookup table for offdesign"
             ),
-            "cone": ParameterGroup(auto_activate=False, num_eq_sets=1,
+            "cone": OptionalEquation(num_eq_sets=1,
                 func=self.cone_func,
                 dependents=self.cone_dependents,
                 description="cone law equation for offdesign"

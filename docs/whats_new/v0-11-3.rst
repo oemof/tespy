@@ -111,6 +111,9 @@ Other Changes
 
 Documentation
 #############
+- The components overview compares :code:`Turbine` and :code:`SteamTurbine`
+  efficiency models with a working wet-steam expansion example
+  (`issue #807 <https://github.com/oemof/tespy/issues/807>`__).
 - Two new notebooks showcase the fluid property engines: a
   :ref:`comparison of the fluid property back ends <fluid_property_backends_label>`
   benchmarks CoolProp HEOS, REFPROP and thermopack, and a
@@ -125,5 +128,6 @@ Documentation
 
 Contributors
 ############
+- `the8thbit <https://github.com/the8thbit>`__
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Chen Yi (`@chenyi6758-source <https://github.com/chenyi6758-source>`__)

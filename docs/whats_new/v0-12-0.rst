@@ -4,50 +4,58 @@ v0.12.0 - Under development
 API Changes
 ###########
 - The data containers of components and connections have been restructured
-  with clearly separated responsibilities. Every container answers two
-  independent questions: what kind of value it stores and whether it can put
-  an equation into the system. The former names stay available for one release
-  and emit a :code:`FutureWarning`, they also recognise instances of their
-  replacement in :code:`isinstance` checks
-  (`PR #XXXX <https://github.com/oemof/tespy/pull/XXXX>`__):
+  with clearly separated responsibilities: every container stores one kind of
+  value and either carries an equation or not. The former names stay
+  available for one release with a :code:`FutureWarning` and still match
+  their replacement in :code:`isinstance` checks
+  (`PR #XXXX <https://github.com/oemof/tespy/pull/XXXX>`__).
 
-  - :py:class:`~tespy.tools.data_containers.ConnectionParameter` replaces
-    :code:`FluidProperties` and
-    :py:class:`~tespy.tools.data_containers.ComponentParameter` replaces
-    :code:`ComponentProperties`. Both are scalars with a physical quantity
-    sharing the :py:class:`~tespy.tools.data_containers.ScalarParameter` base,
-    the component parameter adds the :code:`"var"` switch, bounds scaling and
-    result post-processing.
-  - :py:class:`~tespy.tools.data_containers.ArrayParameter` replaces
-    :code:`ComponentArrayProperties`. Arrays are the shape-valued sibling of
-    the component parameter: they share the result flag :code:`is_result`,
-    the :code:`calc` hooks and can carry an equation. :code:`result_only` is
-    derived from :code:`is_result` and the presence of an equation.
-  - :py:class:`~tespy.tools.data_containers.ConfigParameter` replaces
-    :code:`SimpleDataContainer` for typed configuration values without unit
-    and without equation. The declared :code:`dtype` is now validated.
-  - :py:class:`~tespy.tools.data_containers.ParameterGroup` replaces
-    :code:`GroupedComponentProperties`: an equation activated when all of
-    its element parameters are specified.
-    :py:class:`~tespy.tools.data_containers.OptionalEquation` replaces
-    :code:`GroupedComponentCharacteristics` and the boolean equation switches
-    held in simple containers before: an equation the user switches on, e.g.
-    :code:`cone`, :code:`fluid_balance` or :code:`UA_char` of heat
-    exchangers, whose :code:`elements` only name the parameters it reads.
-  - :py:class:`~tespy.tools.data_containers.CharacteristicData` and
-    :py:class:`~tespy.tools.data_containers.CharacteristicEquation` replace
-    :code:`ComponentCharacteristics` and :code:`ComponentCharacteristicMaps`.
-    The data container holds a characteristic that another equation reads,
-    the equation container activates its own equation. The containers are
-    blind to the representation of the characteristic and strict on its
-    signature: any object with the declared number of inputs is accepted.
-    Providing a characteristic to a data container marks it as specified,
-    e.g. for the activation of a parameter group. Providing one to an
-    equation container does not activate the equation, as before.
-  - :py:class:`~tespy.tools.data_containers.MandatoryConstraint` replaces
-    :code:`ComponentMandatoryConstraints` and
-    :py:class:`~tespy.tools.data_containers.ReferenceEquation` replaces
-    :code:`ReferencedFluidProperties`.
+  .. list-table::
+      :header-rows: 1
+      :widths: 30 30 40
+
+      * - Former container
+        - New container
+        - Role
+      * - :code:`FluidProperties`
+        - :py:class:`~tespy.tools.data_containers.ConnectionParameter`
+        - scalar connection parameter, may be a variable or carry an equation
+      * - :code:`ComponentProperties`
+        - :py:class:`~tespy.tools.data_containers.ComponentParameter`
+        - scalar component parameter, may be a variable or carry an equation
+      * - :code:`ComponentArrayProperties`
+        - :py:class:`~tespy.tools.data_containers.ArrayParameter`
+        - array valued component parameter, input or result
+      * - :code:`SimpleDataContainer`
+        - :py:class:`~tespy.tools.data_containers.ConfigParameter`
+        - typed configuration value without unit and equation
+      * - :code:`SimpleDataContainer` with equation,
+          :code:`GroupedComponentCharacteristics`
+        - :py:class:`~tespy.tools.data_containers.OptionalEquation`
+        - equation switched on by the user, e.g. :code:`cone`,
+          :code:`fluid_balance`, :code:`UA_char`
+      * - :code:`GroupedComponentProperties`
+        - :py:class:`~tespy.tools.data_containers.ParameterGroup`
+        - equation activated when all element parameters are specified
+      * - :code:`ComponentCharacteristics`,
+          :code:`ComponentCharacteristicMaps` without equation
+        - :py:class:`~tespy.tools.data_containers.CharacteristicData`
+        - characteristic read by another equation
+      * - :code:`ComponentCharacteristics`,
+          :code:`ComponentCharacteristicMaps` with equation
+        - :py:class:`~tespy.tools.data_containers.CharacteristicEquation`
+        - characteristic with its own equation
+      * - :code:`ComponentMandatoryConstraints`
+        - :py:class:`~tespy.tools.data_containers.MandatoryConstraint`
+        - always active equation of a component
+      * - :code:`ReferencedFluidProperties`
+        - :py:class:`~tespy.tools.data_containers.ReferenceEquation`
+        - reference of a connection parameter to another connection
+
+  Characteristic containers accept any characteristic object with the
+  declared number of inputs. Providing a characteristic to a data container
+  marks it as specified, e.g. for the activation of a parameter group,
+  providing one to an equation container does not activate the equation.
 
 - Characteristic functions carry a physical quantity per axis. Components
   evaluate them through the container with SI inputs and receive SI outputs,

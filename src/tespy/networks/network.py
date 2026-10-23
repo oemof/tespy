@@ -3740,7 +3740,7 @@ def _construct_components(target_class, data):
                         param_data["char_func"]
                     )
 
-                container.set_attr(**param_data)
+                instances[cp]._deserialize_parameter(param, param_data)
             else:
                 instances[cp].set_attr(**{param: param_data})
 

@@ -177,6 +177,36 @@ def test_polynomial_carries_degC(eta_polys, reference_state):
     assert compressor.eta_s.val == pytest.approx(calc_EN12900(eta_s_poly, 0, 50), rel=1e-3)
 
 
+def test_network_file_of_version_0_11_loads(reference_state):
+    """Polynomial coefficients stored as val and the reference_state dictionary
+    of files written before 0.12 are translated on import."""
+    coefficients = list(np.linspace(0.1, 1, 10) * 1e-2)
+    compressor = PolynomialCompressor("compressor")
+    nw, c1, c2 = _network(compressor)
+    c1.set_attr(fluid={"R134a": 1})
+    data = nw.export()
+    legacy = data["Component"]["PolynomialCompressor"]["compressor"]
+    legacy["eta_s_poly"] = {"val": coefficients, "is_set": True}
+    legacy["eta_vol_poly"] = {"val": float("nan"), "is_set": False}
+    legacy["reference_state"] = {
+        "val": {"displacement": 214, "frequency_displacement": 20.0,
+                "T_sh": 20, "T_sc": 0, "frequency_poly": 50.0},
+        "is_set": True
+    }
+    legacy.pop("swept_volume")
+
+    with pytest.warns(FutureWarning):
+        restored = Network.from_dict(data).get_comp("compressor")
+    assert isinstance(restored.eta_s_poly.char_func, EN12900Polynomial)
+    np.testing.assert_allclose(restored.eta_s_poly.val, coefficients)
+    assert restored.eta_s_poly.is_set
+    assert restored.eta_vol_poly.char_func is None
+    assert restored.swept_volume.is_set
+    assert restored.swept_volume.val == pytest.approx(
+        swept_volume_from_displacement(214, 20.0)
+    )
+
+
 def test_coefficient_list_is_wrapped():
     compressor = PolynomialCompressor("compressor")
     with pytest.warns(FutureWarning):

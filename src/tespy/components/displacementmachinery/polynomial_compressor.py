@@ -412,6 +412,22 @@ class PolynomialCompressor(DisplacementMachine):
                 kwargs[key] = EN12900Polynomial(value)
         super().set_attr(**kwargs)
 
+    def _deserialize_parameter(self, key, data):
+        # files written before version 0.12 hold the polynomial coefficients
+        # as val of a simple container and the swept volume inside the
+        # reference_state dictionary
+        if key in ("eta_s_poly", "eta_vol_poly") and "val" in data:
+            data = dict(data)
+            coefficients = data.pop("val")
+            if coefficients is not None and not (
+                    isinstance(coefficients, float) and np.isnan(coefficients)
+            ):
+                data["char_func"] = EN12900Polynomial(coefficients)
+        elif key == "reference_state" and data.get("is_set"):
+            self.set_attr(reference_state=data["val"])
+            return
+        super()._deserialize_parameter(key, data)
+
     @staticmethod
     def powerinlets():
         return ["power"]

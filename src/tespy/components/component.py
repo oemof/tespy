@@ -381,7 +381,13 @@ class Component:
 
     def _restore_specifications(self, data):
         for key, param_data in data.items():
-            self.get_attr(key).set_attr(**param_data)
+            self._deserialize_parameter(key, param_data)
+
+    def _deserialize_parameter(self, key, data):
+        """Write the data of one parameter from a file or a specification
+        snapshot into its container. Components translate the data of
+        parameters whose container changed in earlier versions here."""
+        self.get_attr(key).set_attr(**data)
 
     def _get_result_attributes(self):
         return [

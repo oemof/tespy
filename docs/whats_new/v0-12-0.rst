@@ -92,8 +92,11 @@ API Changes
   equation, is an element of a parameter group or can become a system
   variable. A parameter flagged :code:`is_result` without any of these is
   result-only and refuses user values with a :code:`TypeError` instead of
-  silently ignoring them (:issue:`1070`). The :code:`result_only` property
-  tells the state of a parameter.
+  silently ignoring them (:issue:`1070`). The same holds for connection
+  parameters that are neither variables nor carry an equation: specific
+  entropy :code:`s`, specific volume :code:`vol` and the humid air mass flows
+  :code:`mHA` and :code:`mH2O`, which also reject starting values. The
+  :code:`result_only` property tells the state of a parameter.
 - References of connection parameters to the same parameter of another
   connection are attached to the parameter: :code:`c.m.reference` holds the
   :py:class:`~tespy.tools.data_containers.ReferenceEquation`. The former
@@ -108,3 +111,8 @@ API Changes
   mandatory constraint of the component now, which is left out when
   subcooling is allowed. The specification :code:`subcooling=True` is
   unchanged.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@the8thbit <https://github.com/the8thbit>`__

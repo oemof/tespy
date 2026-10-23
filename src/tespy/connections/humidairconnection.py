@@ -40,10 +40,12 @@ class HAConnection(Connection):
                 description="mass flow of dry air (system variable)"
             ),
             "mHA": ConnectionParameter(
+                is_result=True,
                 quantity="mass_flow",
                 description="mass flow of humid air"
             ),
             "mH2O": ConnectionParameter(
+                is_result=True,
                 quantity="mass_flow",
                 description="mass flow of liquid or solid water not contained in humid air"
             ),
@@ -74,10 +76,12 @@ class HAConnection(Connection):
                 description="volumetric flow of the fluid"
             ),
             "vol": ConnectionParameter(
+                is_result=True,
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
             "s": ConnectionParameter(
+                is_result=True,
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),

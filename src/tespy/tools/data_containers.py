@@ -650,6 +650,10 @@ class ConnectionParameter(ScalarParameter):
 
     Takes the parameters of :py:class:`ScalarParameter`.
 
+    A parameter is an input when it is a system variable or carries an
+    equation, directly or through a reference. A result parameter without
+    any of these is result-only and refuses user values.
+
     Parameters
     ----------
     reference : ReferenceEquation
@@ -664,6 +668,25 @@ class ConnectionParameter(ScalarParameter):
             **ScalarParameter.attr(),
             "reference": None,
         }
+
+    def _is_input(self):
+        return (
+            not self.is_result
+            or self.func is not None
+            or self.structure_matrix is not None
+            or self.reference is not None
+        )
+
+    @property
+    def result_only(self):
+        return not self._is_input()
+
+    def accept(self, value):
+        if value is not None and self.result_only:
+            raise TypeError(
+                "This parameter is result-only and cannot be set by the user."
+            )
+        super().accept(value)
 
 
 class ComponentParameter(ScalarParameter):
@@ -733,6 +756,10 @@ class ComponentParameter(ScalarParameter):
         )
 
     def accept(self, value):
+        if value is not None and self.result_only:
+            raise TypeError(
+                "This parameter is result-only and cannot be set by the user."
+            )
         if isinstance(value, str) and value == "var":
             if not self._allows_var:
                 raise ValueError(
@@ -740,10 +767,6 @@ class ComponentParameter(ScalarParameter):
                 )
             self.is_set = True
             self.is_var = True
-        elif value is not None and self.result_only:
-            raise TypeError(
-                "This parameter is result-only and cannot be set by the user."
-            )
         else:
             super().accept(value)
             self.is_var = False

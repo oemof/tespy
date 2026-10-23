@@ -135,8 +135,16 @@ class ConnectionBase:
     def _parameter_specification(self, key, value):
         # Starting-value key (e.g. 'm0') - route to the base container's val0
         if key in self.property_data0:
+            container = self.get_attr(key.replace('0', ''))
+            if value is not None and container.result_only:
+                msg = (
+                    f"The parameter {key[:-1]} of Connection {self.label} is "
+                    "result-only and cannot have a starting value."
+                )
+                logger.error(msg)
+                raise TypeError(msg)
             if _is_numeric(value) or value is None:
-                self.get_attr(key.replace('0', '')).set_attr(val0=value)
+                container.set_attr(val0=value)
                 return
             else:
                 msg = (
@@ -2038,10 +2046,12 @@ class Connection(ConnectionBase):
                 description="subcooling temperature difference to bubble line temperature"
             ),
             "vol": ConnectionParameter(
+                is_result=True,
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
             "s": ConnectionParameter(
+                is_result=True,
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),

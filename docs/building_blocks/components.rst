@@ -22,8 +22,14 @@ links to the underlying equations, the class documentation and example.
 Component parametrisation
 -------------------------
 
-All parameters of components can be set and unset through the :code:`set_attr`
-method. As seen in the tables above, there are different types of parameters:
+Input parameters of components can be set and unset through the :code:`set_attr`
+method. Result-only properties, such as the logarithmic mean temperature
+difference :code:`lmtd`, are calculated after solving. Specifying them as
+inputs raises a :code:`TypeError`. Their calculated values remain available
+through the usual :code:`val`, :code:`val_SI` and :code:`val_with_unit`
+attributes.
+
+As seen in the tables above, there are different types of input parameters:
 
 - Component parameters: A scalar with a physical quantity, e.g. a pressure
   ratio or a heat transfer coefficient. If an equation is associated with the

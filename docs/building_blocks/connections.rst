@@ -17,6 +17,13 @@ The tables above indicate, which specification parameters are available for
 each class. To set/unset values the same logic applies as is used in
 components.
 
+Specific entropy :code:`s` and specific volume :code:`vol` are result-only
+properties. On :code:`HAConnection`, the humid-air and separated-water mass
+flows :code:`mHA` and :code:`mH2O` are also result-only. They are calculated
+after solving and cannot be specified as inputs or starting values. Passing a
+value to :code:`set_attr`, including through a starting-value key such as
+:code:`s0`, raises a :code:`TypeError`.
+
 Setting and unsetting values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

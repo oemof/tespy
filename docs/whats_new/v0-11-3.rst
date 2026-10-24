@@ -123,8 +123,9 @@ Documentation
   (`PR #1081 <https://github.com/oemof/tespy/pull/1081>`__,
   `PR #1082 <https://github.com/oemof/tespy/pull/1082>`__).
 
-- The components overview compares compressor models and demonstrates a
-  map-based offdesign calculation
+- A new how-to notebook compares fixed-efficiency, characteristic-line and
+  map-based compressor models, and demonstrates displacement-compressor
+  polynomials with and without a cooling circuit
   (`issue #806 <https://github.com/oemof/tespy/issues/806>`__).
 
 Contributors

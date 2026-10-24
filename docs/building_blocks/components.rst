@@ -8,86 +8,9 @@ specify simple inputs to components, implement custom values in context of
 characteristic lines or maps, and give hints as to how to implement custom
 equations to existing components or create custom components yourself.
 
-Choosing a compressor model
----------------------------
-
-Choose the compressor class according to the available performance data and
-whether cooling of the compressor must be part of the network.
-
-.. list-table:: Compressor models
-   :header-rows: 1
-   :widths: 25 35 40
-
-   * - Class
-     - Performance description
-     - When to use it
-   * - :py:class:`~tespy.components.turbomachinery.compressor.Compressor`
-     - Isentropic efficiency, optionally an efficiency characteristic line.
-     - A design calculation with a known efficiency, or a simple offdesign
-       approximation when no machine map is available.
-   * - :py:class:`~tespy.components.turbomachinery.turbocompressor.TurboCompressor`
-     - Two-dimensional maps for pressure ratio and isentropic efficiency over
-       non-dimensional mass flow and speed lines; inlet guide vane angle.
-     - A turbocompressor whose offdesign pressure ratio and efficiency should
-       follow a characteristic map.
-   * - :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
-     - Isentropic and volumetric efficiency polynomials derived from
-       manufacturer power and cooling capacity data following EN 12900.
-     - A displacement compressor with manufacturer data and a reference state
-       including suction superheat, subcooling, frequency and displacement.
-   * - :py:class:`~tespy.components.displacementmachinery.polynomial_compressor_with_cooling.PolynomialCompressorWithCooling`
-     - The polynomial model with a second fluid inlet and outlet for cooling.
-     - A displacement compressor whose recoverable dissipated heat is
-       transferred to a cooling circuit in the network.
-
-The class documentation linked above includes complete examples of each model.
-In particular, the polynomial examples show how to prepare manufacturer data
-and set the reference state; their coefficients are specific to that machine
-and refrigerant. The cooling variant connects the working fluid to
-:code:`in1`/:code:`out1` and the cooling fluid to :code:`in2`/:code:`out2`.
-
-A :code:`TurboCompressor` can use the same fixed efficiency as a
-:code:`Compressor` at its design point. The following example first solves that
-point, then activates the maps for a lower inlet flow. A saved design state
-normalises the maps, and a variable guide vane angle maintains the pressure
-ratio. Default maps illustrate the workflow; use suitable machine data for
-predictions of a particular compressor.
-
-.. code-block:: python
-
-    >>> from tespy.components import Source, Sink, TurboCompressor
-    >>> from tespy.connections import Connection
-    >>> from tespy.networks import Network
-    >>> network = Network(iterinfo=False)
-    >>> network.units.set_defaults(
-    ...     pressure="bar", pressure_difference="bar", temperature="degC",
-    ...     volumetric_flow="l/s", power="kW"
-    ... )
-    >>> compressor = TurboCompressor("air compressor")
-    >>> inlet = Connection(Source("air inlet"), "out1", compressor, "in1")
-    >>> outlet = Connection(compressor, "out1", Sink("air outlet"), "in1")
-    >>> network.add_conns(inlet, outlet)
-    >>> inlet.set_attr(fluid={"air": 1}, p=1, T=20, v=50)
-    >>> compressor.set_attr(
-    ...     pr=5, eta_s=0.8, design=["eta_s"],
-    ...     offdesign=["char_map_pr", "char_map_eta_s"]
-    ... )
-    >>> network.solve("design")
-    >>> network.assert_convergence()
-    >>> round(compressor.P.val, 2)
-    12.77
-    >>> design_state = network.save(as_dict=True)
-    >>> inlet.set_attr(v=45)
-    >>> compressor.set_attr(igva="var")
-    >>> network.solve("offdesign", design_path=design_state)
-    >>> network.assert_convergence()
-    >>> round(compressor.eta_s.val, 2), round(compressor.igva.val, 2)
-    (0.77, 8.88)
-
-With a fixed :code:`eta_s` instead of maps, the efficiency would remain at the
-specified value when the inlet flow changes. A characteristic line on
-:code:`Compressor` can model a simpler one-dimensional efficiency variation;
-see its example for the :code:`eta_s_char` design/offdesign configuration.
+For a worked comparison of fixed efficiency, part-load characteristics,
+turbocompressor maps and displacement-compressor polynomials, see the
+:ref:`compressor model selection how-to <tutorial_compressor_models_label>`.
 
 List of components
 ------------------

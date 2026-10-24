@@ -17,6 +17,70 @@ links to the underlying equations, the class documentation and example.
 
 .. include:: _components_overview.rst
 
+Choosing a turbine model
+------------------------
+
+Both turbine classes can expand steam. The distinction is how the efficiency
+is specified, rather than the name of the working fluid:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 25 45 30
+
+    * - Class
+      - Use it when
+      - Efficiency specification
+    * - :py:class:`~tespy.components.turbomachinery.turbine.Turbine`
+      - You know the isentropic efficiency for the expansion being modeled,
+        for either a gas or steam turbine.
+      - :code:`eta_s`, or :code:`eta_s_char` for offdesign operation.
+    * - :py:class:`~tespy.components.turbomachinery.steam_turbine.SteamTurbine`
+      - You want to account for the efficiency loss caused by wet steam
+        during expansion.
+      - :code:`eta_s_dry` and :code:`alpha` activate the Baumann rule. The
+        inherited :code:`eta_s` specification is also available.
+
+The :code:`SteamTurbine` requires a pure fluid and is intended for water.
+Specify either
+the efficiency of the whole expansion (:code:`eta_s`) or the dry efficiency
+and correction factor (:code:`eta_s_dry`, :code:`alpha`), rather than both.
+The API examples linked above give the complete parameter lists and show
+offdesign operation.
+
+For example, compare two models of water expanding from 20 bar and 250 °C
+to 0.1 bar. The same dry efficiency does not imply the same power when the
+wetness correction is applied:
+
+.. code-block:: python
+
+    >>> from tespy.components import Sink, Source, SteamTurbine, Turbine
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+    >>> def expand_steam(turbine):
+    ...     network = Network(iterinfo=False)
+    ...     network.units.set_defaults(
+    ...         temperature="degC", pressure="bar",
+    ...         pressure_difference="bar", power="MW"
+    ...     )
+    ...     inlet = Connection(Source("source"), "out1", turbine, "in1")
+    ...     outlet = Connection(turbine, "out1", Sink("sink"), "in1")
+    ...     network.add_conns(inlet, outlet)
+    ...     inlet.set_attr(fluid={"water": 1}, m=10, p=20, T=250)
+    ...     outlet.set_attr(p=0.1)
+    ...     network.solve("design")
+    ...     return round(outlet.x.val, 3), round(turbine.P.val, 2)
+    >>> turbine = Turbine("constant efficiency")
+    >>> turbine.set_attr(eta_s=0.9)
+    >>> expand_steam(turbine)
+    (0.821, -7.47)
+    >>> wet_turbine = SteamTurbine("wet expansion")
+    >>> wet_turbine.set_attr(eta_s_dry=0.9, alpha=1.0)
+    >>> expand_steam(wet_turbine)
+    (0.84, -7.01)
+
+The first result is the outlet vapor mass fraction; the second is the power
+in MW. Turbine power is negative because it leaves the fluid.
+
 .. _modules_components_parametrisation_label:
 
 Component parametrisation

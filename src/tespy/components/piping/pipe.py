@@ -14,9 +14,9 @@ import math
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.logger import logger
 
@@ -70,7 +70,7 @@ class Pipe(SimpleHeatExchanger):
         Diameter of channel. Quantity: :code:`length`. Can be set as a system
         variable by passing :code:`"var"` as its value.
 
-    darcy_group : GroupedComponentProperties
+    darcy_group : ParameterGroup
         Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
         :code:`ks`, :code:`D`.
         Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
@@ -95,12 +95,12 @@ class Pipe(SimpleHeatExchanger):
     flow_speed : float, dict
         Flow speed at inlet of pipe. Quantity: :code:`speed`.
 
-    flow_speed_group : GroupedComponentProperties
+    flow_speed_group : ParameterGroup
         Equation connecting volumetric flow, flow speed and diameter of pipe.
         Elements: :code:`D`, :code:`flow_speed`.
         Equation: :py:meth:`flow_speed_func <tespy.components.piping.pipe.Pipe.flow_speed_func>`.
 
-    hw_group : GroupedComponentProperties
+    hw_group : ParameterGroup
         Hazen-Williams equation for pressure loss. Elements: :code:`L`,
         :code:`ks_HW`, :code:`D`.
         Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
@@ -120,11 +120,11 @@ class Pipe(SimpleHeatExchanger):
     kA_char : tespy.tools.characteristics.CharLine, dict
         Deprecated, use :code:`UA_char` instead.
 
-    kA_char_group : GroupedComponentProperties
+    kA_char_group : ParameterGroup
         Deprecated, use :code:`UA_char_group` instead. Elements:
         :code:`kA_char`, :code:`Tamb`.
 
-    kA_group : GroupedComponentProperties
+    kA_group : ParameterGroup
         Deprecated, use :code:`UA_group` instead. Elements: :code:`kA`,
         :code:`Tamb`.
 
@@ -145,7 +145,8 @@ class Pipe(SimpleHeatExchanger):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -176,14 +177,14 @@ class Pipe(SimpleHeatExchanger):
         Heat transfer. Quantity: :code:`heat`.
         Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
 
-    Q_ohc_group_subsurface : GroupedComponentProperties
+    Q_ohc_group_subsurface : ParameterGroup
         Equation for heat loss of buried pipes. Elements:
         :code:`insulation_thickness`, :code:`insulation_tc`, :code:`Tamb`,
         :code:`material`, :code:`pipe_thickness`, :code:`environment_media`,
         :code:`pipe_depth`.
         Equation: :py:meth:`ohc_subsurface_group_func <tespy.components.piping.pipe.Pipe.ohc_subsurface_group_func>`.
 
-    Q_ohc_group_surface : GroupedComponentProperties
+    Q_ohc_group_surface : ParameterGroup
         Equation for heat loss of surface pipes. Elements:
         :code:`insulation_thickness`, :code:`insulation_tc`, :code:`Tamb`,
         :code:`material`, :code:`pipe_thickness`, :code:`environment_media`,
@@ -201,12 +202,12 @@ class Pipe(SimpleHeatExchanger):
     UA_char : tespy.tools.characteristics.CharLine, dict
         Heat transfer coefficient lookup table for offdesign.
 
-    UA_char_group : GroupedComponentProperties
+    UA_char_group : ParameterGroup
         Heat transfer from design heat transfer coefficient, modifier lookup
         table and ambient temperature. Elements: :code:`UA_char`, :code:`Tamb`.
         Equation: :py:meth:`UA_char_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func>`.
 
-    UA_group : GroupedComponentProperties
+    UA_group : ParameterGroup
         Equation for heat transfer based on ambient temperature and heat
         transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
         Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
@@ -215,7 +216,8 @@ class Pipe(SimpleHeatExchanger):
         Velocity of wind at insulation surface. Quantity: :code:`speed`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
@@ -311,7 +313,7 @@ class Pipe(SimpleHeatExchanger):
     def get_parameters(self):
         parameters=super().get_parameters()
 
-        parameters["Q_ohc_group_surface"]=dc_gcp(
+        parameters["Q_ohc_group_surface"]=ParameterGroup(
             elements=[
                 "insulation_thickness", "insulation_tc", "Tamb", "material",
                 "pipe_thickness", "environment_media", "wind_velocity"
@@ -321,7 +323,7 @@ class Pipe(SimpleHeatExchanger):
             dependents=self.ohc_surface_group_dependents,
             description="equation for heat loss of surface pipes"
         )
-        parameters["Q_ohc_group_subsurface"]=dc_gcp(
+        parameters["Q_ohc_group_subsurface"]=ParameterGroup(
             elements=[
                 "insulation_thickness", "insulation_tc", "Tamb", "material",
                 "pipe_thickness", "environment_media","pipe_depth"
@@ -331,34 +333,34 @@ class Pipe(SimpleHeatExchanger):
             dependents=self.ohc_subsurface_group_dependents,
             description="equation for heat loss of buried pipes"
         )
-        parameters["insulation_thickness"]=dc_cp(
+        parameters["insulation_thickness"]=ComponentParameter(
             min_val=1e-3, max_val=1e1, quantity="length",
             description="thickness of pipe insulation"
         )
-        parameters["insulation_tc"]=dc_cp(
+        parameters["insulation_tc"]=ComponentParameter(
             min_val=1e-3, max_val=1e2, quantity="thermal_conductivity",
             description="thermal conductivity of insulation"
         )
-        parameters["material"]=dc_simple(val="Steel", dtype="str")
-        parameters["pipe_thickness"]=dc_cp(
+        parameters["material"]=ConfigParameter(val="Steel", dtype="str")
+        parameters["pipe_thickness"]=ComponentParameter(
             min_val=0, max_val=1, quantity="length",
             description="wall thickness of pipe"
         )
-        parameters["environment_media"]=dc_simple(val="soil", dtype="str")
-        parameters["wind_velocity"]=dc_cp(
+        parameters["environment_media"]=ConfigParameter(val="soil", dtype="str")
+        parameters["wind_velocity"]=ComponentParameter(
             min_val=1e-6, max_val=20, quantity="speed",
             description="velocity of wind at insulation surface"
         )
-        parameters["pipe_depth"]= dc_cp(
+        parameters["pipe_depth"]= ComponentParameter(
             min_val=1e-2, max_val=1e2, quantity="length",
             description="depth of buried pipe"
         )
-        parameters["flow_speed"]= dc_cp(
+        parameters["flow_speed"]= ComponentParameter(
             min_val=1e-2, max_val=1e2, quantity="speed",
             description="flow speed at inlet of pipe",
             calc=self._calc_flow_speed
         )
-        parameters["flow_speed_group"]= dc_gcp(
+        parameters["flow_speed_group"]= ParameterGroup(
             elements=["D", "flow_speed"],
             num_eq_sets=1,
             func=self.flow_speed_func,

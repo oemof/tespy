@@ -33,16 +33,15 @@ import re
 import subprocess
 import textwrap
 
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import ReferencedFluidProperties as dc_ref
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import FluidComposition
+from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ReferenceEquation
 
 # ---------------------------------------------------------------------------
 # Base parameters shared by every component
@@ -131,24 +130,29 @@ def _collect_constraints(instance):
 def _dc_type(dc):
     """Return the NumPy-style type annotation string for a data container."""
     import math
-    if isinstance(dc, dc_cap):
+    if isinstance(dc, ArrayParameter):
         return "numpy.ndarray"
-    if isinstance(dc, dc_cp):
+    if isinstance(dc, ComponentParameter):
         base = "float, dict"
         return base + ', :code:`"var"`' if getattr(dc, "_allows_var", False) else base
-    if isinstance(dc, dc_cc):
-        return "tespy.tools.characteristics.CharLine, dict"
-    if isinstance(dc, dc_cm):
-        return "tespy.tools.characteristics.CharMap, dict"
-    if isinstance(dc, (dc_gcp, dc_gcc)):
+    if isinstance(dc, CharacteristicData):
+        accepted = ", ".join(
+            f"tespy.tools.characteristics.{t.__name__}" for t in dc._char_types()
+        )
+        return f"{accepted}, dict"
+    if isinstance(dc, ParameterGroup):
         return type(dc).__name__
-    if isinstance(dc, dc_ref):
+    if isinstance(dc, OptionalEquation):
+        return "bool" if not dc.elements else type(dc).__name__
+    if isinstance(dc, ReferenceEquation):
         return "Ref"
-    if isinstance(dc, dc_prop):
-        return "float, Ref"
-    if isinstance(dc, dc_flu):
+    if isinstance(dc, ConnectionParameter):
+        if dc.reference is not None:
+            return "float, Ref"
+        return "float"
+    if isinstance(dc, FluidComposition):
         return "dict"
-    if isinstance(dc, dc_simple):
+    if isinstance(dc, ConfigParameter):
         dtype = getattr(dc, "dtype", None)
         if dtype:
             return dtype
@@ -188,6 +192,11 @@ def _ports_section(cls):
         if kind == "fixed":
             ports = entry.get("ports", [])
             if ports:
+                described = entry.get("descriptions", {})
+                ports = [
+                    f"{port} ({described[port]})" if port in described else port
+                    for port in ports
+                ]
                 lines.append(f"- {label}: {', '.join(ports)}")
         elif kind == "variable":
             param = entry["parameter"]
@@ -234,10 +243,10 @@ def _parameters_section(instance, base_params=None, param_filter=None):
     for name, ptype, desc in base_params:
         entries.append((name, f"\n{name} : {ptype}\n    {desc}"))
 
-    try:
-        params = instance.get_parameters()
-    except Exception:
-        params = {}
+    if hasattr(instance, "property_data"):
+        params = instance.property_data
+    else:
+        params = instance.parameters
 
     for name, dc in params.items():
         if param_filter is not None and not param_filter(name, dc):
@@ -248,20 +257,25 @@ def _parameters_section(instance, base_params=None, param_filter=None):
         desc = (raw_desc[0].upper() + raw_desc[1:]).rstrip(".") if raw_desc else ""
 
         meta_parts = []
-        if isinstance(dc, dc_cap):
+        if isinstance(dc, ArrayParameter):
             q = getattr(dc, "quantity", None)
             if q:
                 meta_parts.append(f"Quantity: :code:`{q}`.")
-            meta_parts.append("Result only - populated by the network after each solve.")
-        if isinstance(dc, dc_cp):
+            if dc.result_only:
+                meta_parts.append("Result only - populated by the network after each solve.")
+        if isinstance(dc, ComponentParameter):
             q = getattr(dc, "quantity", None)
             if q:
                 meta_parts.append(f"Quantity: :code:`{q}`.")
+            if dc.result_only:
+                meta_parts.append("Result only - calculated after each solve.")
             if getattr(dc, "_allows_var", False):
                 meta_parts.append(
                     'Can be set as a system variable by passing :code:`"var"` as its value.'
                 )
-        if isinstance(dc, (dc_gcp, dc_gcc)):
+        if isinstance(dc, ConnectionParameter) and dc.result_only:
+            meta_parts.append("Result only - calculated after each solve.")
+        if isinstance(dc, OptionalEquation):
             elements = getattr(dc, "elements", None) or []
             if elements:
                 meta_parts.append(
@@ -488,6 +502,9 @@ def generate_connection_docstring(cls):
     intro, suffix, example = _split_docstring(cls)
 
     instance = cls.__new__(cls)
+    instance.property_data = instance.get_parameters()
+    instance.__dict__.update(instance.property_data)
+    instance._mark_consumed_parameters()
 
     parts = []
     if intro:

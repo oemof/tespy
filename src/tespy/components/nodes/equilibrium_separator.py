@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.droplet_separator import DropletSeparator
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
@@ -43,7 +43,7 @@ class EquilibriumSeparator(DropletSeparator):
     -----
 
     - Fluid inlets: in1
-    - Fluid outlets: out1, out2
+    - Fluid outlets: out1 (liquid phase), out2 (gas phase)
 
     Mandatory Equations
     -------------------
@@ -121,16 +121,23 @@ class EquilibriumSeparator(DropletSeparator):
     1.0
     """
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "out1": "liquid phase",
+            "out2": "gas phase",
+        }
+
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        constraints['outlet_constraint_liquid'] = dc_cmc(**{
+        constraints['outlet_constraint_liquid'] = MandatoryConstraint(**{
             'func': self.outlet_state_func,
             'dependents': self.outlet_state_dependents,
             'num_eq_sets': 1,
             'func_params': {'outconn': 0, 'phase': 'l'},
             'description': 'outlet 0 liquid state constraint'
         })
-        constraints['outlet_constraint_gas'] = dc_cmc(**{
+        constraints['outlet_constraint_gas'] = MandatoryConstraint(**{
             'func': self.outlet_state_func,
             'dependents': self.outlet_state_dependents,
             'num_eq_sets': 1,

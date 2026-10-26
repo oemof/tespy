@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 
 import math
 import warnings
-from collections import deque
 
 import numpy as np
 import pandas as pd
@@ -24,14 +23,13 @@ from tespy.tools import logger
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import ParameterGroup
+from tespy.tools.data_containers import ScalarParameter
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
 from tespy.tools.fluid_properties import h_mix_pT
@@ -41,6 +39,7 @@ from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import _topological_sort
 from tespy.tools.helpers import _validate_dependents
 from tespy.tools.units import SI_UNITS
 
@@ -51,35 +50,6 @@ def component_registry(type):
 
 
 component_registry.items = {}
-
-
-def _topological_sort(calc_items):
-    """Return keys of calc_items in topological order based on calc_deps.
-
-    Raises ValueError if a dependency cycle is detected.
-    """
-    successors = {k: [] for k in calc_items}
-    in_degree = {k: 0 for k in calc_items}
-    for k, dc in calc_items.items():
-        for dep in dc.calc_deps:
-            if dep in calc_items:
-                successors[dep].append(k)
-                in_degree[k] += 1
-
-    queue = deque(k for k in calc_items if in_degree[k] == 0)
-    ordered = []
-    while queue:
-        k = queue.popleft()
-        ordered.append(k)
-        for succ in successors[k]:
-            in_degree[succ] -= 1
-            if in_degree[succ] == 0:
-                queue.append(succ)
-
-    if len(ordered) != len(calc_items):
-        cycle = set(calc_items) - set(ordered)
-        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
-    return ordered
 
 
 @component_registry
@@ -170,11 +140,27 @@ class Component:
         self.bypass = False
         self.fkt_group = self.label
         self._local_connection_design_state = {}
+        # the network assigns the connections at the ports, the empty ports
+        # let the constraints be built before that
+        self.inl, self.outl = [], []
+        self.power_inl, self.power_outl = [], []
+        self.heat_inl, self.heat_outl = [], []
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
         self.__dict__.update(self.parameters)
+        self._mark_consumed_parameters()
         self.set_attr(**kwargs)
+
+    def _mark_consumed_parameters(self):
+        """Parameters read by a group, an optional equation or a mandatory
+        constraint accept specifications although they carry no equation of
+        their own."""
+        consumers = list(self.parameters.values())
+        consumers += list(self.get_mandatory_constraints().values())
+        for consumer in consumers:
+            for element in getattr(consumer, "elements", []):
+                self.parameters[element]._consumed = True
 
     def set_attr(self, **kwargs):
         r"""
@@ -283,7 +269,7 @@ class Component:
         title = f"{type(self).__name__}: {self.label}"
         rows = []
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if not data.is_set and np.isnan(data.val):
                     continue
                 spec = "var" if data.is_var else ("set" if data.is_set else "")
@@ -294,16 +280,19 @@ class Component:
                     f"{data.val_SI:.4e}",
                     spec
                 ])
-            elif isinstance(data, dc_cap):
+            elif isinstance(data, ArrayParameter):
                 val = data.val if data.val is not None else data.val_SI
                 if val is not None:
                     rows.append([key, "[...]", data._display_unit(), "", ""])
-            elif isinstance(data, (dc_cc, dc_cm)):
+            elif isinstance(data, CharacteristicData):
                 if data.is_set:
                     rows.append([key, "characteristic", "", "", "set"])
-            elif isinstance(data, (dc_gcp, dc_gcc)):
+            elif isinstance(data, ParameterGroup):
                 if data.is_set:
                     rows.append([key, "parameter group", "", "", "set"])
+            elif isinstance(data, OptionalEquation):
+                if data.is_set:
+                    rows.append([key, "equation", "", "", "set"])
         if not rows:
             return f"{title}\nno specifications or results"
         table = tabulate(
@@ -356,37 +345,37 @@ class Component:
         for key, container in self.parameters.items():
             if not container.is_set:
                 continue
-            if isinstance(container, dc_cp):
+            if isinstance(container, ComponentParameter):
                 specs[key] = {
                     "val": container.val,
                     "unit": container._unit_for_export(units),
                     "is_set": True,
                     "is_var": container.is_var
                 }
-            elif isinstance(container, (dc_cc, dc_cm)):
-                specs[key] = {
-                    k: v for k, v in container._serialize().items()
-                    if k != "char_func"
-                }
-            elif isinstance(container, dc_gcp):
-                specs[key] = {"is_set": True}
             else:
-                specs[key] = {"val": container.val, "is_set": True}
+                specs[key] = container._serialize(units)
         return specs
 
     def _clear_specifications(self):
         for container in self.parameters.values():
             container.is_set = False
-            if isinstance(container, dc_cp):
+            if isinstance(container, ComponentParameter):
                 container.is_var = False
 
     def _restore_specifications(self, data):
         for key, param_data in data.items():
-            self.get_attr(key).set_attr(**param_data)
+            self._deserialize_parameter(key, param_data)
+
+    def _deserialize_parameter(self, key, data):
+        """Write the data of one parameter from a file or a specification
+        snapshot into its container. Components translate the data of
+        parameters whose container changed in earlier versions here."""
+        self.get_attr(key).set_attr(**data)
 
     def _get_result_attributes(self):
         return [
-            key for key, p in self.parameters.items() if isinstance(p, dc_cp)
+            key for key, p in self.parameters.items()
+            if isinstance(p, ComponentParameter)
         ]
 
     def collect_results(self):
@@ -394,7 +383,7 @@ class Component:
         for key in self._get_result_attributes():
             p = self.get_attr(key)
             if (p.func is not None or (p.func is None and p.is_set) or
-                    p.is_result or p.structure_matrix is not None):
+                    p.calc is not None or p.structure_matrix is not None):
                 result[key] = p.val
             else:
                 result[key] = np.nan
@@ -415,7 +404,7 @@ class Component:
     def get_variables(self):
         variables = {}
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if data.is_var:
                     variables.update({key: data})
 
@@ -488,7 +477,7 @@ class Component:
 
     def _setup_user_imposed_constraints(self, row_idx, sum_eq):
         for key, data in self.parameters.items():
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 if data.is_var:
                     self.num_vars += 1
                     data._potential_var = True
@@ -497,36 +486,23 @@ class Component:
                 self.prop_specifications[key] = data.is_set
                 self.var_specifications[key] = data.is_var
 
-            # component characteristics
-            elif isinstance(data, dc_cc):
+            elif isinstance(data, CharacteristicData):
                 if data.func is not None:
                     self.char_specifications[key] = data.is_set
-                if data.char_func is None:
+                char_type = data._char_types()[0]
+                if data.char_func is None and char_type in (CharLine, CharMap):
                     for cls in type(self).__mro__:
                         try:
-                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharLine)
+                            data.set_default(
+                                ldc(cls.__name__, key, 'DEFAULT', char_type)
+                            )
                             break
                         except KeyError:
                             continue
                     else:
-                        data.char_func = CharLine()
+                        data.set_default(char_type())
 
-            # component characteristics
-            elif isinstance(data, dc_cm):
-                if data.func is not None:
-                    self.char_specifications[key] = data.is_set
-                if data.char_func is None:
-                    for cls in type(self).__mro__:
-                        try:
-                            data.char_func = ldc(cls.__name__, key, 'DEFAULT', CharMap)
-                            break
-                        except KeyError:
-                            continue
-                    else:
-                        data.char_func = CharMap()
-
-            # grouped component properties
-            elif type(data) == dc_gcp:
+            elif isinstance(data, ParameterGroup):
                 is_set = True
                 for e in data.elements:
                     if not self.get_attr(e).is_set:
@@ -552,10 +528,11 @@ class Component:
                     data.set_attr(is_set=False)
                 self.group_specifications[key] = data.is_set
 
-            # grouped component characteristics
-            elif type(data) == dc_gcc:
+            elif isinstance(data, OptionalEquation):
                 self.group_specifications[key] = data.is_set
-            # add equations to structure matrix
+
+            if not hasattr(data, "num_eq_sets"):
+                continue
             structure_matrix = data.structure_matrix is not None
             func = data.func is not None
             if data.is_set and (structure_matrix or func):
@@ -657,13 +634,13 @@ class Component:
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'},
                 'description': "mass flow equality constraint(s)"
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'},
@@ -696,8 +673,10 @@ class Component:
             ``"poweroutlets"``, ``"heatinlets"``, ``"heatoutlets"``.
             Each value is a dict with at least a ``"type"`` key:
 
-            ``{"type": "fixed", "ports": [...]}``
-                The port list is static.
+            ``{"type": "fixed", "ports": [...], "descriptions": {...}}``
+                The port list is static, ``descriptions`` holds the role of
+                a port by its name where :py:meth:`port_descriptions`
+                declares one.
 
             ``{"type": "variable", "parameter": str, "pattern": str, "min": int}``
                 Port count is controlled by *parameter*.  *pattern* is a
@@ -713,15 +692,26 @@ class Component:
         ):
             attr = inspect.getattr_static(cls, port_type, None)
             if isinstance(attr, staticmethod):
+                ports = getattr(cls, port_type)()
+                descriptions = cls.port_descriptions()
                 result[port_type] = {
                     "type": "fixed",
-                    "ports": getattr(cls, port_type)(),
+                    "ports": ports,
+                    "descriptions": {
+                        port: descriptions[port] for port in ports
+                        if port in descriptions
+                    },
                 }
             else:
                 # Instance method — subclass should override port_schema()
                 # but provide a safe fallback so schema generation never crashes.
                 result[port_type] = {"type": "unknown"}
         return result
+
+    @staticmethod
+    def port_descriptions():
+        """Role of the ports by name, e.g. :code:`{"in1": "hot side"}`."""
+        return {}
 
     @staticmethod
     def inlets():
@@ -1117,7 +1107,7 @@ class Component:
             self.new_design = True
 
         for key, dc in self.parameters.items():
-            if isinstance(dc, dc_cp):
+            if isinstance(dc, ComponentParameter):
                 if (
                         ((mode == 'offdesign' and not self.local_design) or
                         (mode == 'design' and self.local_offdesign)) and
@@ -1143,8 +1133,9 @@ class Component:
     def calc_parameters(self):
         r"""Postprocessing parameter calculation.
 
-        Each :py:class:`~tespy.tools.data_containers.ComponentProperties`
-        whose :code:`calc` attribute is set is called here in topological
+        Each :py:class:`~tespy.tools.data_containers.ComponentParameter` and
+        :py:class:`~tespy.tools.data_containers.ArrayParameter` whose
+        :code:`calc` attribute is set is called here in topological
         order (respecting :code:`calc_deps` dependencies).
 
         .. note::
@@ -1170,7 +1161,8 @@ class Component:
         """
         calc_items = {
             k: dc for k, dc in self.parameters.items()
-            if isinstance(dc, dc_cp) and dc.calc is not None
+            if isinstance(dc, (ComponentParameter, ArrayParameter))
+            and dc.calc is not None
         }
         for k in _topological_sort(calc_items):
             dc = calc_items[k]
@@ -1193,9 +1185,9 @@ class Component:
         _converged = self.check_parameter_bounds()
         _specifications_matched = True
         for key, value in self.parameters.items():
-            if isinstance(value, dc_cap):
+            if isinstance(value, ArrayParameter):
                 value.set_val_from_SI(units)
-            elif isinstance(value, dc_prop):
+            elif isinstance(value, ScalarParameter):
                 if value.is_set and not value.is_var:
                     if self.bypass:
                         continue
@@ -1238,7 +1230,7 @@ class Component:
         _no_limit_violated = True
         for p in self.parameters.keys():
             data = self.get_attr(p)
-            if isinstance(data, dc_cp):
+            if isinstance(data, ComponentParameter):
                 scale = max(abs(data.val_SI), 1.0)
                 if data.limit_scale is not None:
                     reference = self.get_attr(data.limit_scale).val_SI
@@ -1269,17 +1261,23 @@ class Component:
                 elif data.val_SI < data.min_val:
                     data.val_SI = data.min_val
 
-            elif isinstance(data, dc_cc) and data.is_set:
+            elif isinstance(data, CharacteristicData) and data.is_set:
                 if data.param is not None:
                     expr = self.get_char_expr(data.param, **data.char_params)
-                    data.char_func.get_domain_errors(expr, self.label)
+                    data.check_domain(expr, label=self.label)
 
-            elif isinstance(data, dc_gcc) and data.is_set:
+            elif (
+                isinstance(data, OptionalEquation) and data.is_set
+                and not isinstance(data, ParameterGroup)
+            ):
                 for char in data.elements:
                     char_data = self.get_attr(char)
+                    if getattr(char_data, "param", None) is None:
+                        continue
                     expr = self.get_char_expr(
-                        char_data.param, **char_data.char_params)
-                    char_data.char_func.get_domain_errors(expr, self.label)
+                        char_data.param, **char_data.char_params
+                    )
+                    char_data.check_domain(expr, label=self.label)
 
         return _no_limit_violated
 

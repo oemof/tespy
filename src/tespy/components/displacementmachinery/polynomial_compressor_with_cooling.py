@@ -12,8 +12,9 @@ SPDX-License-Identifier: MIT
 """
 from tespy.components.component import component_registry
 from tespy.components.displacementmachinery.polynomial_compressor import PolynomialCompressor
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.helpers import TESPyComponentError
 
@@ -40,8 +41,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (refrigerant), in2 (cooling fluid)
+    - Fluid outlets: out1 (refrigerant), out2 (cooling fluid)
     - Power inlets: power
 
     Mandatory Equations
@@ -81,7 +82,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         :code:`pressure_difference`.
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    energy_balance_group : GroupedComponentProperties
+    energy_balance_group : ParameterGroup
         Energy balance equation for fixed power and dissipation ratio. Elements:
         :code:`P`, :code:`dissipation_ratio`.
         Equation: :py:meth:`energy_balance_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.energy_balance_group_func>`.
@@ -93,15 +94,16 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     eta_s : float, dict
         Isentropic efficiency. Quantity: :code:`efficiency`.
 
-    eta_s_group : GroupedComponentProperties
+    eta_s_group : ParameterGroup
         Isentropic efficiency equation with fixed efficiency. Elements:
         :code:`eta_s`, :code:`dissipation_ratio`.
         Equation: :py:meth:`eta_s_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_group_func>`.
 
-    eta_s_poly : list
-        Polynomial coefficients for isentropic efficiency.
+    eta_s_poly : tespy.tools.characteristics.EN12900Polynomial, dict
+        Isentropic efficiency as function of evaporation and condensation
+        temperature.
 
-    eta_s_poly_group : GroupedComponentProperties
+    eta_s_poly_group : ParameterGroup
         Isentropic efficiency equation based on polynomial coefficients.
         Elements: :code:`eta_s_poly`, :code:`dissipation_ratio`.
         Equation: :py:meth:`eta_s_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_s_poly_group_func>`.
@@ -109,27 +111,28 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     eta_vol : float, dict
         Volumetric efficiency. Quantity: :code:`efficiency`.
 
-    eta_vol_group : GroupedComponentProperties
-        Elements: :code:`reference_state`, :code:`eta_vol`, :code:`frequency`.
+    eta_vol_group : ParameterGroup
+        Elements: :code:`swept_volume`, :code:`eta_vol`, :code:`frequency`.
         Equation: :py:meth:`eta_vol_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_frequency_group_func>`.
 
-    eta_vol_group_rpm : GroupedComponentProperties
+    eta_vol_group_rpm : ParameterGroup
         Displacement equation based on fixed volumetric efficiency. Elements:
-        :code:`reference_state`, :code:`eta_vol`, :code:`rpm`.
+        :code:`swept_volume`, :code:`eta_vol`, :code:`rpm`.
         Equation: :py:meth:`eta_vol_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func>`.
 
-    eta_vol_poly : list
-        Polynomial coefficients for volumetric efficiency.
+    eta_vol_poly : tespy.tools.characteristics.EN12900Polynomial, dict
+        Volumetric efficiency as function of evaporation and condensation
+        temperature.
 
-    eta_vol_poly_group : GroupedComponentProperties
+    eta_vol_poly_group : ParameterGroup
         Displacement equation based on polynomial coefficients for volumetric
-        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        efficiency. Elements: :code:`swept_volume`, :code:`eta_vol_poly`,
         :code:`frequency`.
         Equation: :py:meth:`eta_vol_poly_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_frequency_group_func>`.
 
-    eta_vol_poly_group_rpm : GroupedComponentProperties
+    eta_vol_poly_group_rpm : ParameterGroup
         Displacement equation based on polynomial coefficients for volumetric
-        efficiency. Elements: :code:`reference_state`, :code:`eta_vol_poly`,
+        efficiency. Elements: :code:`swept_volume`, :code:`eta_vol_poly`,
         :code:`rpm`.
         Equation: :py:meth:`eta_vol_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`.
 
@@ -164,19 +167,23 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         Include this component in the network's results printout.
 
     Q_diss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     reference_state : dict
-        Reference state definition for the scaling of displacement with
-        compressor rpm.
+        Deprecated, use :code:`swept_volume` instead.
 
     rpm : float, dict, :code:`"var"`
         Compressor frequency. Can be set as a system variable by passing
         :code:`"var"` as its value.
 
+    swept_volume : float, dict
+        Swept volume per revolution. Quantity: :code:`volume`.
+
     td_minimal : float, dict
         Theoretical minimal temperature difference between working and cooling
-        fluid. Quantity: :code:`temperature_difference`.
+        fluid. Quantity: :code:`temperature_difference`. Result only -
+        calculated after each solve.
 
     Example
     -------
@@ -261,7 +268,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
 
     .. attention::
 
-        The data or polynomial formulations must be in SI units!
+        The data must be in SI units, the EN 12900 polynomials take the
+        temperatures in °C as defined by the standard.
 
     We can now use the inbuilt method to determine the isentropic and
     volumetric efficiency polynomials. For that we need to import the
@@ -405,6 +413,15 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     def outlets():
         return ['out1', 'out2']
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "refrigerant",
+            "in2": "cooling fluid",
+            "out1": "refrigerant",
+            "out2": "cooling fluid",
+        }
+
     def _initial_affine_edges(self):
         return super()._initial_affine_edges() + [
             (self.inl[1].p, self.outl[1].p, 1.0, 0.0),
@@ -414,28 +431,28 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     def get_mandatory_constraints(self) -> dict:
         constraints = super().get_mandatory_constraints()
         # this is a dictionary
-        constraints["cooling_energy_balance_constraints"] = dc_cmc(
+        constraints["cooling_energy_balance_constraints"] = MandatoryConstraint(
             func=self.cooling_energy_balance_func,
             dependents=self.cooling_energy_balance_dependents,
             num_eq_sets=1,
+            elements=["eta_recovery"],
             description="energy balance for the cooling ports"
         )
         return constraints
 
     def get_parameters(self):
         params = super().get_parameters()
-        params["eta_recovery"] = dc_cp(
+        params["eta_recovery"] = ComponentParameter(
             quantity="efficiency",
             description="share of dissipated heat usable in cooling port"
         )
-        params["td_minimal"] = dc_cp(
+        params["td_minimal"] = ComponentParameter(
             min_val=0,
             quantity="temperature_difference",
-            is_result=True,
             description="theoretical minimal temperature difference between working and cooling fluid",
             calc=self._calc_td_minimal
         )
-        params["dp_cooling"] = dc_cp(
+        params["dp_cooling"] = ComponentParameter(
             min_val=0,
             structure_matrix=self.dp_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "dp": "dp_cooling"},
@@ -444,7 +461,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             description="cooling port inlet to outlet absolute pressure change",
             calc=self._calc_dp, calc_params={"inconn": 1, "outconn": 1}
         )
-        params["pr_cooling"] = dc_cp(
+        params["pr_cooling"] = ComponentParameter(
             min_val=0,
             structure_matrix=self.pr_structure_matrix,
             func_params={"inconn": 1, "outconn": 1, "pr": "pr_cooling"},

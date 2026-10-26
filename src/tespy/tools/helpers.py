@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 
 import os
+from collections import deque
 from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
@@ -19,7 +20,7 @@ import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter as dc_cp
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
@@ -459,6 +460,37 @@ class UserDefinedVariable:
     @property
     def _reference_container(self):
         return self.variable._reference_container
+
+
+def _topological_sort(calc_items):
+    """Return keys of calc_items in topological order based on calc_deps.
+
+    Raises ValueError if a dependency cycle is detected.
+    """
+    successors = {k: [] for k in calc_items}
+    in_degree = {k: 0 for k in calc_items}
+    for k, dc in calc_items.items():
+        for dep in dc.calc_deps:
+            if dep in calc_items:
+                successors[dep].append(k)
+                in_degree[k] += 1
+
+    queue = deque(k for k in calc_items if in_degree[k] == 0)
+    ordered = []
+    while queue:
+        k = queue.popleft()
+        ordered.append(k)
+        for succ in successors[k]:
+            in_degree[succ] -= 1
+            if in_degree[succ] == 0:
+                queue.append(succ)
+
+    if len(ordered) != len(calc_items):
+        cycle = set(calc_items) - set(ordered)
+        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
+    return ordered
+
+
 
 
 def solve(obj, increment_filter):

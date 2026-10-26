@@ -20,23 +20,26 @@ this, you need to implement four changes to the desired component class:
 - add a method, that returns the variables your equation depends on.
 
 In the :code:`get_parameters(self)` method, add an entry for your new equation.
-If the equation uses a single parameter, use the :code:`ComponentProperties`
-type DataContainer (or the :code:`ComponentCharacteristics` type in case you
+If the equation uses a single parameter, use the :code:`ComponentParameter`
+type DataContainer (or the :code:`CharacteristicEquation` type in case you
 only apply a characteristic curve). If your equations requires multiple
-parameters, add these parameters as :code:`ComponentProperties` or
-:code:`ComponentCharacteristics` respectively and add a
-:code:`GroupedComponentProperties` type DataContainer holding the information,
-e.g. like the :code:`darcy_group` parameter of the
+parameters, add these parameters as :code:`ComponentParameter` or
+:code:`CharacteristicData` respectively and add a :code:`ParameterGroup` type
+DataContainer holding the information, e.g. like the :code:`darcy_group`
+parameter of the
 :py:class:`tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
-class shown below.
+class shown below. An equation the user switches on, like the cone law of a
+turbine, is an :code:`OptionalEquation`: it is activated with :code:`True`
+or through the offdesign parameter list, its :code:`elements` only name the
+parameters it reads.
 
 .. code:: python
 
     # [...]
-    'D': dc_cp(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
-    'L': dc_cp(min_val=1e-1, d=1e-3, quantity="length"),
-    'ks': dc_cp(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
-    'darcy_group': dc_gcp(
+    'D': ComponentParameter(min_val=1e-2, max_val=2, d=1e-4, quantity="length"),
+    'L': ComponentParameter(min_val=1e-1, d=1e-3, quantity="length"),
+    'ks': ComponentParameter(val=1e-4, min_val=1e-7, max_val=1e-3, d=1e-8, quantity="length"),
+    'darcy_group': ParameterGroup(
         elements=['L', 'ks', 'D'], num_eq_sets=1,
         func=self.darcy_func,
         dependents=self.darcy_dependents
@@ -97,9 +100,9 @@ The starting lines of your file should look like this:
 .. code-block:: python
 
     from tespy.components.component import Component
-    from tespy.tools import ComponentCharacteristics as dc_cc
-    from tespy.tools import ComponentMandatoryConstraints as dc_cmc
-    from tespy.tools import ComponentProperties as dc_cp
+    from tespy.tools import CharacteristicEquation
+    from tespy.tools import ComponentParameter
+    from tespy.tools import MandatoryConstraint
 
 
     class MyCustomComponent(Component):
@@ -427,11 +430,11 @@ Define postprocessing
 After the solver converges, :py:meth:`~tespy.components.component.Component.calc_parameters`
 computes all result values (e.g. :code:`UA`, :code:`ttd_u`, :code:`pr1`).
 Instead of overriding :code:`calc_parameters` directly, the recommended
-approach is to declare a :code:`calc` callable on the :code:`dc_cp` data
-container. The base class will then automatically dispatch all :code:`calc`
+approach is to declare a :code:`calc` callable on the
+:code:`ComponentParameter` data container. The base class will then automatically dispatch all :code:`calc`
 methods in topological order, respecting any declared dependencies.
 
-Three keyword arguments of :code:`dc_cp` control postprocessing:
+Three keyword arguments of :code:`ComponentParameter` control postprocessing:
 
 - :code:`calc`: a bound method that returns the SI value for this parameter.
 - :code:`calc_params`: a dictionary of keyword arguments forwarded to

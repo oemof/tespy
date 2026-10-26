@@ -18,11 +18,11 @@ import numpy as np
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import T_sat_p
 from tespy.tools.fluid_properties import h_mix_pQ
@@ -166,9 +166,10 @@ class HeatExchanger(Component):
 
     kA : float, dict
         Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
+        :code:`heat_transfer_coefficient`. Result only - calculated after each
+        solve.
 
-    kA_char : GroupedComponentCharacteristics
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -183,7 +184,8 @@ class HeatExchanger(Component):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -235,7 +237,8 @@ class HeatExchanger(Component):
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
+        :code:`temperature_difference`. Result only - calculated after each
+        solve.
 
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
@@ -257,7 +260,7 @@ class HeatExchanger(Component):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func>`.
@@ -269,7 +272,8 @@ class HeatExchanger(Component):
         Cold side UA modification lookup table for offdesign.
 
     zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
+        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
+        each solve.
 
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
@@ -277,7 +281,8 @@ class HeatExchanger(Component):
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
+        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
+        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -367,7 +372,7 @@ class HeatExchanger(Component):
 
     def get_parameters(self):
         return {
-            'Q': dc_cp(
+            'Q': ComponentParameter(
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
                 dependents=self.energy_balance_hot_dependents,
@@ -375,7 +380,7 @@ class HeatExchanger(Component):
                 description="heat transfer from hot side",
                 calc=self._calc_Q
             ),
-            'UA': dc_cp(
+            'UA': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
                 dependents=self.UA_dependents,
@@ -384,23 +389,23 @@ class HeatExchanger(Component):
                 description="heat transfer coefficient considering terminal temperature differences",
                 calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
-            'kA': dc_cp(
-                min_val=0, is_result=True,
+            'kA': ComponentParameter(
+                min_val=0,
                 quantity="heat_transfer_coefficient",
                 description="deprecated, use :code:`UA` instead",
                 calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
-            'td_log': dc_cp(
-                min_val=0, is_result=True, quantity="temperature_difference",
+            'td_log': ComponentParameter(
+                min_val=0, quantity="temperature_difference",
                 description="deprecated, use :code:`lmtd` instead",
                 calc=self._calc_lmtd, calc_deps=['lmtd']
             ),
-            'lmtd': dc_cp(
-                min_val=0, is_result=True, quantity="temperature_difference",
+            'lmtd': ComponentParameter(
+                min_val=0, quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
-            'ttd_u': dc_cp(
+            'ttd_u': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_u_func,
                 dependents=self.ttd_u_dependents,
@@ -408,7 +413,7 @@ class HeatExchanger(Component):
                 description="terminal temperature difference at hot side inlet to cold side outlet",
                 calc=self._calc_ttd_u
             ),
-            'ttd_l': dc_cp(
+            'ttd_l': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_l_func,
                 dependents=self.ttd_l_dependents,
@@ -416,7 +421,7 @@ class HeatExchanger(Component):
                 description="terminal temperature difference at hot side outlet to cold side inlet",
                 calc=self._calc_ttd_l
             ),
-            'ttd_min': dc_cp(
+            'ttd_min': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.ttd_min_func,
                 dependents=self.ttd_min_dependents,
@@ -424,7 +429,7 @@ class HeatExchanger(Component):
                 description="minimum terminal temperature difference",
                 calc=self._calc_ttd_min, calc_deps=['ttd_u', 'ttd_l']
             ),
-            'pr1': dc_cp(
+            'pr1': ComponentParameter(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr1'},
@@ -432,7 +437,7 @@ class HeatExchanger(Component):
                 description="hot side outlet to inlet pressure ratio",
                 calc=self._calc_pr
             ),
-            'pr2': dc_cp(
+            'pr2': ComponentParameter(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr2', 'inconn': 1, 'outconn': 1},
@@ -440,7 +445,7 @@ class HeatExchanger(Component):
                 description="cold side outlet to inlet pressure ratio",
                 calc=self._calc_pr, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'dp1': dc_cp(
+            'dp1': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp1', 'inconn': 0, 'outconn': 0},
@@ -448,7 +453,7 @@ class HeatExchanger(Component):
                 description="hot side inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'dp2': dc_cp(
+            'dp2': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp2', 'inconn': 1, 'outconn': 1},
@@ -456,7 +461,7 @@ class HeatExchanger(Component):
                 description="cold side inlet to outlet absolute pressure change",
                 calc=self._calc_dp, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'zeta1_d4': dc_cp(
+            'zeta1_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_d4_func,
                 dependents=self.zeta_d4_dependents,
@@ -464,12 +469,12 @@ class HeatExchanger(Component):
                 description="hot side geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta1': dc_cp(
-                min_val=0, max_val=1e15, is_result=True,
+            'zeta1': ComponentParameter(
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
-            'zeta2_d4': dc_cp(
+            'zeta2_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_d4_func,
                 dependents=self.zeta_d4_dependents,
@@ -477,41 +482,41 @@ class HeatExchanger(Component):
                 description="cold side geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'zeta2': dc_cp(
-                min_val=0, max_val=1e15, is_result=True,
+            'zeta2': ComponentParameter(
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
-            'UA_char': dc_gcc(
+            'UA_char': OptionalEquation(
                 elements=['UA_char1', 'UA_char2'],
                 num_eq_sets=1,
                 func=self.UA_char_func,
                 dependents=self.UA_char_dependents,
                 description="equation for heat transfer based on UA and modification factor"
             ),
-            'UA_char1': dc_cc(
+            'UA_char1': CharacteristicData(
                 param='m',
                 description="hot side UA modification lookup table for offdesign"
             ),
-            'UA_char2': dc_cc(
+            'UA_char2': CharacteristicData(
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
                 description="cold side UA modification lookup table for offdesign"
             ),
-            'kA_char': dc_gcc(
+            'kA_char': OptionalEquation(
                 elements=['kA_char1', 'kA_char2'],
                 description="deprecated, use :code:`UA_char` instead"
             ),
-            'kA_char1': dc_cc(
+            'kA_char1': CharacteristicData(
                 param='m',
                 description="deprecated, use :code:`UA_char1` instead"
             ),
-            'kA_char2': dc_cc(
+            'kA_char2': CharacteristicData(
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
                 description="deprecated, use :code:`UA_char2` instead"
             ),
-            'eff_hot': dc_cp(
+            'eff_hot': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_hot_func,
                 dependents=self.eff_hot_dependents,
@@ -519,7 +524,7 @@ class HeatExchanger(Component):
                 description="heat exchanger effectiveness for hot side",
                 calc=self._calc_eff_hot
             ),
-            'eff_cold': dc_cp(
+            'eff_cold': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_cold_func,
                 dependents=self.eff_cold_dependents,
@@ -527,7 +532,7 @@ class HeatExchanger(Component):
                 description="heat exchanger effectiveness for cold side",
                 calc=self._calc_eff_cold
             ),
-            'eff_max': dc_cp(
+            'eff_max': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eff_max_func,
                 dependents=self.eff_max_dependents,
@@ -535,17 +540,17 @@ class HeatExchanger(Component):
                 description="maximum heat exchanger effectiveness",
                 calc=self._calc_eff_max, calc_deps=['eff_hot', 'eff_cold']
             ),
-            'Q_sections': dc_cap(quantity="heat", description="cumulative heat transferred from hot to cold side up to each section boundary"),
-            'T_hot_sections': dc_cap(quantity="temperature", description="hot side temperature at each section boundary"),
-            'T_cold_sections': dc_cap(quantity="temperature", description="cold side temperature at each section boundary"),
-            'Q_per_section': dc_cap(quantity="heat", description="heat transferred from hot to cold side in each section"),
-            'lmtd_per_section': dc_cap(quantity="temperature_difference", description="logarithmic mean temperature difference in each section"),
+            'Q_sections': ArrayParameter(quantity="heat", description="cumulative heat transferred from hot to cold side up to each section boundary"),
+            'T_hot_sections': ArrayParameter(quantity="temperature", description="hot side temperature at each section boundary"),
+            'T_cold_sections': ArrayParameter(quantity="temperature", description="cold side temperature at each section boundary"),
+            'Q_per_section': ArrayParameter(quantity="heat", description="heat transferred from hot to cold side in each section"),
+            'lmtd_per_section': ArrayParameter(quantity="temperature_difference", description="logarithmic mean temperature difference in each section"),
         }
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'num_eq_sets': 1,
@@ -556,22 +561,22 @@ class HeatExchanger(Component):
 
     def get_bypass_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'}
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'p'}
             }),
-            'enthalpy_constraints': dc_cmc(**{
+            'enthalpy_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'h'}
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'}
@@ -585,6 +590,15 @@ class HeatExchanger(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "hot side",
+            "in2": "cold side",
+            "out1": "hot side",
+            "out2": "cold side",
+        }
 
     def energy_balance_func(self):
         r"""
@@ -812,8 +826,8 @@ class HeatExchanger(Component):
             f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
             f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.UA_char1.char_func.evaluate(f1)
-        fUA2 = self.UA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.evaluate(f1)
+        fUA2 = self.UA_char2.evaluate(f2)
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         Q = self.inl[0].m.val_SI * (self.outl[0].h.val_SI - self.inl[0].h.val_SI)

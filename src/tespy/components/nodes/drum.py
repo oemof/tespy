@@ -14,7 +14,6 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.droplet_separator import DropletSeparator
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
 from tespy.tools.fluid_properties import h_mix_pQ
 
 
@@ -36,8 +35,8 @@ class Drum(DropletSeparator):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (feed water), in2 (evaporator return)
+    - Fluid outlets: out1 (saturated liquid), out2 (saturated gas)
 
     Mandatory Equations
     -------------------
@@ -172,6 +171,15 @@ class Drum(DropletSeparator):
     @staticmethod
     def outlets():
         return ['out1', 'out2']
+
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "feed water",
+            "in2": "evaporator return",
+            "out1": "saturated liquid",
+            "out2": "saturated gas",
+        }
 
     def initial_state(self, port):
         # the outlets sit on the saturation lines and the drum pressure is

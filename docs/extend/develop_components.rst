@@ -102,7 +102,7 @@ constraints.
 
 .. code-block:: python
 
-    from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+    from tespy.tools.data_containers import MandatoryConstraint
 
 .. literalinclude:: /../tutorial/advanced/compressor_with_cooling.py
     :language: python
@@ -219,21 +219,21 @@ We do this similar to the mandatory constraints by calling the
 can start with the definition for the efficiency of the heat recovery
 :code:`eta_recovery`.
 
-For this, we use a data container :code:`dc_cp()`, which creates an object of
-the :code:`ComponentProperties` class. These objects describe how TESPy should
+For this, we use a data container of the :code:`ComponentParameter` class.
+These objects describe how TESPy should
 handle a specific physical parameter, e.g., temperature, pressure loss,
 efficiency, etc. Accordingly, TESPy uses these objects to automate unit
 conversion, validation, equation integration and documentation.
 
 .. code-block:: python
 
-    from tespy.tools.data_containers import ComponentProperties as dc_cp
+    from tespy.tools.data_containers import ComponentParameter
     from tespy.tools.helpers import TESPyComponentError
 
 
         def get_parameters(self):
             params = super().get_parameters()
-            params["eta_recovery"] = dc_cp()
+            params["eta_recovery"] = ComponentParameter()
             return params
 
 Along with the introduction of this parameter, we also update the equation.
@@ -318,7 +318,7 @@ magnitude or to the parameter named in :code:`limit_scale` are snapped onto the
 bound instead.
 
 The parameter here will only be implemented as a postprocessing result. For
-this a :code:`calc` method on the :code:`dc_cp` is declared. The base class
+this a :code:`calc` method on the :code:`ComponentParameter` is declared. The base class
 dispatches the method automatically after convergence. The corresponding
 :code:`_calc_td_minimal` method computes the internal maximum temperature in
 the compressor and returns the temperature difference to the cooling fluid

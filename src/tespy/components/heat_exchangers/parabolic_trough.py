@@ -11,10 +11,12 @@ tespy/components/heat_exchangers/parabolic_trough.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ParameterGroup
 
 
 @component_registry
@@ -75,7 +77,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         Diameter of channel. Quantity: :code:`length`. Can be set as a system
         variable by passing :code:`"var"` as its value.
 
-    darcy_group : GroupedComponentProperties
+    darcy_group : ParameterGroup
         Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
         :code:`ks`, :code:`D`.
         Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
@@ -101,7 +103,7 @@ class ParabolicTrough(SimpleHeatExchanger):
         Solar irradiation to the parabolic trough. Quantity: :code:`heat`. Can
         be set as a system variable by passing :code:`"var"` as its value.
 
-    energy_group : GroupedComponentProperties
+    energy_group : ParameterGroup
         Energy balance equation of the parabolic trough. Elements: :code:`E`,
         :code:`eta_opt`, :code:`aoi`, :code:`doc`, :code:`c_1`, :code:`c_2`,
         :code:`iam_1`, :code:`iam_2`, :code:`A`, :code:`Tamb`.
@@ -110,7 +112,7 @@ class ParabolicTrough(SimpleHeatExchanger):
     eta_opt : float, dict
         Optical efficiency. Quantity: :code:`efficiency`.
 
-    hw_group : GroupedComponentProperties
+    hw_group : ParameterGroup
         Hazen-Williams equation for pressure loss. Elements: :code:`L`,
         :code:`ks_HW`, :code:`D`.
         Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
@@ -157,13 +159,15 @@ class ParabolicTrough(SimpleHeatExchanger):
         Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
 
     Q_loss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     Tamb : float, dict
         Ambient temperature. Quantity: :code:`temperature`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
@@ -250,36 +254,36 @@ class ParabolicTrough(SimpleHeatExchanger):
             data.pop(k, None)
 
         data.update({
-            'E': dc_cp(
+            'E': ComponentParameter(
                 min_val=0, quantity="heat", _allows_var=True,
                 description="solar irradiation to the parabolic trough"
             ),
-            'A': dc_cp(
+            'A': ComponentParameter(
                 min_val=0, quantity="area", _allows_var=True,
                 description="area of the parabolic trough"
             ),
-            'eta_opt': dc_cp(
+            'eta_opt': ComponentParameter(
                 min_val=0, max_val=1, quantity="efficiency",
                 description="optical efficiency"
             ),
-            'c_1': dc_cp(min_val=0, description="thermal loss coefficient 1"),
-            'c_2': dc_cp(min_val=0, description="thermal loss coefficient 2"),
-            'iam_1': dc_cp(description="incidence angle modifier 1"),
-            'iam_2': dc_cp(description="incidence angle modifier 2"),
-            'aoi': dc_cp(
+            'c_1': ComponentParameter(min_val=0, description="thermal loss coefficient 1"),
+            'c_2': ComponentParameter(min_val=0, description="thermal loss coefficient 2"),
+            'iam_1': ComponentParameter(description="incidence angle modifier 1"),
+            'iam_2': ComponentParameter(description="incidence angle modifier 2"),
+            'aoi': ComponentParameter(
                 min_val=-90, max_val=90, quantity="angle",
                 description="angle of incidence"
             ),
-            'doc': dc_cp(
+            'doc': ComponentParameter(
                 min_val=0, max_val=1, quantity="ratio",
                 description="degree of cleanliness"
             ),
-            'Q_loss': dc_cp(
+            'Q_loss': ComponentParameter(
                 max_val=0, _val=0, quantity="heat",
                 description="heat dissipation",
                 calc=self._calc_Q_loss, calc_deps=['Q']
             ),
-            'energy_group': dc_gcp(
+            'energy_group': ParameterGroup(
                 elements=[
                     'E', 'eta_opt', 'aoi', 'doc', 'c_1', 'c_2', 'iam_1',
                     'iam_2', 'A', 'Tamb'
@@ -347,9 +351,6 @@ class ParabolicTrough(SimpleHeatExchanger):
         pass
 
     def _calc_Q_loss(self):
+        if not self.energy_group.is_set:
+            return np.nan
         return -self.E.val_SI * self.A.val_SI + self.Q.val_SI
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        self.Q_loss.is_result = self.energy_group.is_set

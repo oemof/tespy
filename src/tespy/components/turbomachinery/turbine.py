@@ -15,10 +15,10 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
@@ -173,7 +173,7 @@ class Turbine(Turbomachine):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if len(self.power_outl) > 0:
-            constraints["energy_connector_balance"] = dc_cmc(**{
+            constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
                 "num_eq_sets": 1
@@ -209,7 +209,7 @@ class Turbine(Turbomachine):
         parameters["pr"].min_val = 0
         parameters["dp"].min_val = 0
         parameters.update({
-            "eta_s": dc_cp(
+            "eta_s": ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
@@ -218,14 +218,13 @@ class Turbine(Turbomachine):
                 description="isentropic efficiency",
                 calc=self.calc_eta_s
             ),
-            "eta_s_char": dc_cc(
+            "eta_s_char": CharacteristicEquation(
                 param='m', num_eq_sets=1,
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
                 description="isentropic efficiency lookup table for offdesign"
             ),
-            "cone": dc_simple(
-                dtype="bool", num_eq_sets=1,
+            "cone": OptionalEquation(num_eq_sets=1,
                 func=self.cone_func,
                 dependents=self.cone_dependents,
                 description="cone law equation for offdesign"
@@ -366,7 +365,7 @@ class Turbine(Turbomachine):
         outl = self.outl[0]
         return (
             -(outl.h.val_SI - inl.h.val_SI)
-            + self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            + self.eta_s.design * self.eta_s_char.evaluate(expr)
             * (
                 isentropic(
                     inl.p.val_SI,

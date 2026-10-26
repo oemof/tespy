@@ -15,7 +15,8 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.components.heat_exchangers.base import smoothed_lmtd
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
 
@@ -50,6 +51,7 @@ class Condenser(HeatExchanger):
     - mass flow equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
     - fluid composition equality constraint(s): :py:meth:`variable_equality_structure_matrix <tespy.components.component.Component.variable_equality_structure_matrix>`
     - hot side to cold side heat transfer equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.base.HeatExchanger.energy_balance_func>`
+    - saturated liquid at the hot side outlet: :py:meth:`subcooling_func <tespy.components.heat_exchangers.condenser.Condenser.subcooling_func>`
 
     Parameters
     ----------
@@ -88,9 +90,10 @@ class Condenser(HeatExchanger):
 
     kA : float, dict
         Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
+        :code:`heat_transfer_coefficient`. Result only - calculated after each
+        solve.
 
-    kA_char : GroupedComponentCharacteristics
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -105,7 +108,8 @@ class Condenser(HeatExchanger):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -147,7 +151,6 @@ class Condenser(HeatExchanger):
 
     subcooling : bool
         Allow subcooling in the condenser.
-        Equation: :py:meth:`subcooling_func <tespy.components.heat_exchangers.condenser.Condenser.subcooling_func>`.
 
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:
@@ -161,7 +164,8 @@ class Condenser(HeatExchanger):
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
+        :code:`temperature_difference`. Result only - calculated after each
+        solve.
 
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
@@ -183,7 +187,7 @@ class Condenser(HeatExchanger):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.condenser.Condenser.UA_char_func>`.
@@ -195,7 +199,8 @@ class Condenser(HeatExchanger):
         Cold side UA modification lookup table for offdesign.
 
     zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
+        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
+        each solve.
 
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
@@ -203,7 +208,8 @@ class Condenser(HeatExchanger):
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
+        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
+        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -290,20 +296,23 @@ class Condenser(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'subcooling': dc_simple(
-                _val=False, dtype="bool", num_eq_sets=1,
-                func=self.subcooling_func,
-                dependents=self.subcooling_dependents,
+            'subcooling': ConfigParameter(
+                _val=False, dtype="bool",
                 description="allow subcooling in the condenser"
             )
         })
         return params
 
-    def _preprocess(self, row_idx):
-
-        # if subcooling is True, outlet state method must not be calculated
-        self.subcooling.is_set = not self.subcooling.val
-        super()._preprocess(row_idx)
+    def get_mandatory_constraints(self):
+        constraints = super().get_mandatory_constraints()
+        if not (self.subcooling.is_set and self.subcooling.val):
+            constraints["saturated_outlet_constraints"] = MandatoryConstraint(
+                func=self.subcooling_func,
+                dependents=self.subcooling_dependents,
+                num_eq_sets=1,
+                description="saturated liquid at the hot side outlet"
+            )
+        return constraints
 
     def subcooling_func(self):
         r"""

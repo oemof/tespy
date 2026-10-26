@@ -15,11 +15,12 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristicMaps as dc_cm
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
+from tespy.tools.characteristics import CharMap
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
@@ -83,7 +84,7 @@ class Pump(Turbomachine):
         enthalpy. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eta_func <tespy.components.turbomachinery.pump.Pump.eta_func>`.
 
-    eta_flow_group : GroupedComponentProperties
+    eta_flow_group : ParameterGroup
         Map function for efficiency over volumetric flow and frequency.
         Elements: :code:`eta_flow_map`, :code:`frequency`.
         Equation: :py:meth:`eta_flow_frequency_group_func <tespy.components.turbomachinery.pump.Pump.eta_flow_frequency_group_func>`.
@@ -114,7 +115,7 @@ class Pump(Turbomachine):
     head_flow_map : tespy.tools.characteristics.CharMap, dict
         2D lookup table for hydraulic head over volumetric flow and frequency.
 
-    head_flow_map_group : GroupedComponentProperties
+    head_flow_map_group : ParameterGroup
         Map function for efficiency over volumetric flow and frequency.
         Elements: :code:`head_flow_map`, :code:`frequency`.
         Equation: :py:meth:`head_flow_frequency_group_func <tespy.components.turbomachinery.pump.Pump.head_flow_frequency_group_func>`.
@@ -175,13 +176,15 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calculate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :ref:`tespy.data <data_label>` module. Of course you are able to
-    specify your own characteristcs, like done for the :code:`flow_char`. More
-    information on how to specify characteristic functions are given in the
-    corresponding part of the online documentation.
+    :ref:`tespy.data <data_label>` module. Of course you are able to specify
+    your own characteristcs, like done for the :code:`flow_char`. The data of
+    the characteristic are in the units of the network, here l/s for the
+    volumetric flow and bar for the pressure rise. More information on how to
+    specify characteristic functions are given in the corresponding part of the
+    online documentation.
 
-    >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
-    >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
+    >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2])  # l/s
+    >>> dp = np.array([15, 14, 12, 9, 5, 0])  # bar
     >>> char = CharLine(x=v, y=dp)
     >>> pu.set_attr(eta_s=0.8, flow_char={'char_func': char, 'is_set': True},
     ... design=['eta_s'], offdesign=['eta_s_char'])
@@ -226,7 +229,11 @@ class Pump(Turbomachine):
 
     .. attention::
 
-        The values need to be in SI units!
+        The map data are in SI units here, i.e. the frequency in 1/s, the
+        volumetric flow in m³/s and the head in m. The network below uses 1/min
+        for the frequency, so the units of the map data are declared when
+        creating the maps. Without the declaration the data would be read in
+        the units of the network.
 
     Then we need to have the respective hydraulic head and efficiency for each
     of those values.
@@ -250,12 +257,17 @@ class Pump(Turbomachine):
     >>> pump_H_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
-    ...     z=head
+    ...     z=head,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s",
+    ...     z_unit="m"
     ... )
     >>> pump_eta_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
-    ...     z=efficiency
+    ...     z=efficiency,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s"
     ... )
 
     Now we create the model and impose the maps
@@ -319,12 +331,17 @@ class Pump(Turbomachine):
     ...     x=frequencies,
     ...     y=flows,
     ...     z=head,
-    ...     extrapolate=True
+    ...     extrapolate=True,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s",
+    ...     z_unit="m"
     ... )
     >>> pump_eta_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
     ...     z=efficiency,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s"
     ... )
     >>> pu.set_attr(
     ...     head_flow_map={'char_func': pump_H_map, 'is_set': True},
@@ -382,7 +399,7 @@ class Pump(Turbomachine):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         if len(self.power_inl) > 0:
-            constraints["energy_connector_balance"] = dc_cmc(**{
+            constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
                 "num_eq_sets": 1
@@ -395,9 +412,9 @@ class Pump(Turbomachine):
             # this is to prevent to evaluate the map in the first iteration
             # outside its bound
             if np.isnan(self.frequency.val):
-                min_frequency = min(self.head_flow_map.char_func.x)
-                max_frequency = max(self.head_flow_map.char_func.x)
-                self.frequency.val = (max_frequency + min_frequency) / 2
+                min_frequency, max_frequency = self.head_flow_map.input_bounds(0)
+                self.frequency.val_SI = (max_frequency + min_frequency) / 2
+                self.frequency.set_val_from_SI(self.head_flow_map._units)
 
         return super()._preprocess(row_idx)
 
@@ -407,7 +424,7 @@ class Pump(Turbomachine):
         parameters["pr"].min_val = 1
         parameters["dp"].max_val = 0
         parameters.update({
-            'eta': dc_cp(
+            'eta': ComponentParameter(
                 # if eta_s == 1, eta can be slighter higher than 1, so
                 # max_val is relaxed a little bit
                 min_val=0, max_val=1.01, num_eq_sets=1,
@@ -420,7 +437,7 @@ class Pump(Turbomachine):
                 ),
                 calc=self._calc_eta
             ),
-            'eta_s': dc_cp(
+            'eta_s': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_s_func,
                 dependents=self.eta_s_dependents,
@@ -429,32 +446,35 @@ class Pump(Turbomachine):
                 description="isentropic efficiency",
                 calc=self._calc_eta_s
             ),
-            'eta_s_char': dc_cc(
+            'eta_s_char': CharacteristicEquation(
                 param='v', num_eq_sets=1,
                 func=self.eta_s_char_func,
                 dependents=self.eta_s_char_dependents,
                 description="isentropic efficiency lookup table for offdesign"
             ),
-            'flow_char': dc_cc(
+            'flow_char': CharacteristicEquation(
                 param='v', num_eq_sets=1,
+                quantities={"x": "volumetric_flow", "y": "pressure_difference"},
                 func=self.flow_char_func,
                 dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
                 description="pressure rise over volumetric flow lookup table"
             ),
-            "frequency": dc_cp(
+            "frequency": ComponentParameter(
                 min_val=0, max_val=10000,
                 _allows_var=True,
                 quantity="frequency",
                 description="frequency of the pump"
             ),
-            "eta_flow_map": dc_cm(
+            "eta_flow_map": CharacteristicData(
+                char_type=CharMap,
+                quantities={"x": "frequency", "y": "volumetric_flow"},
                 description=(
                     "2D lookup table for pump efficiency over volumetric "
                     "flow and frequency"
                 )
             ),
-            "eta_flow_group": dc_gcp(
+            "eta_flow_group": ParameterGroup(
                 elements=["eta_flow_map", "frequency"],
                 num_eq_sets=1,
                 func=self.eta_flow_frequency_group_func,
@@ -464,13 +484,17 @@ class Pump(Turbomachine):
                     "frequency"
                 )
             ),
-            "head_flow_map": dc_cm(
+            "head_flow_map": CharacteristicData(
+                char_type=CharMap,
+                quantities={
+                    "x": "frequency", "y": "volumetric_flow", "z": "length"
+                },
                 description=(
                     "2D lookup table for hydraulic head over volumetric "
                     "flow and frequency"
                 )
             ),
-            "head_flow_map_group": dc_gcp(
+            "head_flow_map_group": ParameterGroup(
                 elements=["head_flow_map", "frequency"],
                 num_eq_sets=1,
                 func=self.head_flow_frequency_group_func,
@@ -480,7 +504,7 @@ class Pump(Turbomachine):
                     "frequency"
                 )
             ),
-            "head": dc_cp(
+            "head": ComponentParameter(
                 min_val=0, max_val=10000, num_eq_sets=1,
                 func=self.hydraulic_head_func,
                 dependents=self.hydraulic_head_dependents,
@@ -603,7 +627,7 @@ class Pump(Turbomachine):
         o = self.outl[0]
         return (
             (o.h.val_SI - i.h.val_SI)
-            * self.eta_s.design * self.eta_s_char.char_func.evaluate(expr)
+            * self.eta_s.design * self.eta_s_char.evaluate(expr)
             - (
                 isentropic(
                     i.p.val_SI,
@@ -643,7 +667,7 @@ class Pump(Turbomachine):
         expr = self.get_char_expr(p, **self.flow_char.char_params)
         return (
             self.outl[0].p.val_SI - self.inl[0].p.val_SI
-            - self.flow_char.char_func.evaluate(expr)
+            - self.flow_char.evaluate(expr)
         )
 
     def flow_char_dependents(self):
@@ -675,7 +699,7 @@ class Pump(Turbomachine):
         vol = i.calc_vol()
         flow = i.m.val_SI * vol
         frequency = self.frequency.val_SI
-        eta = self.eta_flow_map.char_func.evaluate(frequency, flow)
+        eta = self.eta_flow_map.evaluate(frequency, flow)
         return (
             eta * (o.h.val_SI - i.h.val_SI) - vol * (o.p.val_SI - i.p.val_SI)
         )
@@ -730,7 +754,7 @@ class Pump(Turbomachine):
         i = self.inl[0]
         flow = i.m.val_SI * i.calc_vol()
         frequency = self.frequency.val_SI
-        head = self.head_flow_map.char_func.evaluate(frequency, flow)
+        head = self.head_flow_map.evaluate(frequency, flow)
         return self.calc_hydraulic_head() - head
 
     def head_flow_frequency_group_dependents(self):
@@ -816,10 +840,11 @@ class Pump(Turbomachine):
         if i.m.is_var and self.flow_char.is_set:
             vol = i.calc_vol(T0=i.T.val_SI)
             expr = i.m.val_SI * vol
-            if expr > self.flow_char.char_func.x[-1]:
-                i.m.set_reference_val_SI(self.flow_char.char_func.x[-1] / vol)
-            elif expr < self.flow_char.char_func.x[1]:
-                i.m.set_reference_val_SI(self.flow_char.char_func.x[0] / vol)
+            lower, upper = self.flow_char.input_bounds(0)
+            if expr > upper:
+                i.m.set_reference_val_SI(upper / vol)
+            elif expr < lower:
+                i.m.set_reference_val_SI(lower / vol)
 
     def initialise_source(self, c, key):
         r"""

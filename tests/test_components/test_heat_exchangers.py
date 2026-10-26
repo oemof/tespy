@@ -351,8 +351,7 @@ class TestHeatExchangers:
             instance.label, 'UA'
         ]
         msg = 'UA value must not be included in network results.'
-        expr = not instance.UA.is_result and np.isnan(UA_network)
-        assert expr, msg
+        assert np.isnan(UA_network), msg
 
         # test UA as network results parameter
         instance.set_attr(Tamb=20)

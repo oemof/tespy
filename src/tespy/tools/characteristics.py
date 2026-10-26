@@ -22,23 +22,39 @@ from tespy import __datapath__
 from tespy.tools import logger
 
 
+def _magnitude_and_unit(values):
+    """Magnitude and unit string of a pint quantity array, plain arrays
+    carry no unit."""
+    if hasattr(values, "magnitude") and hasattr(values, "units"):
+        return np.asarray(values.magnitude), str(values.units)
+    return values, None
+
+
 class CharLine:
     r"""
     Class for characteristc lines.
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the x-values of the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         The corresponding y-values for the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
     extrapolate : boolean
         If :code:`True` linear extrapolation is performed when the x value is
         out of the defined value range.
+
+    x_unit : str
+        Unit of the x-values, e.g. :code:`"m3/h"`, default: :code:`None`.
+
+    y_unit : str
+        Unit of the y-values, e.g. :code:`"bar"`, default: :code:`None`.
 
     Note
     ----
@@ -51,12 +67,18 @@ class CharLine:
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
-    def __init__(
-            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False):
+    num_inputs = 1
+    axes = ("x", "y")
 
-        self.x = x
-        self.y = y
+    def __init__(
+            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False,
+            x_unit=None, y_unit=None):
+
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
 
         if isinstance(self.x, list):
             self.x = np.asarray(self.x)
@@ -171,11 +193,18 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
+    def input_bounds(self, index=0):
+        """Lower and upper bound of the x-values."""
+        return float(self.x[0]), float(self.x[-1])
+
     def _serialize(self):
-        export = {}
+        export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -203,14 +232,18 @@ class CharMap:
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the first dimension input of the map.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         A two-dimensional array of the second dimension input of the map.
 
-    z : ndarray
+    z : ndarray, pint.Quantity
         A two-dimensional array of the output of the map.
+
+    x_unit, y_unit, z_unit : str
+        Units of the x-, y- and z-values, default: :code:`None`. Quantity
+        arrays carry their units.
 
     Note
     ----
@@ -219,13 +252,20 @@ class CharMap:
     calculated as functions from x and y.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z=np.ones((2, 2)), extrapolate=False):
+    num_inputs = 2
+    axes = ("x", "y", "z")
 
-        self.x = x
-        self.y = y
-        self.z = z
+    def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
+                 z=np.ones((2, 2)), extrapolate=False, x_unit=None,
+                 y_unit=None, z_unit=None):
+
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
+        self.z, carried_z_unit = _magnitude_and_unit(z)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
+        self.z_unit = z_unit or carried_z_unit
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -478,12 +518,22 @@ class CharMap:
             logger.error(msg)
             raise KeyError(msg)
 
+    def input_bounds(self, index=0):
+        """Lower and upper bound of the data on the first (x) or second (y)
+        input axis."""
+        if index == 0:
+            return float(self.x[0]), float(self.x[-1])
+        return float(self.y.min()), float(self.y.max())
+
     def _serialize(self):
-        export = {}
+        export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["z"] = self.z.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit", "z_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -504,6 +554,195 @@ class CharMap:
         # export
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
+
+
+class Polynomial:
+    r"""
+    Class for polynomial characteristics in one or more inputs.
+
+    Parameters
+    ----------
+    coefficients : list
+        Coefficients of the polynomial terms.
+
+    exponents : list
+        One tuple of exponents per coefficient, one exponent per input.
+
+    Note
+    ----
+    The polynomial is evaluated as
+
+    .. math::
+
+        f\left(x_1, \ldots, x_n\right) = \sum_i c_i \prod_j x_j^{e_{ij}}
+
+    A polynomial has no bounded domain, the domain check never warns. For the
+    10-coefficient form of EN 12900 see :py:class:`EN12900Polynomial`.
+
+    Example
+    -------
+    >>> from tespy.tools.characteristics import Polynomial
+    >>> linear = Polynomial([1, 0.5], exponents=[(0,), (1,)])
+    >>> linear.num_inputs
+    1
+    >>> linear.evaluate(4)
+    3.0
+    """
+
+    def __init__(self, coefficients, exponents):
+        self.coefficients = np.asarray(coefficients, dtype=float)
+        self.exponents = np.asarray(exponents, dtype=float)
+        if self.exponents.ndim != 2:
+            self.exponents = self.exponents.reshape(len(self.exponents), -1)
+        if len(self.exponents) != len(self.coefficients):
+            msg = (
+                "Please provide one tuple of exponents per coefficient. "
+                f"Number of coefficients is {len(self.coefficients)}, number "
+                f"of exponent tuples is {len(self.exponents)}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
+    axes = None
+
+    @property
+    def num_inputs(self):
+        return self.exponents.shape[1]
+
+    def __array__(self, dtype=None, copy=None):
+        return np.array(self.coefficients, dtype=dtype)
+
+    def evaluate(self, *inputs):
+        r"""
+        Return the polynomial evaluation at the inputs.
+
+        Parameters
+        ----------
+        *inputs : float
+            One value per input of the polynomial.
+
+        Returns
+        -------
+        y : float
+            Evaluation of the polynomial.
+        """
+        if len(inputs) != self.num_inputs:
+            msg = (
+                f"{type(self).__name__} takes {self.num_inputs} input(s), "
+                f"{len(inputs)} were provided."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        x = np.asarray(inputs, dtype=float)
+        terms = np.prod(np.power(x, self.exponents), axis=1)
+        return float(np.dot(self.coefficients, terms))
+
+    def get_domain_errors(self, *args):
+        return
+
+    def input_bounds(self, index=0):
+        return None
+
+    def _serialize(self):
+        return {
+            "type": type(self).__name__,
+            "coefficients": self.coefficients.tolist(),
+            "exponents": self.exponents.astype(int).tolist()
+        }
+
+
+class EN12900Polynomial(Polynomial):
+    r"""
+    Class for the 10-coefficient polynomial of EN 12900 in two inputs.
+
+    Parameters
+    ----------
+    coefficients : list
+        The ten coefficients :math:`c_0` to :math:`c_9`, a :code:`pint`
+        quantity array carries the unit of the value.
+
+    value_unit : str
+        Unit of the polynomial value, e.g. :code:`"kW"`, default:
+        :code:`None`. The inputs are °C as defined by the standard.
+
+    Note
+    ----
+    With the evaporation temperature :math:`t_\text{e}` and the condensation
+    temperature :math:`t_\text{c}` as inputs the polynomial reads
+
+    .. math::
+
+        f = c_0 + c_1 t_\text{e} + c_2 t_\text{c} + c_3 t_\text{e}^2
+        + c_4 t_\text{e} t_\text{c} + c_5 t_\text{c}^2 + c_6 t_\text{e}^3
+        + c_7 t_\text{e}^2 t_\text{c} + c_8 t_\text{e} t_\text{c}^2
+        + c_9 t_\text{c}^3
+
+    Example
+    -------
+    >>> from tespy.tools.characteristics import EN12900Polynomial
+    >>> poly = EN12900Polynomial([1, 2, 3, 0, 0, 0, 0, 0, 0, 0])
+    >>> poly.num_inputs
+    2
+    >>> poly.evaluate(1, 1)
+    6.0
+    """
+
+    exponents_EN12900 = [
+        (0, 0), (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1),
+        (1, 2), (0, 3)
+    ]
+    num_inputs = 2
+    axes = ("T_evap", "T_cond", "value")
+    # the standard defines the polynomial over temperatures in °C
+    T_evap_unit = "degC"
+    T_cond_unit = "degC"
+
+    def __init__(self, coefficients, exponents=None, value_unit=None):
+        coefficients, carried_unit = _magnitude_and_unit(coefficients)
+        self.value_unit = value_unit or carried_unit
+        if exponents is not None and list(map(tuple, exponents)) != self.exponents_EN12900:
+            msg = "The exponents of the EN 12900 polynomial are fixed."
+            logger.error(msg)
+            raise ValueError(msg)
+        if len(coefficients) != len(self.exponents_EN12900):
+            msg = (
+                "The EN 12900 polynomial has "
+                f"{len(self.exponents_EN12900)} coefficients, "
+                f"{len(coefficients)} were provided."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        super().__init__(coefficients, self.exponents_EN12900)
+
+    def _serialize(self):
+        export = {
+            "type": type(self).__name__,
+            "coefficients": self.coefficients.tolist()
+        }
+        if self.value_unit is not None:
+            export["value_unit"] = self.value_unit
+        return export
+
+
+CHARACTERISTIC_TYPES = {
+    "CharLine": CharLine, "CharMap": CharMap, "Polynomial": Polynomial,
+    "EN12900Polynomial": EN12900Polynomial
+}
+
+
+def characteristic_from_dict(data):
+    """Reconstruct a characteristic from its serialized form. Files written
+    before the type was recorded are told apart by their keys."""
+    data = dict(data)
+    type_name = data.pop("type", None)
+    if type_name is None:
+        if "coefficients" in data:
+            type_name = "EN12900Polynomial"
+        elif "z" in data:
+            type_name = "CharMap"
+        else:
+            type_name = "CharLine"
+    return CHARACTERISTIC_TYPES[type_name](**data)
 
 
 def load_default_char(component, parameter, function_name, char_type):

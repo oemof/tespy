@@ -14,9 +14,9 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.helpers import _numeric_deriv
 
@@ -39,8 +39,8 @@ class WaterElectrolyzer(Component):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2, out3
+    - Fluid inlets: in1 (cooling water), in2 (feed water)
+    - Fluid outlets: out1 (cooling water), out2 (oxygen), out3 (hydrogen)
     - Power inlets: power
 
     Mandatory Equations
@@ -116,7 +116,8 @@ class WaterElectrolyzer(Component):
         Equation: :py:meth:`heat_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func>`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Cooling port geometry-independent friction coefficient zeta/D^4 for
@@ -222,11 +223,11 @@ class WaterElectrolyzer(Component):
 
     def get_parameters(self):
         return {
-            'P': dc_cp(
+            'P': ComponentParameter(
                 min_val=0, quantity="power", _allows_var=True,
                 description="power consumption of the electrolyzer"
             ),
-            'Q': dc_cp(
+            'Q': ComponentParameter(
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
                 dependents=self.heat_dependents,
@@ -234,7 +235,7 @@ class WaterElectrolyzer(Component):
                 description="heat output of the cooling port",
                 calc=self._calc_Q
             ),
-            'pr': dc_cp(
+            'pr': ComponentParameter(
                 max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
@@ -242,7 +243,7 @@ class WaterElectrolyzer(Component):
                 description="cooling port outlet to inlet pressure ratio",
                 calc=self._calc_pr
             ),
-            'dp': dc_cp(
+            'dp': ComponentParameter(
                 min_val=0,
                 structure_matrix=self.dp_structure_matrix,
                 num_eq_sets=1,
@@ -251,7 +252,7 @@ class WaterElectrolyzer(Component):
                 description="cooling inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta_d4': dc_cp(
+            'zeta_d4': ComponentParameter(
                 min_val=0,
                 num_eq_sets=1,
                 dependents=self.zeta_d4_dependents,
@@ -260,12 +261,12 @@ class WaterElectrolyzer(Component):
                 description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta': dc_cp(
-                min_val=0, max_val=1e15, is_result=True,
+            'zeta': ComponentParameter(
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
-            'e': dc_cp(
+            'e': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.specific_energy_func,
                 dependents=self.specific_energy_dependents,
@@ -274,7 +275,7 @@ class WaterElectrolyzer(Component):
                 description="equation for specified specific energy consumption of the electrolyzer",
                 calc=self._calc_e
             ),
-            'eta': dc_cp(
+            'eta': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
                 func=self.eta_func,
                 dependents=self.eta_dependents,
@@ -282,7 +283,7 @@ class WaterElectrolyzer(Component):
                 description="efficiency of the electrolyzer",
                 calc=self._calc_eta, calc_deps=['e']
             ),
-            'eta_char': dc_cc(
+            'eta_char': CharacteristicEquation(
                 deriv=self.eta_char_deriv,
                 func=self.eta_char_func,
                 dependents=self.eta_char_dependents,
@@ -295,35 +296,35 @@ class WaterElectrolyzer(Component):
 
     def get_mandatory_constraints(self):
         constraints = {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'func': self.reactor_mass_flow_func,
                 'dependents': self.reactor_mass_flow_dependents,
                 'num_eq_sets': 2,
                 "description": "equations for oxygen and hydrogen mass flow relation"
             }),
-            'cooling_mass_flow_constraints': dc_cmc(**{
+            'cooling_mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.cooling_mass_flow_structure_matrix,
                 'num_eq_sets': 1,
                 "description": "cooling fluid mass flow equality equation"
             }),
-            'cooling_fluid_constraints': dc_cmc(**{
+            'cooling_fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.cooling_fluid_structure_matrix,
                 'num_eq_sets': 1,
                 "description": "cooling fluid composition equality equation"
             }),
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'deriv': self.energy_balance_deriv,
                 'dependents': self.energy_balance_dependents,
                 'num_eq_sets': 1,
                 "description": "energy balance equation of the reactor"
             }),
-            'reactor_pressure_constraints': dc_cmc(**{
+            'reactor_pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.reactor_pressure_structure_matrix,
                 'num_eq_sets': 2,
                 "description": "reactor pressure equality equations"
             }),
-            'gas_temperature_constraints': dc_cmc(**{
+            'gas_temperature_constraints': MandatoryConstraint(**{
                 'func': self.gas_temperature_func,
                 'dependents': self.gas_temperature_dependents,
                 'num_eq_sets': 1,
@@ -331,7 +332,7 @@ class WaterElectrolyzer(Component):
             })
         }
         if len(self.power_inl) > 0:
-            constraints["energy_connector_balance"] = dc_cmc(**{
+            constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
                 "num_eq_sets": 1
@@ -350,6 +351,16 @@ class WaterElectrolyzer(Component):
     @staticmethod
     def outlets():
         return ['out1', 'out2', 'out3']
+
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "cooling water",
+            "in2": "feed water",
+            "out1": "cooling water",
+            "out2": "oxygen",
+            "out3": "hydrogen",
+        }
 
     @staticmethod
     def powerinlets():
@@ -623,7 +634,7 @@ class WaterElectrolyzer(Component):
 
         return (
             self.P.val_SI - self.outl[2].m.val_SI * self.e0 /
-            (self.eta.design * self.eta_char.char_func.evaluate(expr))
+            (self.eta.design * self.eta_char.evaluate(expr))
         )
 
     def eta_char_deriv(self, increment_filter, k, dependents=None):

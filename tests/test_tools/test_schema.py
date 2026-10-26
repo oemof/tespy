@@ -9,6 +9,7 @@ available from its original location tests/test_tools/test_schema.py
 SPDX-License-Identifier: MIT
 """
 import json
+import warnings
 
 import pytest
 
@@ -132,32 +133,71 @@ class TestComponentParameters:
 
     def test_turbine_eta_s_is_component_property(self, component_schema):
         p = self._get_param(component_schema, "Turbine", "eta_s")
-        assert p["container_type"] == "ComponentProperty"
+        assert p["container_type"] == "ComponentParameter"
         assert p["quantity"] == "efficiency"
 
     def test_polynomial_compressor_has_grouped_properties(self, component_schema):
         p = self._get_param(component_schema, "PolynomialCompressor", "eta_s_group")
-        assert p["container_type"] == "GroupedComponentProperties"
+        assert p["container_type"] == "ParameterGroup"
         assert "elements" in p
         assert isinstance(p["elements"], list)
         assert len(p["elements"]) > 0
 
     def test_turbine_pr_is_component_property(self, component_schema):
         p = self._get_param(component_schema, "Turbine", "pr")
-        assert p["container_type"] == "ComponentProperty"
+        assert p["container_type"] == "ComponentParameter"
 
     def test_motor_eta_is_efficiency(self, component_schema):
         p = self._get_param(component_schema, "Motor", "eta")
-        assert p["container_type"] == "ComponentProperty"
+        assert p["container_type"] == "ComponentParameter"
         assert p["quantity"] == "efficiency"
 
     def test_motor_eta_char_is_characteristic(self, component_schema):
         p = self._get_param(component_schema, "Motor", "eta_char")
-        assert p["container_type"] == "ComponentCharacteristic"
+        assert p["container_type"] == "CharacteristicEquation"
+        assert p["axes"] == ["x", "y"] and p["quantities"] == {}
+
+    def test_heat_exchanger_ua_char_is_data(self, component_schema):
+        p = self._get_param(component_schema, "HeatExchanger", "UA_char1")
+        assert p["container_type"] == "CharacteristicData"
+
+    def test_turbine_eta_s_char_is_characteristic_equation(self, component_schema):
+        p = self._get_param(component_schema, "Turbine", "eta_s_char")
+        assert p["container_type"] == "CharacteristicEquation"
+
+    def test_turbine_cone_is_switch(self, component_schema):
+        p = self._get_param(component_schema, "Turbine", "cone")
+        assert p["container_type"] == "OptionalEquation"
+        assert p["elements"] == []
+
+    def test_heat_exchanger_ua_char_is_optional_equation(self, component_schema):
+        p = self._get_param(component_schema, "HeatExchanger", "UA_char")
+        assert p["container_type"] == "OptionalEquation"
+        assert p["elements"] == ["UA_char1", "UA_char2"]
+
+    def test_pump_flow_char_has_output_quantity(self, component_schema):
+        p = self._get_param(component_schema, "Pump", "flow_char")
+        assert p["quantities"] == {
+            "x": "volumetric_flow", "y": "pressure_difference"
+        }
+
+    def test_polynomial_compressor_eta_s_poly_is_characteristic(self, component_schema):
+        p = self._get_param(component_schema, "PolynomialCompressor", "eta_s_poly")
+        assert p["container_type"] == "CharacteristicData"
+        assert p["axes"] == ["T_evap", "T_cond", "value"]
+        assert p["quantities"] == {
+            "T_evap": "temperature", "T_cond": "temperature"
+        }
+
+    def test_heat_exchanger_sections_are_arrays(self, component_schema):
+        p = self._get_param(component_schema, "HeatExchanger", "Q_sections")
+        assert p["container_type"] == "ArrayParameter"
+        assert p["quantity"] == "heat"
 
     def test_subsystem_interface_num_inter_is_simple(self, component_schema):
         p = self._get_param(component_schema, "SubsystemInterface", "num_inter")
-        assert p["container_type"] == "SimpleDataContainer"
+        assert p["container_type"] == "ConfigParameter"
+        assert p["dtype"] == "int"
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +210,13 @@ class TestPortSchema:
         assert inlets["type"] == "fixed"
         assert "ports" in inlets
         assert inlets["ports"] == ["in1"]
+
+    def test_fixed_ports_carry_descriptions(self, component_schema):
+        inlets = component_schema["HeatExchanger"]["inlets"]
+        assert inlets["descriptions"] == {"in1": "hot side", "in2": "cold side"}
+        outlets = component_schema["CombustionChamber"]["outlets"]
+        assert outlets["descriptions"] == {"out1": "flue gas"}
+        assert component_schema["CycleCloser"]["inlets"]["descriptions"] == {}
 
     def test_variable_ports_have_parameter_and_pattern(self, component_schema):
         inlets = component_schema["Merge"]["inlets"]
@@ -282,7 +329,7 @@ class TestConnectionSchema:
     def test_power_connection_has_E_parameter(self, connection_schema):
         params = {p["name"]: p for p in connection_schema["PowerConnection"]["parameters"]}
         assert "E" in params
-        assert params["E"]["container_type"] == "FluidProperties"
+        assert params["E"]["container_type"] == "ConnectionParameter"
 
     def test_fluid_composition_container_type(self, connection_schema):
         params = {p["name"]: p for p in connection_schema["Connection"]["parameters"]}
@@ -305,26 +352,45 @@ class TestConnectionSchema:
 
 class TestDcTypeName:
     def test_known_container_types(self):
-        from tespy.tools.data_containers import ComponentCharacteristicMaps
-        from tespy.tools.data_containers import ComponentCharacteristics
-        from tespy.tools.data_containers import ComponentProperties
+        from tespy.tools.data_containers import ArrayParameter
+        from tespy.tools.data_containers import CharacteristicData
+        from tespy.tools.data_containers import CharacteristicEquation
+        from tespy.tools.data_containers import ComponentParameter
+        from tespy.tools.data_containers import ConfigParameter
+        from tespy.tools.data_containers import ConnectionParameter
         from tespy.tools.data_containers import FluidComposition
-        from tespy.tools.data_containers import FluidProperties
-        from tespy.tools.data_containers import GroupedComponentCharacteristics
-        from tespy.tools.data_containers import GroupedComponentProperties
-        from tespy.tools.data_containers import SimpleDataContainer
+        from tespy.tools.data_containers import MandatoryConstraint
+        from tespy.tools.data_containers import OptionalEquation
+        from tespy.tools.data_containers import ParameterGroup
+        from tespy.tools.data_containers import ReferenceEquation
 
         cases = [
-            # TODO: Name of container?!
-            (ComponentProperties(), "ComponentProperty"),
-            (ComponentCharacteristics(), "ComponentCharacteristic"),
-            (ComponentCharacteristicMaps(), "ComponentCharacteristicMap"),
-            (GroupedComponentProperties(), "GroupedComponentProperties"),
-            (GroupedComponentCharacteristics(), "GroupedComponentCharacteristics"),
-            (FluidProperties(), "FluidProperties"),
+            (ComponentParameter(), "ComponentParameter"),
+            (ConnectionParameter(), "ConnectionParameter"),
+            (ArrayParameter(), "ArrayParameter"),
+            (CharacteristicData(), "CharacteristicData"),
+            (CharacteristicEquation(), "CharacteristicEquation"),
+            (ParameterGroup(), "ParameterGroup"),
+            (OptionalEquation(), "OptionalEquation"),
+            (MandatoryConstraint(), "MandatoryConstraint"),
             (FluidComposition(), "FluidComposition"),
-            (SimpleDataContainer(), "SimpleDataContainer"),
+            (ReferenceEquation(), "ReferenceEquation"),
+            (ConfigParameter(), "ConfigParameter"),
         ]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            from tespy.tools.data_containers import ComponentCharacteristics
+            from tespy.tools.data_containers import ComponentProperties
+            from tespy.tools.data_containers import FluidProperties
+            from tespy.tools.data_containers import GroupedComponentProperties
+            from tespy.tools.data_containers import SimpleDataContainer
+            cases += [
+                (ComponentProperties(), "ComponentParameter"),
+                (ComponentCharacteristics(), "CharacteristicEquation"),
+                (GroupedComponentProperties(), "ParameterGroup"),
+                (FluidProperties(), "ConnectionParameter"),
+                (SimpleDataContainer(), "ConfigParameter"),
+            ]
         for instance, expected in cases:
             assert _dc_type_name(instance) == expected, (
                 f"Expected {expected} for {type(instance).__name__}"
@@ -338,27 +404,27 @@ class TestDcTypeName:
 
 class TestSerializeParameter:
     def test_quantity_included_when_present(self):
-        from tespy.tools.data_containers import ComponentProperties as dc_cp
-        dc = dc_cp(quantity="pressure")
+        from tespy.tools.data_containers import ComponentParameter
+        dc = ComponentParameter(quantity="pressure")
         result = _serialize_parameter("pr", dc)
         assert result["quantity"] == "pressure"
         assert result["name"] == "pr"
-        assert result["container_type"] == "ComponentProperty"
+        assert result["container_type"] == "ComponentParameter"
 
     def test_quantity_omitted_when_absent(self):
-        from tespy.tools.data_containers import SimpleDataContainer as dc_simple
-        dc = dc_simple()
+        from tespy.tools.data_containers import ConfigParameter
+        dc = ConfigParameter()
         result = _serialize_parameter("flag", dc)
         assert "quantity" not in result
 
     def test_grouped_includes_elements(self):
-        from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-        dc = dc_gcp(elements=["a", "b", "c"])
+        from tespy.tools.data_containers import ParameterGroup
+        dc = ParameterGroup(elements=["a", "b", "c"])
         result = _serialize_parameter("group", dc)
         assert result["elements"] == ["a", "b", "c"]
 
     def test_non_grouped_has_no_elements(self):
-        from tespy.tools.data_containers import ComponentProperties as dc_cp
-        dc = dc_cp()
+        from tespy.tools.data_containers import ComponentParameter
+        dc = ComponentParameter()
         result = _serialize_parameter("pr", dc)
         assert "elements" not in result

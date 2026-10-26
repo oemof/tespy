@@ -10,8 +10,8 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import CharacteristicEquation
+from tespy.tools.data_containers import ComponentParameter
 
 
 class _EnergyConverter(Component):
@@ -42,7 +42,7 @@ class _EnergyConverter(Component):
 
     def get_parameters(self):
         return {
-            "eta": dc_cp(**{
+            "eta": ComponentParameter(**{
                 "structure_matrix": self.eta_structure_matrix,
                 "func": self.eta_func,
                 "dependents": self.eta_dependents,
@@ -53,7 +53,7 @@ class _EnergyConverter(Component):
                 "description": "efficiency",
                 "calc": self._calc_eta
             }),
-            "delta_power": dc_cp(**{
+            "delta_power": ComponentParameter(**{
                 "structure_matrix": self.delta_power_structure_matrix,
                 "func": self.delta_power_func,
                 "dependents": self.delta_power_dependents,
@@ -63,7 +63,7 @@ class _EnergyConverter(Component):
                 "description": "inlet to outlet power difference",
                 "calc": self._calc_delta_power
             }),
-            "eta_char": dc_cc(**{
+            "eta_char": CharacteristicEquation(**{
                 "func": self.eta_char_func,
                 "dependents": self.eta_char_dependents,
                 "num_eq_sets": 1,
@@ -143,7 +143,7 @@ class _EnergyConverter(Component):
             self.power_outl[0].E.val_SI
             / self._conn_design(self.power_outl[0], "E")
         )
-        f = self.eta_char.char_func.evaluate(expr)
+        f = self.eta_char.evaluate(expr)
         return (
             self.power_inl[0].E.val_SI * self.eta.design * f
             - self.power_outl[0].E.val_SI

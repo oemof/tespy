@@ -452,7 +452,9 @@ class Pump(Turbomachine):
                 description="isentropic efficiency lookup table for offdesign"
             ),
             'flow_char': CharacteristicEquation(
-                param='v', num_eq_sets=1, output_quantity="pressure_difference",
+                param='v', num_eq_sets=1,
+                x_quantity="volumetric_flow",
+                y_quantity="pressure_difference",
                 func=self.flow_char_func,
                 dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
@@ -465,7 +467,8 @@ class Pump(Turbomachine):
                 description="frequency of the pump"
             ),
             "eta_flow_map": CharacteristicData(
-                input_quantities=["frequency", "volumetric_flow"],
+                num_inputs=2,
+                x_quantity="frequency", y_quantity="volumetric_flow",
                 description=(
                     "2D lookup table for pump efficiency over volumetric "
                     "flow and frequency"
@@ -482,8 +485,9 @@ class Pump(Turbomachine):
                 )
             ),
             "head_flow_map": CharacteristicData(
-                input_quantities=["frequency", "volumetric_flow"],
-                output_quantity="length",
+                num_inputs=2,
+                x_quantity="frequency", y_quantity="volumetric_flow",
+                z_quantity="length",
                 description=(
                     "2D lookup table for hydraulic head over volumetric "
                     "flow and frequency"

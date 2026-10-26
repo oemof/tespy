@@ -512,11 +512,11 @@ class PolynomialCompressor(DisplacementMachine):
                 description="deprecated, use :code:`swept_volume` instead"
             ),
             "eta_s_poly": CharacteristicData(
-                input_quantities=["temperature", "temperature"],
+                num_inputs=2, x_quantity="temperature", y_quantity="temperature",
                 description="isentropic efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly": CharacteristicData(
-                input_quantities=["temperature", "temperature"],
+                num_inputs=2, x_quantity="temperature", y_quantity="temperature",
                 description="volumetric efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly_group_rpm": ParameterGroup(

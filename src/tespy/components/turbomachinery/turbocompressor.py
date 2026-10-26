@@ -193,7 +193,7 @@ class TurboCompressor(Compressor):
                 description="inlet guide vane angle", _allows_var=True
             ),
             'char_map_eta_s': CharacteristicData(
-                input_quantities=[None, None],
+                num_inputs=2,
                 description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
             ),
             'char_map_eta_s_group': ParameterGroup(
@@ -203,7 +203,7 @@ class TurboCompressor(Compressor):
                 description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
             'char_map_pr': CharacteristicData(
-                input_quantities=[None, None],
+                num_inputs=2,
                 description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
             ),
             'char_map_pr_group': ParameterGroup(

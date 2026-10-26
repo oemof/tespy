@@ -316,6 +316,13 @@ class ConnectionBase:
     def get_variables(self):
         return {}
 
+    def _mark_consumed_parameters(self):
+        """State specifications and variables accept specifications although
+        they carry no equation of their own."""
+        for name in set(self._state_specifications) | set(self.get_variables()):
+            if name in self.property_data:
+                self.property_data[name]._consumed = True
+
     def _build_parameters(self):
         parameters = {}
         for k, v in self.property_data.items():
@@ -352,9 +359,7 @@ class ConnectionBase:
         self.property_data0 = [f"{x}0" for x in self.property_data.keys()]
         self.parameters = self._build_parameters()
         self.__dict__.update(self.property_data)
-        for name in set(self._state_specifications) | set(self.get_variables()):
-            if name in self.property_data:
-                self.property_data[name]._consumed = True
+        self._mark_consumed_parameters()
         logger.debug(
             f"Created connection from {self.source.label} ({self.source_id}) "
             f"to {self.target.label} ({self.target_id})."

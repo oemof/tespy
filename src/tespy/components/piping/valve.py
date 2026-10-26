@@ -272,7 +272,9 @@ class Valve(Component):
                 calc=self._calc_zeta_d4
             ),
             'dp_char': CharacteristicEquation(
-                param='m', num_eq_sets=1, output_quantity="pressure_difference",
+                param='m', num_eq_sets=1,
+                x_quantity="mass_flow",
+                y_quantity="pressure_difference",
                 dependents=self.dp_char_dependents,
                 func=self.dp_char_func,
                 char_params={'type': 'abs'},

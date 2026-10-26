@@ -121,6 +121,13 @@ class EquilibriumSeparator(DropletSeparator):
     1.0
     """
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "out1": "liquid phase",
+            "out2": "gas phase",
+        }
+
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints['outlet_constraint_liquid'] = MandatoryConstraint(**{

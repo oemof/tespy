@@ -192,6 +192,13 @@ class DropletSeparator(NodeBase):
     def outlets():
         return ['out1', 'out2']
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "out1": "saturated liquid",
+            "out2": "saturated gas",
+        }
+
     def energy_balance_func(self):
         r"""
         Calculate energy balance.

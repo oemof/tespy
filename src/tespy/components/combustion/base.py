@@ -252,6 +252,12 @@ class CombustionChamber(Component):
     def outlets():
         return ["out1"]
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "out1": "flue gas",
+        }
+
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
             return

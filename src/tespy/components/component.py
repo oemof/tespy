@@ -673,8 +673,10 @@ class Component:
             ``"poweroutlets"``, ``"heatinlets"``, ``"heatoutlets"``.
             Each value is a dict with at least a ``"type"`` key:
 
-            ``{"type": "fixed", "ports": [...]}``
-                The port list is static.
+            ``{"type": "fixed", "ports": [...], "descriptions": {...}}``
+                The port list is static, ``descriptions`` holds the role of
+                a port by its name where :py:meth:`port_descriptions`
+                declares one.
 
             ``{"type": "variable", "parameter": str, "pattern": str, "min": int}``
                 Port count is controlled by *parameter*.  *pattern* is a
@@ -690,15 +692,26 @@ class Component:
         ):
             attr = inspect.getattr_static(cls, port_type, None)
             if isinstance(attr, staticmethod):
+                ports = getattr(cls, port_type)()
+                descriptions = cls.port_descriptions()
                 result[port_type] = {
                     "type": "fixed",
-                    "ports": getattr(cls, port_type)(),
+                    "ports": ports,
+                    "descriptions": {
+                        port: descriptions[port] for port in ports
+                        if port in descriptions
+                    },
                 }
             else:
                 # Instance method — subclass should override port_schema()
                 # but provide a safe fallback so schema generation never crashes.
                 result[port_type] = {"type": "unknown"}
         return result
+
+    @staticmethod
+    def port_descriptions():
+        """Role of the ports by name, e.g. :code:`{"in1": "hot side"}`."""
+        return {}
 
     @staticmethod
     def inlets():

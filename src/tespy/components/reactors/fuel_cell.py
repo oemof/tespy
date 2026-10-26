@@ -317,6 +317,16 @@ class FuelCell(Component):
         return ['out1', 'out2']
 
     @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "cooling water",
+            "in2": "oxygen",
+            "in3": "hydrogen",
+            "out1": "cooling water",
+            "out2": "water",
+        }
+
+    @staticmethod
     def poweroutlets():
         return ["power"]
 

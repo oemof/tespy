@@ -172,6 +172,15 @@ class Drum(DropletSeparator):
     def outlets():
         return ['out1', 'out2']
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "feed water",
+            "in2": "evaporator return",
+            "out1": "saturated liquid",
+            "out2": "saturated gas",
+        }
+
     def initial_state(self, port):
         # the outlets sit on the saturation lines and the drum pressure is
         # shared across all ports, so the side must be subcritical

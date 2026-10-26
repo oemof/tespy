@@ -136,9 +136,11 @@ def _dc_type(dc):
         base = "float, dict"
         return base + ', :code:`"var"`' if getattr(dc, "_allows_var", False) else base
     if isinstance(dc, CharacteristicData):
-        if dc.num_inputs == 1:
-            return "tespy.tools.characteristics.CharLine, dict"
-        return "tespy.tools.characteristics.CharMap, dict"
+        table = "CharLine" if dc.num_inputs == 1 else "CharMap"
+        return (
+            f"tespy.tools.characteristics.{table}, "
+            "tespy.tools.characteristics.Polynomial, dict"
+        )
     if isinstance(dc, ParameterGroup):
         return type(dc).__name__
     if isinstance(dc, OptionalEquation):
@@ -191,6 +193,11 @@ def _ports_section(cls):
         if kind == "fixed":
             ports = entry.get("ports", [])
             if ports:
+                described = entry.get("descriptions", {})
+                ports = [
+                    f"{port} ({described[port]})" if port in described else port
+                    for port in ports
+                ]
                 lines.append(f"- {label}: {', '.join(ports)}")
         elif kind == "variable":
             param = entry["parameter"]
@@ -237,10 +244,10 @@ def _parameters_section(instance, base_params=None, param_filter=None):
     for name, ptype, desc in base_params:
         entries.append((name, f"\n{name} : {ptype}\n    {desc}"))
 
-    try:
-        params = instance.get_parameters()
-    except Exception:
-        params = {}
+    if hasattr(instance, "property_data"):
+        params = instance.property_data
+    else:
+        params = instance.parameters
 
     for name, dc in params.items():
         if param_filter is not None and not param_filter(name, dc):
@@ -255,7 +262,7 @@ def _parameters_section(instance, base_params=None, param_filter=None):
             q = getattr(dc, "quantity", None)
             if q:
                 meta_parts.append(f"Quantity: :code:`{q}`.")
-            if dc.is_result:
+            if dc.result_only:
                 meta_parts.append("Result only - populated by the network after each solve.")
         if isinstance(dc, ComponentParameter):
             q = getattr(dc, "quantity", None)
@@ -267,6 +274,8 @@ def _parameters_section(instance, base_params=None, param_filter=None):
                 meta_parts.append(
                     'Can be set as a system variable by passing :code:`"var"` as its value.'
                 )
+        if isinstance(dc, ConnectionParameter) and dc.result_only:
+            meta_parts.append("Result only - calculated after each solve.")
         if isinstance(dc, OptionalEquation):
             elements = getattr(dc, "elements", None) or []
             if elements:
@@ -494,6 +503,9 @@ def generate_connection_docstring(cls):
     intro, suffix, example = _split_docstring(cls)
 
     instance = cls.__new__(cls)
+    instance.property_data = instance.get_parameters()
+    instance.__dict__.update(instance.property_data)
+    instance._mark_consumed_parameters()
 
     parts = []
     if intro:

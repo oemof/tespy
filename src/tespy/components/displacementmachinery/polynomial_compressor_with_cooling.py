@@ -411,6 +411,15 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     def outlets():
         return ['out1', 'out2']
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "refrigerant",
+            "in2": "cooling fluid",
+            "out1": "refrigerant",
+            "out2": "cooling fluid",
+        }
+
     def _initial_affine_edges(self):
         return super()._initial_affine_edges() + [
             (self.inl[1].p, self.outl[1].p, 1.0, 0.0),

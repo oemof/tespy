@@ -185,12 +185,12 @@ class TestCharacteristicData:
         with pytest.raises(ValueError):
             data.accept(CharMap())
         with pytest.raises(ValueError):
-            dc.CharacteristicData(input_quantities=[None, None]).accept(
+            dc.CharacteristicData(num_inputs=2).accept(
                 CharLine()
             )
 
     def test_any_representation_with_matching_signature(self):
-        data = dc.CharacteristicData(input_quantities=[None, None])
+        data = dc.CharacteristicData(num_inputs=2)
         data.accept(EN12900Polynomial([1] + [0] * 9))
         assert data.evaluate(3, 4) == 1
         data.accept(CharMap())
@@ -202,19 +202,19 @@ class TestCharacteristicData:
             volumetric_flow="m3/h", pressure_difference="bar"
         )
         data = dc.CharacteristicEquation(
-            param="v", char_params={"type": "abs"},
-            output_quantity="pressure_difference"
+            param="v", x_quantity="volumetric_flow",
+            y_quantity="pressure_difference"
         )
         data.accept(CharLine(x=[0, 3600], y=[2, 1]))
-        data._bind_units(units, "pump: flow_char")
         with pytest.warns(UserWarning, match="pump: flow_char"):
-            assert data.evaluate(0.5) == pytest.approx(1.5e5)
+            data._bind_units(units, "pump: flow_char")
+        assert data.evaluate(0.5) == pytest.approx(1.5e5)
         assert data.input_bounds(0) == pytest.approx((0, 1))
 
     def test_si_network_does_not_warn(self):
         data = dc.CharacteristicEquation(
-            param="v", char_params={"type": "abs"},
-            output_quantity="pressure_difference"
+            param="v", x_quantity="volumetric_flow",
+            y_quantity="pressure_difference"
         )
         data.accept(CharLine(x=[0, 1], y=[2e5, 1e5]))
         data._bind_units(Units())
@@ -225,7 +225,9 @@ class TestCharacteristicData:
     def test_default_data_are_si(self):
         units = Units()
         units.set_defaults(volumetric_flow="m3/h")
-        data = dc.CharacteristicEquation(param="v", char_params={"type": "abs"})
+        data = dc.CharacteristicEquation(
+            param="v", x_quantity="volumetric_flow"
+        )
         data.set_default(CharLine(x=[0, 1], y=[0, 1]))
         data._bind_units(units)
         with warnings.catch_warnings():
@@ -235,8 +237,8 @@ class TestCharacteristicData:
     def test_axis_units_of_the_data_convert(self):
         units = Units()
         data = dc.CharacteristicEquation(
-            param="v", char_params={"type": "abs"},
-            output_quantity="pressure_difference"
+            param="v", x_quantity="volumetric_flow",
+            y_quantity="pressure_difference"
         )
         data.accept(CharLine(x=[0, 3600], y=[2, 1], x_unit="m3/h", y_unit="bar"))
         data._bind_units(units)
@@ -252,7 +254,7 @@ class TestCharacteristicData:
         units = Units()
         units.set_defaults(temperature="K")
         data = dc.CharacteristicData(
-            input_quantities=["temperature", "temperature"]
+            num_inputs=2, x_quantity="temperature", y_quantity="temperature"
         )
         data.accept(EN12900Polynomial([0, 1, 0, 0, 0, 0, 0, 0, 0, 0]))
         data._bind_units(units)
@@ -272,8 +274,8 @@ class TestCharacteristicData:
         assert line.x_unit == str(Q_(1, "m3/s").units)
         assert line.input_units == [line.x_unit]
         data = dc.CharacteristicEquation(
-            param="v", char_params={"type": "abs"},
-            output_quantity="pressure_difference"
+            param="v", x_quantity="volumetric_flow",
+            y_quantity="pressure_difference"
         )
         data.accept(line)
         data._bind_units(units)
@@ -287,11 +289,13 @@ class TestCharacteristicData:
         assert char_map.input_units == ["Hz", "m3/h"]
         assert char_map.output_unit == "m"
 
-    def test_relative_axes_are_dimensionless(self):
-        data = dc.CharacteristicEquation(param="v")
-        assert data._resolved_input_quantities() == [None]
+    def test_axes_are_dimensionless_unless_declared(self):
         data = dc.CharacteristicEquation(param="v", char_params={"type": "abs"})
-        assert data._resolved_input_quantities() == ["volumetric_flow"]
+        assert data._input_quantities() == [None]
+        data = dc.CharacteristicEquation(
+            param="v", x_quantity="volumetric_flow"
+        )
+        assert data._input_quantities() == ["volumetric_flow"]
 
     def test_serialization_roundtrip(self):
         for char in [CharLine(), CharMap(), EN12900Polynomial([1] * 10),
@@ -377,6 +381,27 @@ class TestPumpFlowCharacteristicUnits:
         assert outlet.p.val - inlet.p.val == pytest.approx(6, abs=1e-3)
         exported = pump.flow_char._serialize(nw.units)["char_func"]
         assert exported["x_unit"] == "m3/h"
+
+    def test_undeclared_units_warn_before_evaluation(self):
+        """The interpretation of the data changed, the warning does not wait
+        for the equation to be active."""
+        nw, pump, inlet, outlet = self._network(pressure_difference="bar")
+        outlet.set_attr(p=3)
+        pump.set_attr(flow_char=CharLine([0, 1, 2], [2e5, 1.5e5, 1e5]))
+        assert not pump.flow_char.is_set
+        with pytest.warns(UserWarning, match="pressure_difference in bar"):
+            nw.solve("design")
+
+    def test_dimensionless_and_default_data_do_not_warn(self):
+        units = Units()
+        units.set_defaults(mass_flow="kg/h", pressure_difference="bar")
+        pump = Pump("pump")
+        pump.set_attr(eta_s_char=CharLine([0.5, 1, 1.5], [0.9, 1, 0.9]))
+        pump.flow_char.set_default(CharLine([0, 1], [2e5, 1e5]))
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            pump.eta_s_char._bind_units(units, "pump: eta_s_char")
+            pump.flow_char._bind_units(units, "pump: flow_char")
 
 
 class TestDeprecatedNames:

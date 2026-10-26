@@ -461,6 +461,18 @@ class CombustionEngine(CombustionChamber):
         return ['out1', 'out2', 'out3']
 
     @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "cooling water 1",
+            "in2": "cooling water 2",
+            "in3": "air",
+            "in4": "fuel",
+            "out1": "cooling water 1",
+            "out2": "cooling water 2",
+            "out3": "flue gas",
+        }
+
+    @staticmethod
     def poweroutlets():
         return ["power"]
 

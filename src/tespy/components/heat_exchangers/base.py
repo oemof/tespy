@@ -586,6 +586,15 @@ class HeatExchanger(Component):
     def outlets():
         return ['out1', 'out2']
 
+    @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "hot side",
+            "in2": "cold side",
+            "out1": "hot side",
+            "out2": "cold side",
+        }
+
     def energy_balance_func(self):
         r"""
         Equation for heat exchanger energy balance.

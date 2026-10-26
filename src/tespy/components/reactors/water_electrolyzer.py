@@ -352,6 +352,16 @@ class WaterElectrolyzer(Component):
         return ['out1', 'out2', 'out3']
 
     @staticmethod
+    def port_descriptions():
+        return {
+            "in1": "cooling water",
+            "in2": "feed water",
+            "out1": "cooling water",
+            "out2": "oxygen",
+            "out3": "hydrogen",
+        }
+
+    @staticmethod
     def powerinlets():
         return ["power"]
 

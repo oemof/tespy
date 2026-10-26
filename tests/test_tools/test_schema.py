@@ -155,7 +155,7 @@ class TestComponentParameters:
     def test_motor_eta_char_is_characteristic(self, component_schema):
         p = self._get_param(component_schema, "Motor", "eta_char")
         assert p["container_type"] == "CharacteristicEquation"
-        assert p["input_quantities"] == [None]
+        assert p["num_inputs"] == 1 and p["x_quantity"] is None
 
     def test_heat_exchanger_ua_char_is_data(self, component_schema):
         p = self._get_param(component_schema, "HeatExchanger", "UA_char1")
@@ -177,13 +177,15 @@ class TestComponentParameters:
 
     def test_pump_flow_char_has_output_quantity(self, component_schema):
         p = self._get_param(component_schema, "Pump", "flow_char")
-        assert p["input_quantities"] == ["volumetric_flow"]
-        assert p["output_quantity"] == "pressure_difference"
+        assert p["x_quantity"] == "volumetric_flow"
+        assert p["y_quantity"] == "pressure_difference"
 
     def test_polynomial_compressor_eta_s_poly_is_characteristic(self, component_schema):
         p = self._get_param(component_schema, "PolynomialCompressor", "eta_s_poly")
         assert p["container_type"] == "CharacteristicData"
-        assert p["input_quantities"] == ["temperature", "temperature"]
+        assert p["num_inputs"] == 2
+        assert p["x_quantity"] == "temperature"
+        assert p["y_quantity"] == "temperature"
 
     def test_heat_exchanger_sections_are_arrays(self, component_schema):
         p = self._get_param(component_schema, "HeatExchanger", "Q_sections")
@@ -206,6 +208,13 @@ class TestPortSchema:
         assert inlets["type"] == "fixed"
         assert "ports" in inlets
         assert inlets["ports"] == ["in1"]
+
+    def test_fixed_ports_carry_descriptions(self, component_schema):
+        inlets = component_schema["HeatExchanger"]["inlets"]
+        assert inlets["descriptions"] == {"in1": "hot side", "in2": "cold side"}
+        outlets = component_schema["CombustionChamber"]["outlets"]
+        assert outlets["descriptions"] == {"out1": "flue gas"}
+        assert component_schema["CycleCloser"]["inlets"]["descriptions"] == {}
 
     def test_variable_ports_have_parameter_and_pattern(self, component_schema):
         inlets = component_schema["Merge"]["inlets"]

@@ -316,7 +316,7 @@ def _counterflow_problem():
     nw.add_conns(c1, c2, c3, c4)
     c1.set_attr(fluid={"water": 1}, T=80, p=2, m=1)
     c3.set_attr(fluid={"water": 1}, T=20, p=2)
-    he.set_attr(dp1=0, dp2=0, Q=-1e5, kA=5000)
+    he.set_attr(dp1=0, dp2=0, Q=-1e5, UA=5000)
     nw.solve("design", init_only=True)
     problem = nw._problem
     problem._solve_equations()

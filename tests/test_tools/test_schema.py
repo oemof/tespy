@@ -260,8 +260,6 @@ class TestPortSchema:
 
     def test_simple_heat_exchanger_heat_and_power_ports(self, component_schema):
         entry = component_schema["SimpleHeatExchanger"]
-        assert entry["powerinlets"]["ports"] == ["heat"]
-        assert entry["poweroutlets"]["ports"] == ["heat"]
         assert entry["heatinlets"]["ports"] == ["heat"]
         assert entry["heatoutlets"]["ports"] == ["heat"]
 

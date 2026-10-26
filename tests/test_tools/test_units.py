@@ -9,7 +9,6 @@ available from its original location tests/test_tools/test_units.py
 SPDX-License-Identifier: MIT
 """
 import json
-import os
 import warnings
 
 from pint import UnitRegistry
@@ -63,19 +62,14 @@ def pipe_network():
     return nw
 
 
-def test_pressure_unit_propagates_to_pressure_difference(pipe_network):
-    """Setting only 'pressure' must also apply to dp (pressure_difference).
-
-    When the user sets pressure='bar' without explicitly setting
-    pressure_difference, the backwards-compatibility path should carry 'bar'
-    over to pressure_difference as well, so dp=1 means 1 bar = 100 000 Pa.
-    """
+def test_pressure_difference_unit_in_bar(pipe_network):
+    """With pressure and pressure_difference in bar, dp=1 means 1 bar."""
     nw = pipe_network
     c1, c2 = nw.get_conn(["c1", "c2"])
     pipe = nw.get_comp("pipe")
 
     nw.units.set_defaults(
-        pressure="bar", temperature="degC"
+        pressure="bar", pressure_difference="bar", temperature="degC"
     )
 
     c1.set_attr(fluid={"water": 1}, m=1, T=20, p=5)
@@ -187,15 +181,15 @@ def test_ref_delta_preserved_on_default_change(pipe_network):
     nw = pipe_network
     _solve_pipe_network_with_ref_delta(nw, -2)
     c2 = nw.get_conn("c2")
-    assert c2.p_ref.ref.delta_SI == approx(-2e5)
+    assert c2.p.reference.ref.delta_SI == approx(-2e5)
     assert c2.p.val_SI == approx(3e5)
 
     with warns(UserWarning):
         nw.units.set_defaults(pressure_difference="psi")
     nw.solve("design")
 
-    assert c2.p_ref.ref.delta_SI == approx(-2e5)
-    assert c2.p_ref.ref.delta == approx(-29.00755, rel=1e-5)
+    assert c2.p.reference.ref.delta_SI == approx(-2e5)
+    assert c2.p.reference.ref.delta == approx(-29.00755, rel=1e-5)
     assert c2.p.val_SI == approx(3e5)
 
 
@@ -209,7 +203,7 @@ def test_respecified_ref_delta_uses_new_defaults(pipe_network):
     c2.set_attr(p=Ref(c1, 1, -1))
     nw.solve("design")
 
-    assert c2.p_ref.ref.delta_SI == approx(-6894.757, rel=1e-5)
+    assert c2.p.reference.ref.delta_SI == approx(-6894.757, rel=1e-5)
     assert c2.p.val_SI == approx(5e5 - 6894.757, rel=1e-5)
 
 
@@ -218,15 +212,15 @@ def test_ref_quantity_delta_pinned_on_default_change(pipe_network):
     delta = nw.units.ureg.Quantity(-2, "bar")
     _solve_pipe_network_with_ref_delta(nw, delta)
     c2 = nw.get_conn("c2")
-    assert c2.p_ref.ref.delta_SI == approx(-2e5)
+    assert c2.p.reference.ref.delta_SI == approx(-2e5)
     assert c2.p.val_SI == approx(3e5)
 
     with warns(UserWarning):
         nw.units.set_defaults(pressure_difference="psi")
     nw.solve("design")
 
-    assert c2.p_ref.ref.delta_SI == approx(-2e5)
-    assert str(c2.p_ref.ref.delta.units) == "bar"
+    assert c2.p.reference.ref.delta_SI == approx(-2e5)
+    assert str(c2.p.reference.ref.delta.units) == "bar"
     assert c2.p.val_SI == approx(3e5)
 
 
@@ -238,27 +232,13 @@ def test_ref_quantity_delta_export_import(pipe_network):
     data = nw.export()
     nw2 = Network.from_dict(data)
 
-    ref = nw2.get_conn("c2").p_ref.ref
+    ref = nw2.get_conn("c2").p.reference.ref
     assert ref.delta.magnitude == approx(-2)
     assert str(ref.delta.units) == "bar"
 
     nw2.solve("design")
     nw2.assert_convergence()
     assert nw2.get_conn("c2").p.val_SI == approx(3e5)
-
-
-def test_ref_delta_import_backwards_compatibility():
-    path = os.path.join(
-        os.path.dirname(__file__), "_exported_network_v0_11_0.json"
-    )
-    nw = Network.from_json(path)
-
-    ref = nw.get_conn("c2").p_ref.ref
-    assert ref.delta == approx(-2)
-
-    nw.solve("design")
-    nw.assert_convergence()
-    assert nw.get_conn("c2").p.val_SI == approx(3e5)
 
 
 def test_ref_quantity_delta_save_restore_specifications(pipe_network):
@@ -271,7 +251,7 @@ def test_ref_quantity_delta_save_restore_specifications(pipe_network):
     nw.clear_specifications()
     nw.restore_specifications(data)
 
-    ref = nw.get_conn("c2").p_ref.ref
+    ref = nw.get_conn("c2").p.reference.ref
     assert ref.delta.magnitude == approx(-2)
     assert str(ref.delta.units) == "bar"
 

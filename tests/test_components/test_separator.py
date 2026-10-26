@@ -81,7 +81,7 @@ def test_separator_with_presolved_outlet_enthalpy():
     """A temperature specified downstream of an outlet presolves the outlet
     enthalpy, the separator's equal temperature equation must handle that"""
     nw = Network()
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     separator = Separator("separator")
     valve = Valve("valve")
     c1 = Connection(Source("source"), "out1", separator, "in1", label="1")

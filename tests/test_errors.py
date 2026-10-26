@@ -79,7 +79,6 @@ def set_attr_AttributeError(instance, **kwargs):
 
 def test_set_attr_errors():
     """Test errors of set_attr methods."""
-    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
@@ -108,11 +107,6 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, printout=5)
     set_attr_TypeError(conn, state=5)
 
-    set_attr_TypeError(nw, m_range=5)
-    set_attr_TypeError(nw, p_range=5)
-    set_attr_TypeError(nw, h_range=5)
-    set_attr_TypeError(nw, iterinfo=5)
-
     # KeyErrors
     set_attr_AttributeError(dc_cc(), x=7)
     set_attr_KeyError(comb, wow=5)
@@ -129,14 +123,12 @@ def test_set_attr_errors():
 
 def test_get_attr_errors():
     """Test errors of get_attr methods."""
-    nw = Network()
     comb = CombustionEngine('combustion engine')
     pipeline = Pipe('pipeline')
     conn = Connection(comb, 'out1', pipeline, 'in1')
 
     get_attr_KeyError(comb, 'wow')
     get_attr_KeyError(conn, 'key')
-    get_attr_KeyError(nw, 'missing')
     get_attr_KeyError(Ref(conn, 1, 0), 'comp')
     get_attr_KeyError(CharLine(), 'test')
     get_attr_KeyError(DataContainer(), 'somekey')
@@ -522,7 +514,7 @@ def test_UserDefinedEquation_defaults_not_shared():
 
 def test_warning_fixed_mass_fractions_below_one(caplog):
     nw = Network()
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     c1 = Connection(Source("source"), "out1", Pipe("pipe"), "in1", label="1")
     c2 = Connection(c1.target, "out1", Sink("sink"), "in1", label="2")
     nw.add_conns(c1, c2)

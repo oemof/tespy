@@ -79,7 +79,6 @@ class TestOptionalEquation:
         assert isinstance(hx.UA_char, dc.OptionalEquation)
         assert not isinstance(hx.UA_char, dc.ParameterGroup)
         assert hx.UA_char.elements == ["UA_char1", "UA_char2"]
-        assert isinstance(hx.kA_char, dc.OptionalEquation)
         from tespy.components import Pipe
         assert isinstance(Pipe("pipe").darcy_group, dc.ParameterGroup)
 
@@ -360,7 +359,8 @@ class TestPumpFlowCharacteristicUnits:
     def _network(self, **defaults):
         nw = Network(iterinfo=False)
         nw.units.set_defaults(
-            pressure="bar", temperature="degC", **defaults
+            **{"pressure": "bar", "pressure_difference": "bar",
+               "temperature": "degC", **defaults}
         )
         source = Source("source")
         sink = Sink("sink")

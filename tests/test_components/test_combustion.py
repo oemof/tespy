@@ -317,7 +317,7 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         # calculate in offdesign mode
         self.nw.solve('offdesign', design_path=design_state)
         self.nw.assert_convergence()

@@ -348,12 +348,12 @@ class TestPolynomialCompressor:
         fl = {'R134a': 1}
         self.c1.set_attr(fluid=fl, x=1, T=5)
         self.c2.set_attr(p=6, T=150)
-        instance.set_attr(
-            eta_vol=0.8, rpm=1500, reference_state=reference_state_legacy,
-            dissipation_ratio=0
-        )
         with pytest.warns(FutureWarning):
-            self.nw.solve('design')
+            instance.set_attr(
+                eta_vol=0.8, frequency=25,
+                reference_state=reference_state_legacy, dissipation_ratio=0
+            )
+        self.nw.solve('design')
         self.nw.assert_convergence()
 
         swept_volume = swept_volume_from_displacement(
@@ -361,11 +361,11 @@ class TestPolynomialCompressor:
             reference_state_legacy["rpm_displacement"] / 60
         )
         assert round(self.c1.v.val, 2) == round(
-            swept_volume * instance.rpm.val_SI / 60 * instance.eta_vol.val, 2
+            swept_volume * instance.frequency.val_SI * instance.eta_vol.val, 2
         )
 
     def test_eta_poly_legacy_rpm_keys(self, power_data, cooling_data, reference_state_legacy):
-        """Backward-compat: old rpm_* reference_state keys with eta_vol_poly and rpm parameter."""
+        """Backward-compat: old rpm_* reference_state keys with eta_vol_poly."""
         instance = PolynomialCompressor('compressor')
         self.setup_network(instance)
 
@@ -376,13 +376,14 @@ class TestPolynomialCompressor:
             eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
                 power_data, cooling_data, "R134a", reference_state_legacy
             )
-        instance.set_attr(
-            eta_vol_poly=eta_vol_poly, rpm=reference_state_legacy["rpm_poly"],
-            eta_s_poly=eta_s_poly, dissipation_ratio=0,
-            reference_state=reference_state_legacy
-        )
         with pytest.warns(FutureWarning):
-            self.nw.solve('design')
+            instance.set_attr(
+                eta_vol_poly=eta_vol_poly,
+                frequency=reference_state_legacy["rpm_poly"] / 60,
+                eta_s_poly=eta_s_poly, dissipation_ratio=0,
+                reference_state=reference_state_legacy
+            )
+        self.nw.solve('design')
         self.nw.assert_convergence()
 
         swept_volume = swept_volume_from_displacement(
@@ -390,7 +391,7 @@ class TestPolynomialCompressor:
             reference_state_legacy["rpm_displacement"] / 60
         )
         assert round(self.c1.v.val, 2) == round(
-            swept_volume * instance.rpm.val_SI / 60 * instance.eta_vol.val, 2
+            swept_volume * instance.frequency.val_SI * instance.eta_vol.val, 2
         )
         assert (
             abs((instance.P.val - power_data.loc[50, 0.0]))

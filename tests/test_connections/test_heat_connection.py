@@ -67,7 +67,7 @@ class TestHeatConnectionOutlet:
 
         hx.set_attr(Q=-10)
         nw.solve("design")
-        state = nw.save(as_dict=True)
+        state = nw.save()
 
         assert "HeatConnection" in state["Connection"]
         assert "h1" in state["Connection"]["HeatConnection"]

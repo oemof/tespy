@@ -107,7 +107,9 @@ def legacy_network():
     with pytest.warns(FutureWarning):
         heater = LegacyHeater("heater")
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(
+        pressure="bar", pressure_difference="bar", temperature="degC"
+    )
     source = Source("source")
     sink = Sink("sink")
     c1 = Connection(source, "out1", heater, "in1", label="c1")
@@ -133,7 +135,10 @@ def test_legacy_characteristic_group(legacy_network):
     nw, heater, c1, c2 = legacy_network
     heater.set_attr(
         Q_design=1e4, pr=1,
-        Q_char={"char_func": CharLine(x=[0, 1, 2], y=[0.5, 1, 1.5]), "is_set": True}
+        Q_char={
+            "char_func": CharLine(x=[0, 1, 2], y=[0.5, 1, 1.5]),
+            "is_set": True
+        }
     )
     nw.solve("design")
     nw.assert_convergence()

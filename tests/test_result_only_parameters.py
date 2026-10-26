@@ -106,7 +106,7 @@ def test_result_only_starting_value_rejected(cls, parameter, unit):
 @pytest.mark.parametrize("cls", [PolynomialCompressor, PolynomialCompressorWithCooling])
 @pytest.mark.parametrize("parameter,value", [
     ("P", 1000), ("eta_s", 0.7), ("eta_vol", 0.8),
-    ("frequency", 50), ("frequency", "var"), ("rpm", 1500), ("rpm", "var"),
+    ("frequency", 50), ("frequency", "var"),
 ])
 def test_calculated_group_input_still_accepted(cls, parameter, value):
     instance = make_instance(cls, **{parameter: value})
@@ -116,19 +116,6 @@ def test_calculated_group_input_still_accepted(cls, parameter, value):
         assert container.is_var
     else:
         assert container.val == value
-
-
-@pytest.mark.parametrize("cls,old,new", [
-    (HeatExchanger, "kA", "UA"),
-    (HeatExchanger, "zeta1", "zeta1_d4"),
-    (SimpleHeatExchanger, "zeta", "zeta_d4"),
-])
-def test_deprecated_input_alias_still_accepted(cls, old, new):
-    instance = make_instance(cls)
-    with pytest.warns(FutureWarning):
-        instance.set_attr(**{old: 10})
-    assert instance.get_attr(new).is_set
-    assert instance.get_attr(new).val == 10
 
 
 def test_result_only_outputs_survive_solve_and_network_roundtrip():

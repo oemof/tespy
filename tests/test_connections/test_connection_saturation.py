@@ -408,7 +408,7 @@ def test_T_dew_specified(simple_test_network):
 
 def _pipe_network():
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     pipe = Pipe("pipe")
     c1 = Connection(Source("source"), "out1", pipe, "in1", label="c1")
     c2 = Connection(pipe, "out1", Sink("sink"), "in1", label="c2")
@@ -451,7 +451,7 @@ def test_saturation_specification_with_variable_composition_is_rejected(paramete
     """Saturation properties are not available for a variable composition,
     the specification must not be dropped silently."""
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     merge = Merge("merge")
     c1 = Connection(Source("source 1"), "out1", merge, "in1", label="c1")
     c2 = Connection(Source("source 2"), "out1", merge, "in2", label="c2")

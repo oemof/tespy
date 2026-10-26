@@ -39,17 +39,11 @@ and collected in the **Under discussion** section.
   - Unified unit handling with a single source of truth per network
     :issue:`1071`
   - Thermopack as alternative property back end :issue:`624`
+  - Unit agnostic polynomial coefficients and reference states for the
+    :code:`PolynomialCompressor` :issue:`1017`
   - Connections through named ports, e.g.
     :code:`Connection(turbine.outlet, condenser.hot_inlet)` and
     :code:`component.hot_inlet` instead of :code:`inl[0]` :issue:`689`
-  - Deprecate Python 3.11
-
-  .. container:: roadmap-additions
-
-     .. rubric:: New features & components
-
-     - Zoned crossflow heat exchanger for fin-tube condensers and evaporators
-       :issue:`1073`
 
 - .. rubric:: v0.13
      :class: roadmap-release
@@ -63,8 +57,6 @@ and collected in the **Under discussion** section.
     deactivate a branch :issue:`600`
   - Retrieve mass flow and fluid branches from the structure matrix
     :issue:`845`
-  - Unit agnostic polynomial coefficients and reference states for the
-    :code:`PolynomialCompressor` :issue:`1017`
   - Application of Dulmage-Mendelsohn deconmposition also for variable fluid
     problems :issue:`1075`
   - Incremental re-solve: only recalculate the equations affected by changed
@@ -97,11 +89,21 @@ and collected in the **Under discussion** section.
   - Global and local user configuration files :issue:`1052`
   - Parallelization of component equations :issue:`611`
   - Revised sign convention of the vapor content property :issue:`709`
+  - Connection post-processing through :code:`calc` hooks of the result
+    parameters in two stages, pressure-enthalpy properties first, saturation
+    properties last
+  - Presolving of connections as a declared table of state determinations
+    instead of the hard-coded branches, with the consumed specifications
+    declared as their elements
+  - Declarative parameter definition of components and connections as class
+    attributes, and a dedicated namespace for the parameters of an object
 
   .. container:: roadmap-additions
 
      .. rubric:: New features & components
 
+     - Zoned crossflow heat exchanger for fin-tube condensers and evaporators
+       :issue:`1073`
      - Extended humid air capabilities to include freezing :issue:`1080`
      - Alpha scaling for the :code:`SectionedHeatExchanger` offdesign
        :issue:`1037`

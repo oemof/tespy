@@ -3415,7 +3415,10 @@ class Network:
         return components
 
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
+# files of earlier format versions carry parameter names that do not exist
+# anymore, tespy 0.11.4 writes the current names and migrates them
+_MIGRATION_VERSION = "0.11.4"
 
 _FILE_KINDS = {
     "network": (
@@ -3522,13 +3525,13 @@ def _check_meta(data, expected_kind):
         if kind == expected_kind:
             msg = (
                 "The data do not contain a 'meta' block, so they were "
-                "probably created with a tespy version older than 0.11.3. "
-                "Their compatibility cannot be checked. Support for data "
-                "without a 'meta' block will be removed in a future release, "
-                "please save or export them again."
+                "created with a tespy version older than 0.11.3 and hold "
+                "parameter names this version does not know anymore. Load "
+                f"and save them again with tespy {_MIGRATION_VERSION} to "
+                "migrate them."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            return
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
     else:
         kind = meta.get("kind")
         format_version = meta.get("format_version")
@@ -3540,6 +3543,16 @@ def _check_meta(data, expected_kind):
                 f"created with tespy {meta.get('tespy_version')}, but this "
                 f"tespy version only supports format versions up to "
                 f"{FORMAT_VERSION}. Please update tespy."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        if kind == expected_kind and format_version < FORMAT_VERSION:
+            msg = (
+                f"The data have the format version {format_version} and were "
+                f"created with tespy {meta.get('tespy_version')}. They hold "
+                "parameter names this version does not know anymore. Load "
+                f"and save them again with tespy {_MIGRATION_VERSION} to "
+                "migrate them."
             )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)

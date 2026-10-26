@@ -1872,6 +1872,17 @@ class TestSerializationMeta:
         with warns(FutureWarning, match="'meta' block"):
             self._load(kind, data)
 
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_data_of_earlier_format_version_are_refused(self, kind):
+        """Files of 0.11.3 and earlier hold parameters that do not exist
+        anymore, e.g. kA and zeta of a heat exchanger, and old names in the
+        design and offdesign lists. They have to be migrated with 0.11.4."""
+        data = deepcopy(self.data[kind])
+        data["meta"]["format_version"] = FORMAT_VERSION - 1
+        data["meta"]["tespy_version"] = "0.11.3"
+        with raises(TESPyNetworkError, match="0.11.4"):
+            self._load(kind, data)
+
     def test_status_in_meta(self):
         assert self.data["network"]["meta"]["status"] == 0
         assert self.data["state"]["meta"]["status"] == 0

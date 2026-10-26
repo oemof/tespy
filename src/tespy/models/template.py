@@ -496,7 +496,7 @@ class ModelTemplate():
             self.nw.save(path)
             self._design_path = path
         else:
-            self._design_path = self.nw.save(as_dict=True)
+            self._design_path = self.nw.save()
 
     def run_exergy_analysis(self, Tamb, pamb, E_F, E_P, E_L=None):
         """Run an exergy analysis via exerpy and cache the result.

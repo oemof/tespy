@@ -238,7 +238,7 @@ class Condenser(HeatExchanger):
     >>> amb_he.set_attr(fluid={'air': 1}, T=20, offdesign=['v'])
     >>> he_amb.set_attr(p=1, T=40, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(amb_he.v.val, 2)
     103.17
     >>> round(ws_he.T.val - he_amb.T.val, 1)

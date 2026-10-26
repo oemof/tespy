@@ -248,7 +248,7 @@ class CombustionEngine(CombustionChamber):
     >>> sp_chp2.set_attr(m=Ref(sp_chp1, 1, 0))
     >>> mode = 'design'
     >>> nw.solve(mode=mode)
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(chp.ti.val, 0)
     25300000.0
     >>> round(chp.Q1.val, 0)

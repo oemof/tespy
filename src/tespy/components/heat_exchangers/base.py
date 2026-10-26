@@ -315,7 +315,7 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
@@ -1464,4 +1464,9 @@ class HeatExchanger(Component):
         """Populate the section attributes :code:`Q_sections`,
         :code:`T_hot_sections`, :code:`T_cold_sections`,
         :code:`Q_per_section` and :code:`lmtd_per_section`."""
+        warnings.warn(
+            "calc_sections is deprecated and will be removed in version "
+            "0.13, the section attributes are populated after every solve.",
+            FutureWarning, stacklevel=2
+        )
         self._store_sections()

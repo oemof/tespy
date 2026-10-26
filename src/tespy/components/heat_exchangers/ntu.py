@@ -569,7 +569,7 @@ class NTUHeatExchanger(HeatExchanger):
     mass flow the air outlet temperature will decrease and the effectiveness
     will increase.
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> c1.set_attr(m=0.75)
     >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.eps.val, 3) > 0.667

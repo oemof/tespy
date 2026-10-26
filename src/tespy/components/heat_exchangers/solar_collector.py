@@ -191,7 +191,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(sc.A.val, 1)
     14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)

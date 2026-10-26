@@ -257,10 +257,10 @@ available keywords:
 - :code:`mode` is the calculation mode (:code:`'design'`-calculation or
   :code:`'offdesign'`-calculation).
 - :code:`init_path` is the path to a saved network state (json file path or
-  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) to use for
+  a :code:`dict` returned by :code:`nw.save()`) to use for
   initialisation.
 - :code:`design_path` is the path to a saved network state (json file path or
-  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) which holds the
+  a :code:`dict` returned by :code:`nw.save()`) which holds the
   information of your plant's design point.
 - :code:`max_iter` is the maximum amount of iterations performed by the
   solver.

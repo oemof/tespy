@@ -389,7 +389,7 @@ class SectionedHeatExchanger(HeatExchanger):
     - cold to hot side area ratio (:code:`area_ratio`)
     - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
@@ -506,7 +506,7 @@ class SectionedHeatExchanger(HeatExchanger):
     Solve the design point and save results:
 
     >>> nw.solve("design")
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
 
     After design computation, the CO2 outlet state is:
 

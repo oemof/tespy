@@ -2378,12 +2378,12 @@ class Network:
         init_path : str | Path | dict
             Path to a previously saved network state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         design_path : str | Path | dict
             Path to the saved design-case state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
@@ -2496,12 +2496,12 @@ class Network:
         init_path : str | Path | dict
             Path to a previously saved network state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         design_path : str | Path | dict
             Path to the saved design-case state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         init_previous : boolean
             Initialise the calculation with values from the previous
@@ -3070,7 +3070,7 @@ class Network:
         >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
-        >>> design_state = nw.save(as_dict=True)
+        >>> design_state = nw.save()
         >>> _ = nw.export('exported_nwk.json')
         >>> mass_flow = round(nw.get_conn('c01').m.val_SI, 1)
         >>> compressor.set_attr(igva='var')
@@ -3149,7 +3149,7 @@ class Network:
 
         return export
 
-    def save(self, json_file_path: str | Path | None = None, as_dict: bool = True) -> None | dict:
+    def save(self, json_file_path: str | Path | None = None, as_dict: bool | None = None) -> None | dict:
         r"""
         Dump the results to a json style output.
 
@@ -3161,9 +3161,8 @@ class Network:
             :code:`design_path` or :code:`init_path` in a subsequent
             :meth:`solve` call.
         as_dict : bool
-            Without effect, the state is always returned as dict when no file
-            path is given. Kept for compatibility with calls written for
-            earlier versions.
+            Deprecated and without effect, the state is always returned as
+            dict when no file path is given.
 
         Returns
         -------
@@ -3172,6 +3171,13 @@ class Network:
         dict
             If :code:`json_file_path` is :code:`None`.
         """
+        if as_dict is not None:
+            warnings.warn(
+                "The parameter as_dict of Network.save has no effect and will "
+                "be removed in version 0.13, the state is returned as dict "
+                "without a file path.",
+                FutureWarning, stacklevel=2
+            )
         dump = {}
 
         # save relevant state information only

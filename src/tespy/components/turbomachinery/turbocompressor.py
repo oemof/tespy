@@ -154,7 +154,7 @@ class TurboCompressor(Compressor):
     ... )
     >>> inc.set_attr(fluid={'air': 1}, p=1, T=20, v=50)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(comp.P.val, 0)
     12772.0
     >>> round(comp.eta_s.val, 2)

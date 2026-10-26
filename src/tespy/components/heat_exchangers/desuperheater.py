@@ -229,7 +229,7 @@ class Desuperheater(HeatExchanger):
     >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)

@@ -235,7 +235,7 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     value instead of the final pinch and then resolve again.
 
     >>> he.set_attr(design=["ttd_u"], offdesign=["UA"])
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.UA.val_SI / he.UA.design, 1)
     1.0

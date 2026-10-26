@@ -177,7 +177,7 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta_d4'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val

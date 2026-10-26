@@ -22,23 +22,39 @@ from tespy import __datapath__
 from tespy.tools import logger
 
 
+def _magnitude_and_unit(values):
+    """Magnitude and unit string of a pint quantity array, plain arrays
+    carry no unit."""
+    if hasattr(values, "magnitude") and hasattr(values, "units"):
+        return np.asarray(values.magnitude), str(values.units)
+    return values, None
+
+
 class CharLine:
     r"""
     Class for characteristc lines.
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the x-values of the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         The corresponding y-values for the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
     extrapolate : boolean
         If :code:`True` linear extrapolation is performed when the x value is
         out of the defined value range.
+
+    x_unit : str
+        Unit of the x-values, e.g. :code:`"m3/h"`, default: :code:`None`.
+
+    y_unit : str
+        Unit of the y-values, e.g. :code:`"bar"`, default: :code:`None`.
 
     Note
     ----
@@ -54,11 +70,14 @@ class CharLine:
     num_inputs = 1
 
     def __init__(
-            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False):
+            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False,
+            x_unit=None, y_unit=None):
 
-        self.x = x
-        self.y = y
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
 
         if isinstance(self.x, list):
             self.x = np.asarray(self.x)
@@ -177,11 +196,25 @@ class CharLine:
         """Lower and upper bound of the x-values."""
         return float(self.x[0]), float(self.x[-1])
 
+    @property
+    def input_units(self):
+        """Units of the input axes as read by the data containers."""
+        if self.x_unit is None:
+            return None
+        return [self.x_unit]
+
+    @property
+    def output_unit(self):
+        return self.y_unit
+
     def _serialize(self):
         export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -209,14 +242,18 @@ class CharMap:
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the first dimension input of the map.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         A two-dimensional array of the second dimension input of the map.
 
-    z : ndarray
+    z : ndarray, pint.Quantity
         A two-dimensional array of the output of the map.
+
+    x_unit, y_unit, z_unit : str
+        Units of the x-, y- and z-values, default: :code:`None`. Quantity
+        arrays carry their units.
 
     Note
     ----
@@ -228,12 +265,16 @@ class CharMap:
     num_inputs = 2
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z=np.ones((2, 2)), extrapolate=False):
+                 z=np.ones((2, 2)), extrapolate=False, x_unit=None,
+                 y_unit=None, z_unit=None):
 
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
+        self.z, carried_z_unit = _magnitude_and_unit(z)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
+        self.z_unit = z_unit or carried_z_unit
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -493,12 +534,26 @@ class CharMap:
             return float(self.x[0]), float(self.x[-1])
         return float(self.y.min()), float(self.y.max())
 
+    @property
+    def input_units(self):
+        """Units of the input axes as read by the data containers."""
+        if self.x_unit is None and self.y_unit is None:
+            return None
+        return [self.x_unit, self.y_unit]
+
+    @property
+    def output_unit(self):
+        return self.z_unit
+
     def _serialize(self):
         export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["z"] = self.z.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit", "z_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):

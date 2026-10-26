@@ -734,11 +734,6 @@ class Connection(ConnectionBase):
     r"""
     Class connection is the container for fluid properties between components.
 
-    The thermodynamic state of a fluid with known composition has two degrees
-    of freedom. The parameters listed in :code:`_state_specifications` are
-    the ones that can spend them, the connection resolves them to its state
-    variables before solving.
-
     Parameters
     ----------
 

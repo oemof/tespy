@@ -220,8 +220,9 @@ is possible to specify your own data for these characteristic functions.
 
     The data follow the default units of the network for dimensioned axes,
     e.g. the volumetric flow and pressure rise of the :code:`flow_char` of a
-    pump. Declare other units with :code:`input_units` and
-    :code:`output_unit` in the dictionary specification.
+    pump. Declare other units on the data, e.g.
+    :code:`CharLine(x, y, x_unit="m3/h", y_unit="bar")`, or pass
+    :code:`pint` quantity arrays.
 
 For example, :code:`UA_char` specification for heat exchangers:
 

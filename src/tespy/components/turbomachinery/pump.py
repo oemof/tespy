@@ -175,13 +175,15 @@ class Pump(Turbomachine):
     characteristic function for the pump efficiency. We can calculate the
     offdesign efficiency and the volumetric flow, if the difference pressure
     changed. The default characteristc lines are to be found in the
-    :ref:`tespy.data <data_label>` module. Of course you are able to
-    specify your own characteristcs, like done for the :code:`flow_char`. More
-    information on how to specify characteristic functions are given in the
-    corresponding part of the online documentation.
+    :ref:`tespy.data <data_label>` module. Of course you are able to specify
+    your own characteristcs, like done for the :code:`flow_char`. The data of
+    the characteristic are in the units of the network, here l/s for the
+    volumetric flow and bar for the pressure rise. More information on how to
+    specify characteristic functions are given in the corresponding part of the
+    online documentation.
 
-    >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2]) / 1000
-    >>> dp = np.array([15, 14, 12, 9, 5, 0]) * 1e5
+    >>> v = np.array([0, 0.4, 0.8, 1.2, 1.6, 2])  # l/s
+    >>> dp = np.array([15, 14, 12, 9, 5, 0])  # bar
     >>> char = CharLine(x=v, y=dp)
     >>> pu.set_attr(eta_s=0.8, flow_char={'char_func': char, 'is_set': True},
     ... design=['eta_s'], offdesign=['eta_s_char'])
@@ -226,7 +228,11 @@ class Pump(Turbomachine):
 
     .. attention::
 
-        The values need to be in SI units!
+        The map data are in SI units here, i.e. the frequency in 1/s, the
+        volumetric flow in m³/s and the head in m. The network below uses 1/min
+        for the frequency, so the units of the map data are declared when
+        creating the maps. Without the declaration the data would be read in
+        the units of the network.
 
     Then we need to have the respective hydraulic head and efficiency for each
     of those values.
@@ -250,12 +256,17 @@ class Pump(Turbomachine):
     >>> pump_H_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
-    ...     z=head
+    ...     z=head,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s",
+    ...     z_unit="m"
     ... )
     >>> pump_eta_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
-    ...     z=efficiency
+    ...     z=efficiency,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s"
     ... )
 
     Now we create the model and impose the maps
@@ -319,12 +330,17 @@ class Pump(Turbomachine):
     ...     x=frequencies,
     ...     y=flows,
     ...     z=head,
-    ...     extrapolate=True
+    ...     extrapolate=True,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s",
+    ...     z_unit="m"
     ... )
     >>> pump_eta_map = CharMap(
     ...     x=frequencies,
     ...     y=flows,
     ...     z=efficiency,
+    ...     x_unit="1/s",
+    ...     y_unit="m3/s"
     ... )
     >>> pu.set_attr(
     ...     head_flow_map={'char_func': pump_H_map, 'is_set': True},

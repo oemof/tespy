@@ -1453,7 +1453,7 @@ class TestSaveClearRestoreSpecifications:
 
         c3.set_attr(fluid={"N2": 0.8, "O2": 0.2}, T=25, p=10, m=Ref(c1, 2, -0.5))
         self.valve.set_attr(dp_char={
-            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1e5] * 4),
+            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1] * 4),
             "is_set": True
         })
 

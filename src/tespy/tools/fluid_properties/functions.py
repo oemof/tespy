@@ -547,7 +547,9 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
     Returns
     -------
     float
-        Vapour quality (0 = saturated liquid, 1 = saturated vapour).
+        Vapour quality, at subcritical pressure 0 for liquid, 0...1 in the
+        two-phase region and 1 for vapour, :code:`nan` at supercritical
+        pressure.
 
     Raises
     ------

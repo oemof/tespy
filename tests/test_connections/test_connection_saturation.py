@@ -9,6 +9,7 @@ tests/test_connections/test_connection_saturation.py
 
 SPDX-License-Identifier: MIT
 """
+import numpy as np
 import pytest
 from CoolProp.CoolProp import get_global_param_string
 from pytest import approx
@@ -472,3 +473,44 @@ def test_saturation_temperature_with_pressure_is_rejected(parameter):
     c1.set_attr(fluid={"water": 1}, m=1, p=5, **{parameter: 150})
     with pytest.raises(TESPyNetworkError, match="simultaneously specify pressure"):
         nw.solve("design")
+
+
+@mark.parametrize(
+    "p, T, x",
+    [
+        (5, 20, 0),
+        (5, 300, 1),
+        (5, 500, 1),
+        (300, 20, None),
+        (300, 500, None),
+    ],
+)
+def test_vapor_quality_result_outside_two_phase(p, T, x):
+    nw = Network()
+    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.iterinfo = False
+
+    c1 = Connection(Source("source"), "out1", Sink("sink"), "in1")
+    nw.add_conns(c1)
+    c1.set_attr(fluid={"H2O": 1}, m=1, p=p, T=T)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    if x is None:
+        assert np.isnan(c1.x.val)
+    else:
+        assert c1.x.val == x
+
+
+def test_vapor_quality_result_in_two_phase():
+    nw = Network()
+    nw.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
+    nw.iterinfo = False
+
+    c1 = Connection(Source("source"), "out1", Sink("sink"), "in1")
+    nw.add_conns(c1)
+    c1.set_attr(fluid={"H2O": 1}, m=1, p=5, h=1500)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert 0 < c1.x.val < 1

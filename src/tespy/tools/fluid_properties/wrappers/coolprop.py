@@ -11,6 +11,7 @@ tespy/tools/fluid_properties/wrappers/coolprop.py
 SPDX-License-Identifier: MIT
 """
 import CoolProp as CP
+import numpy as np
 
 from .base import FluidPropertyWrapper
 from .base import wrapper_registry
@@ -180,15 +181,18 @@ class CoolPropWrapper(FluidPropertyWrapper):
         if len(self.fractions) > 1:
             return self.AS.Q()
 
+        if p >= self._p_crit:
+            return np.nan
+
         phase = self.AS.phase()
         if phase == CP.iphase_twophase:
             return self.AS.Q()
         elif phase == CP.iphase_liquid:
             return 0
-        elif phase == CP.iphase_gas:
+        elif phase in (CP.iphase_gas, CP.iphase_supercritical_gas):
             return 1
-        else:  # all other phases - though this should be unreachable as p is sub-critical
-            return -1
+        else:
+            return np.nan
 
     def phase_ph(self, p, h):
         if self.back_end == "INCOMP":

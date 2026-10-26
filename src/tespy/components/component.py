@@ -1138,7 +1138,7 @@ class Component:
             can also be used in the residual calculations during iterations.
 
             **Pattern B - derived properties** (T, v, x, ...): methods like
-            :code:`_calc_ttd_u` or :code:`_calc_td_log` call helpers such as
+            :code:`_calc_ttd_u` or :code:`_calc_lmtd` call helpers such as
             :code:`calc_T()` which rely on values that are computed during
             connection postprocessing (e.g. :code:`connection.T.val_SI`). These
             methods must **only** be called in postprocessing, never during

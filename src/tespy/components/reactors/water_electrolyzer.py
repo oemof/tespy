@@ -115,10 +115,6 @@ class WaterElectrolyzer(Component):
         Heat output of the cooling port. Quantity: :code:`heat`.
         Equation: :py:meth:`heat_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func>`.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Cooling port geometry-independent friction coefficient zeta/D^4 for
         pressure loss calculation.

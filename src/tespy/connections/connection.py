@@ -211,8 +211,8 @@ class ConnectionBase:
         if reference is None:
             return None
         warnings.warn(
-            f"The attribute '{key}' is deprecated, use "
-            f"'{key[:-4]}.reference' instead.",
+            f"The attribute '{key}' is deprecated and will be removed in "
+            f"version 0.13, use '{key[:-4]}.reference' instead.",
             FutureWarning, stacklevel=3
         )
         return reference

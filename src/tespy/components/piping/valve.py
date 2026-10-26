@@ -117,10 +117,6 @@ class Valve(Component):
     printout : bool
         Include this component in the network's results printout.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
         calculation.

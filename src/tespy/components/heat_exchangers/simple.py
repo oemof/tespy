@@ -47,8 +47,6 @@ class SimpleHeatExchanger(Component):
 
     - Fluid inlets: in1
     - Fluid outlets: out1
-    - Power inlets: heat
-    - Power outlets: heat
     - Heat inlets: heat
     - Heat outlets: heat
 
@@ -95,22 +93,6 @@ class SimpleHeatExchanger(Component):
         Hazen-Williams equation for pressure loss. Elements: :code:`L`,
         :code:`ks_HW`, :code:`D`.
         Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
-
-    kA : float, dict, :code:`"var"`
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`. Can be set as a system variable by
-        passing :code:`"var"` as its value.
-
-    kA_char : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char` instead.
-
-    kA_char_group : ParameterGroup
-        Deprecated, use :code:`UA_char_group` instead. Elements:
-        :code:`kA_char`, :code:`Tamb`.
-
-    kA_group : ParameterGroup
-        Deprecated, use :code:`UA_group` instead. Elements: :code:`kA`,
-        :code:`Tamb`.
 
     ks : float, dict, :code:`"var"`
         Roughness of wall material. Quantity: :code:`length`. Can be set as a
@@ -172,10 +154,6 @@ class SimpleHeatExchanger(Component):
         Equation for heat transfer based on ambient temperature and heat
         transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
         Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
-
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss

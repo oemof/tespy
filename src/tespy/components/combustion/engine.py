@@ -165,18 +165,10 @@ class CombustionEngine(CombustionChamber):
     tiP_char : tespy.tools.characteristics.CharLine, dict
         Thermal input to power lookup table.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
-        each solve.
-
     zeta1_d4 : float, dict
         Heating port 1 geometry-independent friction coefficient zeta/D^4 for
         pressure loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
-        each solve.
 
     zeta2_d4 : float, dict
         Heating port 2 geometry-independent friction coefficient zeta/D^4 for

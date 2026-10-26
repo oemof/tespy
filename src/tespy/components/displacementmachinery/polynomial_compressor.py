@@ -115,11 +115,6 @@ class PolynomialCompressor(DisplacementMachine):
         Elements: :code:`swept_volume`, :code:`eta_vol`, :code:`frequency`.
         Equation: :py:meth:`eta_vol_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_frequency_group_func>`.
 
-    eta_vol_group_rpm : ParameterGroup
-        Displacement equation based on fixed volumetric efficiency. Elements:
-        :code:`swept_volume`, :code:`eta_vol`, :code:`rpm`.
-        Equation: :py:meth:`eta_vol_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_group_func>`.
-
     eta_vol_poly : tespy.tools.characteristics.EN12900Polynomial, dict
         Volumetric efficiency as function of evaporation and condensation
         temperature.
@@ -129,12 +124,6 @@ class PolynomialCompressor(DisplacementMachine):
         efficiency. Elements: :code:`swept_volume`, :code:`eta_vol_poly`,
         :code:`frequency`.
         Equation: :py:meth:`eta_vol_poly_frequency_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_frequency_group_func>`.
-
-    eta_vol_poly_group_rpm : ParameterGroup
-        Displacement equation based on polynomial coefficients for volumetric
-        efficiency. Elements: :code:`swept_volume`, :code:`eta_vol_poly`,
-        :code:`rpm`.
-        Equation: :py:meth:`eta_vol_poly_group_func <tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor.eta_vol_poly_group_func>`.
 
     frequency : float, dict, :code:`"var"`
         Compressor frequency. Quantity: :code:`frequency`. Can be set as a
@@ -169,10 +158,6 @@ class PolynomialCompressor(DisplacementMachine):
     reference_state : dict
         Deprecated, use :code:`swept_volume` instead.
 
-    rpm : float, dict, :code:`"var"`
-        Compressor frequency. Can be set as a system variable by passing
-        :code:`"var"` as its value.
-
     swept_volume : float, dict
         Swept volume per revolution. Quantity: :code:`volume`.
 
@@ -184,9 +169,9 @@ class PolynomialCompressor(DisplacementMachine):
        polynomials based on the provided manufacturer data.
     2. Set the resulting isentropic and volumetric efficiency polynomials.
        Under the assumption of isentropic and volumetric efficiency not being
-       constant at variable compressor rpm, the outlet state will be determined
-       with the volumetric flow at inlet. The volumetric flow at inlet scales
-       linearly with the rpm of the compressor.
+       constant at variable compressor frequency, the outlet state will be
+       determined with the volumetric flow at inlet. The volumetric flow at
+       inlet scales linearly with the frequency of the compressor.
 
     >>> from tespy.components import Source, Sink, PolynomialCompressor
     >>> from tespy.connections import Connection

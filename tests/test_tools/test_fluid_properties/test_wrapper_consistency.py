@@ -14,6 +14,7 @@ tests/test_tools/test_fluid_properties/test_wrapper_consistency.py
 SPDX-License-Identifier: MIT
 """
 import importlib.util
+import math
 from dataclasses import dataclass
 from dataclasses import field
 
@@ -221,6 +222,23 @@ class TestSaturation:
             assert 0.2 < Q < 0.6
         else:
             assert Q == pytest.approx(0.4, abs=1e-2)
+
+    def test_Q_ph_single_phase(self, case):
+        c, w = case
+        if c.mixture:
+            pytest.skip("Single phase quality mapping only for pure fluids.")
+        p_liquid = w.p_sat(c.T_sat) * 1.5
+        assert w.Q_ph(p_liquid, w.h_pT(p_liquid, c.T_sat)) == 0
+        assert w.Q_ph(c.p, w.h_pT(c.p, c.T)) == 1
+        p_subcritical = w._p_crit * 0.5
+        T_supercritical = w._T_crit * 1.2
+        assert w.Q_ph(
+            p_subcritical, w.h_pT(p_subcritical, T_supercritical)
+        ) == 1
+        p_supercritical = w._p_crit * 1.2
+        assert math.isnan(
+            w.Q_ph(p_supercritical, w.h_pT(p_supercritical, c.T))
+        )
 
     def test_h_QT_matches_h_pQ(self, case):
         c, w = case

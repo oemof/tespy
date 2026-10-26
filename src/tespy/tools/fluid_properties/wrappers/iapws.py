@@ -11,6 +11,8 @@ tespy/tools/fluid_properties/wrappers/iapws.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from .base import FluidPropertyWrapper
 from .base import wrapper_registry
 
@@ -98,7 +100,13 @@ class IAPWSWrapper(FluidPropertyWrapper):
         return self.AS(T=T, x=0).P * 1e6
 
     def Q_ph(self, p, h):
-        return self.AS(h=h / 1e3, P=p / 1e6).x
+        if p >= self._p_crit:
+            return np.nan
+        # (h, P) quality is unreliable for single-phase states, see phase_ph
+        state = self.AS(h=h / 1e3, P=p / 1e6)
+        if state.phase in ["Two phases", "Saturated vapor", "Saturated liquid"]:
+            return state.x
+        return 0 if h <= self.h_pQ(p, 0) else 1
 
     def phase_ph(self, p, h):
         # (h, P) correctly identifies two-phase but gives unreliable .phase for

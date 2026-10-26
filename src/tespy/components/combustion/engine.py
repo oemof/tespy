@@ -368,7 +368,7 @@ class CombustionEngine(CombustionChamber):
                 calc=self._calc_zeta_d4
             ),
             'zeta1': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -381,7 +381,7 @@ class CombustionEngine(CombustionChamber):
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),

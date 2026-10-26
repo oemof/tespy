@@ -333,7 +333,7 @@ class SimpleHeatExchanger(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -370,7 +370,7 @@ class SimpleHeatExchanger(Component):
                 calc=self._calc_UA, calc_deps=['Q']
             ),
             'lmtd': ComponentParameter(
-                min_val=0, is_result=True, quantity="temperature_difference",
+                min_val=0, quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
@@ -830,15 +830,6 @@ class SimpleHeatExchanger(Component):
         if key == 'p':
             return 1e5
         return 0
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        if "UA" not in self.parameters:
-            return
-        self.UA.is_result = self.Tamb.is_set
-        self.kA.is_result = self.Tamb.is_set
-        self.lmtd.is_result = self.Tamb.is_set
 
     def entropy_balance(self):
         r"""

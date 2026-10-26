@@ -400,7 +400,7 @@ class Component:
         for key in self._get_result_attributes():
             p = self.get_attr(key)
             if (p.func is not None or (p.func is None and p.is_set) or
-                    p.is_result or p.structure_matrix is not None):
+                    p.calc is not None or p.structure_matrix is not None):
                 result[key] = p.val
             else:
                 result[key] = np.nan

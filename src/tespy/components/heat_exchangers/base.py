@@ -385,18 +385,18 @@ class HeatExchanger(Component):
                 calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
             'kA': ComponentParameter(
-                min_val=0, is_result=True,
+                min_val=0,
                 quantity="heat_transfer_coefficient",
                 description="deprecated, use :code:`UA` instead",
                 calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
             ),
             'td_log': ComponentParameter(
-                min_val=0, is_result=True, quantity="temperature_difference",
+                min_val=0, quantity="temperature_difference",
                 description="deprecated, use :code:`lmtd` instead",
                 calc=self._calc_lmtd, calc_deps=['lmtd']
             ),
             'lmtd': ComponentParameter(
-                min_val=0, is_result=True, quantity="temperature_difference",
+                min_val=0, quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
@@ -465,7 +465,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta1': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta1_d4` instead",
                 calc=self._calc_zeta_d4
             ),
@@ -478,7 +478,7 @@ class HeatExchanger(Component):
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'zeta2': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),

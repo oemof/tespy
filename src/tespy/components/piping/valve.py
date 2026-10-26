@@ -267,7 +267,7 @@ class Valve(Component):
                 calc=self._calc_zeta_d4
             ),
             'zeta': ComponentParameter(
-                min_val=0, max_val=1e15, is_result=True,
+                min_val=0, max_val=1e15,
                 description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),

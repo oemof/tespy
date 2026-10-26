@@ -60,6 +60,7 @@ from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _is_variable
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import _topological_sort
 from tespy.tools.helpers import seeded_random
 from tespy.tools.units import SI_UNITS
 
@@ -429,6 +430,18 @@ class ConnectionBase:
         references
         """
         pass
+
+    def _calc_result_parameters(self):
+        """Calculate the parameters with a calc method in dependency order.
+        Called right after the temperature so that the pressure enthalpy
+        state of the property back end is reused from its cache."""
+        calc_items = {
+            k: p for k, p in self.property_data.items()
+            if getattr(p, "calc", None) is not None
+        }
+        for k in _topological_sort(calc_items):
+            p = calc_items[k]
+            p.val_SI = p.calc(**p.calc_params)
 
     def primary_ref_structure_matrix(self, k, **kwargs):
         r"""Create a linear relationship between two variables
@@ -2046,14 +2059,14 @@ class Connection(ConnectionBase):
                 description="subcooling temperature difference to bubble line temperature"
             ),
             "vol": ConnectionParameter(
-                is_result=True,
                 quantity="specific_volume",
-                description="specific volume of the fluid (output only)"
+                description="specific volume of the fluid (output only)",
+                calc=self._calc_vol_result
             ),
             "s": ConnectionParameter(
-                is_result=True,
                 quantity="entropy",
-                description="specific entropy of the fluid (output only)"
+                description="specific entropy of the fluid (output only)",
+                calc=self.calc_s
             ),
             "fluid": FluidComposition(
                 d=1e-5, description="mass fractions of the fluid composition (system variable)"

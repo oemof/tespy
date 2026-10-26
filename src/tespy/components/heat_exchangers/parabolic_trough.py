@@ -11,6 +11,8 @@ tespy/components/heat_exchangers/parabolic_trough.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.simple import SimpleHeatExchanger
 from tespy.tools.data_containers import ComponentParameter
@@ -347,9 +349,6 @@ class ParabolicTrough(SimpleHeatExchanger):
         pass
 
     def _calc_Q_loss(self):
+        if not self.energy_group.is_set:
+            return np.nan
         return -self.E.val_SI * self.A.val_SI + self.Q.val_SI
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        self.Q_loss.is_result = self.energy_group.is_set

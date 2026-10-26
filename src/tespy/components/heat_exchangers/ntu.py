@@ -649,7 +649,7 @@ class NTUHeatExchanger(HeatExchanger):
             calc=self._calc_NTU, calc_deps=["UA"]
         )
         params["C_r"] = ComponentParameter(
-            min_val=0, max_val=1, is_result=True, quantity="ratio",
+            min_val=0, max_val=1, quantity="ratio",
             description="minimum to maximum capacity rate ratio",
             calc=self._calc_C_r
         )

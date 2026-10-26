@@ -471,22 +471,22 @@ class PolynomialCompressor(DisplacementMachine):
         params = super().get_parameters()
         params.update({
             "Q_diss": ComponentParameter(
-                max_val=0, val=0, is_result=True, quantity="heat",
+                max_val=0, val=0, quantity="heat",
                 description="heat dissipation",
                 calc=self._calc_Q_diss
             ),
             "P": ComponentParameter(
-                min_val=0, is_result=True, quantity="power",
+                min_val=0, quantity="power",
                 description="power consumption",
                 calc=self._calc_P
             ),
             "eta_vol": ComponentParameter(
-                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                min_val=0, max_val=1, quantity="efficiency",
                 description="volumetric efficiency",
                 calc=self._calc_eta_vol
             ),
             "eta_s": ComponentParameter(
-                min_val=0, max_val=1, is_result=True, quantity="efficiency",
+                min_val=0, max_val=1, quantity="efficiency",
                 description="isentropic efficiency",
                 calc=self._calc_eta_s
             ),
@@ -495,12 +495,12 @@ class PolynomialCompressor(DisplacementMachine):
                 description="heat dissipation ratio relative to power consumption"
             ),
             "frequency": ComponentParameter(
-                min_val=0, max_val=10000, is_result=True, _allows_var=True,
+                min_val=0, max_val=10000, _allows_var=True,
                 quantity="frequency",
                 description="compressor frequency"
             ),
             "rpm": ComponentParameter(
-                min_val=0, is_result=True, _allows_var=True,
+                min_val=0, _allows_var=True,
                 description="compressor frequency"
             ),
             "swept_volume": ComponentParameter(
@@ -513,12 +513,10 @@ class PolynomialCompressor(DisplacementMachine):
             ),
             "eta_s_poly": CharacteristicData(
                 input_quantities=["temperature", "temperature"],
-                input_units=["degC", "degC"],
                 description="isentropic efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly": CharacteristicData(
                 input_quantities=["temperature", "temperature"],
-                input_units=["degC", "degC"],
                 description="volumetric efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly_group_rpm": ParameterGroup(

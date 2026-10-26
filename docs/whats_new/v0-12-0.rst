@@ -8,7 +8,7 @@ API Changes
   value and either carries an equation or not. The former names stay
   available for one release with a :code:`FutureWarning` and still match
   their replacement in :code:`isinstance` checks
-  (`PR #XXXX <https://github.com/oemof/tespy/pull/XXXX>`__).
+  (`PR #1097 <https://github.com/oemof/tespy/pull/1097>`__).
 
   .. list-table::
       :header-rows: 1
@@ -65,9 +65,10 @@ API Changes
   any other specification. Before, these data were SI data regardless of the
   network's units. A warning is raised where the interpretation changed, i.e.
   for dimensioned data without declared units in a network whose defaults
-  are not SI. Check your data or declare their units with the
-  :code:`input_units` and :code:`output_unit` keywords of the container, e.g.
-  :code:`pump.set_attr(flow_char={"char_func": line, "input_units": ["m3/s"], "output_unit": "Pa"})`.
+  are not SI. Check your data or declare their units on the data,
+  :code:`CharLine(x, y, x_unit="m3/s", y_unit="Pa")`, or pass :code:`pint`
+  quantity arrays :code:`CharLine(x=Q_(x, "m3/s"), y=Q_(y, "Pa"))`. The
+  :code:`EN12900Polynomial` carries the °C of its axes.
   The default characteristics shipped with tespy are SI data. Equations of
   custom components should call :code:`self.my_char.evaluate(x)` instead of
   :code:`self.my_char.char_func.evaluate(x)`.
@@ -96,15 +97,22 @@ API Changes
   read them without a declaration.
 - The unit system knows the quantity :code:`volume` with default unit
   :code:`m3`.
-- A scalar or array component parameter is an input when it carries an
-  equation, is an element of a parameter group or can become a system
-  variable. A parameter flagged :code:`is_result` without any of these is
-  result-only and refuses user values with a :code:`TypeError` instead of
-  silently ignoring them (:issue:`1070`). The same holds for connection
-  parameters that are neither variables nor carry an equation: specific
-  entropy :code:`s`, specific volume :code:`vol` and the humid air mass flows
-  :code:`mHA` and :code:`mH2O`, which also reject starting values. The
+- A parameter accepts a specification when a declared consumer reads it: an
+  equation of its own, a parameter group, optional equation or mandatory
+  constraint listing it in its :code:`elements`, the variable role or the
+  state specifications of a connection. A parameter without consumer is
+  result-only
+  and refuses user values with a :code:`TypeError` instead of silently
+  ignoring them (:issue:`1070`). The former :code:`is_result` flag is gone,
+  a parameter with a :code:`calc` method is reported in the results in every
+  case. Connection parameters follow the same rule: specific entropy
+  :code:`s`, specific volume :code:`vol` and the humid air mass flows
+  :code:`mHA` and :code:`mH2O` are calculated through :code:`calc` methods in
+  the post-processing, are result-only and reject starting values. The
   :code:`result_only` property tells the state of a parameter.
+  :py:class:`~tespy.tools.data_containers.MandatoryConstraint` takes the
+  :code:`elements` its equation reads, e.g. :code:`f_nox` of the combustion
+  components.
 - References of connection parameters to the same parameter of another
   connection are attached to the parameter: :code:`c.m.reference` holds the
   :py:class:`~tespy.tools.data_containers.ReferenceEquation`. The former
@@ -113,12 +121,27 @@ API Changes
   attributes stay available with a :code:`FutureWarning`. The energy flow
   :code:`E` of power and heat connections can be referenced now, e.g.
   :code:`e2.set_attr(E=Ref(e1, 0.5, 0))`. Saved files keep their format.
+- :code:`UA`, :code:`kA` and :code:`lmtd` of the
+  :py:class:`~tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
+  and :code:`Q_loss` of the solar collectors are calculated in every case,
+  the value is :code:`nan` when the ambient temperature or the energy group
+  is not specified. :code:`lmtd` and :code:`Q_loss` are result-only.
 - The :code:`subcooling` switch of the
   :py:class:`~tespy.components.heat_exchangers.condenser.Condenser` is a
   configuration value. The saturated liquid outlet equation it disables is a
   mandatory constraint of the component now, which is left out when
   subcooling is allowed. The specification :code:`subcooling=True` is
   unchanged.
+
+Bug Fixes
+#########
+- The dew and bubble temperature specifications :code:`T_dew` and
+  :code:`T_bubble` of connections were silently ignored where the pressure is
+  fixed otherwise, e.g. through the pressure equality of a component. This
+  is an overdetermination error now. With a variable fluid composition the
+  saturation properties are not available: specifying :code:`T_dew`,
+  :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there
+  raises an error instead of the specification being ignored.
 
 Contributors
 ############

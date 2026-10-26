@@ -93,7 +93,7 @@ class TestArrayParameter:
             array.accept([1, 2, 3])
 
     def test_input_array_converts_units(self):
-        array = dc.ArrayParameter(quantity="pressure", is_result=False)
+        array = dc.ArrayParameter(quantity="pressure", func=lambda: 0)
         assert not array.result_only
         array.accept([1, 2])
         units = Units()
@@ -112,6 +112,8 @@ class TestScalarParameters:
         param.accept(3)
         assert not param.is_var and param.val == 3
         with pytest.raises(ValueError):
+            dc.ComponentParameter(func=lambda: 0).accept("var")
+        with pytest.raises(TypeError):
             dc.ComponentParameter().accept("var")
 
     def test_starting_value(self):
@@ -138,7 +140,7 @@ class TestScalarParameters:
     def test_group_element_is_input(self):
         from tespy.components import PolynomialCompressor
         compressor = PolynomialCompressor("compressor")
-        assert compressor.P.is_result
+        assert compressor.P.calc is not None
         assert not compressor.P.result_only
         assert compressor.Q_diss.result_only
 

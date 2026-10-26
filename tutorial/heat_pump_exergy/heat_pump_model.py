@@ -101,8 +101,8 @@ class HeatPumpModel(ModelTemplate):
             pr1=0.99, pr2=0.99, Q=-4e3,
             design=["pr2", "td_pinch"], offdesign=["zeta2_d4", "UA_char"],
         )
-        UA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
-        UA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
+        UA_char1 = ldc("HeatExchanger", "UA_char1", "DEFAULT", CharLine)
+        UA_char2 = ldc("HeatExchanger", "UA_char2", "EVAPORATING FLUID", CharLine)
         ev.set_attr(
             pr1=0.99, pr2=0.99,
             UA_char1=UA_char1, UA_char2=UA_char2,

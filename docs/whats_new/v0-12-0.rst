@@ -60,18 +60,22 @@ API Changes
 - Characteristic functions carry a physical quantity per axis. Components
   evaluate them through the container with SI inputs and receive SI outputs,
   the conversion to the units of the data is handled by the container.
-  Dimensioned axes, e.g. the volumetric flow and the pressure rise of the
-  :code:`flow_char` of a pump, follow the default units of the network like
-  any other specification. Before, these data were SI data regardless of the
-  network's units. A warning is raised where the interpretation changed, i.e.
-  for dimensioned data without declared units in a network whose defaults
-  are not SI. Check your data or declare their units on the data,
+  Dimensioned axes follow the default units of the network like any other
+  specification. Before, these data were SI data regardless of the network's
+  units. This changes the interpretation of user data for the pump's
+  :code:`flow_char` (volumetric flow, pressure difference),
+  :code:`eta_flow_map` and :code:`head_flow_map` (frequency, volumetric
+  flow, head) and the valve's :code:`dp_char` (mass flow, pressure
+  difference). Relative characteristics, e.g. :code:`eta_s_char`, are
+  dimensionless and unaffected. A warning is raised where the interpretation
+  changed, i.e. for dimensioned data without declared units in a network
+  whose defaults are not SI. Check your data or declare their units on the data,
   :code:`CharLine(x, y, x_unit="m3/s", y_unit="Pa")`, or pass :code:`pint`
   quantity arrays :code:`CharLine(x=Q_(x, "m3/s"), y=Q_(y, "Pa"))`. The
-  :code:`EN12900Polynomial` carries the °C of its axes.
-  The default characteristics shipped with tespy are SI data. Equations of
-  custom components should call :code:`self.my_char.evaluate(x)` instead of
-  :code:`self.my_char.char_func.evaluate(x)`.
+  :code:`EN12900Polynomial` carries the °C of its axes, the default
+  characteristics shipped with tespy are SI data.
+- Equations of custom components should call :code:`self.my_char.evaluate(x)`
+  instead of :code:`self.my_char.char_func.evaluate(x)`.
 - The new :py:class:`~tespy.tools.characteristics.Polynomial` and
   :py:class:`~tespy.tools.characteristics.EN12900Polynomial` are
   characteristic representations next to :code:`CharLine` and
@@ -80,68 +84,59 @@ API Changes
   as :code:`EN12900Polynomial` objects, which are evaluated in °C as defined by
   the standard whatever the network's temperature unit is. Passing the
   coefficients as list is deprecated.
-- The :code:`reference_state` dictionary of the
-  :code:`PolynomialCompressor` is deprecated. The component only needs the
-  :code:`swept_volume` (quantity :code:`volume`) from it, which is a regular
-  component parameter now. The functions generating the efficiency
-  polynomials from manufacturer data take the reference state as the keyword
-  arguments :code:`T_sh`, :code:`T_sc`, :code:`frequency` and
-  :code:`swept_volume`, the dictionary is deprecated there as well. With the
-  keyword :code:`units` the functions read all plain numbers, the table and
-  the reference state, in the given unit system, e.g. the one of the network
-  the polynomials are used in. Create the unit system first, fit, then create
-  the network with :code:`Network(units=units)`. Without :code:`units` the
-  table temperatures are °C as defined by EN 12900 and all other values SI.
-  Quantities carry their own unit in both cases. The
+- The :code:`reference_state` dictionary of the :code:`PolynomialCompressor` is
+  deprecated. The component only needs the :code:`swept_volume` (quantity
+  :code:`volume`) from it, which is a regular component parameter now. The
+  functions generating the efficiency polynomials from manufacturer data take
+  the reference state as the keyword arguments :code:`T_sh`, :code:`T_sc`,
+  :code:`frequency` and :code:`swept_volume`, the dictionary is deprecated
+  there as well. With the keyword :code:`units` the functions read all plain
+  numbers, the table and the reference state, in the given unit system, e.g.
+  the one of the network the polynomials are used in. Create the unit system
+  first, fit, then create the network with :code:`Network(units=units)`.
+  Without :code:`units` the table temperatures are °C as defined by EN 12900
+  and all other values SI. Quantities carry their own unit in both cases. The
   :code:`EN12900Polynomial` carries the °C of its axes, so the containers
   read them without a declaration.
-- The unit system knows the quantity :code:`volume` with default unit
-  :code:`m3`.
 - A parameter accepts a specification when a declared consumer reads it: an
   equation of its own, a parameter group, optional equation or mandatory
-  constraint listing it in its :code:`elements`, the variable role or the
-  state specifications of a connection. A parameter without consumer is
-  result-only
-  and refuses user values with a :code:`TypeError` instead of silently
-  ignoring them (:issue:`1070`). The former :code:`is_result` flag is gone,
-  a parameter with a :code:`calc` method is reported in the results in every
-  case. Connection parameters follow the same rule: specific entropy
-  :code:`s`, specific volume :code:`vol` and the humid air mass flows
-  :code:`mHA` and :code:`mH2O` are calculated through :code:`calc` methods in
-  the post-processing, are result-only and reject starting values. The
-  :code:`result_only` property tells the state of a parameter.
-  :py:class:`~tespy.tools.data_containers.MandatoryConstraint` takes the
-  :code:`elements` its equation reads, e.g. :code:`f_nox` of the combustion
-  components.
+  constraint listing it in its :code:`elements`, the variable role or the state
+  state of a connection. A parameter without consumer is result-only and
+  refuses user values with a :code:`TypeError` instead of silently
+  ignoring them (:issue:`1070`).
 - References of connection parameters to the same parameter of another
   connection are attached to the parameter: :code:`c.m.reference` holds the
   :py:class:`~tespy.tools.data_containers.ReferenceEquation`. The former
   sibling parameters :code:`m_ref`, :code:`p_ref`, :code:`h_ref`,
   :code:`T_ref` and :code:`v_ref` are gone from the parameter tables, the
-  attributes stay available with a :code:`FutureWarning`. The energy flow
-  :code:`E` of power and heat connections can be referenced now, e.g.
-  :code:`e2.set_attr(E=Ref(e1, 0.5, 0))`. Saved files keep their format.
+  attributes stay available with a :code:`FutureWarning`.
+
+Other Changes
+#############
+
+- Components can declare the role of their ports in
+  :py:meth:`~tespy.components.component.Component.port_descriptions`, e.g. the
+  hot and cold side of a heat exchanger or the fuel, air and cooling water
+  ports of the combustion engine.
+- The unit system knows the quantity :code:`volume` with default unit
+  :code:`m3`.
+- The energy flow :code:`E` of power and heat connections can be referenced
+  now, e.g. :code:`e2.set_attr(E=Ref(e1, 0.5, 0))`.
 - :code:`UA`, :code:`kA` and :code:`lmtd` of the
   :py:class:`~tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
   and :code:`Q_loss` of the solar collectors are calculated in every case,
   the value is :code:`nan` when the ambient temperature or the energy group
   is not specified. :code:`lmtd` and :code:`Q_loss` are result-only.
-- The :code:`subcooling` switch of the
-  :py:class:`~tespy.components.heat_exchangers.condenser.Condenser` is a
-  configuration value. The saturated liquid outlet equation it disables is a
-  mandatory constraint of the component now, which is left out when
-  subcooling is allowed. The specification :code:`subcooling=True` is
-  unchanged.
 
 Bug Fixes
 #########
 - The dew and bubble temperature specifications :code:`T_dew` and
   :code:`T_bubble` of connections were silently ignored where the pressure is
-  fixed otherwise, e.g. through the pressure equality of a component. This
-  is an overdetermination error now. With a variable fluid composition the
+  fixed otherwise, e.g. through the pressure equality of a component. This is
+  an overdetermination error now. With a variable fluid composition the
   saturation properties are not available: specifying :code:`T_dew`,
-  :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there
-  raises an error instead of the specification being ignored.
+  :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there raises
+  an error instead of the specification being ignored.
 
 Contributors
 ############

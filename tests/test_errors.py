@@ -34,7 +34,7 @@ from tespy.networks import Network
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_custom_char
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
+from tespy.tools.data_containers import CharacteristicEquation
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.helpers import TESPyComponentError
@@ -93,7 +93,7 @@ def test_set_attr_errors():
     set_attr_TypeError(comb, P=[5])
     set_attr_TypeError(comb, tiP_char=7)
     set_attr_TypeError(comb, design='f')
-    set_attr_TypeError(comb, lamb=dc_cc())
+    set_attr_TypeError(comb, lamb=CharacteristicEquation())
     set_attr_TypeError(comb, local_design=5)
     set_attr_TypeError(comb, local_offdesign=5)
     set_attr_TypeError(comb, printout=5)
@@ -108,7 +108,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, state=5)
 
     # KeyErrors
-    set_attr_AttributeError(dc_cc(), x=7)
+    set_attr_AttributeError(CharacteristicEquation(), x=7)
     set_attr_KeyError(comb, wow=5)
     set_attr_KeyError(conn, jey=5)
 

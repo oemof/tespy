@@ -1326,7 +1326,7 @@ class TestHeatExchangers:
             alpha_ratio=8.4e-3,
             re_exp_hot=0.8,
             re_exp_cold=0.55,
-            offdesign=["UA_cecchinato_hc"],
+            offdesign=["UA_cecchinato"],
         )
         self.c1.set_attr(design=["T"])
 

@@ -24,6 +24,23 @@ from tespy.components.displacementmachinery.polynomial_compressor import generat
 from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_points
 from tespy.components.displacementmachinery.polynomial_compressor import generate_eta_polys_from_power_and_cooling_polys
 from tespy.components.displacementmachinery.polynomial_compressor import swept_volume_from_displacement
+from tespy.tools.characteristics import EN12900Polynomial
+
+
+def _reference_kwargs(reference_state):
+    """Keyword arguments of the generating functions from a reference state."""
+    if "swept_volume" in reference_state:
+        swept_volume = reference_state["swept_volume"]
+    else:
+        swept_volume = swept_volume_from_displacement(
+            reference_state["displacement"],
+            reference_state["frequency_displacement"]
+        )
+    return {
+        "T_sh": reference_state["T_sh"], "T_sc": reference_state["T_sc"],
+        "frequency": reference_state["frequency_poly"],
+        "swept_volume": swept_volume,
+    }
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
@@ -108,10 +125,10 @@ def test_fit_en12900(power_data, power_poly):
 
 def test_integration_eta_polys(power_data, cooling_data, power_poly, cooling_poly, reference_state):
     fluid = "R134a"
-    eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(power_data, cooling_data, fluid, reference_state)
+    eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(power_data, cooling_data, fluid, **_reference_kwargs(reference_state))
     t_evap = power_data.columns
     t_cond = power_data.index
-    eta_s_poly2, eta_vol_poly2 = generate_eta_polys_from_power_and_cooling_polys(power_poly, cooling_poly, t_evap, t_cond, fluid, reference_state)
+    eta_s_poly2, eta_vol_poly2 = generate_eta_polys_from_power_and_cooling_polys(power_poly, cooling_poly, t_evap, t_cond, fluid, **_reference_kwargs(reference_state))
 
     np.testing.assert_allclose(eta_s_poly, eta_s_poly2)
     np.testing.assert_allclose(eta_vol_poly, eta_vol_poly2)
@@ -141,10 +158,10 @@ def test_generate_eta_polys_with_nan(power_data, cooling_data, reference_state):
     power_nan.iloc[2, 5] = np.nan
     cooling_nan.iloc[2, 5] = np.nan
     eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
-        power_nan, cooling_nan, fluid, reference_state
+        power_nan, cooling_nan, fluid, **_reference_kwargs(reference_state)
     )
     eta_s_full, eta_vol_full = generate_eta_polys_from_data(
-        power_data, cooling_data, fluid, reference_state
+        power_data, cooling_data, fluid, **_reference_kwargs(reference_state)
     )
     # both fits must agree closely at a point backed by data in both cases
     np.testing.assert_allclose(
@@ -192,11 +209,11 @@ def test_generate_eta_polys_from_points(power_data, power_poly, cooling_poly, re
     t_evap, t_cond = np.meshgrid(power_data.columns, power_data.index)
     eta_s_points, eta_vol_points = generate_eta_polys_from_points(
         power_poly, cooling_poly, t_evap.flatten(), t_cond.flatten(),
-        fluid, reference_state
+        fluid, **_reference_kwargs(reference_state)
     )
     eta_s_grid, eta_vol_grid = generate_eta_polys_from_power_and_cooling_polys(
         power_poly, cooling_poly, power_data.columns, power_data.index,
-        fluid, reference_state
+        fluid, **_reference_kwargs(reference_state)
     )
     np.testing.assert_allclose(eta_s_points, eta_s_grid)
     np.testing.assert_allclose(eta_vol_points, eta_vol_grid)
@@ -241,7 +258,7 @@ class TestPolynomialCompressor:
         self.c2.set_attr(p=6, T=150)
         swept_volume = swept_volume_from_displacement(reference_state["displacement"], reference_state["frequency_displacement"])
         instance.set_attr(
-            eta_vol=0.8, frequency=25.0, reference_state=reference_state,
+            eta_vol=0.8, frequency=25.0, swept_volume=swept_volume,
             dissipation_ratio=0
         )
         self.nw.solve('design')
@@ -261,7 +278,7 @@ class TestPolynomialCompressor:
         self.c2.set_attr(p=6, T=150)
         swept_volume = swept_volume_from_displacement(reference_state["displacement"], reference_state["frequency_displacement"])
         instance.set_attr(
-            eta_vol=0.8, frequency="var", reference_state=reference_state,
+            eta_vol=0.8, frequency="var", swept_volume=swept_volume,
             dissipation_ratio=0
         )
         self.nw.solve('design')
@@ -283,7 +300,7 @@ class TestPolynomialCompressor:
         swept_volume = swept_volume_from_displacement(reference_state["displacement"], reference_state["frequency_displacement"])
         # 1500 1/min = 25 Hz, matches frequency=25.0 in test_eta_vol
         instance.set_attr(
-            eta_vol=0.8, frequency=1500, reference_state=reference_state,
+            eta_vol=0.8, frequency=1500, swept_volume=swept_volume,
             dissipation_ratio=0
         )
         self.nw.solve('design')
@@ -304,8 +321,11 @@ class TestPolynomialCompressor:
         self.c1.set_attr(fluid=fl, x=1, m=1, T=5)
         self.c2.set_attr(p=6, T=150)
         instance.set_attr(
-            eta_vol=0.8, frequency="var", reference_state=reference_state,
-            dissipation_ratio=0
+            eta_vol=0.8, frequency="var", dissipation_ratio=0,
+            swept_volume=swept_volume_from_displacement(
+                reference_state["displacement"],
+                reference_state["frequency_displacement"]
+            )
         )
         self.nw.solve('design')
         self.nw.assert_convergence()
@@ -313,7 +333,7 @@ class TestPolynomialCompressor:
         assert round(instance.frequency.val, 4) == round(instance.frequency.val_SI * 60, 4)
 
     def test_eta_vol_swept_volume(self, power_data, cooling_data, reference_state_swept_volume):
-        """Test that swept_volume in reference_state works without any intermediate keys."""
+        """Test the swept volume specification with the efficiency polynomials."""
         instance = PolynomialCompressor('compressor')
         self.setup_network(instance)
 
@@ -321,12 +341,14 @@ class TestPolynomialCompressor:
         self.c1.set_attr(fluid=fl, td_dew=reference_state_swept_volume["T_sh"], T=20)
         self.c2.set_attr(T_dew=50)
         eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
-            power_data, cooling_data, "R134a", reference_state_swept_volume
+            power_data, cooling_data, "R134a",
+            **_reference_kwargs(reference_state_swept_volume)
         )
         instance.set_attr(
-            eta_vol_poly=eta_vol_poly, frequency=reference_state_swept_volume["frequency_poly"],
-            eta_s_poly=eta_s_poly, dissipation_ratio=0,
-            reference_state=reference_state_swept_volume
+            eta_vol_poly=EN12900Polynomial(eta_vol_poly),
+            frequency=reference_state_swept_volume["frequency_poly"],
+            eta_s_poly=EN12900Polynomial(eta_s_poly), dissipation_ratio=0,
+            swept_volume=reference_state_swept_volume["swept_volume"]
         )
         self.nw.solve('design')
         self.nw.assert_convergence()
@@ -378,9 +400,9 @@ class TestPolynomialCompressor:
             )
         with pytest.warns(FutureWarning):
             instance.set_attr(
-                eta_vol_poly=eta_vol_poly,
+                eta_vol_poly=EN12900Polynomial(eta_vol_poly),
                 frequency=reference_state_legacy["rpm_poly"] / 60,
-                eta_s_poly=eta_s_poly, dissipation_ratio=0,
+                eta_s_poly=EN12900Polynomial(eta_s_poly), dissipation_ratio=0,
                 reference_state=reference_state_legacy
             )
         self.nw.solve('design')
@@ -450,13 +472,14 @@ class TestPolynomialCompressor:
         self.c1.set_attr(fluid=fl, td_dew=reference_state["T_sh"], T=20)
         self.c2.set_attr(T_dew=50)
         eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
-            power_data, cooling_data, "R134a", reference_state
+            power_data, cooling_data, "R134a", **_reference_kwargs(reference_state)
         )
         swept_volume = swept_volume_from_displacement(reference_state["displacement"], reference_state["frequency_displacement"])
         instance.set_attr(
-            eta_vol_poly=eta_vol_poly, frequency=reference_state["frequency_poly"],
-            eta_s_poly=eta_s_poly, dissipation_ratio=0,
-            reference_state=reference_state
+            eta_vol_poly=EN12900Polynomial(eta_vol_poly),
+            frequency=reference_state["frequency_poly"],
+            eta_s_poly=EN12900Polynomial(eta_s_poly), dissipation_ratio=0,
+            swept_volume=swept_volume
         )
         self.nw.solve('design')
         self.nw.assert_convergence()
@@ -479,23 +502,27 @@ class TestPolynomialCompressor:
         self.c1.set_attr(fluid=fl, td_dew=reference_state["T_sh"], T=20)
         self.c2.set_attr(T_dew=50)
         eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
-            power_data, cooling_data, "R134a", reference_state
+            power_data, cooling_data, "R134a", **_reference_kwargs(reference_state)
+        )
+        swept_volume = swept_volume_from_displacement(
+            reference_state["displacement"],
+            reference_state["frequency_displacement"]
         )
         instance.set_attr(
-            eta_vol_poly=eta_vol_poly, frequency=reference_state["frequency_poly"],
-            eta_s_poly=eta_s_poly, dissipation_ratio=0,
-            reference_state=reference_state
+            eta_vol_poly=EN12900Polynomial(eta_vol_poly),
+            frequency=reference_state["frequency_poly"],
+            eta_s_poly=EN12900Polynomial(eta_s_poly), dissipation_ratio=0,
+            swept_volume=swept_volume
         )
         self.nw.solve('design')
         self.nw.assert_convergence()
         results = (self.c1.m.val_SI, self.c1.v.val_SI, instance.P.val_SI)
         specs = self.nw.save_specifications()
 
-        # in-place changes of mutable specification values must not leak into
-        # the saved snapshot
-        original_displacement = reference_state["displacement"]
-        instance.reference_state.val["displacement"] = original_displacement * 0.9
-        instance.set_attr(eta_s_poly=eta_s_poly * 0.95, frequency=40.0)
+        instance.set_attr(
+            swept_volume=swept_volume * 0.9,
+            eta_s_poly=EN12900Polynomial(eta_s_poly * 0.95), frequency=40.0
+        )
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert results != pytest.approx(
@@ -503,8 +530,8 @@ class TestPolynomialCompressor:
         )
 
         self.nw.restore_specifications(specs)
-        assert instance.reference_state.val["displacement"] == original_displacement
-        np.testing.assert_allclose(instance.eta_s_poly.val, eta_s_poly)
+        assert instance.swept_volume.val == pytest.approx(swept_volume)
+        np.testing.assert_allclose(np.asarray(instance.eta_s_poly.val), eta_s_poly)
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert results == pytest.approx(

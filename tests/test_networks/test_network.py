@@ -43,7 +43,7 @@ from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.networks.network import FORMAT_VERSION
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
@@ -1048,7 +1048,7 @@ class WaterElectrolyzer(WaterElectrolyzer):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        constraints['mass_flow_constraints'] = dc_cmc(**{
+        constraints['mass_flow_constraints'] = MandatoryConstraint(**{
             'func': self.reactor_mass_flow_func,
             'deriv': self.reactor_mass_flow_deriv,
             'dependents': self.reactor_mass_flow_dependents,
@@ -1388,7 +1388,7 @@ class TestSaveClearRestoreSpecifications:
 
         c3.set_attr(fluid={"N2": 0.8, "O2": 0.2}, T=25, p=10, m=Ref(c1, 2, -0.5))
         self.valve.set_attr(dp_char={
-            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1] * 4),
+            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1] * 4, y_unit="bar"),
             "is_set": True
         })
 

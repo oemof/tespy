@@ -12,7 +12,6 @@ SPDX-License-Identifier: MIT
 """
 
 import math
-import warnings
 
 import numpy as np
 
@@ -222,7 +221,7 @@ class SimpleHeatExchanger(Component):
     >>> design_state = nw.save(as_dict=True)
     >>> round(heat_sink.Q.val, 0)
     -52581.0
-    >>> round(heat_sink.kA.val, 0)
+    >>> round(heat_sink.UA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path=design_state)
@@ -260,17 +259,9 @@ class SimpleHeatExchanger(Component):
     True
     """
 
-    _parameter_aliases = {
-        'kA': 'UA',
-        'kA_char': 'UA_char',
-        'kA_group': 'UA_group',
-        'kA_char_group': 'UA_char_group',
-        'zeta': 'zeta_d4',
-    }
-
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
+        if self.heat_inl + self.heat_outl:
             constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
@@ -334,11 +325,6 @@ class SimpleHeatExchanger(Component):
                 description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta_d4` instead",
-                calc=self._calc_zeta_d4
-            ),
             'D': ComponentParameter(
                 min_val=1e-2, max_val=2, d=1e-5, quantity="length",
                 description="diameter of channel",
@@ -365,12 +351,6 @@ class SimpleHeatExchanger(Component):
                 _allows_var=True,
                 calc=self._calc_UA, calc_deps=['Q']
             ),
-            'kA': ComponentParameter(
-                min_val=0, quantity="heat_transfer_coefficient",
-                description="deprecated, use :code:`UA` instead",
-                _allows_var=True,
-                calc=self._calc_UA, calc_deps=['Q']
-            ),
             'lmtd': ComponentParameter(
                 min_val=0, quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
@@ -379,10 +359,6 @@ class SimpleHeatExchanger(Component):
             'UA_char': CharacteristicData(
                 param='m',
                 description="heat transfer coefficient lookup table for offdesign",
-            ),
-            'kA_char': CharacteristicData(
-                param='m',
-                description="deprecated, use :code:`UA_char` instead"
             ),
             'Tamb': ComponentParameter(
                 quantity="temperature",
@@ -407,19 +383,11 @@ class SimpleHeatExchanger(Component):
                 dependents=self.UA_group_dependents,
                 description="equation for heat transfer based on ambient temperature and heat transfer coefficient"
             ),
-            'kA_group': ParameterGroup(
-                elements=['kA', 'Tamb'],
-                description="deprecated, use :code:`UA_group` instead"
-            ),
             'UA_char_group': ParameterGroup(
                 elements=['UA_char', 'Tamb'], num_eq_sets=1,
                 func=self.UA_char_group_func,
                 dependents=self.UA_char_group_dependents,
                 description="heat transfer from design heat transfer coefficient, modifier lookup table and ambient temperature"
-            ),
-            'kA_char_group': ParameterGroup(
-                elements=['kA_char', 'Tamb'],
-                description="deprecated, use :code:`UA_char_group` instead"
             )
         }
 
@@ -456,14 +424,6 @@ class SimpleHeatExchanger(Component):
         return ['out1']
 
     @staticmethod
-    def powerinlets():
-        return ['heat']
-
-    @staticmethod
-    def poweroutlets():
-        return ['heat']
-
-    @staticmethod
     def heatinlets():
         return ['heat']
 
@@ -473,31 +433,18 @@ class SimpleHeatExchanger(Component):
 
     def _validate_connections(self):
         super()._validate_connections()
-        all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl
-        if len(all_energy) > 1:
+        if len(self.heat_inl + self.heat_outl) > 1:
             msg = (
-                f"Component {self.label} has more than one energy connection. "
-                "Connect to exactly one side using one connection type."
+                f"Component {self.label} has more than one heat connection. "
+                "Connect to exactly one side."
             )
             raise TESPyNetworkError(msg)
-        if self.power_inl or self.power_outl:
-            warnings.warn(
-                f"Component {self.label} is connected via PowerConnection. "
-                "Please use HeatConnection instead. PowerConnection support for "
-                "SimpleHeatExchanger will be removed in version 0.12.",
-                FutureWarning,
-                stacklevel=2,
-            )
 
     def _get_energy_connector_location(self):
         """Return (connector, side, val_attr) for the active energy connection."""
         if self.heat_inl:
             return self.heat_inl[0], "inlet"
-        if self.heat_outl:
-            return self.heat_outl[0], "outlet"
-        if self.power_inl:
-            return self.power_inl[0], "inlet"
-        return self.power_outl[0], "outlet"
+        return self.heat_outl[0], "outlet"
 
     def energy_connector_balance_func(self):
         connector, side = self._get_energy_connector_location()

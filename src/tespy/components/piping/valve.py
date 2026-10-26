@@ -227,7 +227,6 @@ class Valve(Component):
     5.2
     """
 
-    _parameter_aliases = {'zeta': 'zeta_d4'}
 
     def _initial_affine_edges(self):
         return [
@@ -265,11 +264,6 @@ class Valve(Component):
                 dependents=self.zeta_d4_dependents,
                 func_params={'zeta': 'zeta_d4'},
                 description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4
-            ),
-            'zeta': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
             'dp_char': CharacteristicEquation(

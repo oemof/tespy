@@ -229,6 +229,14 @@ class Component:
             )
             logger.error(msg)
             raise TypeError(msg)
+        for old, new in self._get_parameter_aliases().items():
+            if old in value and new in self.parameters:
+                warnings.warn(
+                    f"The parameter '{old}' of component {self.label!r} is "
+                    f"deprecated. Use '{new}' instead.",
+                    FutureWarning, stacklevel=3
+                )
+                value = [new if v == old else v for v in value]
         if not set(value).issubset(self.parameters.keys()):
             keys = ", ".join(self.parameters.keys())
             msg = (
@@ -450,25 +458,6 @@ class Component:
                 constraint.structure_matrix(row_idx + sum_eq, **constraint.func_params)
 
             sum_eq += constraint.num_eq_sets
-
-        for old, new in self._get_parameter_aliases().items():
-            if old not in self.parameters or new not in self.parameters:
-                continue
-            for lst_name in ('design', 'offdesign'):
-                lst = getattr(self, lst_name)
-                if old in lst:
-                    warnings.warn(
-                        f"Parameter '{old}' of component {self.label!r} is "
-                        f"deprecated. Use '{new}' instead.",
-                        FutureWarning, stacklevel=2
-                    )
-                    lst[lst.index(old)] = new
-            old_p = self.get_attr(old)
-            new_p = self.get_attr(new)
-            if old_p.is_set and not new_p.is_set:
-                new_p.is_set = True
-            if hasattr(old_p, 'design') and old_p.design and not getattr(new_p, 'design', None):
-                new_p.design = old_p.design
 
         if not self.bypass:
             sum_eq = self._setup_user_imposed_constraints(row_idx, sum_eq)

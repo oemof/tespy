@@ -406,14 +406,11 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> delta_T_between_sections.round(2).tolist()
     [9.88, 14.8, 5.0, 19.88]
 
-    Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
-    `UA` value takes into account the heat transfer per section and calculates
-    the heat transfer coefficient as the sum of all sections, while the `kA`
-    value only takes into account the inlet and outlet temperatures and the
-    total heat transfer.
+    Finally, in contrast to the baseclass :code:`HeatExchanger`, the `UA`
+    value takes into account the heat transfer per section and calculates the
+    heat transfer coefficient as the sum of all sections instead of using the
+    inlet and outlet temperatures and the total heat transfer only.
 
-    >>> round(cd.kA.val)
-    173307
     >>> round(cd.UA.val)
     273449
 

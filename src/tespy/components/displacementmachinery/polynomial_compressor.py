@@ -370,16 +370,6 @@ class PolynomialCompressor(DisplacementMachine):
             logger.error(msg)
             raise TESPyComponentError(msg)
 
-        if self.rpm.is_set or self.rpm.is_var:
-            msg = (
-                f"The 'rpm' parameter of component {self.label} of type "
-                f"{self.__class__.__name__} is deprecated and will be "
-                "removed in version 0.12. Please use 'frequency' instead. Note, to "
-                "specify the rounds per minute use the unit 1/min as 'rpm' "
-                "is '1/min' divided by 2π in the unit conversion framework."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-
         return super()._preprocess(row_idx)
 
     def set_attr(self, **kwargs):
@@ -500,10 +490,6 @@ class PolynomialCompressor(DisplacementMachine):
                 quantity="frequency",
                 description="compressor frequency"
             ),
-            "rpm": ComponentParameter(
-                min_val=0, _allows_var=True,
-                description="compressor frequency"
-            ),
             "swept_volume": ComponentParameter(
                 min_val=0, quantity="volume",
                 description="swept volume per revolution"
@@ -522,26 +508,12 @@ class PolynomialCompressor(DisplacementMachine):
                 quantities={"T_evap": "temperature", "T_cond": "temperature"},
                 description="volumetric efficiency as function of evaporation and condensation temperature"
             ),
-            "eta_vol_poly_group_rpm": ParameterGroup(
-                elements=["swept_volume", "eta_vol_poly", "rpm"],
-                func=self.eta_vol_poly_group_func,
-                dependents=self.eta_vol_poly_group_dependents,
-                num_eq_sets=1,
-                description="displacement equation based on polynomial coefficients for volumetric efficiency"
-            ),
             "eta_vol_poly_group": ParameterGroup(
                 elements=["swept_volume", "eta_vol_poly", "frequency"],
                 func=self.eta_vol_poly_frequency_group_func,
                 dependents=self.eta_vol_poly_frequency_group_dependents,
                 num_eq_sets=1,
                 description="displacement equation based on polynomial coefficients for volumetric efficiency"
-            ),
-            "eta_vol_group_rpm": ParameterGroup(  # will be deprecated
-                elements=["swept_volume", "eta_vol", "rpm"],
-                func=self.eta_vol_group_func,
-                dependents=self.eta_vol_group_dependents,
-                num_eq_sets=1,
-                description="displacement equation based on fixed volumetric efficiency"
             ),
             "eta_vol_group": ParameterGroup(
                 elements=["swept_volume", "eta_vol", "frequency"],
@@ -603,10 +575,7 @@ class PolynomialCompressor(DisplacementMachine):
         if not self.swept_volume.is_set:
             return self.eta_vol.val_SI
         i = self.inl[0]
-        if self.frequency.is_set or self.frequency.is_var:
-            displacement = self.swept_volume.val_SI * self.frequency.val_SI
-        else:
-            displacement = self.swept_volume.val_SI * self.rpm.val_SI / 60
+        displacement = self.swept_volume.val_SI * self.frequency.val_SI
         return i.m.val_SI * i.vol.val_SI / displacement
 
     # this is a bit different that in other cases, because the power cannot
@@ -745,32 +714,6 @@ class PolynomialCompressor(DisplacementMachine):
             self.outl[0].h,
         ]
 
-    def eta_vol_group_func(self):
-        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
-
-        .. math::
-
-            0 = \dot m_\text{in} -
-            \eta_\text{vol} \cdot V_\text{swept} \cdot
-            \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
-
-        Returns
-        -------
-        float
-            residual value
-        """
-        i = self.inl[0]
-        displacement = self.swept_volume.val_SI * self.rpm.val_SI / 60
-        return i.m.val_SI - self.eta_vol.val_SI * displacement / i.calc_vol()
-
-    def eta_vol_group_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.rpm
-        ]
-
     def eta_vol_frequency_group_func(self):
         r"""Volumetric efficiency function.
 
@@ -795,38 +738,6 @@ class PolynomialCompressor(DisplacementMachine):
             self.inl[0].p,
             self.inl[0].h,
             self.frequency
-        ]
-
-    def eta_vol_poly_group_func(self):
-        r"""Volumetric efficiency function (deprecated :code:`rpm` path).
-
-        .. math::
-
-            0 = \dot m_\text{in} -
-            \eta_\text{vol} \left(T_\text{evap}, T_\text{cond}\right) \cdot
-            V_\text{swept} \cdot \frac{rpm}{60} \cdot \frac{1}{v_\text{in}}
-
-        Returns
-        -------
-        float
-            residual value
-        """
-        i = self.inl[0]
-        o = self.outl[0]
-
-        t_evap = T_dew_p(i.p.val_SI, i.fluid_data)
-        t_cond = T_bubble_p(o.p.val_SI, o.fluid_data)
-        eta_vol = self.eta_vol_poly.evaluate(t_evap, t_cond)
-        displacement = self.swept_volume.val_SI * self.rpm.val_SI / 60
-        return i.m.val_SI - eta_vol * displacement / i.calc_vol()
-
-    def eta_vol_poly_group_dependents(self):
-        return [
-            self.inl[0].m,
-            self.inl[0].p,
-            self.inl[0].h,
-            self.outl[0].p,
-            self.rpm
         ]
 
     def eta_vol_poly_frequency_group_func(self):

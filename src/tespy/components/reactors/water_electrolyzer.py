@@ -203,7 +203,6 @@ class WaterElectrolyzer(Component):
     def _calc_e(self):
         return self.P.val_SI / self.outl[2].m.val_SI
 
-    _parameter_aliases = {'zeta': 'zeta_d4'}
     _is_wrapper_branch_source = True
 
     def _calc_eta(self):
@@ -259,11 +258,6 @@ class WaterElectrolyzer(Component):
                 func=self.zeta_d4_func,
                 func_params={'zeta': 'zeta_d4'},
                 description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4
-            ),
-            'zeta': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
             'e': ComponentParameter(

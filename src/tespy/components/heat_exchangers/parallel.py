@@ -254,7 +254,7 @@ class ParallelFlowHeatExchanger(HeatExchanger):
     >>> nw.solve("design")
     >>> round(c1.v.val, 2)
     0.7
-    >>> round(he.kA.val, 2)
+    >>> round(he.UA.val, 2)
     3.13
 
     Now, it might be interesting to see what happens under different operation

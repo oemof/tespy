@@ -277,8 +277,6 @@ class CombustionEngine(CombustionChamber):
     0.75
     """
 
-    _parameter_aliases = {'zeta1': 'zeta1_d4', 'zeta2': 'zeta2_d4'}
-
     def initial_state(self, port):
         if port == 'out3':
             return {"phase": "gas", "T": 1200}
@@ -369,22 +367,12 @@ class CombustionEngine(CombustionChamber):
                 description="heating port 1 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta1': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta1_d4` instead",
-                calc=self._calc_zeta_d4
-            ),
             'zeta2_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 dependents=self.zeta_d4_dependents,
                 func=self.zeta_d4_func,
                 func_params={'zeta': 'zeta2_d4', 'inconn': 1, 'outconn': 1},
                 description="heating port 2 geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
-            ),
-            'zeta2': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'tiP_char': CharacteristicData(

@@ -108,6 +108,7 @@ class Component:
     <class 'tespy.components.component.Component'>
     """
 
+    # deprecated parameter names: old name -> (new name, removal version)
     _parameter_aliases = {}
     _is_wrapper_branch_source = False
 
@@ -187,11 +188,12 @@ class Component:
         components share the
         :py:meth:`tespy.components.component.Component.set_attr` method.
         """
-        for old, new in self._get_parameter_aliases().items():
+        for old, (new, version) in self._get_parameter_aliases().items():
             if old in kwargs and new in self.parameters:
                 warnings.warn(
                     f"The parameter '{old}' of component {self.label!r} is "
-                    f"deprecated. Use '{new}' instead.",
+                    f"deprecated and will be removed in version {version}. "
+                    f"Use '{new}' instead.",
                     FutureWarning, stacklevel=2
                 )
                 kwargs[new] = kwargs.pop(old)
@@ -229,11 +231,12 @@ class Component:
             )
             logger.error(msg)
             raise TypeError(msg)
-        for old, new in self._get_parameter_aliases().items():
+        for old, (new, version) in self._get_parameter_aliases().items():
             if old in value and new in self.parameters:
                 warnings.warn(
                     f"The parameter '{old}' of component {self.label!r} is "
-                    f"deprecated. Use '{new}' instead.",
+                    f"deprecated and will be removed in version {version}. "
+                    f"Use '{new}' instead.",
                     FutureWarning, stacklevel=3
                 )
                 value = [new if v == old else v for v in value]

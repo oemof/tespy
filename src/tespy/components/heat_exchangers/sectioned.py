@@ -571,7 +571,7 @@ class SectionedHeatExchanger(HeatExchanger):
     exponents, area ratio and alpha ratio of the involved fluids.
     """
 
-    _parameter_aliases = {'UA_cecchinato_hc': 'UA_cecchinato'}
+    _parameter_aliases = {'UA_cecchinato_hc': ('UA_cecchinato', '0.13')}
 
     def get_parameters(self):
         params = super().get_parameters()

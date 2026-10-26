@@ -1801,13 +1801,16 @@ class _DeprecatedContainerMeta(type):
         return cls._instancecheck(instance)
 
 
-def _deprecated_container(old_name, new_cls, instancecheck=None, **defaults):
+def _deprecated_container(
+        old_name, new_cls, instancecheck=None, removal="0.13", **defaults
+    ):
     if instancecheck is None:
         instancecheck = lambda obj: isinstance(obj, new_cls)
 
     def __init__(self, **kwargs):
         warnings.warn(
-            f"{old_name} is deprecated, use {new_cls.__name__} instead.",
+            f"{old_name} is deprecated and will be removed in version "
+            f"{removal}, use {new_cls.__name__} instead.",
             FutureWarning, stacklevel=2
         )
         # the result state is derived from the calc method and the equations

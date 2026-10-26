@@ -60,9 +60,10 @@ def _serialize_parameter(name, dc_instance):
     if isinstance(dc_instance, OptionalEquation):
         entry["elements"] = list(dc_instance.elements)
     if isinstance(dc_instance, CharacteristicData):
-        entry["num_inputs"] = dc_instance.num_inputs
-        for axis in ("x", "y", "z"):
-            entry[f"{axis}_quantity"] = getattr(dc_instance, f"{axis}_quantity")
+        entry["char_type"] = [t.__name__ for t in dc_instance._char_types()]
+        axes = dc_instance.axes
+        entry["axes"] = list(axes) if axes is not None else None
+        entry["quantities"] = dict(dc_instance.quantities)
     if isinstance(dc_instance, ConfigParameter):
         entry["dtype"] = dc_instance.dtype
     if isinstance(dc_instance, (ComponentParameter, ArrayParameter)):

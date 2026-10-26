@@ -489,8 +489,8 @@ class Component:
             elif isinstance(data, CharacteristicData):
                 if data.func is not None:
                     self.char_specifications[key] = data.is_set
-                if data.char_func is None:
-                    char_type = CharLine if data.num_inputs == 1 else CharMap
+                char_type = data._char_types()[0]
+                if data.char_func is None and char_type in (CharLine, CharMap):
                     for cls in type(self).__mro__:
                         try:
                             data.set_default(

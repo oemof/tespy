@@ -35,8 +35,8 @@ class Drum(DropletSeparator):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (feed water), in2 (evaporator return)
+    - Fluid outlets: out1 (saturated liquid), out2 (saturated gas)
 
     Mandatory Equations
     -------------------

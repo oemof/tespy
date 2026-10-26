@@ -37,8 +37,8 @@ class FuelCell(Component):
     Ports
     -----
 
-    - Fluid inlets: in1, in2, in3
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (cooling water), in2 (oxygen), in3 (hydrogen)
+    - Fluid outlets: out1 (cooling water), out2 (water)
     - Power outlets: power
 
     Mandatory Equations
@@ -109,7 +109,8 @@ class FuelCell(Component):
         Equation: :py:meth:`heat_func <tespy.components.reactors.fuel_cell.FuelCell.heat_func>`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Cooling port geometry-independent friction coefficient zeta/D^4 for

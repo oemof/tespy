@@ -52,8 +52,10 @@ API Changes
         - :py:class:`~tespy.tools.data_containers.ReferenceEquation`
         - reference of a connection parameter to another connection
 
-  Characteristic containers accept any characteristic object with the
-  declared number of inputs. Providing a characteristic to a data container
+  Characteristic containers declare the accepted representation in
+  :code:`char_type`, :code:`CharLine` unless declared otherwise, e.g.
+  :code:`CharMap` for the maps and :code:`EN12900Polynomial` for the
+  compressor polynomials. Providing a characteristic to a data container
   marks it as specified, e.g. for the activation of a parameter group,
   providing one to an equation container does not activate the equation.
 
@@ -72,8 +74,9 @@ API Changes
   whose defaults are not SI. Check your data or declare their units on the data,
   :code:`CharLine(x, y, x_unit="m3/s", y_unit="Pa")`, or pass :code:`pint`
   quantity arrays :code:`CharLine(x=Q_(x, "m3/s"), y=Q_(y, "Pa"))`. The
-  :code:`EN12900Polynomial` carries the °C of its axes, the default
-  characteristics shipped with tespy are SI data.
+  :code:`EN12900Polynomial` carries the °C of its axes :code:`T_evap` and
+  :code:`T_cond` and takes the unit of its value as :code:`value_unit`, the
+  default characteristics shipped with tespy are SI data.
 - Equations of custom components should call :code:`self.my_char.evaluate(x)`
   instead of :code:`self.my_char.char_func.evaluate(x)`.
 - The new :py:class:`~tespy.tools.characteristics.Polynomial` and

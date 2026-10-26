@@ -49,7 +49,7 @@ class CycleCloser(Component):
 
     fluid_deviation : float, dict
         Norm of absolute deviation of fluid composition between inlet and
-        outlet.
+        outlet. Result only - calculated after each solve.
 
     label : str
         The label of the component.
@@ -62,7 +62,7 @@ class CycleCloser(Component):
 
     mass_deviation : float, dict
         Absolute deviation of mass flow between inlet and outlet. Quantity:
-        :code:`mass_flow`.
+        :code:`mass_flow`. Result only - calculated after each solve.
 
     offdesign : list
         List containing offdesign parameters (stated as String).

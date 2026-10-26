@@ -39,7 +39,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     -----
 
     - Fluid inlets: in1, in2
-    - Fluid outlets: out1
+    - Fluid outlets: out1 (flue gas)
 
     Mandatory Equations
     -------------------
@@ -99,7 +99,8 @@ class DiabaticCombustionChamber(CombustionChamber):
         Include this component in the network's results printout.
 
     Qloss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     ti : float, dict
         Thermal input of fuel: lower heating value multiplied with mass flow.

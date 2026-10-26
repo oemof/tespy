@@ -76,9 +76,10 @@ def test_parameter_types():
     assert isinstance(compressor.swept_volume, ComponentParameter)
     assert compressor.swept_volume.quantity == "volume"
     assert isinstance(compressor.eta_s_poly, CharacteristicData)
-    assert compressor.eta_s_poly.num_inputs == 2
-    assert compressor.eta_s_poly.x_quantity == "temperature"
-    assert compressor.eta_s_poly.y_quantity == "temperature"
+    assert compressor.eta_s_poly.axes == ("T_evap", "T_cond", "value")
+    assert compressor.eta_s_poly.quantities == {
+        "T_evap": "temperature", "T_cond": "temperature"
+    }
 
 
 def test_reference_state_sets_swept_volume():
@@ -160,7 +161,8 @@ def test_polynomial_carries_degC(eta_polys, reference_state):
     compressor = PolynomialCompressor("compressor")
     nw, c1, c2 = _network(compressor, temperature="K")
     compressor.parameters["eta_s_poly"] = CharacteristicData(
-        num_inputs=2, x_quantity="temperature", y_quantity="temperature"
+        char_type=EN12900Polynomial,
+        quantities={"T_evap": "temperature", "T_cond": "temperature"}
     )
     compressor.eta_s_poly = compressor.parameters["eta_s_poly"]
     c1.set_attr(fluid={"R134a": 1}, T=293.15, td_dew=reference_state["T_sh"])

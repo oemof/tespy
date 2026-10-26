@@ -86,7 +86,8 @@ class Desuperheater(HeatExchanger):
 
     kA : float, dict
         Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
+        :code:`heat_transfer_coefficient`. Result only - calculated after each
+        solve.
 
     kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
@@ -103,7 +104,8 @@ class Desuperheater(HeatExchanger):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -155,7 +157,8 @@ class Desuperheater(HeatExchanger):
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
+        :code:`temperature_difference`. Result only - calculated after each
+        solve.
 
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
@@ -189,7 +192,8 @@ class Desuperheater(HeatExchanger):
         Cold side UA modification lookup table for offdesign.
 
     zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
+        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
+        each solve.
 
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
@@ -197,7 +201,8 @@ class Desuperheater(HeatExchanger):
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
+        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
+        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for

@@ -15,6 +15,7 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.compressor import Compressor
+from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import CharacteristicData
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import ParameterGroup
@@ -193,7 +194,7 @@ class TurboCompressor(Compressor):
                 description="inlet guide vane angle", _allows_var=True
             ),
             'char_map_eta_s': CharacteristicData(
-                num_inputs=2,
+                char_type=CharMap,
                 description="2D lookup table for efficiency over non-dimensional mass flow and speed line"
             ),
             'char_map_eta_s_group': ParameterGroup(
@@ -203,7 +204,7 @@ class TurboCompressor(Compressor):
                 description="map for isentropic efficiency over speedlines and non-dimensional mass flow"
             ),
             'char_map_pr': CharacteristicData(
-                num_inputs=2,
+                char_type=CharMap,
                 description="2D lookup table for pressure ratio over non-dimensional mass flow and speed line"
             ),
             'char_map_pr_group': ParameterGroup(

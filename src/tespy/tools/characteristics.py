@@ -68,6 +68,7 @@ class CharLine:
     """
 
     num_inputs = 1
+    axes = ("x", "y")
 
     def __init__(
             self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False,
@@ -196,17 +197,6 @@ class CharLine:
         """Lower and upper bound of the x-values."""
         return float(self.x[0]), float(self.x[-1])
 
-    @property
-    def input_units(self):
-        """Units of the input axes as read by the data containers."""
-        if self.x_unit is None:
-            return None
-        return [self.x_unit]
-
-    @property
-    def output_unit(self):
-        return self.y_unit
-
     def _serialize(self):
         export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
@@ -263,6 +253,7 @@ class CharMap:
     """
 
     num_inputs = 2
+    axes = ("x", "y", "z")
 
     def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
                  z=np.ones((2, 2)), extrapolate=False, x_unit=None,
@@ -534,17 +525,6 @@ class CharMap:
             return float(self.x[0]), float(self.x[-1])
         return float(self.y.min()), float(self.y.max())
 
-    @property
-    def input_units(self):
-        """Units of the input axes as read by the data containers."""
-        if self.x_unit is None and self.y_unit is None:
-            return None
-        return [self.x_unit, self.y_unit]
-
-    @property
-    def output_unit(self):
-        return self.z_unit
-
     def _serialize(self):
         export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
@@ -623,6 +603,8 @@ class Polynomial:
             logger.error(msg)
             raise ValueError(msg)
 
+    axes = None
+
     @property
     def num_inputs(self):
         return self.exponents.shape[1]
@@ -676,7 +658,12 @@ class EN12900Polynomial(Polynomial):
     Parameters
     ----------
     coefficients : list
-        The ten coefficients :math:`c_0` to :math:`c_9`.
+        The ten coefficients :math:`c_0` to :math:`c_9`, a :code:`pint`
+        quantity array carries the unit of the value.
+
+    value_unit : str
+        Unit of the polynomial value, e.g. :code:`"kW"`, default:
+        :code:`None`. The inputs are °C as defined by the standard.
 
     Note
     ----
@@ -704,11 +691,15 @@ class EN12900Polynomial(Polynomial):
         (0, 0), (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1),
         (1, 2), (0, 3)
     ]
-    # the standard defines the polynomial over temperatures in °C, a
-    # container without declared units reads these
-    input_units = ["degC", "degC"]
+    num_inputs = 2
+    axes = ("T_evap", "T_cond", "value")
+    # the standard defines the polynomial over temperatures in °C
+    T_evap_unit = "degC"
+    T_cond_unit = "degC"
 
-    def __init__(self, coefficients, exponents=None):
+    def __init__(self, coefficients, exponents=None, value_unit=None):
+        coefficients, carried_unit = _magnitude_and_unit(coefficients)
+        self.value_unit = value_unit or carried_unit
         if exponents is not None and list(map(tuple, exponents)) != self.exponents_EN12900:
             msg = "The exponents of the EN 12900 polynomial are fixed."
             logger.error(msg)
@@ -724,10 +715,13 @@ class EN12900Polynomial(Polynomial):
         super().__init__(coefficients, self.exponents_EN12900)
 
     def _serialize(self):
-        return {
+        export = {
             "type": type(self).__name__,
             "coefficients": self.coefficients.tolist()
         }
+        if self.value_unit is not None:
+            export["value_unit"] = self.value_unit
+        return export
 
 
 CHARACTERISTIC_TYPES = {

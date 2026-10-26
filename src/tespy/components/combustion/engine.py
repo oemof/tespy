@@ -49,8 +49,8 @@ class CombustionEngine(CombustionChamber):
     Ports
     -----
 
-    - Fluid inlets: in1, in2, in3, in4
-    - Fluid outlets: out1, out2, out3
+    - Fluid inlets: in1 (cooling water 1), in2 (cooling water 2), in3 (air), in4 (fuel)
+    - Fluid outlets: out1 (cooling water 1), out2 (cooling water 2), out3 (flue gas)
     - Power outlets: power
 
     Mandatory Equations
@@ -166,7 +166,8 @@ class CombustionEngine(CombustionChamber):
         Thermal input to power lookup table.
 
     zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
+        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
+        each solve.
 
     zeta1_d4 : float, dict
         Heating port 1 geometry-independent friction coefficient zeta/D^4 for
@@ -174,7 +175,8 @@ class CombustionEngine(CombustionChamber):
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
+        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
+        each solve.
 
     zeta2_d4 : float, dict
         Heating port 2 geometry-independent friction coefficient zeta/D^4 for

@@ -147,13 +147,15 @@ class SolarCollector(SimpleHeatExchanger):
         Equation: :py:meth:`energy_balance_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.energy_balance_func>`.
 
     Q_loss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     Tamb : float, dict
         Ambient air temperature. Quantity: :code:`temperature`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss

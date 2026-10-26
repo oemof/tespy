@@ -195,7 +195,7 @@ class DataContainer:
     ... CharacteristicData, CharacteristicEquation, ComponentParameter,
     ... ConfigParameter, ConnectionParameter, FluidComposition,
     ... ParameterGroup)
-    >>> type(CharacteristicData(num_inputs=2))
+    >>> type(CharacteristicData())
     <class 'tespy.tools.data_containers.CharacteristicData'>
     >>> type(CharacteristicEquation(is_set=True, param='m'))
     <class 'tespy.tools.data_containers.CharacteristicEquation'>
@@ -1158,24 +1158,26 @@ class CharacteristicData(DataContainer):
     default unit of the network, like a plain number of a scalar parameter.
     The default characteristics shipped with tespy are SI data.
 
-    A characteristic function matches the container when it takes
-    :code:`num_inputs` inputs, the representation is not restricted
-    otherwise. The axes are named like the units of the data: :code:`x` is
-    the input and :code:`y` the output of a characteristic with one input,
-    :code:`x` and :code:`y` are the inputs and :code:`z` the output of a
-    characteristic with two inputs.
+    A characteristic function matches the container when it is an instance
+    of the declared :code:`char_type`. The type names its axes, e.g.
+    :code:`("x", "y")` for a :code:`CharLine` and :code:`("x", "y", "z")`
+    for a :code:`CharMap`, the last axis is the output. Quantities are
+    declared by these names and the units of the data are read by them, e.g.
+    :code:`x_unit`.
 
     Parameters
     ----------
     char_func : CharLine, CharMap, Polynomial
         The characteristic function, default: :code:`None`.
 
-    num_inputs : int
-        Number of inputs of the characteristic, default: :code:`1`.
+    char_type : type, tuple
+        Accepted class or classes of the characteristic function, default:
+        :py:class:`tespy.tools.characteristics.CharLine`.
 
-    x_quantity, y_quantity, z_quantity : str
-        Physical quantity of the axis, :code:`None` for a dimensionless axis
-        (default).
+    quantities : dict
+        Physical quantity per axis name, e.g.
+        :code:`{"x": "volumetric_flow", "y": "pressure_difference"}`. Axes
+        without entry are dimensionless, default: :code:`{}`.
 
     param : str
         Connection parameter used as first input, e.g. :code:`"m"`,
@@ -1198,10 +1200,8 @@ class CharacteristicData(DataContainer):
     def attr():
         return {
             "char_func": None,
-            "num_inputs": 1,
-            "x_quantity": None,
-            "y_quantity": None,
-            "z_quantity": None,
+            "char_type": CharLine,
+            "quantities": {},
             "param": None,
             "char_params": {"type": "rel", "inconn": 0, "outconn": 0},
             "is_set": False,
@@ -1217,20 +1217,63 @@ class CharacteristicData(DataContainer):
             kwargs["char_func"] = characteristic_from_dict(kwargs["char_func"])
         super().set_attr(**kwargs)
         self._axes = None
+        axes = self.axes
+        if axes is not None and not set(self.quantities) <= set(axes):
+            unknown = ", ".join(sorted(set(self.quantities) - set(axes)))
+            raise ValueError(
+                f"Unknown axes {unknown} in the quantities of this parameter, "
+                f"the characteristic has the axes {', '.join(axes)}."
+            )
 
     def get_val(self):
         return self.char_func
 
     val = property(get_val)
 
+    def _char_types(self):
+        if isinstance(self.char_type, tuple):
+            return self.char_type
+        return (self.char_type,)
+
+    @property
+    def axes(self):
+        """Axis names of the characteristic type, the declared quantities
+        name them for a type without fixed axes, the last axis is the
+        output."""
+        for char_type in self._char_types():
+            axes = getattr(char_type, "axes", None)
+            if axes is not None:
+                return tuple(axes)
+        if self.quantities:
+            return tuple(self.quantities)
+        return None
+
+    @property
+    def num_inputs(self):
+        if self.axes is not None:
+            return len(self.axes) - 1
+        if self.char_func is not None:
+            return self.char_func.num_inputs
+        return None
+
     def _input_quantities(self):
-        return [self.x_quantity, self.y_quantity][:self.num_inputs]
+        if self.axes is None:
+            return [None] * self.num_inputs
+        return [self.quantities.get(axis) for axis in self.axes[:-1]]
 
     def _output_quantity(self):
-        return self.y_quantity if self.num_inputs == 1 else self.z_quantity
+        if self.axes is None:
+            return None
+        return self.quantities.get(self.axes[-1])
 
     def _check_signature(self, char_func):
-        if char_func.num_inputs != self.num_inputs:
+        if not isinstance(char_func, self._char_types()):
+            accepted = ", ".join(t.__name__ for t in self._char_types())
+            raise TypeError(
+                f"This parameter accepts {accepted}, got "
+                f"{type(char_func).__name__}."
+            )
+        if self.num_inputs is not None and char_func.num_inputs != self.num_inputs:
             raise ValueError(
                 f"The characteristic {type(char_func).__name__} takes "
                 f"{char_func.num_inputs} input(s), this parameter expects "
@@ -1248,9 +1291,10 @@ class CharacteristicData(DataContainer):
             self._check_signature(value)
             self.set_attr(char_func=value, is_set=True, _is_default=False)
         else:
+            accepted = ", ".join(t.__name__ for t in self._char_types())
             raise TypeError(
-                "Expected a characteristic function (CharLine, CharMap, "
-                f"Polynomial), dict, or None, got {type(value).__name__}."
+                f"Expected a characteristic function ({accepted}), dict, or "
+                f"None, got {type(value).__name__}."
             )
 
     def set_default(self, char_func):
@@ -1282,13 +1326,17 @@ class CharacteristicData(DataContainer):
     def _carried_input_units(self):
         """Units of the input axes carried by the characteristic function,
         :code:`None` per axis without one."""
-        carried = getattr(self.char_func, "input_units", None)
-        if carried is not None:
-            return list(carried)
-        return [None] * self.num_inputs
+        if self.axes is None:
+            return [None] * self.num_inputs
+        return [
+            getattr(self.char_func, f"{axis}_unit", None)
+            for axis in self.axes[:-1]
+        ]
 
     def _carried_output_unit(self):
-        return getattr(self.char_func, "output_unit", None)
+        if self.axes is None:
+            return None
+        return getattr(self.char_func, f"{self.axes[-1]}_unit", None)
 
     def _axis(self, quantity, unit):
         if quantity is None or self._units is None:
@@ -1801,12 +1849,12 @@ GroupedComponentCharacteristics = _deprecated_container(
 )
 ComponentCharacteristics = _deprecated_container(
     "ComponentCharacteristics", CharacteristicEquation,
-    lambda obj: isinstance(obj, CharacteristicData) and obj.num_inputs == 1
+    lambda obj: isinstance(obj, CharacteristicData) and CharLine in obj._char_types()
 )
 ComponentCharacteristicMaps = _deprecated_container(
     "ComponentCharacteristicMaps", CharacteristicEquation,
-    lambda obj: isinstance(obj, CharacteristicData) and obj.num_inputs == 2,
-    num_inputs=2
+    lambda obj: isinstance(obj, CharacteristicData) and CharMap in obj._char_types(),
+    char_type=CharMap
 )
 ComponentMandatoryConstraints = _deprecated_container(
     "ComponentMandatoryConstraints", MandatoryConstraint

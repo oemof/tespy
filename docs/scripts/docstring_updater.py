@@ -136,11 +136,10 @@ def _dc_type(dc):
         base = "float, dict"
         return base + ', :code:`"var"`' if getattr(dc, "_allows_var", False) else base
     if isinstance(dc, CharacteristicData):
-        table = "CharLine" if dc.num_inputs == 1 else "CharMap"
-        return (
-            f"tespy.tools.characteristics.{table}, "
-            "tespy.tools.characteristics.Polynomial, dict"
+        accepted = ", ".join(
+            f"tespy.tools.characteristics.{t.__name__}" for t in dc._char_types()
         )
+        return f"{accepted}, dict"
     if isinstance(dc, ParameterGroup):
         return type(dc).__name__
     if isinstance(dc, OptionalEquation):

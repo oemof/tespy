@@ -43,7 +43,7 @@ class EquilibriumSeparator(DropletSeparator):
     -----
 
     - Fluid inlets: in1
-    - Fluid outlets: out1, out2
+    - Fluid outlets: out1 (liquid phase), out2 (gas phase)
 
     Mandatory Equations
     -------------------

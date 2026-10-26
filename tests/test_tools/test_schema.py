@@ -155,7 +155,7 @@ class TestComponentParameters:
     def test_motor_eta_char_is_characteristic(self, component_schema):
         p = self._get_param(component_schema, "Motor", "eta_char")
         assert p["container_type"] == "CharacteristicEquation"
-        assert p["num_inputs"] == 1 and p["x_quantity"] is None
+        assert p["axes"] == ["x", "y"] and p["quantities"] == {}
 
     def test_heat_exchanger_ua_char_is_data(self, component_schema):
         p = self._get_param(component_schema, "HeatExchanger", "UA_char1")
@@ -177,15 +177,17 @@ class TestComponentParameters:
 
     def test_pump_flow_char_has_output_quantity(self, component_schema):
         p = self._get_param(component_schema, "Pump", "flow_char")
-        assert p["x_quantity"] == "volumetric_flow"
-        assert p["y_quantity"] == "pressure_difference"
+        assert p["quantities"] == {
+            "x": "volumetric_flow", "y": "pressure_difference"
+        }
 
     def test_polynomial_compressor_eta_s_poly_is_characteristic(self, component_schema):
         p = self._get_param(component_schema, "PolynomialCompressor", "eta_s_poly")
         assert p["container_type"] == "CharacteristicData"
-        assert p["num_inputs"] == 2
-        assert p["x_quantity"] == "temperature"
-        assert p["y_quantity"] == "temperature"
+        assert p["axes"] == ["T_evap", "T_cond", "value"]
+        assert p["quantities"] == {
+            "T_evap": "temperature", "T_cond": "temperature"
+        }
 
     def test_heat_exchanger_sections_are_arrays(self, component_schema):
         p = self._get_param(component_schema, "HeatExchanger", "Q_sections")

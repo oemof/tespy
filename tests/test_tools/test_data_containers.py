@@ -179,18 +179,22 @@ class TestCharacteristicData:
         equation.accept({"char_func": CharLine(), "is_set": True})
         assert equation.is_set
 
-    def test_signature_is_checked(self):
+    def test_type_and_signature_are_checked(self):
         data = dc.CharacteristicData()
         data.accept(CharLine())
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="accepts CharLine"):
             data.accept(CharMap())
+        with pytest.raises(TypeError):
+            data.accept(Polynomial([1, 2], exponents=[(0,), (1,)]))
         with pytest.raises(ValueError):
-            dc.CharacteristicData(num_inputs=2).accept(
-                CharLine()
-            )
+            dc.CharacteristicData(
+                char_type=Polynomial, quantities={"a": None, "b": None, "c": None}
+            ).accept(Polynomial([1, 2], exponents=[(0,), (1,)]))
 
-    def test_any_representation_with_matching_signature(self):
-        data = dc.CharacteristicData(num_inputs=2)
+    def test_declared_types_are_accepted(self):
+        data = dc.CharacteristicData(
+            char_type=(EN12900Polynomial, CharMap)
+        )
         data.accept(EN12900Polynomial([1] + [0] * 9))
         assert data.evaluate(3, 4) == 1
         data.accept(CharMap())
@@ -202,8 +206,7 @@ class TestCharacteristicData:
             volumetric_flow="m3/h", pressure_difference="bar"
         )
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow",
-            y_quantity="pressure_difference"
+            param="v", quantities={"x": "volumetric_flow", "y": "pressure_difference"}
         )
         data.accept(CharLine(x=[0, 3600], y=[2, 1]))
         with pytest.warns(UserWarning, match="pump: flow_char"):
@@ -213,8 +216,7 @@ class TestCharacteristicData:
 
     def test_si_network_does_not_warn(self):
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow",
-            y_quantity="pressure_difference"
+            param="v", quantities={"x": "volumetric_flow", "y": "pressure_difference"}
         )
         data.accept(CharLine(x=[0, 1], y=[2e5, 1e5]))
         data._bind_units(Units())
@@ -226,7 +228,7 @@ class TestCharacteristicData:
         units = Units()
         units.set_defaults(volumetric_flow="m3/h")
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow"
+            param="v", quantities={"x": "volumetric_flow"}
         )
         data.set_default(CharLine(x=[0, 1], y=[0, 1]))
         data._bind_units(units)
@@ -237,8 +239,7 @@ class TestCharacteristicData:
     def test_axis_units_of_the_data_convert(self):
         units = Units()
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow",
-            y_quantity="pressure_difference"
+            param="v", quantities={"x": "volumetric_flow", "y": "pressure_difference"}
         )
         data.accept(CharLine(x=[0, 3600], y=[2, 1], x_unit="m3/h", y_unit="bar"))
         data._bind_units(units)
@@ -254,7 +255,8 @@ class TestCharacteristicData:
         units = Units()
         units.set_defaults(temperature="K")
         data = dc.CharacteristicData(
-            num_inputs=2, x_quantity="temperature", y_quantity="temperature"
+            char_type=EN12900Polynomial,
+            quantities={"T_evap": "temperature", "T_cond": "temperature"}
         )
         data.accept(EN12900Polynomial([0, 1, 0, 0, 0, 0, 0, 0, 0, 0]))
         data._bind_units(units)
@@ -262,9 +264,31 @@ class TestCharacteristicData:
             warnings.simplefilter("error")
             assert data.evaluate(283.15, 300) == pytest.approx(10)
         kelvin = EN12900Polynomial([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-        kelvin.input_units = ["K", "K"]
+        kelvin.T_evap_unit = "K"
+        kelvin.T_cond_unit = "K"
         data.accept(kelvin)
         assert data.evaluate(283.15, 300) == pytest.approx(283.15)
+
+    def test_en12900_value_unit(self):
+        units = Units()
+        units.set_defaults(power="MW")
+        data = dc.CharacteristicData(
+            char_type=EN12900Polynomial,
+            quantities={
+                "T_evap": "temperature", "T_cond": "temperature",
+                "value": "power"
+            }
+        )
+        data.accept(EN12900Polynomial([2] + [0] * 9, value_unit="kW"))
+        data._bind_units(units)
+        assert data.evaluate(280, 310) == pytest.approx(2000)
+        restored = characteristic_from_dict(data.char_func._serialize())
+        assert restored.value_unit == "kW"
+        Q_ = units.ureg.Quantity
+        data.accept(EN12900Polynomial(Q_([2] + [0] * 9, "kW")))
+        assert data.char_func.value_unit == str(Q_(1, "kW").units)
+        data.accept(EN12900Polynomial([2] + [0] * 9))
+        assert data.evaluate(280, 310) == pytest.approx(2e6)
 
     def test_quantity_arrays_carry_units(self):
         units = Units()
@@ -272,10 +296,8 @@ class TestCharacteristicData:
         Q_ = units.ureg.Quantity
         line = CharLine(x=Q_([0, 1], "m3/s"), y=Q_([2e5, 1e5], "Pa"))
         assert line.x_unit == str(Q_(1, "m3/s").units)
-        assert line.input_units == [line.x_unit]
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow",
-            y_quantity="pressure_difference"
+            param="v", quantities={"x": "volumetric_flow", "y": "pressure_difference"}
         )
         data.accept(line)
         data._bind_units(units)
@@ -286,14 +308,13 @@ class TestCharacteristicData:
         assert restored.x_unit == line.x_unit
         assert restored.y_unit == line.y_unit
         char_map = CharMap(x_unit="Hz", y_unit="m3/h", z_unit="m")
-        assert char_map.input_units == ["Hz", "m3/h"]
-        assert char_map.output_unit == "m"
+        assert char_map.z_unit == "m"
 
     def test_axes_are_dimensionless_unless_declared(self):
         data = dc.CharacteristicEquation(param="v", char_params={"type": "abs"})
         assert data._input_quantities() == [None]
         data = dc.CharacteristicEquation(
-            param="v", x_quantity="volumetric_flow"
+            param="v", quantities={"x": "volumetric_flow"}
         )
         assert data._input_quantities() == ["volumetric_flow"]
 

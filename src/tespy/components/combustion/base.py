@@ -44,7 +44,7 @@ class CombustionChamber(Component):
     -----
 
     - Fluid inlets: in1, in2
-    - Fluid outlets: out1
+    - Fluid outlets: out1 (flue gas)
 
     Mandatory Equations
     -------------------

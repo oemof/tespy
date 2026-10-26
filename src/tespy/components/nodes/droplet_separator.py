@@ -40,7 +40,7 @@ class DropletSeparator(NodeBase):
     -----
 
     - Fluid inlets: in1
-    - Fluid outlets: out1, out2
+    - Fluid outlets: out1 (saturated liquid), out2 (saturated gas)
 
     Mandatory Equations
     -------------------

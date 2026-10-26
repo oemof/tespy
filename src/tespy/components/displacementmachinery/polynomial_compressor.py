@@ -163,10 +163,8 @@ class PolynomialCompressor(DisplacementMachine):
         Include this component in the network's results printout.
 
     Q_diss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
-
-    swept_volume : float, dict
-        Swept volume per revolution. Quantity: :code:`volume`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     reference_state : dict
         Deprecated, use :code:`swept_volume` instead.
@@ -174,6 +172,9 @@ class PolynomialCompressor(DisplacementMachine):
     rpm : float, dict, :code:`"var"`
         Compressor frequency. Can be set as a system variable by passing
         :code:`"var"` as its value.
+
+    swept_volume : float, dict
+        Swept volume per revolution. Quantity: :code:`volume`.
 
     Example
     -------
@@ -512,11 +513,13 @@ class PolynomialCompressor(DisplacementMachine):
                 description="deprecated, use :code:`swept_volume` instead"
             ),
             "eta_s_poly": CharacteristicData(
-                num_inputs=2, x_quantity="temperature", y_quantity="temperature",
+                char_type=EN12900Polynomial,
+                quantities={"T_evap": "temperature", "T_cond": "temperature"},
                 description="isentropic efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly": CharacteristicData(
-                num_inputs=2, x_quantity="temperature", y_quantity="temperature",
+                char_type=EN12900Polynomial,
+                quantities={"T_evap": "temperature", "T_cond": "temperature"},
                 description="volumetric efficiency as function of evaporation and condensation temperature"
             ),
             "eta_vol_poly_group_rpm": ParameterGroup(

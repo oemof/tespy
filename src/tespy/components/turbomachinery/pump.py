@@ -15,6 +15,7 @@ import numpy as np
 from tespy.components.component import component_registry
 from tespy.components.turbomachinery.base import Turbomachine
 from tespy.tools import logger
+from tespy.tools.characteristics import CharMap
 from tespy.tools.data_containers import CharacteristicData
 from tespy.tools.data_containers import CharacteristicEquation
 from tespy.tools.data_containers import ComponentParameter
@@ -453,8 +454,7 @@ class Pump(Turbomachine):
             ),
             'flow_char': CharacteristicEquation(
                 param='v', num_eq_sets=1,
-                x_quantity="volumetric_flow",
-                y_quantity="pressure_difference",
+                quantities={"x": "volumetric_flow", "y": "pressure_difference"},
                 func=self.flow_char_func,
                 dependents=self.flow_char_dependents,
                 char_params={'type': 'abs', 'inconn': 0, 'outconn': 0},
@@ -467,8 +467,8 @@ class Pump(Turbomachine):
                 description="frequency of the pump"
             ),
             "eta_flow_map": CharacteristicData(
-                num_inputs=2,
-                x_quantity="frequency", y_quantity="volumetric_flow",
+                char_type=CharMap,
+                quantities={"x": "frequency", "y": "volumetric_flow"},
                 description=(
                     "2D lookup table for pump efficiency over volumetric "
                     "flow and frequency"
@@ -485,9 +485,10 @@ class Pump(Turbomachine):
                 )
             ),
             "head_flow_map": CharacteristicData(
-                num_inputs=2,
-                x_quantity="frequency", y_quantity="volumetric_flow",
-                z_quantity="length",
+                char_type=CharMap,
+                quantities={
+                    "x": "frequency", "y": "volumetric_flow", "z": "length"
+                },
                 description=(
                     "2D lookup table for hydraulic head over volumetric "
                     "flow and frequency"

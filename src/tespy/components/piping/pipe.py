@@ -145,7 +145,8 @@ class Pipe(SimpleHeatExchanger):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -215,7 +216,8 @@ class Pipe(SimpleHeatExchanger):
         Velocity of wind at insulation surface. Quantity: :code:`speed`.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss

@@ -41,8 +41,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     Ports
     -----
 
-    - Fluid inlets: in1, in2
-    - Fluid outlets: out1, out2
+    - Fluid inlets: in1 (refrigerant), in2 (cooling fluid)
+    - Fluid outlets: out1 (refrigerant), out2 (cooling fluid)
     - Power inlets: power
 
     Mandatory Equations
@@ -167,10 +167,8 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         Include this component in the network's results printout.
 
     Q_diss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
-
-    swept_volume : float, dict
-        Swept volume per revolution. Quantity: :code:`volume`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     reference_state : dict
         Deprecated, use :code:`swept_volume` instead.
@@ -179,9 +177,13 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         Compressor frequency. Can be set as a system variable by passing
         :code:`"var"` as its value.
 
+    swept_volume : float, dict
+        Swept volume per revolution. Quantity: :code:`volume`.
+
     td_minimal : float, dict
         Theoretical minimal temperature difference between working and cooling
-        fluid. Quantity: :code:`temperature_difference`.
+        fluid. Quantity: :code:`temperature_difference`. Result only -
+        calculated after each solve.
 
     Example
     -------

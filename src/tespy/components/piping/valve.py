@@ -118,7 +118,8 @@ class Valve(Component):
         Include this component in the network's results printout.
 
     zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
+        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
+        each solve.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
@@ -273,8 +274,7 @@ class Valve(Component):
             ),
             'dp_char': CharacteristicEquation(
                 param='m', num_eq_sets=1,
-                x_quantity="mass_flow",
-                y_quantity="pressure_difference",
+                quantities={"x": "mass_flow", "y": "pressure_difference"},
                 dependents=self.dp_char_dependents,
                 func=self.dp_char_func,
                 char_params={'type': 'abs'},

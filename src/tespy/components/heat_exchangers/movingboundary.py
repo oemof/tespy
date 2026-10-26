@@ -102,7 +102,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         ratio instead, this will change to cold to hot side in version 0.12.
         Quantity: :code:`ratio`.
 
-    area_zones : GroupedComponentProperties
+    area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
         set for the group to activate. For phases that do not occur in your
         application set the corresponding alpha to any value - it only needs to
@@ -146,9 +146,10 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     kA : float, dict
         Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
+        :code:`heat_transfer_coefficient`. Result only - calculated after each
+        solve.
 
-    kA_char : GroupedComponentCharacteristics
+    kA_char : OptionalEquation
         Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
         :code:`kA_char2`.
 
@@ -163,7 +164,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -248,7 +250,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
 
     td_log : float, dict
         Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
+        :code:`temperature_difference`. Result only - calculated after each
+        solve.
 
     td_pinch : float, dict
         Equation for minimum pinch. Quantity: :code:`temperature_difference`.
@@ -274,7 +277,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
-    UA_cecchinato : GroupedComponentProperties
+    UA_cecchinato : ParameterGroup
         Deprecated - equation for UA modification in offdesign using
         refrigerant/secondary-fluid Reynolds exponents; use
         :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
@@ -282,7 +285,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
 
-    UA_cecchinato_hc : GroupedComponentProperties
+    UA_cecchinato_hc : ParameterGroup
         Temporary name - equation for UA modification in offdesign using
         explicit hot/cold Reynolds exponents; in version 0.12
         :code:`UA_cecchinato` will adopt the hot/cold convention of
@@ -290,7 +293,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for sectioned UA modification based on characteristic lines.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
@@ -302,7 +305,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Cold side UA modification lookup table for offdesign.
 
     zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
+        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
+        each solve.
 
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
@@ -310,7 +314,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
 
     zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
+        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
+        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for

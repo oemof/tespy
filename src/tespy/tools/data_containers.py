@@ -356,12 +356,27 @@ class ScalarParameter(_EquationMixin, DataContainer):
         Starting value for the solver in the unit of the parameter, default:
         :code:`np.nan`.
 
-    is_result : boolean
-        Report the value in the results even if it is neither specified nor
-        bound to an equation, default: :code:`False`.
+    calc : callable
+        Method calculating the SI value after convergence. A parameter with
+        a :code:`calc` method is reported in the results in every case.
+
+    calc_params : dict
+        Keyword arguments for :code:`calc`.
+
+    calc_deps : list
+        Names of parameters :code:`calc` depends on, evaluated first.
 
     description : str
         Description of the parameter for documentation and schema.
+
+    Note
+    ----
+    A parameter accepts a specification when a declared consumer reads it:
+    an equation of its own, a group, optional equation or mandatory
+    constraint listing it in its :code:`elements`, the variable role or the
+    presolving of a connection. The owner marks the containers its
+    declarations consume at construction. A parameter without consumer is
+    result-only.
     """
 
     @staticmethod
@@ -378,8 +393,11 @@ class ScalarParameter(_EquationMixin, DataContainer):
             "quantity": None,
             "description": None,
             "is_set": False,
-            "is_result": False,
             "design": np.nan,
+            "calc": None,
+            "calc_params": {},
+            "calc_deps": [],
+            "_consumed": False,
             "_is_var": False,
             "_potential_var": False,
             "_reference_container": None,
@@ -397,6 +415,17 @@ class ScalarParameter(_EquationMixin, DataContainer):
             "val": self.val, "val_SI": self.val_SI, "is_set": self.is_set,
             "unit": self._unit_for_export(units)
         }
+
+    def _is_input(self):
+        return (
+            self.func is not None
+            or self.structure_matrix is not None
+            or self._consumed
+        )
+
+    @property
+    def result_only(self):
+        return not self._is_input()
 
     def _unit_for_export(self, units):
         """Unit of the exported value: the unit the container is bound to or
@@ -650,9 +679,8 @@ class ConnectionParameter(ScalarParameter):
 
     Takes the parameters of :py:class:`ScalarParameter`.
 
-    A parameter is an input when it is a system variable or carries an
-    equation, directly or through a reference. A result parameter without
-    any of these is result-only and refuses user values.
+    Takes the parameters of :py:class:`ScalarParameter`, a reference to
+    another connection counts as consumer as well.
 
     Parameters
     ----------
@@ -670,16 +698,7 @@ class ConnectionParameter(ScalarParameter):
         }
 
     def _is_input(self):
-        return (
-            not self.is_result
-            or self.func is not None
-            or self.structure_matrix is not None
-            or self.reference is not None
-        )
-
-    @property
-    def result_only(self):
-        return not self._is_input()
+        return super()._is_input() or self.reference is not None
 
     def accept(self, value):
         if value is not None and self.result_only:
@@ -694,24 +713,13 @@ class ComponentParameter(ScalarParameter):
     Data container for scalar component parameters.
 
     Extends :py:class:`ScalarParameter` with the specification as system
-    variable through :code:`"var"`, with result post-processing and with
-    bound scaling. A parameter is an input when it carries an equation, is an
-    element of a parameter group or can be a system variable. A result
-    parameter without any of these is result-only and refuses user values.
+    variable through :code:`"var"` and with bound scaling, the variable role
+    counts as consumer of a specification.
 
     Parameters
     ----------
     is_var : boolean
         Is the parameter a system variable? default: :code:`False`.
-
-    calc : callable
-        Method calculating the SI value after convergence.
-
-    calc_params : dict
-        Keyword arguments for :code:`calc`.
-
-    calc_deps : list
-        Names of parameters :code:`calc` depends on, evaluated first.
 
     limit_scale : str
         Name of a parameter whose magnitude scales the bound tolerance.
@@ -722,25 +730,11 @@ class ComponentParameter(ScalarParameter):
         return {
             **ScalarParameter.attr(),
             "_allows_var": False,
-            "_group_element": False,
             "limit_scale": None,
-            "calc": None,
-            "calc_params": {},
-            "calc_deps": [],
         }
 
     def _is_input(self):
-        return (
-            not self.is_result
-            or self.func is not None
-            or self.structure_matrix is not None
-            or self._allows_var
-            or self._group_element
-        )
-
-    @property
-    def result_only(self):
-        return not self._is_input()
+        return super()._is_input() or self._allows_var
 
     def _serialize(self, units=None):
         export = super()._serialize(units)
@@ -776,9 +770,10 @@ class ArrayParameter(_EquationMixin, DataContainer):
     """
     Data container for array valued component parameters.
 
-    All entries of the array share one physical quantity. The container is a
-    result by default, an input array declares :code:`is_result=False` or
-    carries an equation.
+    All entries of the array share one physical quantity. An array is an
+    input when a declared consumer reads it, an equation of its own or a
+    group listing it, otherwise it is a result filled by the component after
+    convergence.
 
     Parameters
     ----------
@@ -790,9 +785,6 @@ class ArrayParameter(_EquationMixin, DataContainer):
 
     quantity : str
         Physical quantity of the entries, e.g. :code:`"heat"`.
-
-    is_result : boolean
-        Is the array a pure result? default: :code:`True`.
 
     calc : callable
         Method calculating the SI values after convergence.
@@ -817,8 +809,7 @@ class ArrayParameter(_EquationMixin, DataContainer):
             "quantity": None,
             "description": None,
             "is_set": False,
-            "is_result": True,
-            "_group_element": False,
+            "_consumed": False,
             "design": None,
             "calc": None,
             "calc_params": {},
@@ -841,10 +832,9 @@ class ArrayParameter(_EquationMixin, DataContainer):
 
     def _is_input(self):
         return (
-            not self.is_result
-            or self.func is not None
+            self.func is not None
             or self.structure_matrix is not None
-            or self._group_element
+            or self._consumed
         )
 
     @property
@@ -1129,6 +1119,9 @@ class MandatoryConstraint(_EquationMixin, DataContainer):
 
     Parameters
     ----------
+    elements : list
+        Names of the parameters the equation reads, default: :code:`[]`.
+
     description : str
         Description of the equation for documentation and schema.
     """
@@ -1136,6 +1129,7 @@ class MandatoryConstraint(_EquationMixin, DataContainer):
     @staticmethod
     def attr():
         return {
+            "elements": [],
             "description": None,
             **_equation_attrs(),
         }
@@ -1166,12 +1160,11 @@ class CharacteristicData(DataContainer):
     physical quantity of every axis. Equations evaluate the characteristic
     through :py:meth:`evaluate` with SI inputs and receive SI outputs, the
     conversion to the units of the characteristic data is handled here. The
-    unit of an axis is the one declared with :code:`input_units` or
-    :code:`output_unit`, otherwise the one the characteristic function
-    carries itself (e.g. the °C of an
-    :py:class:`tespy.tools.characteristics.EN12900Polynomial`), otherwise
-    the default unit of the network, like a plain number of a scalar
-    parameter. The default characteristics shipped with tespy are SI data.
+    unit of an axis is the one the characteristic function carries, e.g.
+    :code:`CharLine(x, y, x_unit="m3/h", y_unit="bar")` or the °C of an
+    :py:class:`tespy.tools.characteristics.EN12900Polynomial`, otherwise the
+    default unit of the network, like a plain number of a scalar parameter.
+    The default characteristics shipped with tespy are SI data.
 
     A characteristic function matches the container when its number of inputs
     equals the number of input quantities declared, the representation is
@@ -1188,14 +1181,6 @@ class CharacteristicData(DataContainer):
 
     output_quantity : str
         Physical quantity of the output, :code:`None` for dimensionless.
-
-    input_units : list
-        Unit per input axis the data is given in. Default: :code:`None`, the
-        default unit of the network for the quantity.
-
-    output_unit : str
-        Unit the output data is given in. Default: :code:`None`, the default
-        unit of the network for the quantity.
 
     param : str
         Connection parameter used as first input, e.g. :code:`"m"`,
@@ -1220,8 +1205,6 @@ class CharacteristicData(DataContainer):
             "char_func": None,
             "input_quantities": None,
             "output_quantity": None,
-            "input_units": None,
-            "output_unit": None,
             "param": None,
             "char_params": {"type": "rel", "inconn": 0, "outconn": 0},
             "is_set": False,
@@ -1302,27 +1285,25 @@ class CharacteristicData(DataContainer):
         SI unit and the data unit, :code:`None` for dimensionless axes."""
         if self._axes is None:
             quantities = self._resolved_input_quantities()
-            input_units = self._declared_units()
             axes = []
-            for quantity, unit in zip(quantities, input_units):
+            for quantity, unit in zip(quantities, self._carried_input_units()):
                 axes.append(self._axis(quantity, unit))
-            output_unit = self.output_unit
-            if output_unit is None:
-                output_unit = getattr(self.char_func, "output_unit", None)
-            self._axes = (axes, self._axis(self.output_quantity, output_unit))
+            self._axes = (
+                axes, self._axis(self.output_quantity, self._carried_output_unit())
+            )
             self._warn_undeclared_units()
         return self._axes
 
-    def _declared_units(self):
-        """Units of the input axes declared on the container, otherwise
-        carried by the characteristic function, :code:`None` per axis
-        without either."""
-        if self.input_units is not None:
-            return list(self.input_units)
+    def _carried_input_units(self):
+        """Units of the input axes carried by the characteristic function,
+        :code:`None` per axis without one."""
         carried = getattr(self.char_func, "input_units", None)
         if carried is not None:
             return list(carried)
         return [None] * self.num_inputs
+
+    def _carried_output_unit(self):
+        return getattr(self.char_func, "output_unit", None)
 
     def _axis(self, quantity, unit):
         if quantity is None or self._units is None:
@@ -1341,11 +1322,7 @@ class CharacteristicData(DataContainer):
             return
         axes, output = self._axis_units()
         quantities = self._resolved_input_quantities() + [self.output_quantity]
-        declared = self._declared_units() + [
-            self.output_unit
-            if self.output_unit is not None
-            else getattr(self.char_func, "output_unit", None)
-        ]
+        declared = self._carried_input_units() + [self._carried_output_unit()]
         changed = [
             f"{quantity} in {axis[1]}"
             for quantity, unit, axis in zip(quantities, declared, axes + [output])
@@ -1359,7 +1336,7 @@ class CharacteristicData(DataContainer):
                 f"default units of the network ({', '.join(changed)}). "
                 "Before version 0.12 these data were SI data regardless of "
                 "the network's units. Check your data or declare their units "
-                "with input_units and output_unit.",
+                "on the data, e.g. CharLine(x, y, x_unit=..., y_unit=...).",
                 UserWarning, stacklevel=2
             )
 
@@ -1443,8 +1420,7 @@ class CharacteristicData(DataContainer):
     def _serialize(self, units=None):
         export = {
             "is_set": self.is_set, "param": self.param,
-            "char_params": self.char_params, "input_units": self.input_units,
-            "output_unit": self.output_unit
+            "char_params": self.char_params
         }
         if self.char_func is not None:
             export["char_func"] = self.char_func._serialize()
@@ -1801,6 +1777,10 @@ def _deprecated_container(old_name, new_cls, instancecheck=None, **defaults):
             f"{old_name} is deprecated, use {new_cls.__name__} instead.",
             FutureWarning, stacklevel=2
         )
+        # the result state is derived from the calc method and the equations
+        # now, the former flags carry no information
+        kwargs.pop("is_result", None)
+        kwargs.pop("result_only", None)
         for key, value in defaults.items():
             kwargs.setdefault(key, value)
         new_cls.__init__(self, **kwargs)

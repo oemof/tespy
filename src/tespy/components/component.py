@@ -14,7 +14,6 @@ SPDX-License-Identifier: MIT
 
 import math
 import warnings
-from collections import deque
 
 import numpy as np
 import pandas as pd
@@ -40,6 +39,7 @@ from tespy.tools.helpers import _get_dependents
 from tespy.tools.helpers import _get_vector_dependents
 from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
+from tespy.tools.helpers import _topological_sort
 from tespy.tools.helpers import _validate_dependents
 from tespy.tools.units import SI_UNITS
 
@@ -50,35 +50,6 @@ def component_registry(type):
 
 
 component_registry.items = {}
-
-
-def _topological_sort(calc_items):
-    """Return keys of calc_items in topological order based on calc_deps.
-
-    Raises ValueError if a dependency cycle is detected.
-    """
-    successors = {k: [] for k in calc_items}
-    in_degree = {k: 0 for k in calc_items}
-    for k, dc in calc_items.items():
-        for dep in dc.calc_deps:
-            if dep in calc_items:
-                successors[dep].append(k)
-                in_degree[k] += 1
-
-    queue = deque(k for k in calc_items if in_degree[k] == 0)
-    ordered = []
-    while queue:
-        k = queue.popleft()
-        ordered.append(k)
-        for succ in successors[k]:
-            in_degree[succ] -= 1
-            if in_degree[succ] == 0:
-                queue.append(succ)
-
-    if len(ordered) != len(calc_items):
-        cycle = set(calc_items) - set(ordered)
-        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
-    return ordered
 
 
 @component_registry
@@ -169,15 +140,27 @@ class Component:
         self.bypass = False
         self.fkt_group = self.label
         self._local_connection_design_state = {}
+        # the network assigns the connections at the ports, the empty ports
+        # let the constraints be built before that
+        self.inl, self.outl = [], []
+        self.power_inl, self.power_outl = [], []
+        self.heat_inl, self.heat_outl = [], []
 
         # add container for components attributes
         self.parameters = self.get_parameters().copy()
-        for group in self.parameters.values():
-            if isinstance(group, ParameterGroup):
-                for element in group.elements:
-                    self.parameters[element]._group_element = True
         self.__dict__.update(self.parameters)
+        self._mark_consumed_parameters()
         self.set_attr(**kwargs)
+
+    def _mark_consumed_parameters(self):
+        """Parameters read by a group, an optional equation or a mandatory
+        constraint accept specifications although they carry no equation of
+        their own."""
+        consumers = list(self.parameters.values())
+        consumers += list(self.get_mandatory_constraints().values())
+        for consumer in consumers:
+            for element in getattr(consumer, "elements", []):
+                self.parameters[element]._consumed = True
 
     def set_attr(self, **kwargs):
         r"""

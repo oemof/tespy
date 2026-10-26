@@ -29,6 +29,8 @@ from .connection import connection_registry
 @connection_registry
 class HAConnection(Connection):
 
+    _state_specifications = ("p", "h", "T", "w")
+
     def get_parameters(self):
         return {
             "fluid": FluidComposition(
@@ -40,12 +42,12 @@ class HAConnection(Connection):
                 description="mass flow of dry air (system variable)"
             ),
             "mHA": ConnectionParameter(
-                is_result=True,
+                calc=self._calc_mHA,
                 quantity="mass_flow",
                 description="mass flow of humid air"
             ),
             "mH2O": ConnectionParameter(
-                is_result=True,
+                calc=self._calc_mH2O,
                 quantity="mass_flow",
                 description="mass flow of liquid or solid water not contained in humid air"
             ),
@@ -76,12 +78,12 @@ class HAConnection(Connection):
                 description="volumetric flow of the fluid"
             ),
             "vol": ConnectionParameter(
-                is_result=True,
+                calc=self.calc_vol,
                 quantity="specific_volume",
                 description="specific volume of the fluid (output only)"
             ),
             "s": ConnectionParameter(
-                is_result=True,
+                calc=self.calc_s,
                 quantity="entropy",
                 description="specific entropy of the fluid (output only)"
             ),
@@ -318,6 +320,16 @@ class HAConnection(Connection):
     def calc_w(self):
         return w_mix_pT_humidair(self.p.val_SI, self.T.val_SI, self.fluid_data)
 
+    def _calc_mHA(self):
+        """Mass flow of humid air from the mass flow of dry air."""
+        return self.m.val_SI * (1 + self.w.val_SI)
+
+    def _calc_mH2O(self):
+        """Mass flow of liquid or solid water not contained in the humid
+        air."""
+        w_mixture = w_mix_fluid_data(self.fluid_data)
+        return self.m.val_SI * (w_mixture - self.w.val_SI)
+
     def calc_results(self, units, skip_postprocess):
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)
@@ -330,18 +342,9 @@ class HAConnection(Connection):
             return True
 
         self.T.val_SI = self.calc_T()
-        self.vol.val_SI = self.calc_vol()  # Mixture volume per mass of dry air
-        self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
-        # handle the water fraction
         self.w.val_SI = self.calc_w()
-        # # Convert from kg water/kg dry air to mass fraction of water in humid air
-        # x_h2o = self.w.val_SI / (1 + self.w.val_SI)
-        # x_air = 1 - x_h2o
-        self.mHA.val_SI = self.m.val_SI * (1 + self.w.val_SI)
-        w_mixture = w_mix_fluid_data(self.fluid_data)
-        # Calculate kg water/kg dry air that is not in the humid air
-        delta_w = w_mixture - self.w.val_SI
-        self.mH2O.val_SI = self.m.val_SI * delta_w
+        self._calc_result_parameters()
+        self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
         self.r.val_SI = self.calc_r()
         # if self.r.val_SI > 1:
         #     self.r.val_SI = np.nan

@@ -233,6 +233,7 @@ class CombustionChamber(Component):
                 "func": self.stoichiometry_func,
                 "dependents": self.stoichiometry_dependents,
                 "num_eq_sets": 1,
+                "elements": ["f_nox"],
                 "description": "constraints for stoichiometry of the reaction"
             }),
             "energy_balance_constraints": MandatoryConstraint(**{

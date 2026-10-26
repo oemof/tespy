@@ -424,6 +424,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             func=self.cooling_energy_balance_func,
             dependents=self.cooling_energy_balance_dependents,
             num_eq_sets=1,
+            elements=["eta_recovery"],
             description="energy balance for the cooling ports"
         )
         return constraints

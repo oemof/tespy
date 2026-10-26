@@ -86,6 +86,8 @@ def _deserialize_ref_delta(data, units=None):
 
 class ConnectionBase:
 
+    _state_specifications = ()
+
     _has_fluid_vector = False
 
     def __init__(self):
@@ -350,6 +352,9 @@ class ConnectionBase:
         self.property_data0 = [f"{x}0" for x in self.property_data.keys()]
         self.parameters = self._build_parameters()
         self.__dict__.update(self.property_data)
+        for name in set(self._state_specifications) | set(self.get_variables()):
+            if name in self.property_data:
+                self.property_data[name]._consumed = True
         logger.debug(
             f"Created connection from {self.source.label} ({self.source_id}) "
             f"to {self.target.label} ({self.target_id})."
@@ -466,6 +471,7 @@ class ConnectionBase:
 
     def _preprocess(self, row_idx):
         self.num_eq = 0
+        self._pressure_from_saturation = False
 
         self._structure_matrix = {}
         self._rhs = {}
@@ -721,8 +727,17 @@ class ConnectionBase:
 
 @connection_registry
 class Connection(ConnectionBase):
+
+    _state_specifications = (
+        "p", "h", "T", "x", "td_bubble", "td_dew", "T_dew", "T_bubble"
+    )
     r"""
     Class connection is the container for fluid properties between components.
+
+    The thermodynamic state of a fluid with known composition has two degrees
+    of freedom. The parameters listed in :code:`_state_specifications` are
+    the ones that can spend them, the connection resolves them to its state
+    variables before solving.
 
     Parameters
     ----------
@@ -1762,20 +1777,31 @@ class Connection(ConnectionBase):
     def _presolve(self):
         self._presolve_determinations = []
         if len(self.fluid.is_var) > 0:
+            saturation = [
+                name for name in ("T_dew", "T_bubble", "x", "td_dew", "td_bubble")
+                if self.get_attr(name).is_set
+            ]
+            if saturation:
+                msg = (
+                    f"The specification of {', '.join(saturation)} at "
+                    f"connection {self.label} is not available for a variable "
+                    "fluid composition, the saturation properties of the "
+                    "mixture are unknown while its composition is a variable. "
+                    "Fix the composition or specify the state differently."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
             return []
 
-        specifications = []
-        for name, container in self.property_data.items():
-            if name in ["p", "h", "T", "x", "td_bubble", "td_dew", "T_dew", "T_bubble"]:
-                if container.is_set:
-                    specifications += [name]
+        specifications = [
+            name for name in self._state_specifications
+            if self.property_data[name].is_set
+        ]
 
-        num_specs = len(specifications)
-
-        if num_specs > 2:
+        if len(specifications) > 2:
             msg = (
-                "You have specified more than 2 parameters for the connection "
-                f"{self.label} with a known fluid composition: "
+                "You have specified more than 2 state properties for the "
+                f"connection {self.label} with a known fluid composition: "
                 f"{', '.join(specifications)}. This overdetermines the state "
                 "of the fluid."
             )
@@ -1794,6 +1820,7 @@ class Connection(ConnectionBase):
 
         elif self.p.is_var:
             if self.T_dew.is_set:
+                self._pressure_from_saturation = True
                 self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 if "T_dew" in self._equation_set_lookup.values():
@@ -1805,6 +1832,7 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.T_bubble.is_set:
+                self._pressure_from_saturation = True
                 self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
                 self.p._potential_var = False
                 if "T_bubble" in self._equation_set_lookup.values():
@@ -1814,6 +1842,20 @@ class Connection(ConnectionBase):
                 )
                 msg = f"Determined p by specified T_bubble at {self.label}."
                 logger.debug(msg)
+
+        elif (
+                (self.T_dew.is_set or self.T_bubble.is_set)
+                and not self._pressure_from_saturation
+        ):
+            # the pressure is fixed through another connection or equation
+            saturation = "T_dew" if self.T_dew.is_set else "T_bubble"
+            msg = (
+                f"The pressure at connection {self.label} is already "
+                "determined through other specifications, the "
+                f"{saturation} specification overdetermines it."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
 
         if self.h.is_var and not self.p.is_var:
             if self.T.is_set:
@@ -2385,6 +2427,10 @@ class Connection(ConnectionBase):
         except NotImplementedError:
             return np.nan
 
+    def _calc_vol_result(self):
+        # method called indirectly through .calc, need to provide kwargs
+        return self.calc_vol(T0=self.T.val_SI, postprocess=True)
+
     def calc_Q(self):
         return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
 
@@ -2442,7 +2488,14 @@ class Connection(ConnectionBase):
                         "corresponding substance property library."
                     )
                     logger.warning(msg)
-        else:
+
+        # all properties from pressure and enthalpy first, they reuse the
+        # state the property back end holds from the temperature calculation
+        if _converged:
+            self._calc_result_parameters()
+            self.v.val_SI = self.vol.val_SI * self.m.val_SI
+
+        if fluid is not None:
             # these are pure fluids
             # two-phase properties are calculated based on pressure
             if self.p.val_SI < self.fluid.wrapper[fluid]._p_crit:
@@ -2450,6 +2503,11 @@ class Connection(ConnectionBase):
                     self.x.val_SI = self.calc_x()
                 except ValueError:
                     self.x.val_SI = np.nan
+
+                try:
+                    self.phase.val = self.calc_phase()
+                except ValueError:
+                    self.phase.val = "phase not recognized"
 
                 try:
                     T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
@@ -2463,19 +2521,9 @@ class Connection(ConnectionBase):
                 except (ValueError, NotImplementedError):
                     self.td_dew.val_SI = np.nan
                     self.td_bubble.val_SI = np.nan
-
-                try:
-                    self.phase.val = self.calc_phase()
-                except ValueError:
-                    self.phase.val = "phase not recognized"
             else:
                 self.x.val_SI = np.nan
                 self.phase.val = "phase not recognized"
-
-        if _converged:
-            self.vol.val_SI = self.calc_vol(postprocess=True)
-            self.v.val_SI = self.vol.val_SI * self.m.val_SI
-            self.s.val_SI = self.calc_s()
 
         for prop in self._result_attributes():
             param = self.get_attr(prop)

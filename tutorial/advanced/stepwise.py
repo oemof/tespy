@@ -170,7 +170,7 @@ cp2.set_attr(eta_s=0.8)
 
 c8.set_attr(h=None, td_dew=4)
 nw.solve("design")
-design_state = nw.save(as_dict=True)
+design_state = nw.save()
 # %% [sec_17]
 cp1.set_attr(design=["eta_s"], offdesign=["eta_s_char"])
 cp2.set_attr(design=["eta_s"], offdesign=["eta_s_char"])

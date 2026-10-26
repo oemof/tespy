@@ -140,6 +140,10 @@ Bug Fixes
   saturation properties are not available: specifying :code:`T_dew`,
   :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there raises
   an error instead of the specification being ignored.
+- The vapour quality of pure fluids is 0 for liquid and 1 for vapour at
+  subcritical pressure, also above the critical temperature, and :code:`nan`
+  at supercritical pressure, consistently for all fluid property wrappers
+  (`PR #1102 <https://github.com/oemof/tespy/pull/1102>`__).
 
 Contributors
 ############

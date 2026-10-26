@@ -181,15 +181,14 @@ cons.set_attr(design=["pr"], offdesign=["zeta_d4"])
 
 cd.set_attr(
     design=["pr2", "td_pinch"], offdesign=["zeta2_d4", "UA_cecchinato"],
-    alpha_ratio=1, area_ratio=1, re_exp_r=0.8, re_exp_sf=0.50,
-    refrigerant_index=0
+    alpha_ratio=1, area_ratio=1, re_exp_cold=0.8, re_exp_hot=0.50
 )
 
 from tespy.tools.characteristics import CharLine
 from tespy.tools.characteristics import load_default_char as ldc
 
-UA_char1 = ldc("HeatExchanger", "kA_char1", "DEFAULT", CharLine)
-UA_char2 = ldc("HeatExchanger", "kA_char2", "EVAPORATING FLUID", CharLine)
+UA_char1 = ldc("HeatExchanger", "UA_char1", "DEFAULT", CharLine)
+UA_char2 = ldc("HeatExchanger", "UA_char2", "EVAPORATING FLUID", CharLine)
 ev.set_attr(
     UA_char1=UA_char1, UA_char2=UA_char2,
     design=["pr1", "ttd_l"], offdesign=["zeta1_d4", "UA_char"]

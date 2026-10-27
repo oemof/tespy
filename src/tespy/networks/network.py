@@ -477,12 +477,12 @@ class Network:
         """
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
-            self.conns.drop(c.label, inplace=True)
+            self.conns = self.conns.drop(c.label)
             _network_ownership.pop(c, None)
             if c.__class__.__name__ in self._results:
-                self._results[c.__class__.__name__].drop(
-                    c.label, inplace=True, errors="ignore"
-                )
+                self._results[c.__class__.__name__] = self._results[
+                    c.__class__.__name__
+                ].drop(c.label, errors="ignore")
             msg = f'Deleted connection {c.label} from network.'
             logger.debug(msg)
 
@@ -546,12 +546,12 @@ class Network:
                 comp not in self.conns["source"].values and
                 comp not in self.conns["target"].values
             ):
-                self.comps.drop(comp.label, inplace=True)
+                self.comps = self.comps.drop(comp.label)
                 _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
                 if comp_type in self._results:
-                    self._results[comp_type].drop(
-                        comp.label, inplace=True, errors="ignore"
+                    self._results[comp_type] = self._results[comp_type].drop(
+                        comp.label, errors="ignore"
                     )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
@@ -2788,7 +2788,7 @@ class Network:
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
 
-                    df.dropna(how='all', inplace=True)
+                    df = df.dropna(how="all")
 
                     if len(df) > 0:
                         # printout with tabulate
@@ -2819,7 +2819,7 @@ class Network:
             df = df.astype(str)
             for c in df.index:
                 if not self.get_conn(c).printout:
-                    df.drop([c], axis=0, inplace=True)
+                    df = df.drop([c], axis=0)
 
                 elif colored:
                     conn = self.get_conn(c)

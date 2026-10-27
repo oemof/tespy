@@ -145,7 +145,7 @@ class Drum(DropletSeparator):
     >>> ev_amb.set_attr(p=1)
     >>> nw.solve('design')
     >>> nw.assert_convergence()
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(ev_amb.T.val - erp_ev.T.val ,1)
     5.0
     >>> round(f_dr.h.val, 1)

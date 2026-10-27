@@ -105,7 +105,7 @@ class TestConnections:
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["temperature_difference"]
         ).m_as(SI_UNITS["temperature_difference"])
-        assert round(delta_SI, 4) == round(c2.T_ref.ref.delta_SI, 4)
+        assert round(delta_SI, 4) == round(c2.T.reference.ref.delta_SI, 4)
 
         T_expected = round(c1.T.val_SI * 1.5 + delta_SI, 4)
         T_is = round(c2.T.val_SI, 4)
@@ -139,7 +139,7 @@ class TestConnections:
         delta_SI = self.nw.units.ureg.Quantity(
             delta, self.nw.units.default["mass_flow"]
         ).m_as(SI_UNITS["mass_flow"])
-        assert round(delta_SI, 4) == round(c2.m_ref.ref.delta_SI, 4)
+        assert round(delta_SI, 4) == round(c2.m.reference.ref.delta_SI, 4)
 
         m_expected = round(c1.m.val_SI * 2 + delta_SI, 4)
         m_is = round(c2.m.val_SI, 4)
@@ -158,14 +158,14 @@ class TestConnections:
         c2.set_attr(m=0.5)
         c2.set_attr(m=Ref(c1, 1, 0))
         assert not c2.m.is_set
-        assert c2.m_ref.is_set
+        assert c2.m.reference.is_set
         self.nw.solve("design")
         self.nw.assert_convergence()
         assert round(c2.m.val_SI, 4) == round(c1.m.val_SI, 4)
 
         # Ref → numerical value: Ref must be unset
         c2.set_attr(m=0.3)
-        assert not c2.m_ref.is_set
+        assert not c2.m.reference.is_set
         assert c2.m.is_set
         self.nw.solve("design")
         self.nw.assert_convergence()
@@ -191,7 +191,7 @@ class TestZeotropicConnectionPresolve:
 
     def setup_method(self):
         self.nw = Network()
-        self.nw.units.set_defaults(temperature="°C", pressure="bar")
+        self.nw.units.set_defaults(temperature="°C", pressure="bar", pressure_difference="bar")
         self.nw.iterinfo = False
         src = Source("src")
         snk = Sink("snk")
@@ -253,7 +253,7 @@ def test_wrapper_kwargs_injection():
 
 def test_fluid_balance_converges_with_variable_fractions():
     nw = Network()
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     merge = Merge("merge", num_in=3)
     c1 = Connection(Source("air"), "out1", merge, "in1", label="1")
     c2 = Connection(Source("carbon dioxide"), "out1", merge, "in2", label="2")

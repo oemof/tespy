@@ -19,6 +19,7 @@ from tespy.components import Pump
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Turbine
+from tespy.components import Valve
 from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools import data_containers as dc
@@ -79,7 +80,6 @@ class TestOptionalEquation:
         assert isinstance(hx.UA_char, dc.OptionalEquation)
         assert not isinstance(hx.UA_char, dc.ParameterGroup)
         assert hx.UA_char.elements == ["UA_char1", "UA_char2"]
-        assert isinstance(hx.kA_char, dc.OptionalEquation)
         from tespy.components import Pipe
         assert isinstance(Pipe("pipe").darcy_group, dc.ParameterGroup)
 
@@ -287,7 +287,9 @@ class TestCharacteristicData:
         Q_ = units.ureg.Quantity
         data.accept(EN12900Polynomial(Q_([2] + [0] * 9, "kW")))
         assert data.char_func.value_unit == str(Q_(1, "kW").units)
-        data.accept(EN12900Polynomial([2] + [0] * 9))
+        with pytest.warns(UserWarning, match="power in MW"):
+            data.accept(EN12900Polynomial([2] + [0] * 9))
+            data._bind_units(units)
         assert data.evaluate(280, 310) == pytest.approx(2e6)
 
     def test_quantity_arrays_carry_units(self):
@@ -360,7 +362,8 @@ class TestPumpFlowCharacteristicUnits:
     def _network(self, **defaults):
         nw = Network(iterinfo=False)
         nw.units.set_defaults(
-            pressure="bar", temperature="degC", **defaults
+            **{"pressure": "bar", "pressure_difference": "bar",
+               "temperature": "degC", **defaults}
         )
         source = Source("source")
         sink = Sink("sink")
@@ -423,6 +426,51 @@ class TestPumpFlowCharacteristicUnits:
             warnings.simplefilter("error")
             pump.eta_s_char._bind_units(units, "pump: eta_s_char")
             pump.flow_char._bind_units(units, "pump: flow_char")
+
+
+class TestCharacteristicExport:
+
+    def _network(self):
+        nw = Network(iterinfo=False)
+        nw.units.set_defaults(
+            pressure="bar", pressure_difference="bar", mass_flow="kg/h"
+        )
+        valve = Valve("valve")
+        c1 = Connection(Source("source"), "out1", valve, "in1", label="c1")
+        c2 = Connection(valve, "out1", Sink("sink"), "in1", label="c2")
+        nw.add_conns(c1, c2)
+        c1.set_attr(fluid={"water": 1}, m=3600, T=300, p=10)
+        c2.set_attr(p=5)
+        return nw, valve
+
+    def test_default_data_export_as_si(self):
+        """A network with the default characteristic survives the export and
+        import round trip, the file declares the SI units of the data."""
+        nw, valve = self._network()
+        nw.solve("design")
+        exported = nw.export()
+        char = exported["Component"]["Valve"]["valve"]["dp_char"]["char_func"]
+        assert char["x_unit"] == "kg/s"
+        assert char["y_unit"] == "Pa"
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            imported = Network.from_dict(exported)
+            imported.solve("design")
+        imported_valve = imported.get_comp("valve")
+        assert imported_valve.dp_char.evaluate(1.0) == pytest.approx(
+            valve.dp_char.evaluate(1.0)
+        )
+
+    def test_undeclared_data_export_in_network_units(self):
+        nw, valve = self._network()
+        valve.set_attr(dp_char=CharLine([0, 3600], [-1, -2]))
+        with pytest.warns(UserWarning):
+            nw.solve("design")
+        char = nw.export()["Component"]["Valve"]["valve"]["dp_char"]["char_func"]
+        assert char["x_unit"] == "kg/h"
+        assert char["y_unit"] == "bar"
+        line = characteristic_from_dict(char)
+        assert line.x_unit == "kg/h"
 
 
 class TestDeprecatedNames:

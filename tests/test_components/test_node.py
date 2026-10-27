@@ -168,7 +168,7 @@ def test_node_with_set_pressure_at_outlet(node_network):
 
 def test_splitter_outlet_order_beyond_nine_ports():
     nw = Network()
-    nw.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", enthalpy="kJ/kg")
     num_out = 11
     sp = Splitter("splitter", num_out=num_out)
 
@@ -190,7 +190,7 @@ def test_splitter_outlet_order_beyond_nine_ports():
 
 def test_node_closing_recirculation_loop():
     nw = Network()
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
     node = Node("node")
     heater = SimpleHeatExchanger("heater")
     c1 = Connection(Source("source"), "out1", node, "in1", label="1")

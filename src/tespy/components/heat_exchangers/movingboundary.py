@@ -86,9 +86,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Cold to hot side convective heat transfer coefficient ratio; with the
-        deprecated :code:`UA_cecchinato` group it is the secondary to
-        refrigerant side ratio instead. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio. Quantity:
+        :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -97,10 +96,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Cold to hot side heat transfer area ratio; with the deprecated
-        :code:`UA_cecchinato` group it is the secondary to refrigerant side
-        ratio instead, this will change to cold to hot side in version 0.12.
-        Quantity: :code:`ratio`.
+        Cold to hot side heat transfer area ratio. Quantity: :code:`ratio`.
 
     area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
@@ -143,21 +139,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     eff_max : float, dict
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
-
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`. Result only - calculated after each
-        solve.
-
-    kA_char : OptionalEquation
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
 
     label : str
         The label of the component.
@@ -225,19 +206,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     re_exp_hot : float, dict
         Reynolds exponent for UA modification based on hot side mass flow.
 
-    re_exp_r : float, dict
-        Deprecated - Reynolds exponent for refrigerant side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        refrigerant flows on.
-
-    re_exp_sf : float, dict
-        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        secondary fluid flows on.
-
-    refrigerant_index : int
-        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
-
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
@@ -246,11 +214,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     T_hot_sections : numpy.ndarray
         Hot side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
-        solve.
-
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`. Result only - calculated after each
         solve.
 
     td_pinch : float, dict
@@ -278,19 +241,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
     UA_cecchinato : ParameterGroup
-        Deprecated - equation for UA modification in offdesign using
-        refrigerant/secondary-fluid Reynolds exponents; use
-        :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
-        instead. Elements: :code:`re_exp_r`, :code:`re_exp_sf`,
+        Equation for UA modification in offdesign using hot and cold side
+        Reynolds exponents. Elements: :code:`re_exp_hot`, :code:`re_exp_cold`,
         :code:`alpha_ratio`, :code:`area_ratio`.
-        Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
-
-    UA_cecchinato_hc : ParameterGroup
-        Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in version 0.12
-        :code:`UA_cecchinato` will adopt the hot/cold convention of
-        :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
-        :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
     UA_char : OptionalEquation
@@ -304,18 +257,10 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
-        each solve.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
-        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -406,14 +351,11 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> delta_T_between_sections.round(2).tolist()
     [9.88, 14.8, 5.0, 19.88]
 
-    Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
-    `UA` value takes into account the heat transfer per section and calculates
-    the heat transfer coefficient as the sum of all sections, while the `kA`
-    value only takes into account the inlet and outlet temperatures and the
-    total heat transfer.
+    Finally, in contrast to the baseclass :code:`HeatExchanger`, the `UA`
+    value takes into account the heat transfer per section and calculates the
+    heat transfer coefficient as the sum of all sections instead of using the
+    inlet and outlet temperatures and the total heat transfer only.
 
-    >>> round(cd.kA.val)
-    173307
     >>> round(cd.UA.val)
     273449
 
@@ -426,14 +368,14 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     - cold to hot side area ratio (:code:`area_ratio`)
     - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
     ...     re_exp_hot=0.8,
     ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato_hc"]
+    ...     offdesign=["UA_cecchinato"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 

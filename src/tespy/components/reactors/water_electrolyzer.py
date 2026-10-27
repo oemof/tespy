@@ -115,10 +115,6 @@ class WaterElectrolyzer(Component):
         Heat output of the cooling port. Quantity: :code:`heat`.
         Equation: :py:meth:`heat_func <tespy.components.reactors.water_electrolyzer.WaterElectrolyzer.heat_func>`.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Cooling port geometry-independent friction coefficient zeta/D^4 for
         pressure loss calculation.
@@ -181,7 +177,7 @@ class WaterElectrolyzer(Component):
     ... offdesign=['eta_char', 'zeta_d4'])
     >>> comp.set_attr(eta_s=0.85)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(el.e0 / el.P.val * el_cmp.m.val_SI, 1)
     0.8
     >>> P_design = el.P.val
@@ -203,7 +199,6 @@ class WaterElectrolyzer(Component):
     def _calc_e(self):
         return self.P.val_SI / self.outl[2].m.val_SI
 
-    _parameter_aliases = {'zeta': 'zeta_d4'}
     _is_wrapper_branch_source = True
 
     def _calc_eta(self):
@@ -259,11 +254,6 @@ class WaterElectrolyzer(Component):
                 func=self.zeta_d4_func,
                 func_params={'zeta': 'zeta_d4'},
                 description="cooling port geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4
-            ),
-            'zeta': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
             'e': ComponentParameter(

@@ -327,7 +327,7 @@ class TestCyclicMerging:
 
 def test_inlet_order_beyond_nine_ports():
     nw = Network()
-    nw.units.set_defaults(pressure="bar", enthalpy="kJ/kg")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", enthalpy="kJ/kg")
     num_in = 11
     me = Merge("merge", num_in=num_in)
 

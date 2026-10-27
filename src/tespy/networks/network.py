@@ -158,17 +158,13 @@ class Network:
     >>> nw.print_results()
     """
 
-    def __init__(self, iterinfo=True, units=None, m_range=None, p_range=None, h_range=None, **kwargs):
+    def __init__(self, iterinfo=True, units=None, m_range=None, p_range=None, h_range=None):
         self._set_defaults()
         self.iterinfo = iterinfo
 
         if units is not None:
             self.units = units
 
-        self.set_attr(**kwargs)
-
-        # because the units can still be specified via the deprecated API of
-        # set_attr, ranges need to be updated after set_attr!
         if m_range is not None:
             self.m_range = m_range
         if p_range is not None:
@@ -248,68 +244,6 @@ class Network:
         self.p_range = self.p_range_SI
         self.h_range = self.h_range_SI
 
-    def set_attr(self, **kwargs):
-        r"""
-        Set, resets or unsets attributes of a network.
-
-        Parameters
-        ----------
-        iterinfo : boolean
-            Print convergence progress to console.
-
-        h_range : list
-            List with minimum and maximum values for enthalpy value range.
-
-        m_range : list
-            List with minimum and maximum values for mass flow value range.
-
-        p_range : list
-            List with minimum and maximum values for pressure value range.
-        """
-        if kwargs:
-            msg = (
-                "The set_attr method of Network is deprecated and will be "
-                "removed in version 0.12. Please explicitly call "
-                "the respective set methods for specification of value "
-                "ranges, units or iterinfo."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.units = kwargs.get('units', self.units)
-        for key in kwargs:
-            if "_unit" in key:
-                msg = (
-                    f"Passing '{key}' to Network.set_attr is no longer "
-                    "supported. Use Network.units.set_defaults() instead."
-                )
-                raise TypeError(msg)
-
-        for prop in ['m', 'p', 'h']:
-            key = f"{prop}_range"
-            if key in kwargs:
-                msg = (
-                    "Setting variable ranges through the Network.set_attr "
-                    f"is deprecated and will stop working in version 0.12. "
-                    f"Please use Network.{key} = [min, max] instead."
-                )
-                warnings.warn(msg, FutureWarning)
-                logger.warning(msg)
-                if key == "m_range":
-                    self.m_range = kwargs[key]
-                elif key == "p_range":
-                    self.p_range = kwargs[key]
-                else:
-                    self.h_range = kwargs[key]
-
-        self.iterinfo = kwargs.get('iterinfo', self.iterinfo)
-        if "iterinfo" in kwargs:
-            msg = (
-                "Setting iterinfo through the Network.set_attr is deprecated "
-                "and will stop working in version 0.12. Please directly "
-                "specify Network.iterinfo=True/False instead."
-            )
-            warnings.warn(msg, FutureWarning)
-            logger.warning(msg)
-
     def _set_iterinfo(self, value):
         if not isinstance(value, bool):
             msg = 'Network parameter iterinfo must be True or False!'
@@ -382,33 +316,6 @@ class Network:
     p_range = property(_get_p_range, _set_p_range)
     h_range = property(_get_h_range, _set_h_range)
 
-    def get_attr(self, key):
-        r"""
-        Get the value of a network attribute.
-
-        Parameters
-        ----------
-        key : str
-            The attribute you want to retrieve.
-
-        Returns
-        -------
-        out :
-            Specified attribute.
-        """
-        msg = (
-            "The Network.get_attr method is deprecated and will be removed "
-            "in version 0.12."
-        )
-        warnings.warn(msg, FutureWarning)
-        logger.warning(msg)
-
-        if key in self.__dict__:
-            return self.__dict__[key]
-        else:
-            msg = f"Network has no attribute '{key}'."
-            logger.error(msg)
-            raise KeyError(msg)
 
     def add_subsystems(self, *args):
         r"""
@@ -462,14 +369,14 @@ class Network:
         Returns
         -------
         tespy.components.subsystem.Subsystem
-            Subsystem objectt with specified label, None if no Subsystem of
-            the network has this label.
+            Subsystem object with specified label.
         """
         try:
             return self.subsystems[label]
         except KeyError:
-            logger.warning(f"Subsystem with label {label} not found.")
-            return None
+            msg = f"Subsystem with label {label} not found."
+            logger.error(msg)
+            raise KeyError(msg)
 
     def get_conn(self, label):
         r"""
@@ -483,19 +390,14 @@ class Network:
         Returns
         -------
         c : tespy.connections.connection.Connection
-            Connection object with specified label, None if no Connection of
-            the network has this label.
+            Connection object with specified label.
         """
         try:
             return self.conns.loc[label, 'object']
         except KeyError:
-            warnings.warn(
-                f"Connection with label {label} not found. Returning None is "
-                "deprecated and will raise a KeyError in version 0.12.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            return None
+            msg = f"Connection with label {label} not found."
+            logger.error(msg)
+            raise KeyError(msg)
 
     def get_comp(self, label):
         r"""
@@ -509,19 +411,14 @@ class Network:
         Returns
         -------
         c : tespy.components.component.Component
-            Component object with specified label, None if no Component of
-            the network has this label.
+            Component object with specified label.
         """
         try:
             return self.comps.loc[label, 'object']
         except KeyError:
-            warnings.warn(
-                f"Component with label {label} not found. Returning None is "
-                "deprecated and will raise a KeyError in version 0.12.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            return None
+            msg = f"Component with label {label} not found."
+            logger.error(msg)
+            raise KeyError(msg)
 
     def add_conns(self, *args):
         r"""
@@ -580,12 +477,12 @@ class Network:
         """
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
-            self.conns.drop(c.label, inplace=True)
+            self.conns = self.conns.drop(c.label)
             _network_ownership.pop(c, None)
             if c.__class__.__name__ in self._results:
-                self._results[c.__class__.__name__].drop(
-                    c.label, inplace=True, errors="ignore"
-                )
+                self._results[c.__class__.__name__] = self._results[
+                    c.__class__.__name__
+                ].drop(c.label, errors="ignore")
             msg = f'Deleted connection {c.label} from network.'
             logger.debug(msg)
 
@@ -649,12 +546,12 @@ class Network:
                 comp not in self.conns["source"].values and
                 comp not in self.conns["target"].values
             ):
-                self.comps.drop(comp.label, inplace=True)
+                self.comps = self.comps.drop(comp.label)
                 _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
                 if comp_type in self._results:
-                    self._results[comp_type].drop(
-                        comp.label, inplace=True, errors="ignore"
+                    self._results[comp_type] = self._results[comp_type].drop(
+                        comp.label, errors="ignore"
                     )
                 msg = f"Deleted component {comp.label} from network."
                 logger.debug(msg)
@@ -721,19 +618,14 @@ class Network:
         Returns
         -------
         c : tespy.tools.helpers.UserDefinedEquation
-            UserDefinedEquation object with specified label, None if no
-            UserDefinedEquation of the network has this label.
+            UserDefinedEquation object with specified label.
         """
         try:
             return self.user_defined_eq[label]
         except KeyError:
-            warnings.warn(
-                f"UserDefinedEquation with label {label} not found. Returning "
-                "None is deprecated and will raise a KeyError in version 0.12.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            return None
+            msg = f"UserDefinedEquation with label {label} not found."
+            logger.error(msg)
+            raise KeyError(msg)
 
     def add_udv(self, *args):
         r"""
@@ -831,38 +723,6 @@ class Network:
             )
             raise hlp.TESPyNetworkError(msg)
         return self._problem
-
-    _PROBLEM_ATTRIBUTES = frozenset({
-        "variables_dict", "variable_counter", "residual", "jacobian",
-        "increment", "increment_filter", "lin_dep", "residual_history",
-        "singularity_msg", "iter", "max_iter", "min_iter", "use_cuda",
-        "robust_relax", "oscillation_damping",
-        "num_comp_eq", "num_conn_eq", "num_ude_eq",
-        "get_sorted_residual_index",
-    })
-
-    def __getattr__(self, name):
-        if (
-                name in Network._PROBLEM_ATTRIBUTES
-                and self.__dict__.get("_problem") is not None
-            ):
-            msg = (
-                f"Accessing Network.{name} is deprecated and will stop "
-                f"working in version 0.12, use Network.problem.{name} "
-                "instead."
-            )
-            if name == "residual_history":
-                msg += (
-                    " Note that its values hold the scaled maximum "
-                    "residual norm of every iteration since version "
-                    "0.11, previous versions stored the euclidean norm "
-                    "of the unscaled residual vector."
-                )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            return getattr(self._problem, name)
-        raise AttributeError(
-            f"'{type(self).__name__}' object has no attribute '{name}'"
-        )
 
     def check_topology(self):
         r"""Check if components are connected properly within the network."""
@@ -2518,12 +2378,12 @@ class Network:
         init_path : str | Path | dict
             Path to a previously saved network state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         design_path : str | Path | dict
             Path to the saved design-case state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         max_iter : int
             Maximum number of iterations before calculation stops, default: 50.
@@ -2636,12 +2496,12 @@ class Network:
         init_path : str | Path | dict
             Path to a previously saved network state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         design_path : str | Path | dict
             Path to the saved design-case state (e.g.
             :code:`nw.save('myplant/test.json')`), or the dict returned by
-            :code:`nw.save(as_dict=True)`.
+            :code:`nw.save()`.
 
         init_previous : boolean
             Initialise the calculation with values from the previous
@@ -2928,7 +2788,7 @@ class Network:
                             self._color_component_prints, axis=1,
                             args=(col, colored, coloring))
 
-                    df.dropna(how='all', inplace=True)
+                    df = df.dropna(how="all")
 
                     if len(df) > 0:
                         # printout with tabulate
@@ -2959,7 +2819,7 @@ class Network:
             df = df.astype(str)
             for c in df.index:
                 if not self.get_conn(c).printout:
-                    df.drop([c], axis=0, inplace=True)
+                    df = df.drop([c], axis=0)
 
                 elif colored:
                     conn = self.get_conn(c)
@@ -3210,7 +3070,7 @@ class Network:
         >>> e4.set_attr(E=1)
         >>> nw.solve('design')
         >>> nw.assert_convergence()
-        >>> design_state = nw.save(as_dict=True)
+        >>> design_state = nw.save()
         >>> _ = nw.export('exported_nwk.json')
         >>> mass_flow = round(nw.get_conn('c01').m.val_SI, 1)
         >>> compressor.set_attr(igva='var')
@@ -3289,32 +3149,35 @@ class Network:
 
         return export
 
-    def save(self, json_file_path: str | Path | None = None, as_dict: bool = False) -> None | dict | str:
+    def save(self, json_file_path: str | Path | None = None, as_dict: bool | None = None) -> None | dict:
         r"""
         Dump the results to a json style output.
 
         Parameters
         ----------
         json_file_path : str | Path | None
-            Filename to dump results into. If :code:`None`, the state is returned
-            in-memory (as dict when :code:`as_dict=True`, otherwise as JSON string).
+            Filename to dump results into. If :code:`None`, the state is
+            returned as dict that can be passed directly as
+            :code:`design_path` or :code:`init_path` in a subsequent
+            :meth:`solve` call.
         as_dict : bool
-            If :code:`True` and :code:`json_file_path` is :code:`None`, return the state as
-            a dict that can be passed directly as :code:`design_path` or
-            :code:`init_path` in a subsequent :meth:`solve` call. Default
-            :code:`False`; the :code:`False` behaviour (returning a JSON string) is
-            deprecated and will be removed in version 0.12.
+            Deprecated and without effect, the state is always returned as
+            dict when no file path is given.
 
         Returns
         -------
         None
             If a file path is provided, results are saved to file.
         dict
-            If :code:`json_file_path` is :code:`None` and :code:`as_dict=True`.
-        str
-            If :code:`json_file_path` is :code:`None` and :code:`as_dict=False`
-            (deprecated).
+            If :code:`json_file_path` is :code:`None`.
         """
+        if as_dict is not None:
+            warnings.warn(
+                "The parameter as_dict of Network.save has no effect and will "
+                "be removed in version 0.13, the state is returned as dict "
+                "without a file path.",
+                FutureWarning, stacklevel=2
+            )
         dump = {}
 
         # save relevant state information only
@@ -3327,16 +3190,7 @@ class Network:
         }
 
         if json_file_path is None:
-            if as_dict:
-                return dump
-            msg = (
-                "Calling Network.save() without a file path returns a JSON "
-                "string, which is deprecated and will be removed in a future "
-                "release. Use Network.save(as_dict=True) to get a dict that "
-                "can be passed directly as design_path or init_path."
-            )
-            warnings.warn(msg, FutureWarning)
-            return json.dumps(dump, indent=2)
+            return dump
 
         os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
         with open(json_file_path, "w") as f:
@@ -3567,7 +3421,10 @@ class Network:
         return components
 
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
+# files of earlier format versions carry parameter names that do not exist
+# anymore, tespy 0.11.4 writes the current names and migrates them
+_MIGRATION_VERSION = "0.11.4"
 
 _FILE_KINDS = {
     "network": (
@@ -3674,13 +3531,13 @@ def _check_meta(data, expected_kind):
         if kind == expected_kind:
             msg = (
                 "The data do not contain a 'meta' block, so they were "
-                "probably created with a tespy version older than 0.11.3. "
-                "Their compatibility cannot be checked. Support for data "
-                "without a 'meta' block will be removed in a future release, "
-                "please save or export them again."
+                "created with a tespy version older than 0.11.3 and hold "
+                "parameter names this version does not know anymore. Load "
+                f"and save them again with tespy {_MIGRATION_VERSION} to "
+                "migrate them."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            return
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
     else:
         kind = meta.get("kind")
         format_version = meta.get("format_version")
@@ -3692,6 +3549,16 @@ def _check_meta(data, expected_kind):
                 f"created with tespy {meta.get('tespy_version')}, but this "
                 f"tespy version only supports format versions up to "
                 f"{FORMAT_VERSION}. Please update tespy."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        if kind == expected_kind and format_version < FORMAT_VERSION:
+            msg = (
+                f"The data have the format version {format_version} and were "
+                f"created with tespy {meta.get('tespy_version')}. They hold "
+                "parameter names this version does not know anymore. Load "
+                f"and save them again with tespy {_MIGRATION_VERSION} to "
+                "migrate them."
             )
             logger.error(msg)
             raise hlp.TESPyNetworkError(msg)

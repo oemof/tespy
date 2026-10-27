@@ -39,8 +39,6 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     - Fluid inlets: in1
     - Fluid outlets: out1
-    - Power inlets: heat
-    - Power outlets: heat
     - Heat inlets: heat
     - Heat outlets: heat
 
@@ -165,10 +163,6 @@ class ParabolicTrough(SimpleHeatExchanger):
     Tamb : float, dict
         Ambient temperature. Quantity: :code:`temperature`.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
         calculation.
@@ -249,8 +243,7 @@ class ParabolicTrough(SimpleHeatExchanger):
 
     def get_parameters(self):
         data = super().get_parameters()
-        for k in ["UA_group", "UA_char_group", "UA", "UA_char",
-                   "kA_group", "kA_char_group", "kA", "kA_char", "lmtd"]:
+        for k in ["UA_group", "UA_char_group", "UA", "UA_char", "lmtd"]:
             data.pop(k, None)
 
         data.update({

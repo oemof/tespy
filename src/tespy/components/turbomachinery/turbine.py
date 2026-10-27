@@ -142,7 +142,7 @@ class Turbine(Turbomachine):
     >>> inc.set_attr(fluid={'water': 1}, m=36, T=550, p=110, design=['p'])
     >>> outg.set_attr(p=0.5)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(t.P.val, 0)
     -10452574.0
     >>> round(outg.x.val, 3)

@@ -18,7 +18,7 @@ from tespy.components.basics.subsystem_interface import SubsystemInterface
 from tespy.components.component import _topological_sort
 from tespy.connections import Connection
 from tespy.networks import Network
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
 
 # ---------------------------------------------------------------------------
 # Minimal stub for unit tests – only needs the calc_deps attribute
@@ -65,17 +65,14 @@ class _FakeComponent(SubsystemInterface):
 
     def get_parameters(self):
         params = super().get_parameters()
-        params["base"] = dc_cp(
-            is_result=True,
+        params["base"] = ComponentParameter(
             calc=lambda: 3.0,
         )
-        params["derived"] = dc_cp(
-            is_result=True,
+        params["derived"] = ComponentParameter(
             calc=lambda: self.base.val_SI * 2.0,
             calc_deps=["base"],
         )
-        params["leaf"] = dc_cp(
-            is_result=True,
+        params["leaf"] = ComponentParameter(
             calc=lambda: self.derived.val_SI + self.base.val_SI,
             calc_deps=["base", "derived"],
         )

@@ -10,6 +10,7 @@ tests/test_components/test_heat_exchangers.py
 SPDX-License-Identifier: MIT
 """
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -68,12 +69,12 @@ def _calc_ttd_u_condenser(c1, c4):
     return c1.calc_T_sat() - c4.T.val_SI
 
 
-def _calc_td_log(ttd_u, ttd_l):
+def _calc_lmtd(ttd_u, ttd_l):
     return (ttd_l - ttd_u) / math.log(ttd_l / ttd_u)
 
 
-def _calc_UA(Q, td_log):
-    return - Q / td_log
+def _calc_UA(Q, lmtd):
+    return - Q / lmtd
 
 
 def _calc_eff_hot(c1, c2, c3):
@@ -160,8 +161,8 @@ class TestHeatExchanger:
         assert approx(instance.dp1.val_SI) == _calc_dp(c1, c2)
         assert approx(instance.dp2.val_SI) == _calc_dp(c3, c4)
 
-        assert approx(instance.zeta1.val) == _calc_zeta(c1, c2)
-        assert approx(instance.zeta2.val) == _calc_zeta(c3, c4)
+        assert approx(instance.zeta1_d4.val) == _calc_zeta(c1, c2)
+        assert approx(instance.zeta2_d4.val) == _calc_zeta(c3, c4)
 
         assert approx(instance.ttd_l.val) == _calc_ttd_l(c2, c3)
         # this is not really beautiful
@@ -172,8 +173,8 @@ class TestHeatExchanger:
 
         assert instance.ttd_min.val == min(instance.ttd_l.val, instance.ttd_u.val)
 
-        assert approx(instance.td_log.val) == _calc_td_log(instance.ttd_u.val, instance.ttd_l.val)
-        assert approx(instance.UA.val) == _calc_UA(instance.Q.val, instance.td_log.val)
+        assert approx(instance.lmtd.val) == _calc_lmtd(instance.ttd_u.val, instance.ttd_l.val)
+        assert approx(instance.UA.val) == _calc_UA(instance.Q.val, instance.lmtd.val)
 
         assert approx(instance.eff_hot.val) == _calc_eff_hot(c1, c2, c3)
         assert approx(instance.eff_cold.val) == _calc_eff_cold(c3, c4, c1)
@@ -525,7 +526,7 @@ class TestHeatExchangers:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         Q_design = instance.Q.val
 
         # test specified UA value
@@ -548,14 +549,14 @@ class TestHeatExchangers:
 
         # check heat transfer
         Q = self.c1.m.val_SI * (self.c2.h.val_SI - self.c1.h.val_SI)
-        td_log = (
+        lmtd = (
             (self.c2.T.val - self.c3.T.val - self.c1.T.val + self.c4.T.val)
             / math.log(
                 (self.c2.T.val - self.c3.T.val)
                 / (self.c1.T.val - self.c4.T.val)
             )
         )
-        UA = round(-Q / td_log, 0)
+        UA = round(-Q / lmtd, 0)
         msg = (
             f"Value of heat transfer must be {round(Q, 0)}, is "
             f"{round(instance.Q.val, 0)}."
@@ -757,7 +758,7 @@ class TestHeatExchangers:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         Q_design = instance.Q.val
 
         # test specified UA value
@@ -830,7 +831,7 @@ class TestHeatExchangers:
         self.nw.assert_convergence()
         ttd_l = round(instance.ttd_l.val, 3)
         ttd_u = round(instance.ttd_u.val, 3)
-        td_log = round(instance.td_log.val, 3)
+        lmtd = round(instance.lmtd.val, 3)
         msg = (
             "Value of upper and lower terminal temperature differences must be "
             f"identical, but they are not: ttd_u={ttd_u}, ttd_l={ttd_l}."
@@ -839,10 +840,10 @@ class TestHeatExchangers:
 
         msg = (
             "Value of logarithmic and lower terminal temperature differences "
-            f"must be identical, but they are not: td_log={td_log}, "
+            f"must be identical, but they are not: lmtd={lmtd}, "
             f"ttd_l={ttd_l}."
         )
-        assert instance.td_log.val == instance.ttd_l.val, msg
+        assert instance.lmtd.val == instance.ttd_l.val, msg
 
     def test_Condenser_ttd_zero(self):
 
@@ -889,9 +890,9 @@ class TestHeatExchangers:
         assert approx(instance.pr1.val_SI) == _calc_pr(self.c1, self.c2)
         assert approx(instance.pr2.val_SI) == _calc_pr(self.c3, self.c4)
 
-        assert approx(instance.td_log.val_SI) == _calc_td_log(ttd_u, ttd_l)
+        assert approx(instance.lmtd.val_SI) == _calc_lmtd(ttd_u, ttd_l)
         assert approx(instance.UA.val) == _calc_UA(
-            instance.Q.val, instance.td_log.val
+            instance.Q.val, instance.lmtd.val
         )
 
     def test_ParallelFlowHeatExchanger_sections_alignment(self):
@@ -921,7 +922,7 @@ class TestHeatExchangers:
         ttd_l = self.c1.T.val_SI - self.c3.T.val_SI
         assert approx(
             instance.lmtd_per_section.val_SI[0]
-        ) == _calc_td_log(ttd_u, ttd_l)
+        ) == _calc_lmtd(ttd_u, ttd_l)
 
     def test_ParallelFlowHeatExchanger_offdesign(self):
         instance = ParallelFlowHeatExchanger("heat exchanger")
@@ -933,7 +934,7 @@ class TestHeatExchangers:
         instance.set_attr(design=["ttd_u"], offdesign=["UA"])
 
         self.nw.solve("design")
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         self.nw.solve("offdesign", design_path=design_state)
         assert approx(instance.ttd_u.val) == 15
         self.c1.set_attr(m=1.5)
@@ -966,9 +967,11 @@ class TestHeatExchangers:
 
         # the sum of heat transfer of all sections must be equal to Q
         assert approx(sum(instance.Q_per_section.val_SI)) == -instance.Q.val_SI
-        # UA calculated over sections must be larger than kA
-        # this tests stays!
-        assert instance.UA.val > instance.kA.val
+        # UA calculated over sections must be larger than the value from the
+        # terminal temperature differences, this tests stays!
+        assert instance.UA.val_SI > -instance.Q.val_SI / _calc_lmtd(
+            instance.ttd_u.val_SI, instance.ttd_l.val_SI
+        )
         # minimum temperature difference at section borders = pinch
         assert approx(
             min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
@@ -1028,7 +1031,7 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA"])
 
@@ -1098,9 +1101,11 @@ class TestHeatExchangers:
 
         # the sum of heat transfer of all sections must be equal to Q
         assert approx(sum(instance.Q_per_section.val_SI)) == -instance.Q.val_SI
-        # UA calculated over sections must be larger than kA
-        # this tests stays!
-        assert instance.UA.val > instance.kA.val
+        # UA calculated over sections must be larger than the value from the
+        # terminal temperature differences, this tests stays!
+        assert instance.UA.val_SI > -instance.Q.val_SI / _calc_lmtd(
+            instance.ttd_u.val_SI, instance.ttd_l.val_SI
+        )
         # minimum temperature difference at section borders = pinch
         assert approx(
             min(instance.T_hot_sections.val_SI - instance.T_cold_sections.val_SI)
@@ -1186,7 +1191,7 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA"])
 
@@ -1222,7 +1227,7 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         instance.set_attr(design=["td_pinch"], offdesign=["UA_char"])
 
@@ -1263,19 +1268,15 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            instance.set_attr(
-                area_ratio=21.64,
-                alpha_ratio=8.4e-3,
-                re_exp_r=0.8,
-                re_exp_sf=0.55,
-                refrigerant_index=0
-            )
-        instance.set_attr(offdesign=["UA_cecchinato"])
+        instance.set_attr(
+            area_ratio=21.64,
+            alpha_ratio=8.4e-3,
+            re_exp_hot=0.8,
+            re_exp_cold=0.55,
+            offdesign=["UA_cecchinato"]
+        )
         self.c1.set_attr(design=["T"])
 
         self.nw.solve("offdesign", design_path=design_state)
@@ -1290,13 +1291,13 @@ class TestHeatExchangers:
         instance.set_attr(Q=-35)
         self.nw.solve("offdesign", design_path=design_state)
 
-        m_ratio_sf = self.c3.m.val_SI / self.c3.m.design
-        m_ratio_r = self.c1.m.val_SI / self.c1.m.design
+        m_ratio_cold = self.c3.m.val_SI / self.c3.m.design
+        m_ratio_hot = self.c1.m.val_SI / self.c1.m.design
         fUA = (
             (1 + 8.4e-3 * 21.64)
             / (
-                m_ratio_sf ** -0.55
-                + 8.4e-3 * 21.64 * m_ratio_r ** -0.8
+                m_ratio_cold ** -0.55
+                + 8.4e-3 * 21.64 * m_ratio_hot ** -0.8
             )
         )
         assert approx(instance.UA.val_SI) == instance.UA.design * fUA
@@ -1318,14 +1319,14 @@ class TestHeatExchangers:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         instance.set_attr(
             area_ratio=21.64,
             alpha_ratio=8.4e-3,
             re_exp_hot=0.8,
             re_exp_cold=0.55,
-            offdesign=["UA_cecchinato_hc"],
+            offdesign=["UA_cecchinato"],
         )
         self.c1.set_attr(design=["T"])
 
@@ -1366,19 +1367,16 @@ class TestHeatExchangers:
         self.nw.solve("design")
 
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            instance.set_attr(
-                area_ratio=1,
-                alpha_ratio=1.013,
-                re_exp_r=0.5,
-                re_exp_sf=0.5,
-                refrigerant_index=1
-            )
-        instance.set_attr(offdesign=["UA_cecchinato"])
+        # the refrigerant is on the cold side, the ratios are cold to hot
+        instance.set_attr(
+            area_ratio=1,
+            alpha_ratio=1 / 1.013,
+            re_exp_hot=0.5,
+            re_exp_cold=0.5,
+            offdesign=["UA_cecchinato"]
+        )
         self.c2.set_attr(design=["T"])
 
         self.nw.solve("offdesign", design_path=design_state)
@@ -1393,13 +1391,13 @@ class TestHeatExchangers:
         instance.set_attr(Q=-25)
         self.nw.solve("offdesign", design_path=design_state)
 
-        m_ratio_sf = self.c1.m.val_SI / self.c1.m.design
-        m_ratio_r = self.c3.m.val_SI / self.c3.m.design
+        m_ratio_hot = self.c1.m.val_SI / self.c1.m.design
+        m_ratio_cold = self.c3.m.val_SI / self.c3.m.design
         fUA = (
-            (1 + 1.013 * 1)
+            (1 + 1 / 1.013)
             / (
-                m_ratio_sf ** -0.5
-                + 1.013 * 1 * m_ratio_r ** -0.5
+                m_ratio_cold ** -0.5
+                + 1 / 1.013 * m_ratio_hot ** -0.5
             )
         )
         assert approx(instance.UA.val_SI) == instance.UA.design * fUA
@@ -1410,111 +1408,36 @@ class TestHeatExchangers:
 # ---------------------------------------------------------------------------
 
 class TestParameterAliases:
-    """Unit tests for the _parameter_aliases deprecation/renaming feature.
+    """The alias table maps a deprecated name to its successor and the
+    version that removes it, for keyword arguments and for the design and
+    offdesign lists. :code:`UA_cecchinato_hc` is the current alias."""
 
-    The HeatExchanger._parameter_aliases maps, among others:
-        'zeta1' -> 'zeta1_d4'
-        'zeta2' -> 'zeta2_d4'
-        'kA'    -> 'UA'
-    """
+    def test_current_alias_in_offdesign_list(self):
+        hx = SectionedHeatExchanger("heat exchanger")
+        with pytest.warns(FutureWarning, match="UA_cecchinato_hc.*0.13"):
+            hx.set_attr(offdesign=["UA_cecchinato_hc"])
+        assert hx.offdesign == ["UA_cecchinato"]
 
-    @pytest.fixture(autouse=True)
-    def _build_network(self):
-        nw = Network()
-        nw.units.set_defaults(**{
-            "pressure": "bar", "pressure_difference": "bar",
-            "temperature": "degC",
-        })
-        inl1 = Source('inlet 1')
-        outl1 = Sink('outlet 1')
-        inl2 = Source('inlet 2')
-        outl2 = Sink('outlet 2')
-        self.he = HeatExchanger('heat exchanger')
-        c1 = Connection(inl1, 'out1', self.he, 'in1', label='1')
-        c2 = Connection(self.he, 'out1', outl1, 'in1', label='2')
-        c3 = Connection(inl2, 'out1', self.he, 'in2', label='3')
-        c4 = Connection(self.he, 'out2', outl2, 'in1', label='4')
-        nw.add_conns(c1, c2, c3, c4)
-        self.nw = nw
-        self.c1, self.c2, self.c3, self.c4 = c1, c2, c3, c4
+    def test_alias_keyword_sets_successor_with_declared_version(self):
 
-    def _solve_design(self):
-        self.c1.set_attr(T=120, p=1, fluid={'H2O': 1}, m=1)
-        self.c2.set_attr(T=105, p=0.95)
-        self.c3.set_attr(T=40, p=5, fluid={'Ar': 1})
-        self.c4.set_attr(T=90, p=4.9)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
+        class AliasedHeatExchanger(SectionedHeatExchanger):
+            _parameter_aliases = {
+                **SectionedHeatExchanger._parameter_aliases,
+                "pinch": ("td_pinch", "9.9"),
+            }
 
-    def test_set_attr_old_name_raises_future_warning(self):
-        """set_attr with a deprecated name emits FutureWarning."""
-        with pytest.warns(FutureWarning, match="zeta1"):
-            self.he.set_attr(zeta1=500)
+        hx = AliasedHeatExchanger("heat exchanger")
+        with pytest.warns(FutureWarning, match="'pinch'.*version 9.9.*'td_pinch'"):
+            hx.set_attr(pinch=5)
+        assert hx.td_pinch.is_set
+        assert hx.td_pinch.val == 5
+        assert "pinch" not in hx.parameters
+        with pytest.warns(FutureWarning, match="9.9"):
+            hx.set_attr(design=["pinch"])
+        assert hx.design == ["td_pinch"]
 
-    def test_set_attr_old_name_sets_new_parameter(self):
-        """set_attr with 'zeta1' marks 'zeta1_d4' as set with the given value."""
-        with pytest.warns(FutureWarning):
-            self.he.set_attr(zeta1=500)
-        assert self.he.zeta1_d4.val == pytest.approx(500)
-        assert self.he.zeta1_d4.is_set
-
-    def test_set_attr_new_name_does_not_warn(self):
-        """Setting the new canonical name directly does not emit a FutureWarning."""
-        import warnings
+    def test_new_name_does_not_warn(self):
+        hx = SectionedHeatExchanger("heat exchanger")
         with warnings.catch_warnings():
             warnings.simplefilter("error", FutureWarning)
-            self.he.set_attr(zeta1_d4=500)
-        assert self.he.zeta1_d4.val == pytest.approx(500)
-        assert self.he.zeta1_d4.is_set
-
-    def test_offdesign_list_alias_replaced_during_preprocess(self):
-        """Old name in offdesign list is remapped to the new name during solve."""
-        self._solve_design()
-        # set_attr itself does not warn – the alias check for list entries
-        # happens inside _preprocess (i.e. during nw.solve)
-        self.he.set_attr(offdesign=['zeta1'])
-        design_state = self.nw.save(as_dict=True)
-        self.c2.set_attr(p=None)
-        with pytest.warns(FutureWarning, match="zeta1"):
-            self.nw.solve('offdesign', design_path=design_state)
-        self.nw.assert_convergence()
-        assert 'zeta1_d4' in self.he.offdesign
-
-    def test_design_list_alias_replaced_during_preprocess(self):
-        """Old name in design list is remapped to the new name during solve."""
-        # set_attr itself does not warn for list entries
-        self.he.set_attr(design=['zeta1'])
-        with pytest.warns(FutureWarning, match="zeta1"):
-            self._solve_design()
-        assert 'zeta1_d4' in self.he.design
-
-    def test_network_solves_with_old_zeta_name(self):
-        """Network converges when 'zeta1' is used instead of 'zeta1_d4'."""
-        zeta = 500
-        # Establish a baseline solve, then free c2's pressure
-        self._solve_design()
-        self.c2.set_attr(p=None)
-        with pytest.warns(FutureWarning):
-            self.he.set_attr(zeta1=zeta)
-        self.nw.solve('design')
-        self.nw.assert_convergence()
-        assert approx(zeta) == _calc_zeta(self.c1, self.c2)
-
-    def test_set_attr_old_name_does_not_set_old_parameter(self):
-        """Only the new parameter is set and serialized, not the deprecated one."""
-        with pytest.warns(FutureWarning, match="kA"):
-            self.he.set_attr(kA=5000)
-        assert self.he.UA.is_set
-        assert not self.he.kA.is_set
-        data = self.he._serialize()[self.he.label]
-        assert data["UA"]["is_set"]
-        assert not data["kA"]["is_set"]
-
-    def test_subclass_inherits_parent_aliases(self):
-        """Aliases of the parent class remain active on subclasses defining own aliases."""
-        he = SectionedHeatExchanger("sectioned heat exchanger")
-        with pytest.warns(FutureWarning, match="kA"):
-            he.set_attr(kA=5000)
-        assert he.UA.is_set
-        assert he.UA.val == pytest.approx(5000)
-        assert not he.kA.is_set
+            hx.set_attr(offdesign=["UA_cecchinato"], td_pinch=5)

@@ -101,9 +101,8 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Cold to hot side convective heat transfer coefficient ratio; with the
-        deprecated :code:`UA_cecchinato` group it is the secondary to
-        refrigerant side ratio instead. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio. Quantity:
+        :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -112,10 +111,7 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Cold to hot side heat transfer area ratio; with the deprecated
-        :code:`UA_cecchinato` group it is the secondary to refrigerant side
-        ratio instead, this will change to cold to hot side in version 0.12.
-        Quantity: :code:`ratio`.
+        Cold to hot side heat transfer area ratio. Quantity: :code:`ratio`.
 
     area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
@@ -158,21 +154,6 @@ class SectionedHeatExchanger(HeatExchanger):
     eff_max : float, dict
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
-
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`. Result only - calculated after each
-        solve.
-
-    kA_char : OptionalEquation
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
 
     label : str
         The label of the component.
@@ -243,19 +224,6 @@ class SectionedHeatExchanger(HeatExchanger):
     re_exp_hot : float, dict
         Reynolds exponent for UA modification based on hot side mass flow.
 
-    re_exp_r : float, dict
-        Deprecated - Reynolds exponent for refrigerant side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        refrigerant flows on.
-
-    re_exp_sf : float, dict
-        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        secondary fluid flows on.
-
-    refrigerant_index : int
-        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
-
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
@@ -264,11 +232,6 @@ class SectionedHeatExchanger(HeatExchanger):
     T_hot_sections : numpy.ndarray
         Hot side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
-        solve.
-
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`. Result only - calculated after each
         solve.
 
     td_pinch : float, dict
@@ -296,19 +259,9 @@ class SectionedHeatExchanger(HeatExchanger):
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
     UA_cecchinato : ParameterGroup
-        Deprecated - equation for UA modification in offdesign using
-        refrigerant/secondary-fluid Reynolds exponents; use
-        :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
-        instead. Elements: :code:`re_exp_r`, :code:`re_exp_sf`,
+        Equation for UA modification in offdesign using hot and cold side
+        Reynolds exponents. Elements: :code:`re_exp_hot`, :code:`re_exp_cold`,
         :code:`alpha_ratio`, :code:`area_ratio`.
-        Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
-
-    UA_cecchinato_hc : ParameterGroup
-        Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in version 0.12
-        :code:`UA_cecchinato` will adopt the hot/cold convention of
-        :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
-        :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
     UA_char : OptionalEquation
@@ -322,18 +275,10 @@ class SectionedHeatExchanger(HeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
-        each solve.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
-        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -427,14 +372,11 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> delta_T_between_sections[:6].round(2).tolist()
     [9.88, 14.8, 14.68, 14.48, 14.28, 14.08]
 
-    Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
-    `UA` value takes into account the heat transfer per section and calculates
-    the heat transfer coefficient as the sum of all sections, while the `kA`
-    value only takes into account the inlet and outlet temperatures and the
-    total heat transfer.
+    Finally, in contrast to the baseclass :code:`HeatExchanger`, the `UA`
+    value takes into account the heat transfer per section and calculates the
+    heat transfer coefficient as the sum of all sections instead of using the
+    inlet and outlet temperatures and the total heat transfer only.
 
-    >>> round(cd.kA.val)
-    173307
     >>> round(cd.UA.val)
     273456
 
@@ -447,14 +389,14 @@ class SectionedHeatExchanger(HeatExchanger):
     - cold to hot side area ratio (:code:`area_ratio`)
     - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
     ...     re_exp_hot=0.8,
     ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato_hc"]
+    ...     offdesign=["UA_cecchinato"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 
@@ -564,7 +506,7 @@ class SectionedHeatExchanger(HeatExchanger):
     Solve the design point and save results:
 
     >>> nw.solve("design")
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
 
     After design computation, the CO2 outlet state is:
 
@@ -629,43 +571,7 @@ class SectionedHeatExchanger(HeatExchanger):
     exponents, area ratio and alpha ratio of the involved fluids.
     """
 
-    _parameter_aliases = {
-        'kA_char': 'UA_char',
-        'kA_char1': 'UA_char1',
-        'kA_char2': 'UA_char2',
-        'zeta1': 'zeta1_d4',
-        'zeta2': 'zeta2_d4',
-    }
-
-    def set_attr(self, **kwargs):
-        for old, msg in [
-            (
-                'refrigerant_index',
-                f"The parameter 'refrigerant_index' of component {self.label!r} is "
-                "deprecated. Use 'UA_cecchinato_hc' with 're_exp_hot' and 're_exp_cold' "
-                "instead. In version 0.12 'UA_cecchinato' will adopt the "
-                "hot/cold convention of 'UA_cecchinato_hc'."
-            ),
-            (
-                're_exp_r',
-                f"The parameter 're_exp_r' of component {self.label!r} is deprecated. "
-                "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the refrigerant flows on. In version 0.12 "
-                "'UA_cecchinato' will adopt the hot/cold convention of "
-                "'UA_cecchinato_hc'."
-            ),
-            (
-                're_exp_sf',
-                f"The parameter 're_exp_sf' of component {self.label!r} is deprecated. "
-                "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the secondary fluid flows on. In version "
-                "0.12 'UA_cecchinato' will adopt the hot/cold convention of "
-                "'UA_cecchinato_hc'."
-            ),
-        ]:
-            if old in kwargs:
-                warnings.warn(msg, FutureWarning, stacklevel=2)
-        super().set_attr(**kwargs)
+    _parameter_aliases = {'UA_cecchinato_hc': ('UA_cecchinato', '0.13')}
 
     def get_parameters(self):
         params = super().get_parameters()
@@ -690,61 +596,28 @@ class SectionedHeatExchanger(HeatExchanger):
                 dependents=self.UA_dependents,
                 description="equation for sectioned UA modification based on characteristic lines"
             ),
-            'refrigerant_index': ConfigParameter(
-                val=0, dtype="int",
-                description="deprecated - side on which the refrigerant is flowing (0: hot, 1:cold)"
-            ),
             're_exp_hot': ComponentParameter(
                 description="Reynolds exponent for UA modification based on hot side mass flow"
             ),
             're_exp_cold': ComponentParameter(
                 description="Reynolds exponent for UA modification based on cold side mass flow"
             ),
-            're_exp_r': ComponentParameter(
-                description="deprecated - Reynolds exponent for refrigerant side mass flow; "
-                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
-                "the refrigerant flows on"
-            ),
-            're_exp_sf': ComponentParameter(
-                description="deprecated - Reynolds exponent for secondary fluid side mass flow; "
-                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
-                "the secondary fluid flows on"
-            ),
             'alpha_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
-                description="cold to hot side convective heat transfer coefficient ratio; "
-                "with the deprecated :code:`UA_cecchinato` group it is the secondary to "
-                "refrigerant side ratio instead"
+                description="cold to hot side convective heat transfer coefficient ratio"
             ),
             'area_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
-                description="cold to hot side heat transfer area ratio; with the "
-                "deprecated :code:`UA_cecchinato` group it is the secondary to "
-                "refrigerant side ratio instead, this will change to cold to hot side in "
-                "version 0.12"
+                description="cold to hot side heat transfer area ratio"
             ),
             'UA_cecchinato': ParameterGroup(
-                elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
-                num_eq_sets=1,
-                func=self.UA_cecchinato_legacy_func,
-                dependents=self.UA_dependents,
-                description=(
-                    "deprecated - equation for UA modification in offdesign using "
-                    "refrigerant/secondary-fluid Reynolds exponents; use "
-                    ":code:`UA_cecchinato_hc` with :code:`re_exp_hot` and "
-                    ":code:`re_exp_cold` instead"
-                )
-            ),
-            'UA_cecchinato_hc': ParameterGroup(
                 elements=['re_exp_hot', 're_exp_cold', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
                 description=(
-                    "temporary name - equation for UA modification in offdesign using "
-                    "explicit hot/cold Reynolds exponents; in version 0.12 "
-                    ":code:`UA_cecchinato` will adopt the hot/cold convention of "
-                    ":code:`UA_cecchinato_hc`"
+                    "equation for UA modification in offdesign using hot and "
+                    "cold side Reynolds exponents"
                 )
             ),
             'td_pinch': ComponentParameter(
@@ -1069,8 +942,8 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             Sum of UA values of all heat exchanger sections.
         """
-        _, _, _, Q_per_section, td_log_per_section = sections
-        UA_sections = Q_per_section / td_log_per_section
+        _, _, _, Q_per_section, lmtd_per_section = sections
+        UA_sections = Q_per_section / lmtd_per_section
         return sum(UA_sections)
 
     def UA_func(self, **kwargs):
@@ -1181,35 +1054,6 @@ class SectionedHeatExchanger(HeatExchanger):
             hot_index=0,
             cold_index=1,
         )
-
-    def UA_cecchinato_legacy_func(self):
-        r"""
-        Deprecated - use :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and
-        :code:`re_exp_cold` instead. In version 0.12
-        :code:`UA_cecchinato` will adopt the new hot/cold parameter convention
-        and this group will be removed.
-
-        Requires :code:`re_exp_r`, :code:`re_exp_sf`, :code:`alpha_ratio`,
-        :code:`area_ratio`, and :code:`refrigerant_index`. Here
-        :code:`alpha_ratio` and :code:`area_ratio` are the secondary fluid to
-        refrigerant side ratios, i.e. their direction relative to hot and cold
-        side depends on :code:`refrigerant_index`.
-
-        Returns
-        -------
-        float
-            residual value of equation
-        """
-        refrigerant_index = self.refrigerant_index.val
-        if refrigerant_index == 0:
-            hot_index, cold_index = 0, 1
-            re_exp_hot = self.re_exp_r.val_SI
-            re_exp_cold = self.re_exp_sf.val_SI
-        else:
-            hot_index, cold_index = 1, 0
-            re_exp_hot = self.re_exp_sf.val_SI
-            re_exp_cold = self.re_exp_r.val_SI
-        return self._UA_cecchinato_residual(re_exp_hot, re_exp_cold, hot_index, cold_index)
 
     def UA_dependents(self):
         return [

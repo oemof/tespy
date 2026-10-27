@@ -32,6 +32,12 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
+# the module exercises the deprecated names on purpose, the warnings of the
+# constraint shims are raised on every solve and are not the subject here
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:ComponentMandatoryConstraints is deprecated:FutureWarning"
+)
+
 
 class LegacyHeater(Component):
     """Heater written against the container API of tespy 0.11."""
@@ -107,7 +113,9 @@ def legacy_network():
     with pytest.warns(FutureWarning):
         heater = LegacyHeater("heater")
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(
+        pressure="bar", pressure_difference="bar", temperature="degC"
+    )
     source = Source("source")
     sink = Sink("sink")
     c1 = Connection(source, "out1", heater, "in1", label="c1")
@@ -133,7 +141,10 @@ def test_legacy_characteristic_group(legacy_network):
     nw, heater, c1, c2 = legacy_network
     heater.set_attr(
         Q_design=1e4, pr=1,
-        Q_char={"char_func": CharLine(x=[0, 1, 2], y=[0.5, 1, 1.5]), "is_set": True}
+        Q_char={
+            "char_func": CharLine(x=[0, 1, 2], y=[0.5, 1, 1.5]),
+            "is_set": True
+        }
     )
     nw.solve("design")
     nw.assert_convergence()
@@ -167,6 +178,23 @@ def test_legacy_reference_attributes(legacy_network):
     c2.set_attr(m=None)
     with pytest.warns(FutureWarning):
         assert not c2.m_ref.is_set
+
+
+def test_legacy_simple_container_with_equation_is_optional_equation():
+    """Components of 0.11 declared user switched equations such as cone or
+    fluid_balance as SimpleDataContainer with an equation."""
+    with pytest.warns(FutureWarning, match="OptionalEquation"):
+        switch = dc_simple(
+            dtype="bool", func=lambda: 0, _val=False, num_eq_sets=1,
+            dependents=lambda: []
+        )
+    assert type(switch).__name__ == "OptionalEquation"
+    assert not switch.is_set
+    switch.set_attr(is_set=True)
+    assert switch.is_set
+    with pytest.warns(FutureWarning):
+        config = dc_simple(val=5)
+    assert config.val == 5
 
 
 def test_legacy_container_dispatch_matches_new_instances():

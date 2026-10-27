@@ -242,17 +242,6 @@ class Units:
         thermal_resistance : str
             Default unit: "K/W"
         """
-        if "pressure" in kwargs and "pressure_difference" not in kwargs:
-            msg = (
-                "Setting the 'pressure' unit currently also sets the "
-                "'pressure_difference' unit for backwards compatibility. "
-                "In version 0.12 this will no longer happen. Please "
-                "explicitly set 'pressure_difference' in "
-                "Network.units.set_defaults() to silence this warning."
-            )
-            warnings.warn(msg, FutureWarning)
-            kwargs["pressure_difference"] = kwargs["pressure"]
-
         if self._conversions_applied:
             msg = (
                 "You are changing default units after a solve has already "

@@ -43,7 +43,7 @@ from tespy.connections import Ref
 from tespy.networks import Network
 from tespy.networks.network import FORMAT_VERSION
 from tespy.tools.characteristics import CharLine
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import conductivity_mix_ph
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 from tespy.tools.helpers import TESPyNetworkError
@@ -163,7 +163,7 @@ class TestNetworks:
         a.set_attr(fluid={"Air": 1})
         self.nw.add_conns(a)
         self.nw.solve('design', init_only=True)
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         msg = ('After the network check, the .checked-property must be True.')
         assert self.nw.checked, msg
 
@@ -269,7 +269,7 @@ class TestNetworks:
         serialization = self.nw.export()
         imported_nwk = Network.from_dict(serialization)
         imported_c2 = imported_nwk.get_conn("c2")
-        assert imported_c2.p_ref.is_set
+        assert imported_c2.p.reference.is_set
         assert not imported_c2.p.is_set
         imported_nwk.solve("design")
         imported_nwk.assert_convergence()
@@ -292,7 +292,7 @@ class TestNetworks:
         assert not serialization["Connection"]["Connection"]["c2"]["p_ref"]["is_set"]
         imported_nwk = Network.from_dict(serialization)
         imported_c2 = imported_nwk.get_conn("c2")
-        assert not imported_c2.p_ref.is_set
+        assert not imported_c2.p.reference.is_set
         assert imported_c2.p.is_set
         imported_nwk.solve("design")
         imported_nwk.assert_convergence()
@@ -340,13 +340,13 @@ class TestNetworks:
 
     def test_Network_missing_data_in_individual_design_case_file(self):
         """Test for missing data in individual design case files."""
-        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
+        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta_d4'])
         a = Connection(self.source, 'out1', pi, 'in1')
         a.set_attr(m=1, p=1, T=293.15, fluid={'water': 1})
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        design_state1 = self.nw.save(as_dict=True)
+        design_state1 = self.nw.save()
         design_state2 = deepcopy(design_state1)
         design_state2["Connection"] = {}
 
@@ -355,7 +355,7 @@ class TestNetworks:
 
     def test_Network_missing_connection_in_design_path(self):
         """Test for missing connection data in design case files."""
-        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta'])
+        pi = Pipe('pipe', Q=0, pr=0.95, design=['pr'], offdesign=['zeta_d4'])
         a = Connection(
             self.source, 'out1', pi, 'in1', m=1, p=1, T=293.15,
             fluid={'water': 1}
@@ -363,7 +363,7 @@ class TestNetworks:
         b = Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a, b)
         self.nw.solve('design')
-        data = self.nw.save(as_dict=True)
+        data = self.nw.save()
 
         data["Connection"] = {}
 
@@ -380,7 +380,7 @@ class TestNetworks:
         e = PowerConnection(grid, "power", cp, "power")
         self.nw.add_conns(a, b, e)
         self.nw.solve("design")
-        data = self.nw.save(as_dict=True)
+        data = self.nw.save()
 
         del data["Connection"]["PowerConnection"]
 
@@ -388,7 +388,7 @@ class TestNetworks:
 
     def test_Network_missing_connection_section_local_offdesign(self):
         """Test an individual design file missing the Connection section."""
-        pi = Pipe("pipe", Q=0, pr=0.95, design=["pr"], offdesign=["zeta"])
+        pi = Pipe("pipe", Q=0, pr=0.95, design=["pr"], offdesign=["zeta_d4"])
         a = Connection(
             self.source, "out1", pi, "in1", m=1, p=1, T=293.15,
             fluid={"water": 1}
@@ -396,7 +396,7 @@ class TestNetworks:
         b = Connection(pi, "out1", self.sink, "in1")
         self.nw.add_conns(a, b)
         self.nw.solve("design")
-        data = self.nw.save(as_dict=True)
+        data = self.nw.save()
 
         data["Connection"] = {}
 
@@ -414,7 +414,7 @@ class TestNetworks:
         b = Connection(pi, "out1", self.sink, "in1")
         self.nw.add_conns(a, b)
         self.nw.solve("design")
-        data = self.nw.save(as_dict=True)
+        data = self.nw.save()
 
         data["Connection"] = {}
 
@@ -427,12 +427,8 @@ class TestNetworks:
         a = Connection(self.source, 'out1', pi, 'in1')
         Connection(pi, 'out1', self.sink, 'in1')
         self.nw.add_conns(a)
-        msg = (
-            "A component with the label 'sink' has been created but must not "
-            "be part of the network as the respective connection has not "
-            "been added."
-        )
-        assert self.nw.get_comp("sink") is None, msg
+        with raises(KeyError):
+            self.nw.get_comp("sink")
 
     def test_Network_get_comp_before_initialization(self):
         """Test if components are found prior to initialization."""
@@ -628,7 +624,8 @@ def test_component_not_found():
     c2 = Connection(b, "out1", a, "in1")
 
     nw.add_conns(c1, c2)
-    assert nw.get_comp("Turbine") is None
+    with raises(KeyError):
+        nw.get_comp("Turbine")
 
 
 def test_connection_not_found():
@@ -641,7 +638,8 @@ def test_connection_not_found():
     c2 = Connection(b, "out1", a, "in1")
 
     nw.add_conns(c1, c2)
-    assert nw.get_conn("1") is None
+    with raises(KeyError):
+        nw.get_conn("1")
 
 
 def _make_simple_network():
@@ -658,29 +656,9 @@ def test_get_comp_found():
     assert nw.get_comp("source") is so
 
 
-def test_get_comp_not_found_warns():
-    nw, *_ = _make_simple_network()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        result = nw.get_comp("nonexistent")
-    assert result is None
-    assert len(w) == 1
-    assert issubclass(w[0].category, FutureWarning)
-
-
 def test_get_conn_found():
     nw, so, si, c = _make_simple_network()
     assert nw.get_conn("c1") is c
-
-
-def test_get_conn_not_found_warns():
-    nw, *_ = _make_simple_network()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        result = nw.get_conn("nonexistent")
-    assert result is None
-    assert len(w) == 1
-    assert issubclass(w[0].category, FutureWarning)
 
 
 def test_get_ude_found():
@@ -690,23 +668,13 @@ def test_get_ude_found():
     assert nw.get_ude("my_ude") is ude
 
 
-def test_get_ude_not_found_warns():
-    nw, *_ = _make_simple_network()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        result = nw.get_ude("nonexistent")
-    assert result is None
-    assert len(w) == 1
-    assert issubclass(w[0].category, FutureWarning)
-
-
 def test_ude_returning_nan_raises_informative_error():
     """A UDE returning NaN must be caught early with a clear error message
     naming the offending equation, instead of silently propagating the NaN
     into later iterations and failing with an unrelated error."""
     nw = Network()
     nw.iterinfo = False
-    nw.units.set_defaults(pressure="bar", temperature="degC")
+    nw.units.set_defaults(pressure="bar", pressure_difference="bar", temperature="degC")
 
     so = Source("source")
     pi = Pipe("pipe", Q=0, pr=0.95)
@@ -1041,7 +1009,7 @@ def test_offdesign_of_component_parameter_group():
     nw.assert_convergence()
     assert not instance.darcy_group.is_set
 
-    design_state = nw.save(as_dict=True)
+    design_state = nw.save()
     nw.solve("offdesign", design_path=design_state)
     nw.assert_convergence()
     assert instance.darcy_group.is_set
@@ -1070,7 +1038,7 @@ def test_design_of_component_parameter_group():
     nw.assert_convergence()
     assert instance.darcy_group.is_set
 
-    design_state = nw.save(as_dict=True)
+    design_state = nw.save()
     nw.solve("offdesign", design_path=design_state)
     nw.assert_convergence()
     assert not instance.darcy_group.is_set
@@ -1080,7 +1048,7 @@ class WaterElectrolyzer(WaterElectrolyzer):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        constraints['mass_flow_constraints'] = dc_cmc(**{
+        constraints['mass_flow_constraints'] = MandatoryConstraint(**{
             'func': self.reactor_mass_flow_func,
             'deriv': self.reactor_mass_flow_deriv,
             'dependents': self.reactor_mass_flow_dependents,
@@ -1369,55 +1337,22 @@ def test_export_before_solve_keeps_network_units(tmp_path):
 
 
 class TestBackwardsCompatibility:
-    """Verify that save/export files written by v0.9.x are still readable."""
+    """Verify that export and state files written by v0.11.4 are readable."""
 
     _HERE = os.path.dirname(os.path.abspath(__file__))
 
-    def test_v09_export_design_and_offdesign(self):
-        """v0.9 export + flat design state: import, design, offdesign all work."""
-        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
+    def test_v011_export_design_and_offdesign(self):
+        """v0.11.4 export and design state: import, design, offdesign work."""
+        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk_v0_11.json"))
         nw.iterinfo = False
         nw.solve("design")
         nw.assert_convergence()
         nw.get_comp('compressor').set_attr(igva='var')
-        nw.solve("offdesign", design_path=os.path.join(self._HERE, "_design_state.json"))
+        nw.solve(
+            "offdesign",
+            design_path=os.path.join(self._HERE, "_design_state_v0_11.json")
+        )
         nw.assert_convergence()
-
-    # integrated this test here because it has quite a few different components
-    def test_export_folder_csv_files(self, tmp_path):
-        nw = Network.from_json(os.path.join(self._HERE, "_exported_nwk.json"))
-        nw.solve("design")
-        nw.save_csv(tmp_path)
-        assert (tmp_path / "Component" / "TurboCompressor.csv").exists()
-        assert (tmp_path / "Connection" / "Connection.csv").exists()
-
-    def test_solver_state_shim_warns_and_delegates(self):
-        """Legacy solver-state attributes on Network forward to nw.problem."""
-        nw = Network(iterinfo=False)
-        so = Source("source")
-        si = Sink("sink")
-        pi = Pipe("pipe", pr=0.98, Q=0)
-        c1 = Connection(so, "out1", pi, "in1", label="1")
-        c2 = Connection(pi, "out1", si, "in1", label="2")
-        nw.add_conns(c1, c2)
-        c1.set_attr(fluid={"water": 1}, m=1, p=2e5, T=313.15)
-        nw.solve("design")
-        nw.assert_convergence()
-
-        for name in Network._PROBLEM_ATTRIBUTES:
-            with warnings.catch_warnings(record=True) as caught:
-                warnings.simplefilter("always")
-                value = getattr(nw, name)
-            assert len(caught) == 1
-            assert issubclass(caught[0].category, FutureWarning)
-            if callable(value):
-                assert value.__self__ is nw.problem
-            else:
-                reference = getattr(nw.problem, name)
-                assert value is reference or value == reference
-
-        with raises(AttributeError):
-            nw.not_an_attribute
 
     def test_problem_access_before_solve_raises(self):
         nw = Network()
@@ -1453,7 +1388,7 @@ class TestSaveClearRestoreSpecifications:
 
         c3.set_attr(fluid={"N2": 0.8, "O2": 0.2}, T=25, p=10, m=Ref(c1, 2, -0.5))
         self.valve.set_attr(dp_char={
-            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1] * 4),
+            "char_func": CharLine(x=[0.5, 1, 2, 3], y=[1] * 4, y_unit="bar"),
             "is_set": True
         })
 
@@ -1814,7 +1749,7 @@ class TestSerializationMeta:
         self.nw.solve("design")
         self.data = {
             "network": self.nw.export(),
-            "state": self.nw.save(as_dict=True),
+            "state": self.nw.save(),
             "specifications": self.nw.save_specifications(),
         }
 
@@ -1866,10 +1801,21 @@ class TestSerializationMeta:
             self._load(expected, data)
 
     @mark.parametrize("kind", ["network", "state", "specifications"])
-    def test_legacy_data_warns(self, kind):
+    def test_legacy_data_raises(self, kind):
         data = deepcopy(self.data[kind])
         del data["meta"]
-        with warns(FutureWarning, match="'meta' block"):
+        with raises(TESPyNetworkError, match="0.11.4"):
+            self._load(kind, data)
+
+    @mark.parametrize("kind", ["network", "state", "specifications"])
+    def test_data_of_earlier_format_version_are_refused(self, kind):
+        """Files of 0.11.3 and earlier hold parameters that do not exist
+        anymore, e.g. kA and zeta of a heat exchanger, and old names in the
+        design and offdesign lists. They have to be migrated with 0.11.4."""
+        data = deepcopy(self.data[kind])
+        data["meta"]["format_version"] = FORMAT_VERSION - 1
+        data["meta"]["tespy_version"] = "0.11.3"
+        with raises(TESPyNetworkError, match="0.11.4"):
             self._load(kind, data)
 
     def test_status_in_meta(self):
@@ -1944,7 +1890,7 @@ def test_init_path_seeds_power_connection_starting_values():
     nw = _compressor_with_motor_network()
     nw.solve("design")
     nw.assert_convergence()
-    state = nw.save(as_dict=True)
+    state = nw.save()
 
     fresh = _compressor_with_motor_network()
     fresh.solve("design", init_path=state, init_only=True)

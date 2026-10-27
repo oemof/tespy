@@ -37,7 +37,7 @@ def kv_dependents(ude):
 
 def _kv_model():
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.units.set_defaults(temperature="degC", pressure="bar", pressure_difference="bar")
     va = Valve("valve")
     c1 = Connection(Source("source"), "out1", va, "in1", label="c1")
     c2 = Connection(va, "out1", Sink("sink"), "in1", label="c2")
@@ -177,7 +177,7 @@ def test_variable_shared_by_two_equations():
     alone determines the variable, it couples with the intermediate
     pressure into one square block."""
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.units.set_defaults(temperature="degC", pressure="bar", pressure_difference="bar")
     va1 = Valve("valve 1")
     va2 = Valve("valve 2")
     c1 = Connection(Source("source"), "out1", va1, "in1", label="c1")

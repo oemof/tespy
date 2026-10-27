@@ -1357,19 +1357,25 @@ class CharacteristicData(DataContainer):
         quantities = self._input_quantities() + [self._output_quantity()]
         declared = self._carried_input_units() + [self._carried_output_unit()]
         changed = [
-            f"{quantity} in {axis[1]}"
-            for quantity, unit, axis in zip(quantities, declared, axes + [output])
+            (name, quantity)
+            for name, quantity, unit, axis in zip(
+                self.axes, quantities, declared, axes + [output]
+            )
             if axis is not None and unit is None
             and self._units.canonical(axis[0]) != axis[1]
         ]
         if changed:
             label = f" of {self._label}" if self._label else ""
+            network_units = ", ".join(
+                f"{quantity} in {self._units.default[quantity]}"
+                for _, quantity in changed
+            )
+            declare = ", ".join(f"{name}_unit" for name, _ in changed)
             warnings.warn(
-                f"The characteristic data{label} are interpreted in the "
-                f"default units of the network ({', '.join(changed)}). "
-                "Before version 0.12 these data were SI data regardless of "
-                "the network's units. Check your data or declare their units "
-                "on the data, e.g. CharLine(x, y, x_unit=..., y_unit=...).",
+                f"The characteristic data{label} have no declared units and "
+                f"are read in the default units of the network: "
+                f"{network_units}. Declare the units of the data with "
+                f"{declare} or pass pint quantities.",
                 UserWarning, stacklevel=2
             )
 
@@ -1457,7 +1463,25 @@ class CharacteristicData(DataContainer):
         }
         if self.char_func is not None:
             export["char_func"] = self.char_func._serialize()
+            export["char_func"].update(self._resolved_axis_units(units))
         return export
+
+    def _resolved_axis_units(self, units):
+        """Units the dimensioned axes of the data are read in, so that a file
+        describes its data independent of the network it is loaded into."""
+        if self.axes is None:
+            return {}
+        quantities = self._input_quantities() + [self._output_quantity()]
+        carried = self._carried_input_units() + [self._carried_output_unit()]
+        resolved = {}
+        for axis, quantity, unit in zip(self.axes, quantities, carried):
+            if quantity is None or unit is not None:
+                continue
+            if self._is_default:
+                resolved[f"{axis}_unit"] = SI_UNITS[quantity]
+            elif units is not None:
+                resolved[f"{axis}_unit"] = units.default[quantity]
+        return resolved
 
     def _repr_compact(self):
         char = None
@@ -1801,13 +1825,16 @@ class _DeprecatedContainerMeta(type):
         return cls._instancecheck(instance)
 
 
-def _deprecated_container(old_name, new_cls, instancecheck=None, **defaults):
+def _deprecated_container(
+        old_name, new_cls, instancecheck=None, removal="0.13", **defaults
+    ):
     if instancecheck is None:
         instancecheck = lambda obj: isinstance(obj, new_cls)
 
     def __init__(self, **kwargs):
         warnings.warn(
-            f"{old_name} is deprecated, use {new_cls.__name__} instead.",
+            f"{old_name} is deprecated and will be removed in version "
+            f"{removal}, use {new_cls.__name__} instead.",
             FutureWarning, stacklevel=2
         )
         # the result state is derived from the calc method and the equations
@@ -1838,6 +1865,29 @@ ComponentArrayProperties = _deprecated_container(
 SimpleDataContainer = _deprecated_container(
     "SimpleDataContainer", ConfigParameter
 )
+
+
+def _simple_data_container_new(cls, **kwargs):
+    # a SimpleDataContainer with an equation was a user switched equation,
+    # e.g. cone or fluid_balance, which is an OptionalEquation now
+    if kwargs.get("func") is None and kwargs.get("structure_matrix") is None:
+        return object.__new__(cls)
+    warnings.warn(
+        "SimpleDataContainer is deprecated and will be removed in version "
+        "0.13, use OptionalEquation for a container with an equation.",
+        FutureWarning, stacklevel=2
+    )
+    kwargs.pop("dtype", None)
+    kwargs.pop("is_result", None)
+    kwargs.pop("result_only", None)
+    is_set = kwargs.pop("is_set", False)
+    for key in ("_val", "val"):
+        if key in kwargs:
+            is_set = kwargs.pop(key) is True or is_set
+    return OptionalEquation(is_set=is_set, **kwargs)
+
+
+SimpleDataContainer.__new__ = _simple_data_container_new
 GroupedComponentProperties = _deprecated_container(
     "GroupedComponentProperties", ParameterGroup
 )

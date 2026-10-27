@@ -22,7 +22,7 @@ from tespy.networks import Network
 
 def _single_connection_network():
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.units.set_defaults(temperature="degC", pressure="bar", pressure_difference="bar")
     c = Connection(Source("source"), "out1", Sink("sink"), "in1", label="c1")
     nw.add_conns(c)
     return nw, c
@@ -68,7 +68,7 @@ def test_quality_guess_at_supercritical_pressure_is_dropped():
 
 def _solved_heater_network():
     nw = Network(iterinfo=False)
-    nw.units.set_defaults(temperature="degC", pressure="bar")
+    nw.units.set_defaults(temperature="degC", pressure="bar", pressure_difference="bar")
     she = SimpleHeatExchanger("heater")
     c1 = Connection(Source("source"), "out1", she, "in1", label="c1")
     c2 = Connection(she, "out1", Sink("sink"), "in1", label="c2")

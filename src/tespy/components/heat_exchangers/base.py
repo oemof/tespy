@@ -164,21 +164,6 @@ class HeatExchanger(Component):
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`. Result only - calculated after each
-        solve.
-
-    kA_char : OptionalEquation
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
-
     label : str
         The label of the component.
 
@@ -235,11 +220,6 @@ class HeatExchanger(Component):
         :code:`temperature`. Result only - populated by the network after each
         solve.
 
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`. Result only - calculated after each
-        solve.
-
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
         Quantity: :code:`temperature_difference`.
@@ -271,18 +251,10 @@ class HeatExchanger(Component):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead. Result only - calculated after
-        each solve.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead. Result only - calculated after
-        each solve.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -343,7 +315,7 @@ class HeatExchanger(Component):
     >>> ex_he.set_attr(fluid={'air': 1}, v=0.1, T=35)
     >>> he_ex.set_attr(T=17.5, p=1, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(ex_he.T.val - he_cw.T.val, 0)
     5.0
     >>> ex_he.set_attr(v=0.075)
@@ -359,16 +331,6 @@ class HeatExchanger(Component):
     >>> round(he_ex.T.val, 1)
     18.8
     """
-
-    _parameter_aliases = {
-        'kA': 'UA',
-        'kA_char': 'UA_char',
-        'kA_char1': 'UA_char1',
-        'kA_char2': 'UA_char2',
-        'zeta1': 'zeta1_d4',
-        'zeta2': 'zeta2_d4',
-        'td_log': 'lmtd',
-    }
 
     def get_parameters(self):
         return {
@@ -388,17 +350,6 @@ class HeatExchanger(Component):
                 quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering terminal temperature differences",
                 calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
-            ),
-            'kA': ComponentParameter(
-                min_val=0,
-                quantity="heat_transfer_coefficient",
-                description="deprecated, use :code:`UA` instead",
-                calc=self._calc_UA, calc_deps=['Q', 'ttd_u', 'ttd_l']
-            ),
-            'td_log': ComponentParameter(
-                min_val=0, quantity="temperature_difference",
-                description="deprecated, use :code:`lmtd` instead",
-                calc=self._calc_lmtd, calc_deps=['lmtd']
             ),
             'lmtd': ComponentParameter(
                 min_val=0, quantity="temperature_difference",
@@ -469,22 +420,12 @@ class HeatExchanger(Component):
                 description="hot side geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta1': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta1_d4` instead",
-                calc=self._calc_zeta_d4
-            ),
             'zeta2_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_d4_func,
                 dependents=self.zeta_d4_dependents,
                 func_params={'zeta': 'zeta2_d4', 'inconn': 1, 'outconn': 1},
                 description="cold side geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
-            ),
-            'zeta2': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta2_d4` instead",
                 calc=self._calc_zeta_d4, calc_params={'inconn': 1, 'outconn': 1}
             ),
             'UA_char': OptionalEquation(
@@ -502,19 +443,6 @@ class HeatExchanger(Component):
                 param='m',
                 char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
                 description="cold side UA modification lookup table for offdesign"
-            ),
-            'kA_char': OptionalEquation(
-                elements=['kA_char1', 'kA_char2'],
-                description="deprecated, use :code:`UA_char` instead"
-            ),
-            'kA_char1': CharacteristicData(
-                param='m',
-                description="deprecated, use :code:`UA_char1` instead"
-            ),
-            'kA_char2': CharacteristicData(
-                param='m',
-                char_params={'type': 'rel', 'inconn': 1, 'outconn': 1},
-                description="deprecated, use :code:`UA_char2` instead"
             ),
             'eff_hot': ComponentParameter(
                 min_val=0, max_val=1, num_eq_sets=1,
@@ -725,14 +653,6 @@ class HeatExchanger(Component):
         T_o1 = self.outl[0].calc_T()
         T_o2 = self.outl[1].calc_T()
         return smoothed_lmtd(T_i1 - T_o2, T_o1 - T_i2)
-
-    def calculate_td_log(self):
-        msg = (
-            "The method 'calculate_td_log' is deprecated. Use "
-            "'calculate_lmtd' instead."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.calculate_lmtd()
 
     def UA_func(self):
         r"""
@@ -1541,20 +1461,12 @@ class HeatExchanger(Component):
         self.lmtd_per_section.val_SI = lmtd_si
 
     def calc_sections(self, postprocess=True):
-        r"""
-        .. deprecated::
-            Use the component attributes :code:`Q_sections`, :code:`T_hot_sections`,
-            :code:`T_cold_sections`, :code:`Q_per_section`, :code:`lmtd_per_section`
-            instead. These are populated automatically after each solve. The return
-            value of this method will be removed in version 0.12.
-        """
+        """Populate the section attributes :code:`Q_sections`,
+        :code:`T_hot_sections`, :code:`T_cold_sections`,
+        :code:`Q_per_section` and :code:`lmtd_per_section`."""
         warnings.warn(
-            f"The return value of {self.__class__.__name__}.calc_sections() is deprecated. "
-            "Access section data via the component attributes Q_sections, T_hot_sections, "
-            "T_cold_sections, Q_per_section, lmtd_per_section instead. Each attribute "
-            "exposes .val (network units) and .val_SI (SI units). The return value will "
-            "be removed in version 0.12.",
-            FutureWarning,
-            stacklevel=2,
+            "calc_sections is deprecated and will be removed in version "
+            "0.13, the section attributes are populated after every solve.",
+            FutureWarning, stacklevel=2
         )
-        return self._calc_sections_SI(postprocess=postprocess)
+        self._store_sections()

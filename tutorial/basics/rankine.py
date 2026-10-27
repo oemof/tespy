@@ -224,7 +224,7 @@ c1.set_attr(design=["p"])
 tu.set_attr(offdesign=["cone"])
 # %%[sec_10]
 my_plant.solve("design")
-design_state = my_plant.save(as_dict=True)
+design_state = my_plant.save()
 # %%[sec_11]
 partload_efficiency = []
 partload_m_range = np.linspace(20, 10, 11)

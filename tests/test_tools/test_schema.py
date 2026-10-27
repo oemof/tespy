@@ -20,6 +20,10 @@ from tespy.tools.schema import _serialize_parameter
 from tespy.tools.schema import generate_component_schema
 from tespy.tools.schema import generate_connection_schema
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:tespy.tools.schema is not yet stable:FutureWarning"
+)
+
 # ---------------------------------------------------------------------------
 # Fixtures - generate schemas once per session for speed
 # ---------------------------------------------------------------------------
@@ -260,8 +264,6 @@ class TestPortSchema:
 
     def test_simple_heat_exchanger_heat_and_power_ports(self, component_schema):
         entry = component_schema["SimpleHeatExchanger"]
-        assert entry["powerinlets"]["ports"] == ["heat"]
-        assert entry["poweroutlets"]["ports"] == ["heat"]
         assert entry["heatinlets"]["ports"] == ["heat"]
         assert entry["heatoutlets"]["ports"] == ["heat"]
 

@@ -39,8 +39,6 @@ class SolarCollector(SimpleHeatExchanger):
 
     - Fluid inlets: in1
     - Fluid outlets: out1
-    - Power inlets: heat
-    - Power outlets: heat
     - Heat inlets: heat
     - Heat outlets: heat
 
@@ -153,10 +151,6 @@ class SolarCollector(SimpleHeatExchanger):
     Tamb : float, dict
         Ambient air temperature. Quantity: :code:`temperature`.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
         calculation.
@@ -197,7 +191,7 @@ class SolarCollector(SimpleHeatExchanger):
     >>> inc.set_attr(fluid={'H2O': 1}, T=40, p=3, offdesign=['m'])
     >>> outg.set_attr(T=90, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(sc.A.val, 1)
     14.5
     >>> sc.set_attr(A=sc.A.val, E=5e2, Tamb=20)
@@ -210,8 +204,7 @@ class SolarCollector(SimpleHeatExchanger):
 
     def get_parameters(self):
         data = super().get_parameters()
-        for k in ["UA_group", "UA_char_group", "UA", "UA_char",
-                   "kA_group", "kA_char_group", "kA", "kA_char", "lmtd"]:
+        for k in ["UA_group", "UA_char_group", "UA", "UA_char", "lmtd"]:
             data.pop(k, None)
 
         data.update({

@@ -117,10 +117,6 @@ class Valve(Component):
     printout : bool
         Include this component in the network's results printout.
 
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead. Result only - calculated after
-        each solve.
-
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
         calculation.
@@ -150,7 +146,7 @@ class Valve(Component):
     >>> so_v.set_attr(fluid={'CH4': 1}, m=1, T=50, p=80, design=['m'])
     >>> v_si.set_attr(p=15)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(v_si.T.val, 1)
     26.3
     >>> round(v.pr.val, 3)
@@ -227,7 +223,6 @@ class Valve(Component):
     5.2
     """
 
-    _parameter_aliases = {'zeta': 'zeta_d4'}
 
     def _initial_affine_edges(self):
         return [
@@ -265,11 +260,6 @@ class Valve(Component):
                 dependents=self.zeta_d4_dependents,
                 func_params={'zeta': 'zeta_d4'},
                 description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
-                calc=self._calc_zeta_d4
-            ),
-            'zeta': ComponentParameter(
-                min_val=0, max_val=1e15,
-                description="deprecated, use :code:`zeta_d4` instead",
                 calc=self._calc_zeta_d4
             ),
             'dp_char': CharacteristicEquation(

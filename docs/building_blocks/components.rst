@@ -17,6 +17,9 @@ links to the underlying equations, the class documentation and example.
 
 .. include:: _components_overview.rst
 
+For a comparison of turbine efficiency specifications and an executed steam
+expansion example, see :ref:`how_to_choose_turbine_label`.
+
 .. _modules_components_parametrisation_label:
 
 Component parametrisation

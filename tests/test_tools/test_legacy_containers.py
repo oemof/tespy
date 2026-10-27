@@ -32,6 +32,12 @@ from tespy.tools.data_containers import FluidProperties as dc_prop
 from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
 from tespy.tools.data_containers import SimpleDataContainer as dc_simple
 
+# the module exercises the deprecated names on purpose, the warnings of the
+# constraint shims are raised on every solve and are not the subject here
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:ComponentMandatoryConstraints is deprecated:FutureWarning"
+)
+
 
 class LegacyHeater(Component):
     """Heater written against the container API of tespy 0.11."""

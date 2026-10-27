@@ -20,6 +20,10 @@ from tespy.tools.schema import _serialize_parameter
 from tespy.tools.schema import generate_component_schema
 from tespy.tools.schema import generate_connection_schema
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:tespy.tools.schema is not yet stable:FutureWarning"
+)
+
 # ---------------------------------------------------------------------------
 # Fixtures - generate schemas once per session for speed
 # ---------------------------------------------------------------------------

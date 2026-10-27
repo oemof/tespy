@@ -1865,6 +1865,29 @@ ComponentArrayProperties = _deprecated_container(
 SimpleDataContainer = _deprecated_container(
     "SimpleDataContainer", ConfigParameter
 )
+
+
+def _simple_data_container_new(cls, **kwargs):
+    # a SimpleDataContainer with an equation was a user switched equation,
+    # e.g. cone or fluid_balance, which is an OptionalEquation now
+    if kwargs.get("func") is None and kwargs.get("structure_matrix") is None:
+        return object.__new__(cls)
+    warnings.warn(
+        "SimpleDataContainer is deprecated and will be removed in version "
+        "0.13, use OptionalEquation for a container with an equation.",
+        FutureWarning, stacklevel=2
+    )
+    kwargs.pop("dtype", None)
+    kwargs.pop("is_result", None)
+    kwargs.pop("result_only", None)
+    is_set = kwargs.pop("is_set", False)
+    for key in ("_val", "val"):
+        if key in kwargs:
+            is_set = kwargs.pop(key) is True or is_set
+    return OptionalEquation(is_set=is_set, **kwargs)
+
+
+SimpleDataContainer.__new__ = _simple_data_container_new
 GroupedComponentProperties = _deprecated_container(
     "GroupedComponentProperties", ParameterGroup
 )

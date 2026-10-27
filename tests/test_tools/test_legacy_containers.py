@@ -180,6 +180,23 @@ def test_legacy_reference_attributes(legacy_network):
         assert not c2.m_ref.is_set
 
 
+def test_legacy_simple_container_with_equation_is_optional_equation():
+    """Components of 0.11 declared user switched equations such as cone or
+    fluid_balance as SimpleDataContainer with an equation."""
+    with pytest.warns(FutureWarning, match="OptionalEquation"):
+        switch = dc_simple(
+            dtype="bool", func=lambda: 0, _val=False, num_eq_sets=1,
+            dependents=lambda: []
+        )
+    assert type(switch).__name__ == "OptionalEquation"
+    assert not switch.is_set
+    switch.set_attr(is_set=True)
+    assert switch.is_set
+    with pytest.warns(FutureWarning):
+        config = dc_simple(val=5)
+    assert config.val == 5
+
+
 def test_legacy_container_dispatch_matches_new_instances():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)

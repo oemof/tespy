@@ -8,6 +8,10 @@ specify simple inputs to components, implement custom values in context of
 characteristic lines or maps, and give hints as to how to implement custom
 equations to existing components or create custom components yourself.
 
+For a worked comparison of fixed efficiency, part-load characteristics,
+turbocompressor maps and displacement-compressor polynomials, see the
+:ref:`compressor model selection how-to <tutorial_compressor_models_label>`.
+
 List of components
 ------------------
 

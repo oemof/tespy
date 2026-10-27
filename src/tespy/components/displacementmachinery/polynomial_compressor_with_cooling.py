@@ -232,13 +232,14 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         be used to retrieve a polynomial. The data for this example have been
         retrieved from :cite:`bitzer2025_HSK`.
 
-    >>> reference_state = {
-    ...     "T_sh": 20,  # superheating, K
-    ...     "T_sc": 0,  # subcooling, K
-    ...     "frequency_poly": 50.0,  # Hz, frequency at which the polynomial applies
-    ...     "displacement": 214,  # m³/h, at the reference frequency below
-    ...     "frequency_displacement": 20.0,  # Hz
-    ... }
+    The polynomials apply to a superheating of 10 K and a subcooling of 0 K at
+    a frequency of 50 Hz. The compressor displaces 214 m³/h at 20 Hz, which is
+    the swept volume per revolution.
+
+    >>> from tespy.components.displacementmachinery.polynomial_compressor import (
+    ...     swept_volume_from_displacement
+    ... )
+    >>> swept_volume = swept_volume_from_displacement(214, 20.0)
     >>> power = pd.DataFrame(
     ...     columns=[10,7.5,5,0,-5,-10], index=[30, 40, 50], dtype=float
     ... )
@@ -267,26 +268,28 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     ...     generate_eta_polys_from_data
     ... )
     >>> eta_s_poly, eta_vol_poly = generate_eta_polys_from_data(
-    ...     power, cooling, "R134a", reference_state
+    ...     power, cooling, "R134a", T_sh=10, T_sc=0, frequency=50.0,
+    ...     swept_volume=swept_volume
     ... )
     >>> import numpy as np; np.set_printoptions(precision=4)
     >>> eta_s_poly
-    array([ 3.4422e-03, -3.7514e-02,  4.3920e-02, -9.2164e-04,  1.6858e-03,
-           -8.9754e-04, -7.5478e-06,  1.6138e-05, -1.5382e-05,  5.0482e-06])
+    array([ 3.4341e-03, -3.7538e-02,  4.3817e-02, -9.2222e-04,  1.6805e-03,
+           -8.8819e-04, -7.5688e-06,  1.6083e-05, -1.5270e-05,  4.9686e-06])
     >>> eta_vol_poly
-    array([ 5.8119e-03, -7.1882e-04,  7.4146e-02,  2.8441e-05,  6.5137e-05,
-           -1.8987e-03,  7.8421e-07, -1.9059e-06,  4.5270e-07,  1.5132e-05])
+    array([ 5.8101e-03, -7.8032e-04,  7.4124e-02,  2.7684e-05,  6.1841e-05,
+           -1.8894e-03,  7.8923e-07, -1.9491e-06,  5.0810e-07,  1.5077e-05])
     >>> np.set_printoptions()
 
     We can take these polynomials and set them on the compressor instance
-    together with the reference state and the assumption on heat dissipation.
-    On top we need to specify the share of dissipated heat, that can be
-    utilized by the cooling fluid.
+    together with the swept volume and the assumption on heat dissipation. On
+    top we need to specify the share of dissipated heat, that can be utilized
+    by the cooling fluid.
 
+    >>> from tespy.tools.characteristics import EN12900Polynomial
     >>> compressor.set_attr(
-    ...     eta_s_poly=eta_s_poly, eta_vol_poly=eta_vol_poly,
-    ...     dissipation_ratio=0.05, eta_recovery=0.9,
-    ...     reference_state=reference_state
+    ...     eta_s_poly=EN12900Polynomial(eta_s_poly),
+    ...     eta_vol_poly=EN12900Polynomial(eta_vol_poly),
+    ...     dissipation_ratio=0.05, eta_recovery=0.9, swept_volume=swept_volume
     ... )
 
     First, we can impose the boundary conditions on "c1" that are equal to the
@@ -303,14 +306,14 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     >>> round(c1.v.val * 3600 / compressor.eta_vol.val, 2)
     214.0
     >>> round(compressor.eta_s.val, 3)
-    0.5
+    0.508
     >>> round(compressor.eta_vol.val, 3)
-    0.814
+    0.83
 
     The mass flow of cooling water is a result of the dissipated heat:
 
     >>> round(compressor.Q_diss.val_SI * compressor.eta_recovery.val_SI)
-    -1727
+    -1733
     >>> round(b1.m.val, 3)
     0.021
 
@@ -339,11 +342,11 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     component.
 
     >>> round(compressor.P.val)
-    38385
+    38521
     >>> round(compressor.Q_diss.val)
-    -1919
+    -1926
     >>> round(compressor.P.val + compressor.Q_diss.val)
-    36466
+    36595
 
     Now, let's see what happens, if evaporation or condensation temperature
     change:
@@ -352,9 +355,9 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
     >>> c2.set_attr(T_dew=40)
     >>> nw.solve("design")
     >>> round(compressor.eta_s.val, 3)
-    0.665
+    0.67
     >>> round(compressor.eta_vol.val, 3)
-    0.924
+    0.934
 
     It is also possible, to make the frequency a variable. This is useful, in
     case mass flow through the compressor is governed from external. Usually,
@@ -491,4 +494,3 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
             self.inl[0].h, self.inl[1].h,
             self.outl[0].h, self.outl[1].h
         ]
-

@@ -375,7 +375,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     ...     re_exp_hot=0.8,
     ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato_hc"]
+    ...     offdesign=["UA_cecchinato"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 

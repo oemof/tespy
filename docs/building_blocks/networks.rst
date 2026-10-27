@@ -19,7 +19,7 @@ variables of your TESPy network are a subset of the following:
 * the mass fractions of the fluids of every :code:`Connection` instance as well
   as
 * energy flow (power or heat) for :code:`PowerConnection` instances and
-* component variables (e.g. compressor rpm) if declared a variable.
+* component variables (e.g. compressor frequency) if declared a variable.
 
 The solver will simplify the variable space in a presolving step and then solve
 for the remaining variables. In the following, you will find information on the

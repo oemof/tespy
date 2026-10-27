@@ -30,7 +30,7 @@ from tespy.tools.data_containers import ComponentParameter
 @pytest.fixture
 def reference_state():
     return {
-        "T_sh": 20,
+        "T_sh": 10,
         "T_sc": 0,
         "frequency_poly": 50.0,
         "swept_volume": swept_volume_from_displacement(214, 20.0),
@@ -104,12 +104,12 @@ def test_reference_state_dict_in_helpers_is_deprecated(reference_state):
     with pytest.warns(FutureWarning, match="dictionary is deprecated"):
         legacy = generate_eta_polys_from_data(power, cooling, "R134a", reference_state)
     new = generate_eta_polys_from_data(
-        power, cooling, "R134a", T_sh=20, T_sc=0, frequency=50.0,
+        power, cooling, "R134a", T_sh=10, T_sc=0, frequency=50.0,
         swept_volume=reference_state["swept_volume"]
     )
     np.testing.assert_allclose(legacy[0], new[0])
     with pytest.raises(ValueError, match="swept_volume"):
-        generate_eta_polys_from_data(power, cooling, "R134a", T_sh=20, T_sc=0, frequency=50.0)
+        generate_eta_polys_from_data(power, cooling, "R134a", T_sh=10, T_sc=0, frequency=50.0)
 
 
 def test_generating_functions_follow_unit_system(reference_state):
@@ -123,7 +123,7 @@ def test_generating_functions_follow_unit_system(reference_state):
     power.loc[:] = [[62e3, 61.8e3, 61.3e3]] * 3
     cooling.loc[:] = [[465600, 316700, 208000]] * 3
     standard = generate_eta_polys_from_data(
-        power, cooling, "R134a", T_sh=20, T_sc=0, frequency=50.0,
+        power, cooling, "R134a", T_sh=10, T_sc=0, frequency=50.0,
         swept_volume=reference_state["swept_volume"]
     )
 
@@ -139,7 +139,7 @@ def test_generating_functions_follow_unit_system(reference_state):
     cooling_K.columns = power_K.columns
     cooling_K.index = power_K.index
     in_units = generate_eta_polys_from_data(
-        power_K, cooling_K, "R134a", T_sh=20, T_sc=0, frequency=3000,
+        power_K, cooling_K, "R134a", T_sh=10, T_sc=0, frequency=3000,
         swept_volume=reference_state["swept_volume"] * 1e6, units=units
     )
     np.testing.assert_allclose(in_units[0], standard[0], rtol=1e-6)
@@ -147,7 +147,7 @@ def test_generating_functions_follow_unit_system(reference_state):
 
     Q_ = units.ureg.Quantity
     quantities = generate_eta_polys_from_data(
-        power, cooling, "R134a", T_sh=Q_(20, "delta_degC"), T_sc=0,
+        power, cooling, "R134a", T_sh=Q_(10, "delta_degC"), T_sc=0,
         frequency=Q_(50, "Hz"), swept_volume=Q_(reference_state["swept_volume"], "m**3")
     )
     np.testing.assert_allclose(quantities[0], standard[0], rtol=1e-6)
@@ -191,8 +191,10 @@ def test_network_file_of_version_0_11_loads(reference_state):
     legacy["eta_s_poly"] = {"val": coefficients, "is_set": True}
     legacy["eta_vol_poly"] = {"val": float("nan"), "is_set": False}
     legacy["reference_state"] = {
-        "val": {"displacement": 214, "frequency_displacement": 20.0,
-                "T_sh": 20, "T_sc": 0, "frequency_poly": 50.0},
+        "val": {
+            "displacement": 214, "frequency_displacement": 20.0,
+            "T_sh": 10, "T_sc": 0, "frequency_poly": 50.0
+        },
         "is_set": True
     }
     legacy.pop("swept_volume")

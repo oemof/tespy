@@ -1457,7 +1457,25 @@ class CharacteristicData(DataContainer):
         }
         if self.char_func is not None:
             export["char_func"] = self.char_func._serialize()
+            export["char_func"].update(self._resolved_axis_units(units))
         return export
+
+    def _resolved_axis_units(self, units):
+        """Units the dimensioned axes of the data are read in, so that a file
+        describes its data independent of the network it is loaded into."""
+        if self.axes is None:
+            return {}
+        quantities = self._input_quantities() + [self._output_quantity()]
+        carried = self._carried_input_units() + [self._carried_output_unit()]
+        resolved = {}
+        for axis, quantity, unit in zip(self.axes, quantities, carried):
+            if quantity is None or unit is not None:
+                continue
+            if self._is_default:
+                resolved[f"{axis}_unit"] = SI_UNITS[quantity]
+            elif units is not None:
+                resolved[f"{axis}_unit"] = units.default[quantity]
+        return resolved
 
     def _repr_compact(self):
         char = None

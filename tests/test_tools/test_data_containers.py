@@ -287,7 +287,7 @@ class TestCharacteristicData:
         Q_ = units.ureg.Quantity
         data.accept(EN12900Polynomial(Q_([2] + [0] * 9, "kW")))
         assert data.char_func.value_unit == str(Q_(1, "kW").units)
-        with pytest.warns(UserWarning, match="power in megawatt"):
+        with pytest.warns(UserWarning, match="power in MW"):
             data.accept(EN12900Polynomial([2] + [0] * 9))
             data._bind_units(units)
         assert data.evaluate(280, 310) == pytest.approx(2e6)

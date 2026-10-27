@@ -1357,19 +1357,25 @@ class CharacteristicData(DataContainer):
         quantities = self._input_quantities() + [self._output_quantity()]
         declared = self._carried_input_units() + [self._carried_output_unit()]
         changed = [
-            f"{quantity} in {axis[1]}"
-            for quantity, unit, axis in zip(quantities, declared, axes + [output])
+            (name, quantity)
+            for name, quantity, unit, axis in zip(
+                self.axes, quantities, declared, axes + [output]
+            )
             if axis is not None and unit is None
             and self._units.canonical(axis[0]) != axis[1]
         ]
         if changed:
             label = f" of {self._label}" if self._label else ""
+            network_units = ", ".join(
+                f"{quantity} in {self._units.default[quantity]}"
+                for _, quantity in changed
+            )
+            declare = ", ".join(f"{name}_unit" for name, _ in changed)
             warnings.warn(
-                f"The characteristic data{label} are interpreted in the "
-                f"default units of the network ({', '.join(changed)}). "
-                "Before version 0.12 these data were SI data regardless of "
-                "the network's units. Check your data or declare their units "
-                "on the data, e.g. CharLine(x, y, x_unit=..., y_unit=...).",
+                f"The characteristic data{label} have no declared units and "
+                f"are read in the default units of the network: "
+                f"{network_units}. Declare the units of the data with "
+                f"{declare} or pass pint quantities.",
                 UserWarning, stacklevel=2
             )
 

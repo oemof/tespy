@@ -3,12 +3,13 @@ v0.12.0 - Under development
 
 API Changes
 ###########
-- The data containers of components and connections have been restructured
-  with clearly separated responsibilities: every container stores one kind of
-  value and either carries an equation or not. The former names stay
-  available for one release with a :code:`FutureWarning` and still match
-  their replacement in :code:`isinstance` checks
+- The data containers of components and connections have been restructured with
+  clearly separated responsibilities: every container stores one kind of value
+  and either carries an equation or not. The former names stay available with
+  a :code:`FutureWarning` until version 0.13
   (`PR #1097 <https://github.com/oemof/tespy/pull/1097>`__).
+  :code:`FluidComposition`, :code:`ScalarVariable` and :code:`VectorVariable`
+  keep their names.
 
   .. list-table::
       :header-rows: 1
@@ -25,7 +26,8 @@ API Changes
         - scalar component parameter, may be a variable or carry an equation
       * - :code:`ComponentArrayProperties`
         - :py:class:`~tespy.tools.data_containers.ArrayParameter`
-        - array valued component parameter, input or result
+        - array valued component parameter, may carry an equation or be a
+          result
       * - :code:`SimpleDataContainer`
         - :py:class:`~tespy.tools.data_containers.ConfigParameter`
         - typed configuration value without unit and equation
@@ -55,9 +57,9 @@ API Changes
   Characteristic containers declare the accepted representation in
   :code:`char_type`, :code:`CharLine` unless declared otherwise, e.g.
   :code:`CharMap` for the maps and :code:`EN12900Polynomial` for the
-  compressor polynomials. Providing a characteristic to a data container
-  marks it as specified, e.g. for the activation of a parameter group,
-  providing one to an equation container does not activate the equation.
+  compressor polynomials. Providing a characteristic to a data container marks
+  it as specified, e.g. for the activation of a parameter group, providing one
+  to an equation container does not activate the equation.
 
 - Characteristic functions carry a physical quantity per axis. Components
   evaluate them through the container with SI inputs and receive SI outputs,
@@ -80,39 +82,80 @@ API Changes
 - Equations of custom components should call :code:`self.my_char.evaluate(x)`
   instead of :code:`self.my_char.char_func.evaluate(x)`.
 - The new :py:class:`~tespy.tools.characteristics.Polynomial` and
-  :py:class:`~tespy.tools.characteristics.EN12900Polynomial` are
-  characteristic representations next to :code:`CharLine` and
-  :code:`CharMap`. The :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  :py:class:`~tespy.tools.characteristics.EN12900Polynomial` are characteristic
+  representations next to :code:`CharLine` and :code:`CharMap`. The
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
   takes its efficiency polynomials :code:`eta_s_poly` and :code:`eta_vol_poly`
   as :code:`EN12900Polynomial` objects, which are evaluated in °C as defined by
   the standard whatever the network's temperature unit is. Passing the
   coefficients as list is deprecated.
 - The :code:`reference_state` dictionary of the :code:`PolynomialCompressor` is
-  deprecated. The component only needs the :code:`swept_volume` (quantity
-  :code:`volume`) from it, which is a regular component parameter now. The
-  functions generating the efficiency polynomials from manufacturer data take
-  the reference state as the keyword arguments :code:`T_sh`, :code:`T_sc`,
-  :code:`frequency` and :code:`swept_volume`, the dictionary is deprecated
-  there as well. With the keyword :code:`units` the functions read all plain
-  numbers, the table and the reference state, in the given unit system, e.g.
-  the one of the network the polynomials are used in. Create the unit system
-  first, fit, then create the network with :code:`Network(units=units)`.
-  Without :code:`units` the table temperatures are °C as defined by EN 12900
-  and all other values SI. Quantities carry their own unit in both cases. The
-  :code:`EN12900Polynomial` carries the °C of its axes, so the containers
-  read them without a declaration.
+  deprecated. You only need to provide :code:`swept_volume`. The functions
+  generating the efficiency polynomials from manufacturer data take the
+  reference state as the keyword arguments :code:`T_sh`, :code:`T_sc`,
+  :code:`frequency` and :code:`swept_volume`. With the keyword :code:`units`
+  the functions read all plain numbers, the table and the reference state, in
+  the given unit system, e.g. the one of the network the polynomials are used
+  in.
 - A parameter accepts a specification when a declared consumer reads it: an
   equation of its own, a parameter group, optional equation or mandatory
   constraint listing it in its :code:`elements`, the variable role or the state
-  state of a connection. A parameter without consumer is result-only and
-  refuses user values with a :code:`TypeError` instead of silently
-  ignoring them (:issue:`1070`).
+  of a connection. A parameter without consumer is result-only and refuses user
+  values with a :code:`TypeError` instead of silently ignoring them.
 - References of connection parameters to the same parameter of another
   connection are attached to the parameter: :code:`c.m.reference` holds the
   :py:class:`~tespy.tools.data_containers.ReferenceEquation`. The former
   sibling parameters :code:`m_ref`, :code:`p_ref`, :code:`h_ref`,
   :code:`T_ref` and :code:`v_ref` are gone from the parameter tables, the
   attributes stay available with a :code:`FutureWarning`.
+- The format version of exported networks, saved states and specification
+  files is 2. Files of earlier versions hold parameter names that do not exist
+  anymore and are refused with a message. Load and save them again with tespy
+  0.11.4, which writes the current names, to migrate them.
+
+Deprecations
+############
+
+- The parameter :code:`as_dict` of :code:`Network.save` has no effect and will
+  be removed in version 0.13, the state is returned as dict when no file path
+  is given.
+- :code:`calc_sections` of the heat exchangers will be removed in version 0.13,
+  the section attributes are populated after every solve.
+- The former container class names, the :code:`_ref` attributes of connections,
+  the :code:`reference_state` dictionary and coefficient lists of the
+  :code:`PolynomialCompressor` and the alias :code:`UA_cecchinato_hc` are
+  deprecated and will be removed in version 0.13.
+
+Removed Deprecations
+####################
+
+The behaviours announced for removal in version 0.12 are gone:
+
+- :code:`Network.set_attr` and :code:`Network.get_attr`. Set :code:`iterinfo`,
+  the value ranges and the units through the respective attributes.
+- :code:`Network.get_conn`, :code:`get_comp`, :code:`get_ude` and
+  :code:`get_subsystem` raise a :code:`KeyError` for an unknown label instead
+  of returning :code:`None`.
+- Solver state attributes on the network, e.g. :code:`Network.residual`, use
+  :code:`Network.problem.residual`.
+- The :code:`rpm` parameter of the :code:`PolynomialCompressor`, use
+  :code:`frequency` with the unit :code:`1/min` for rounds per minute.
+- The :code:`PowerConnection` ports of the :code:`SimpleHeatExchanger` and its
+  subclasses, use a :code:`HeatConnection`.
+- :code:`refrigerant_index`, :code:`re_exp_r` and :code:`re_exp_sf` of the
+  sectioned heat exchangers. :code:`UA_cecchinato` reads :code:`re_exp_hot`,
+  :code:`re_exp_cold`, :code:`alpha_ratio` and :code:`area_ratio` in the cold
+  to hot side convention, :code:`UA_cecchinato_hc` is a deprecated alias.
+- The :code:`td_log` parameter and :code:`calculate_td_log` method of the heat
+  exchangers, use :code:`lmtd` and :code:`calculate_lmtd`.
+- The renamed parameters :code:`zeta`, :code:`zeta1`, :code:`zeta2`,
+  :code:`kA`, :code:`kA_char`, :code:`kA_char1`, :code:`kA_char2`,
+  :code:`kA_group` and :code:`kA_char_group` and their aliases. Use the
+  :code:`_d4` and :code:`UA` names.
+- Setting the :code:`pressure` unit no longer sets the
+  :code:`pressure_difference` unit.
+- Nested dictionaries for :code:`OptimizationProblem`, use flat parameter
+  names.
 
 Other Changes
 #############

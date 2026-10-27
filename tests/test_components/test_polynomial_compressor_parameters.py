@@ -165,7 +165,10 @@ def test_polynomial_carries_degC(eta_polys, reference_state):
         quantities={"T_evap": "temperature", "T_cond": "temperature"}
     )
     compressor.eta_s_poly = compressor.parameters["eta_s_poly"]
-    c1.set_attr(fluid={"R134a": 1}, T=293.15, td_dew=reference_state["T_sh"])
+    c1.set_attr(
+        fluid={"R134a": 1}, T=273.15 + reference_state["T_sh"],
+        td_dew=reference_state["T_sh"]
+    )
     c2.set_attr(T_dew=323.15)
     compressor.set_attr(
         eta_s_poly=EN12900Polynomial(eta_s_poly),
@@ -226,7 +229,10 @@ def test_polynomials_evaluated_in_degC(eta_polys, reference_state, temperature_u
     compressor = PolynomialCompressor("compressor")
     nw, c1, c2 = _network(compressor, temperature=temperature_unit)
     offset = 273.15 if temperature_unit == "K" else 0
-    c1.set_attr(fluid={"R134a": 1}, T=20 + offset, td_dew=reference_state["T_sh"])
+    c1.set_attr(
+        fluid={"R134a": 1}, T=reference_state["T_sh"] + offset,
+        td_dew=reference_state["T_sh"]
+    )
     c2.set_attr(T_dew=50 + offset)
     compressor.set_attr(
         eta_s_poly=EN12900Polynomial(eta_s_poly),

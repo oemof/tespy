@@ -7,11 +7,15 @@ available from its original location
 tests/test_networks/test_local_offdesign.py
 SPDX-License-Identifier: MIT
 """
+import logging
+
 import numpy as np
 from pytest import approx
+from pytest import mark
 from pytest import raises
 
 from tespy.components import Compressor
+from tespy.components import Generator
 from tespy.components import Merge
 from tespy.components import Motor
 from tespy.components import PowerSink
@@ -698,6 +702,49 @@ def test_eta_char_char_expr_offdesign_design_reference():
 
     # The two design references and characteristic expressions must differ
     assert expr_a != approx(expr_b)
+
+
+@mark.parametrize("converter_class", [Motor, Generator])
+def test_eta_char_domain_warning(converter_class, caplog):
+    """Leaving the range of eta_char in offdesign must log a warning."""
+    nw = Network()
+    so = PowerSource("source")
+    si = PowerSink("sink")
+    converter = converter_class("converter")
+
+    e1 = PowerConnection(so, "power", converter, "power_in", label="e1")
+    e2 = PowerConnection(converter, "power_out", si, "power", label="e2")
+    nw.add_conns(e1, e2)
+
+    converter.set_attr(
+        eta=0.95, design=["eta"], offdesign=["eta_char"],
+        eta_char=CharLine(x=[0.5, 1, 1.5], y=[0.95, 1, 0.98])
+    )
+    e1.set_attr(E=100e3)
+    nw.solve("design")
+    design = nw.save()
+
+    # inside the range of the characteristic: no warning
+    e1.set_attr(E=120e3)
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        nw.solve("offdesign", design_path=design)
+    nw.assert_convergence()
+
+    assert not any(
+        "characteristic line range" in msg for msg in caplog.messages
+    )
+
+    e1.set_attr(E=200e3)
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
+        nw.solve("offdesign", design_path=design)
+    nw.assert_convergence()
+
+    assert any(
+        "above characteristic line range" in msg and "converter" in msg
+        for msg in caplog.messages
+    )
 
 
 class TestNetworkIndividualOffdesign:

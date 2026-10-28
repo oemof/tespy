@@ -187,6 +187,10 @@ Bug Fixes
   subcritical pressure, also above the critical temperature, and :code:`nan`
   at supercritical pressure, consistently for all fluid property wrappers
   (`PR #1102 <https://github.com/oemof/tespy/pull/1102>`__).
+- The :code:`Motor` and the :code:`Generator` log a warning when the operating
+  point leaves the range of :code:`eta_char`, as the other components do for
+  their characteristics
+  (`#700 <https://github.com/oemof/tespy/issues/700>`__).
 
 Contributors
 ############

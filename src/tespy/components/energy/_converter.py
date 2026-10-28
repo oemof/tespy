@@ -139,11 +139,7 @@ class _EnergyConverter(Component):
                 f\left(\frac{\dot E_\text{out}}{\dot E_\text{out,design}}\right)
                 - \dot E_\text{out}
         """
-        expr = (
-            self.power_outl[0].E.val_SI
-            / self._conn_design(self.power_outl[0], "E")
-        )
-        f = self.eta_char.evaluate(expr)
+        f = self.eta_char.evaluate(self._calc_char_expr())
         return (
             self.power_inl[0].E.val_SI * self.eta.design * f
             - self.power_outl[0].E.val_SI
@@ -152,3 +148,17 @@ class _EnergyConverter(Component):
     def eta_char_dependents(self):
         return [self.power_inl[0].E, self.power_outl[0].E]
 
+    def _calc_char_expr(self):
+        return (
+            self.power_outl[0].E.val_SI
+            / self._conn_design(self.power_outl[0], "E")
+        )
+
+    def check_parameter_bounds(self):
+        r"""Check parameter value limits."""
+        _no_limit_violations = super().check_parameter_bounds()
+        if self.eta_char.is_set:
+            expr = self._calc_char_expr()
+            self.eta_char.check_domain(expr, label=self.label)
+
+        return _no_limit_violations

@@ -41,7 +41,6 @@ from tespy.tools.helpers import _partial_derivative
 from tespy.tools.helpers import _partial_derivative_vecvar
 from tespy.tools.helpers import _topological_sort
 from tespy.tools.helpers import _validate_dependents
-from tespy.tools.units import SI_UNITS
 
 
 def component_registry(type):
@@ -110,12 +109,6 @@ class Component:
 
     # deprecated parameter names: old name -> (new name, removal version)
     _parameter_aliases = {}
-    # deprecated parameters written under their successor's name to files, in
-    # addition to the aliases, so that files load in tespy 0.12
-    _forward_renames = {}
-    # SI units of characteristic data with dimensioned axes, declared in files
-    # because tespy 0.12 reads undeclared data in the network's units
-    _characteristic_units = {}
     _is_wrapper_branch_source = False
 
     @classmethod
@@ -124,36 +117,6 @@ class Component:
         for klass in reversed(cls.__mro__):
             aliases.update(klass.__dict__.get("_parameter_aliases", {}))
         return aliases
-
-    @classmethod
-    def _get_forward_renames(cls):
-        renames = {}
-        for klass in reversed(cls.__mro__):
-            renames.update(klass.__dict__.get("_parameter_aliases", {}))
-            renames.update(klass.__dict__.get("_forward_renames", {}))
-        return renames
-
-    def _forward_compatible(self, data):
-        """Write the data of deprecated parameters under the name of their
-        successor and translate the design and offdesign lists, so that the
-        file loads in tespy 0.12, where the deprecated names are removed."""
-        renames = self._get_forward_renames()
-        for old, new in renames.items():
-            if old not in data:
-                continue
-            legacy = data.pop(old)
-            if _is_specified(legacy) and not _is_specified(data.get(new)):
-                data[new] = legacy
-        for key in ("design", "offdesign"):
-            if key in data:
-                data[key] = list(dict.fromkeys(
-                    renames.get(name, name) for name in data[key]
-                ))
-        for key, axis_units in self._characteristic_units.items():
-            char_func = data.get(key, {}).get("char_func")
-            if char_func is not None:
-                char_func.update(axis_units)
-        return data
 
     def __init__(self, label, **kwargs):
 
@@ -378,7 +341,7 @@ class Component:
             data = self.get_attr(k)
             export.update({k: data._serialize(units)})
 
-        return {self.label: self._forward_compatible(export)}
+        return {self.label: export}
 
     @staticmethod
     def _serializable():

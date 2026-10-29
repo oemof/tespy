@@ -1509,7 +1509,7 @@ class TestParameterAliases:
         assert not self.he.kA.is_set
         data = self.he._serialize()[self.he.label]
         assert data["UA"]["is_set"]
-        assert not data["kA"]["is_set"]
+        assert "kA" not in data
 
     def test_subclass_inherits_parent_aliases(self):
         """Aliases of the parent class remain active on subclasses defining own aliases."""

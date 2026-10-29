@@ -469,6 +469,16 @@ class SimpleHeatExchanger(Component):
     def heatoutlets():
         return ['heat']
 
+    def _forward_compatible(self, data):
+        if getattr(self, "power_inl", []) or getattr(self, "power_outl", []):
+            warnings.warn(
+                f"Component {self.label} is connected via PowerConnection. "
+                "Files with this connection cannot be loaded with tespy 0.12, "
+                "connect a HeatConnection instead before saving.",
+                FutureWarning, stacklevel=2
+            )
+        return super()._forward_compatible(data)
+
     def _validate_connections(self):
         super()._validate_connections()
         all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl

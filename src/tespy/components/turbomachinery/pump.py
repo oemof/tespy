@@ -401,6 +401,13 @@ class Pump(Turbomachine):
 
         return super()._preprocess(row_idx)
 
+
+    _characteristic_units = {
+        "flow_char": {"x_unit": "m3/s", "y_unit": "Pa"},
+        "eta_flow_map": {"x_unit": "1/s", "y_unit": "m3/s"},
+        "head_flow_map": {"x_unit": "1/s", "y_unit": "m3/s", "z_unit": "m"},
+    }
+
     def get_parameters(self):
         parameters = super().get_parameters()
         parameters["P"].min_val = 0

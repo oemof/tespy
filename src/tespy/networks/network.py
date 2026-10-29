@@ -3561,7 +3561,7 @@ class Network:
         return components
 
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 
 _FILE_KINDS = {
     "network": (
@@ -3730,6 +3730,10 @@ def _construct_components(target_class, data):
                 continue
             if isinstance(container, dc):
                 if "char_func" in param_data:
+                    # 0.11 characteristic data are SI data, the declaration of
+                    # their units is meant for tespy 0.12
+                    for axis in ("x_unit", "y_unit", "z_unit"):
+                        param_data["char_func"].pop(axis, None)
                     if isinstance(container, dc_cc):
                         param_data["char_func"] = CharLine(**param_data["char_func"])
                     elif isinstance(container, dc_cm):

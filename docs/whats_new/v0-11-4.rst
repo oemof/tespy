@@ -1,0 +1,11 @@
+v0.11.4 - Under development
++++++++++++++++++++++++++++
+
+Other Changes
+#############
+- This is a compatibility realease to make exported networks fully compatible
+  with the upcoming v0.12 release.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

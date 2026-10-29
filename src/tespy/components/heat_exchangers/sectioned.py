@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 from scipy.optimize import brentq
 
+from tespy.components.component import _is_specified
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
@@ -631,6 +632,51 @@ class SectionedHeatExchanger(HeatExchanger):
         'zeta1': 'zeta1_d4',
         'zeta2': 'zeta2_d4',
     }
+
+    def _forward_compatible(self, data):
+        # tespy 0.12 removes the refrigerant and secondary fluid convention,
+        # UA_cecchinato_hc carries the specification in the hot and cold side
+        # convention, which both versions read
+        data = super()._forward_compatible(data)
+        legacy = {
+            key: data.pop(key)
+            for key in ("re_exp_r", "re_exp_sf", "refrigerant_index")
+            if key in data
+        }
+        # the activity of the groups is derived from their elements, tespy
+        # 0.12 knows the hot and cold side group as UA_cecchinato only
+        data.pop("UA_cecchinato", None)
+        data.pop("UA_cecchinato_hc", None)
+        for key in ("design", "offdesign"):
+            if key in data:
+                data[key] = list(dict.fromkeys(
+                    "UA_cecchinato_hc" if name == "UA_cecchinato" else name
+                    for name in data[key]
+                ))
+        uses_legacy = (
+            _is_specified(legacy.get("re_exp_r"))
+            or _is_specified(legacy.get("re_exp_sf"))
+        )
+        uses_hot_cold = (
+            _is_specified(data.get("re_exp_hot"))
+            or _is_specified(data.get("re_exp_cold"))
+        )
+        if not uses_legacy or uses_hot_cold:
+            return data
+
+        refrigerant_hot = legacy.get("refrigerant_index", {}).get("val", 0) == 0
+        hot, cold = ("re_exp_r", "re_exp_sf") if refrigerant_hot else ("re_exp_sf", "re_exp_r")
+        for new, old in (("re_exp_hot", hot), ("re_exp_cold", cold)):
+            if _is_specified(legacy.get(old)):
+                data[new] = legacy[old]
+        if not refrigerant_hot:
+            # the legacy ratios are secondary fluid to refrigerant, which is
+            # hot to cold with the refrigerant on the cold side
+            for ratio in ("alpha_ratio", "area_ratio"):
+                entry = data.get(ratio)
+                if _is_specified(entry) and entry.get("val"):
+                    data[ratio] = {**entry, "val": 1 / entry["val"]}
+        return data
 
     def set_attr(self, **kwargs):
         for old, msg in [

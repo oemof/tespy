@@ -226,6 +226,7 @@ class Valve(Component):
     """
 
     _parameter_aliases = {'zeta': 'zeta_d4'}
+    _characteristic_units = {"dp_char": {"x_unit": "kg/s", "y_unit": "Pa"}}
 
     def _initial_affine_edges(self):
         return [

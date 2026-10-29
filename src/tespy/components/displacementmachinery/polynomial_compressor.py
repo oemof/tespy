@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from tespy.components.component import _is_specified
 from tespy.components.component import component_registry
 from tespy.components.displacementmachinery.base import DisplacementMachine
 from tespy.tools import logger
@@ -350,6 +351,32 @@ class PolynomialCompressor(DisplacementMachine):
     As final remarks: You can also set fixed isentropic and fixed volumetric
     efficiencies for these components.
     """
+
+    def _forward_compatible(self, data):
+        # tespy 0.12 removes rpm, the frequency takes its specification
+        data = super()._forward_compatible(data)
+        rpm = data.pop("rpm", None)
+        for group in ("eta_vol_group_rpm", "eta_vol_poly_group_rpm"):
+            data.pop(group, None)
+        if _is_specified(rpm) and not _is_specified(data.get("frequency")):
+            data["frequency"] = {**rpm, "val": rpm["val"] / 60, "unit": "1/s"}
+        for key in ("design", "offdesign"):
+            if key in data:
+                data[key] = list(dict.fromkeys(
+                    "frequency" if name == "rpm" else name for name in data[key]
+                ))
+        return data
+
+    def collect_results(self):
+        result = super().collect_results()
+        # files written with rpm specified hold the frequency as design value
+        # for tespy 0.12, where rpm is removed
+        uses_rpm = self.rpm.is_set or self.rpm.is_var
+        uses_frequency = self.frequency.is_set or self.frequency.is_var
+        if uses_rpm and not uses_frequency:
+            result["frequency"] = self.rpm.val_SI / 60
+            result["frequency_unit"] = "1/s"
+        return result
 
     def _preprocess(self, row_idx):
         if not self.dissipation_ratio.is_set:

@@ -24,7 +24,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Set up uv and Python ${{ matrix.python-version }}
-      uses: astral-sh/setup-uv@v10.2.0
+      uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Create packages

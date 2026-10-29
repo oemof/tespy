@@ -16,6 +16,19 @@ specifically for tespy or using it in the context of the topic.
 .. grid:: 1 2 3 3
     :gutter: 1
 
+    .. grid-item-card::  TESPy workshop at the KCORC Summer School 2026
+        :link: https://github.com/fwitte/KCORC_summer_school/tree/main/tespy#tespy-workshop-at-the-kcorc-summer-school-2026
+
+        .. image:: /_static/images/thumbnails/educational/kcorc.png
+            :class: only-light
+
+        .. image:: /_static/images/thumbnails/educational/kcorc_darkmode.png
+            :class: only-dark
+
+        The repository contains slides on the numerical back-end of TESPy and
+        in total six different tasks which were worked on by the participants
+        of the summer school in small groups.
+
     .. grid-item-card::  Model thermodynamic systems with tespy
         :link: https://github.com/IljaTuschy/tespy-znes-course/
 

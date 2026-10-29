@@ -22,7 +22,6 @@ from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
-from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
 from tespy.tools.fluid_properties import single_fluid
 from tespy.tools.fluid_properties import v_mix_ph

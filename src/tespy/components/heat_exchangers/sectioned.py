@@ -10,8 +10,6 @@ tespy/components/heat_exchangers/sectioned.py
 
 SPDX-License-Identifier: MIT
 """
-import warnings
-
 import numpy as np
 from scipy.optimize import brentq
 

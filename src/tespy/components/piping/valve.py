@@ -223,7 +223,6 @@ class Valve(Component):
     5.2
     """
 
-
     def _initial_affine_edges(self):
         return [
             (self.inl[0].p, self.outl[0].p, 0.5, 0.0),

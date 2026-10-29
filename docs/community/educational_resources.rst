@@ -19,10 +19,10 @@ specifically for tespy or using it in the context of the topic.
     .. grid-item-card::  TESPy workshop at the KCORC Summer School 2026
         :link: https://github.com/fwitte/KCORC_summer_school/tree/main/tespy#tespy-workshop-at-the-kcorc-summer-school-2026
 
-        .. image:: /_static/images/thumbnails/educational/kcorc.svg
+        .. image:: /_static/images/thumbnails/educational/kcorc.png
             :class: only-light
 
-        .. image:: /_static/images/thumbnails/educational/kcorc_darkmode.svg
+        .. image:: /_static/images/thumbnails/educational/kcorc_darkmode.png
             :class: only-dark
 
         The repository contains slides on the numerical back-end of TESPy and

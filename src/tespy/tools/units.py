@@ -49,6 +49,21 @@ _SI_DEFAULTS = {
 }
 
 
+def _expand_unit_shorthands(string):
+    # defining e.g. "m3" as a unit makes pint prefix the alias as a whole,
+    # i.e. "cm3" would be 0.01 m**3
+    return (
+        string.replace("m3", "m**3")
+        .replace("m2", "m**2")
+        .replace("kgK", "(kg*K)")
+    )
+
+
+def _add_preprocessor(ureg):
+    if _expand_unit_shorthands not in ureg.preprocessors:
+        ureg.preprocessors.append(_expand_unit_shorthands)
+
+
 def _create_registry():
     # necessary, because pint cannot auto detect environment changes and
     # pint version changes
@@ -67,9 +82,7 @@ def _create_registry():
         # the cache
         shutil.rmtree(path)
         ureg = pint.UnitRegistry(cache_folder=path)
-    ureg.define("m3 = m ** 3")
-    ureg.define("m2 = m ** 2")
-    ureg.define("kgK = kg * K")
+    _add_preprocessor(ureg)
     return ureg
 
 
@@ -289,9 +302,7 @@ class Units:
             Change the pint.UnitRegistry to a custom one
         """
         self._ureg = ureg
-        self.ureg.define("m3 = m ** 3")
-        self.ureg.define("m2 = m ** 2")
-        self.ureg.define("kgK = kg * K")
+        _add_preprocessor(ureg)
         # cached objects belong to the replaced registry
         self._conversions = {}
         self._parsed_units = {}

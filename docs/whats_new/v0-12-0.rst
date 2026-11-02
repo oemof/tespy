@@ -160,6 +160,10 @@ The behaviours announced for removal in version 0.12 are gone:
 Other Changes
 #############
 
+- All characteristics in use are checked against the range of their data
+  after convergence. Outside the range the status of the calculation is 1,
+  unless the characteristic extrapolates
+  (`PR #1107 <https://github.com/oemof/tespy/pull/1107>`__).
 - Components can declare the role of their ports in
   :py:meth:`~tespy.components.component.Component.port_descriptions`, e.g. the
   hot and cold side of a heat exchanger or the fuel, air and cooling water

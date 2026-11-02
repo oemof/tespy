@@ -125,7 +125,8 @@ Documentation
 
 - A new how-to notebook compares fixed-efficiency, characteristic-line and
   map-based compressor models, and demonstrates displacement-compressor
-  polynomials with and without a cooling circuit
+  polynomials with and without a cooling circuit. Physical-system schematics
+  explain the component boundaries, governing relations and assumptions
   (`issue #806 <https://github.com/oemof/tespy/issues/806>`__).
 
 Contributors

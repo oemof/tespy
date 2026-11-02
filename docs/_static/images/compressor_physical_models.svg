@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1050" viewBox="0 0 1200 1050" role="img" aria-labelledby="title description">
+  <title id="title">Physical compressor systems and their TESPy model boundaries</title>
+  <desc id="description">Three illustrative systems. An axial gas-turbine compressor has alternating rotor and stator rows. A refrigerant displacement compressor sits between an evaporator and condenser. A cooled displacement compressor transfers a specified share of dissipated heat into a separate coolant stream. Dashed boundaries denote the single TESPy compressor component, not the surrounding system.</desc>
+  <defs>
+    <marker id="flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#176b89"/></marker>
+    <marker id="heat" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#ac4a16"/></marker>
+    <style>
+      text {font-family:Arial,sans-serif;fill:#182e3a;font-size:20px}
+      .heading {font-size:25px;font-weight:bold}
+      .small {font-size:18px}
+      .context {fill:#edf1f3;stroke:#798b96;stroke-width:2}
+      .boundary {fill:#f5fbfd;stroke:#176b89;stroke-width:2;stroke-dasharray:9 6}
+      .fluid {fill:none;stroke:#176b89;stroke-width:3;marker-end:url(#flow)}
+      .heat {fill:none;stroke:#ac4a16;stroke-width:3;marker-end:url(#heat)}
+    </style>
+  </defs>
+  <rect width="1200" height="1050" rx="12" fill="white"/>
+  <text x="35" y="38" class="heading">Physical systems → one component represents an aggregate machine</text>
+  <text x="35" y="68" class="small">Illustrations are examples, not geometry used by the solver. Dashed outline = TESPy component.</text>
+
+  <text x="35" y="115" class="heading">A · Dynamic compression: an axial compressor in a gas turbine</text>
+  <rect x="205" y="140" width="465" height="155" rx="12" class="boundary"/>
+  <path d="M40 210H200" class="fluid"/>
+  <text x="47" y="190">Air · in1</text>
+  <path d="M675 210H750" class="fluid"/>
+  <text x="680" y="190" class="small">out1</text>
+  <rect x="755" y="175" width="175" height="75" rx="8" class="context"/>
+  <text x="774" y="218">Combustor</text>
+  <path d="M935 210H975" class="fluid"/>
+  <rect x="980" y="175" width="175" height="75" rx="8" class="context"/>
+  <text x="1022" y="218">Turbine</text>
+  <path d="M250 218H625" stroke="#6f7e86" stroke-width="10"/>
+  <path d="M286 213 300 158 313 213 300 268Z M406 213 420 158 433 213 420 268Z M526 213 540 158 553 213 540 268Z" fill="#176b89"/>
+  <path d="M339 145 360 145 345 197 327 197Z M339 290 360 290 345 239 327 239Z M459 145 480 145 465 197 447 197Z M459 290 480 290 465 239 447 239Z" fill="#9daeb7"/>
+  <text x="235" y="326" class="small">Rotors add work; stators guide and diffuse the flow.</text>
+  <text x="35" y="356" class="small">Compressor: overall efficiency. TurboCompressor: overall pressure-ratio / efficiency maps.</text>
+
+  <text x="35" y="411" class="heading">B · Positive displacement: a compressor in a refrigeration / heat-pump loop</text>
+  <rect x="65" y="463" width="200" height="75" rx="8" class="context"/>
+  <text x="103" y="506">Evaporator</text>
+  <path d="M270 500H390" class="fluid"/>
+  <text x="280" y="475" class="small">Vapour · in1</text>
+  <rect x="400" y="445" width="410" height="115" rx="12" class="boundary"/>
+  <rect x="427" y="478" width="90" height="50" rx="12" fill="#badfe9" stroke="#176b89" stroke-width="2"/>
+  <rect x="558" y="486" width="65" height="42" rx="10" fill="#83bbce" stroke="#176b89" stroke-width="2"/>
+  <rect x="664" y="494" width="42" height="34" rx="8" fill="#5297b1" stroke="#176b89" stroke-width="2"/>
+  <path d="M525 504H549 M631 504H655 M718 504H785" class="fluid"/>
+  <path d="M815 500H930" class="fluid"/>
+  <text x="830" y="478" class="small">out1</text>
+  <rect x="940" y="463" width="200" height="75" rx="8" class="context"/>
+  <text x="979" y="506">Condenser</text>
+  <path d="M1040 543V615H700" class="fluid"/>
+  <rect x="470" y="582" width="225" height="65" rx="8" class="context"/>
+  <text x="491" y="622">Expansion valve</text>
+  <path d="M465 615H165V543" class="fluid"/>
+  <text x="390" y="679" class="small">Trapped gas volumes shrink (principle only, not rotor geometry).</text>
+  <text x="35" y="713" class="small">PolynomialCompressor: fitted efficiencies + swept volume × frequency → refrigerant flow.</text>
+
+  <text x="35" y="768" class="heading">C · Recovering compressor losses into a separate cooling circuit</text>
+  <rect x="390" y="800" width="420" height="175" rx="12" class="boundary"/>
+  <text x="421" y="837">Displacement compressor</text>
+  <path d="M75 863H385 M815 863H1125" class="fluid"/>
+  <text x="90" y="842" class="small">Refrigerant · in1</text>
+  <text x="965" y="842" class="small">out1</text>
+  <path d="M600 875V925" class="heat"/>
+  <text x="630" y="906" class="small">Recovered heat</text>
+  <path d="M75 947H1125" class="fluid"/>
+  <text x="90" y="929" class="small">Cooling water · in2</text>
+  <text x="965" y="929" class="small">out2</text>
+  <text x="35" y="1010" class="small">PolynomialCompressorWithCooling: lumped heat recovery; no internal oil circuit or cooler geometry.</text>
+  <text x="35" y="1037" class="small">Power enters all machines; in C, any unrecovered heat is outside the two modeled streams.</text>
+</svg>

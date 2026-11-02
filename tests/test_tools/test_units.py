@@ -48,6 +48,19 @@ def test_units_set_ureg():
     assert units.ureg is ureg_custom
 
 
+def test_units_exponent_shorthand_with_prefix():
+    units = Units()
+    for ureg in [units.ureg, UnitRegistry()]:
+        units.set_ureg(ureg)
+        Q = units.ureg.Quantity
+        assert Q(1, "cm3").to("m**3").magnitude == approx(1e-6)
+        assert Q(1, "dm3").to("m**3").magnitude == approx(1e-3)
+        assert Q(1, "mm2").to("m**2").magnitude == approx(1e-6)
+        assert Q(1, "km2").to("m**2").magnitude == approx(1e6)
+        assert Q(1, "kJ/kgK").to("J/kg/K").magnitude == approx(1e3)
+        assert Q(1, "eps0").to_base_units().magnitude == approx(8.854e-12, rel=1e-3)
+
+
 @fixture
 def pipe_network():
     """Return (nw, c_in, c_out, pipe) for a Source->SimpleHeatExchanger->Sink."""

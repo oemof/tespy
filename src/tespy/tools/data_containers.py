@@ -1418,9 +1418,24 @@ class CharacteristicData(DataContainer):
             self.char_func.evaluate(*self._inputs_to_data(inputs))
         )
 
-    def check_domain(self, *inputs, label=None):
-        """Log warnings if the SI inputs leave the range of the data."""
-        self.char_func.get_domain_errors(*self._inputs_to_data(inputs), label)
+    def domain_violations(self, *inputs):
+        """Violations of the range of the data at SI inputs, as
+        :py:class:`tespy.tools.characteristics.DomainViolation` entries with
+        values in the units of the data."""
+        return self.char_func.domain_violations(*self._inputs_to_data(inputs))
+
+    @property
+    def extrapolate(self):
+        """Does the characteristic extrapolate outside the range of its data?
+        Characteristics without the option evaluate at the boundary."""
+        return bool(getattr(self.char_func, "extrapolate", False))
+
+    def input_unit(self, index=0):
+        """Unit of the data on an input axis, :code:`None` for a
+        dimensionless axis."""
+        axes, _ = self._axis_units()
+        axis = axes[index]
+        return None if axis is None else axis[1]
 
     def evaluate_x(self, x):
         """First step of a two step map evaluation at SI input, returns the
@@ -1436,17 +1451,6 @@ class CharacteristicData(DataContainer):
             self._input_to_data(1, yarr),
             self._output_to_data(zarr)
         ))
-
-    def check_domain_x(self, x, label=None):
-        yarr = self.char_func.get_domain_errors_x(
-            self._input_to_data(0, x), label
-        )
-        return self._input_to_SI(1, yarr)
-
-    def check_domain_y(self, y, yarr, label=None):
-        self.char_func.get_domain_errors_y(
-            self._input_to_data(1, y), self._input_to_data(1, yarr), label
-        )
 
     def input_bounds(self, index=0):
         """Lower and upper bound of the data on an input axis in SI units,

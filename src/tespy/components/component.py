@@ -25,6 +25,7 @@ from tespy.tools.characteristics import CharMap
 from tespy.tools.characteristics import load_default_char as ldc
 from tespy.tools.data_containers import ArrayParameter
 from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import CharacteristicEquation
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.data_containers import OptionalEquation
@@ -1208,15 +1209,21 @@ class Component:
         return _converged, _specifications_matched
 
     def check_parameter_bounds(self):
-        r"""Check parameter value limits.
+        r"""Check parameter value limits and the range of the characteristics.
 
-        The check is relative to the magnitude of the parameter itself or -
-        where a value is small by construction, e.g. a heat loss compared to
-        the thermal input - to the magnitude of the parameter named in
-        :code:`limit_scale`. A value beyond a bound by less than
-        :code:`LIMIT_RTOL` times that scale is numerical noise of the
+        The check of a scalar parameter is relative to the magnitude of the
+        parameter itself or - where a value is small by construction, e.g. a
+        heat loss compared to the thermal input - to the magnitude of the
+        parameter named in :code:`limit_scale`. A value beyond a bound by less
+        than :code:`LIMIT_RTOL` times that scale is numerical noise of the
         converged solution: it is snapped onto the bound instead of being
         reported as a violation.
+
+        Every characteristic in use is checked at the inputs of its equation,
+        see :py:meth:`get_char_inputs`. An operating point outside the range
+        of the data is a violation, unless the characteristic extrapolates: it
+        then only logs a warning, the physical limits of the resulting
+        parameters are checked separately.
         """
         _no_limit_violated = True
         for p in self.parameters.keys():
@@ -1252,25 +1259,76 @@ class Component:
                 elif data.val_SI < data.min_val:
                     data.val_SI = data.min_val
 
-            elif isinstance(data, CharacteristicData) and data.is_set:
-                if data.param is not None:
-                    expr = self.get_char_expr(data.param, **data.char_params)
-                    data.check_domain(expr, label=self.label)
-
-            elif (
-                isinstance(data, OptionalEquation) and data.is_set
-                and not isinstance(data, ParameterGroup)
-            ):
-                for char in data.elements:
-                    char_data = self.get_attr(char)
-                    if getattr(char_data, "param", None) is None:
-                        continue
-                    expr = self.get_char_expr(
-                        char_data.param, **char_data.char_params
-                    )
-                    char_data.check_domain(expr, label=self.label)
+        for key in self.characteristics_in_use():
+            data = self.get_attr(key)
+            inputs = self.get_char_inputs(key)
+            if inputs is None:
+                continue
+            for violation in data.domain_violations(*inputs):
+                index = data.axes.index(violation.axis) if data.axes else 0
+                msg = violation.message(key, self.label, data.input_unit(index))
+                if data.extrapolate:
+                    msg += " The characteristic is extrapolated."
+                else:
+                    msg += " The characteristic is evaluated at that bound."
+                    _no_limit_violated = False
+                logger.warning(msg)
 
         return _no_limit_violated
+
+    def characteristics_in_use(self):
+        r"""Names of the characteristic parameters an active equation reads.
+
+        A :py:class:`~tespy.tools.data_containers.CharacteristicEquation` is
+        in use when it is set, a
+        :py:class:`~tespy.tools.data_containers.CharacteristicData` when it is
+        an element of an active optional equation or of a mandatory
+        constraint.
+
+        Returns
+        -------
+        list
+            Parameter names in the order of the parameters.
+        """
+        keys = {}
+        equations = dict(self.parameters)
+        equations.update(getattr(self, "constraints", {}))
+        for key, data in equations.items():
+            if isinstance(data, CharacteristicEquation):
+                if data.is_set:
+                    keys[key] = None
+            elif isinstance(data, (OptionalEquation, MandatoryConstraint)):
+                if isinstance(data, OptionalEquation) and not data.is_set:
+                    continue
+                for element in data.elements:
+                    if isinstance(self.get_attr(element), CharacteristicData):
+                        keys[element] = None
+        return list(keys)
+
+    def get_char_inputs(self, key):
+        r"""Inputs of a characteristic at the current state of the component.
+
+        The equation of the characteristic evaluates it at these inputs, the
+        range check after convergence tests them against the data. The base
+        implementation covers characteristics with a :code:`param`, see
+        :py:meth:`get_char_expr`. Components override this method for
+        characteristics with other inputs.
+
+        Parameters
+        ----------
+        key : str
+            Name of the characteristic parameter.
+
+        Returns
+        -------
+        tuple
+            SI inputs, one per input axis, :code:`None` if the inputs of the
+            characteristic are not known to the component.
+        """
+        data = self.get_attr(key)
+        if data.param is None:
+            return None
+        return (self.get_char_expr(data.param, **data.char_params),)
 
     def convergence_check(self):
         return

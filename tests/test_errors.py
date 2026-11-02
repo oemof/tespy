@@ -478,7 +478,7 @@ def test_CharLine_below_range_reports_minimum(caplog):
     with caplog.at_level(logging.WARNING, logger="TESPyLogger"):
         char.get_domain_errors(0.2, "test")
 
-    assert any("minimum of 0.5" in msg for msg in caplog.messages)
+    assert any("below minimum value (0.5)" in msg for msg in caplog.messages)
 
 
 def test_CharLine_get_attr_error_message():

@@ -15,11 +15,54 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
+from typing import NamedTuple
 
 import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
+from tespy.tools.global_vars import LIMIT_RTOL
+
+
+class DomainViolation(NamedTuple):
+    """An input of a characteristic outside the range of its data.
+
+    :code:`axis` names the input axis, :code:`value` is the input, :code:`bound`
+    the violated bound of the data, :code:`side` is :code:`"above"` or
+    :code:`"below"`, all in the units of the data.
+    """
+    axis: str
+    value: float
+    bound: float
+    side: str
+
+    def message(self, name, label, unit=None):
+        """Describe the violation of characteristic :code:`name` at component
+        :code:`label`."""
+        unit = f" {unit}" if unit else ""
+        bound_type = "maximum" if self.side == "above" else "minimum"
+        return (
+            f"Operating point outside the range of characteristic {name}: "
+            f"{self.axis} = {self.value:.6g}{unit} {self.side} {bound_type} "
+            f"value ({self.bound:.6g}{unit}) at component {label}."
+        )
+
+
+def _axis_violation(axis, value, lower, upper, rtol):
+    """Violation of the interval of an axis, :code:`None` inside it. A value
+    beyond a bound by less than :code:`rtol` relative to its magnitude counts
+    as inside."""
+    tolerance = rtol * max(abs(value), 1.0)
+    if value > upper + tolerance:
+        return DomainViolation(axis, float(value), float(upper), "above")
+    if value < lower - tolerance:
+        return DomainViolation(axis, float(value), float(lower), "below")
+    return None
+
+
+def _log_domain_violations(violations, name, label):
+    for violation in violations:
+        logger.warning(violation.message(name, label))
 
 
 def _magnitude_and_unit(values):
@@ -150,27 +193,39 @@ class CharLine:
         yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
         return float(self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1]))
 
-    def get_domain_errors(self, x, c):
+    def domain_violations(self, x, rtol=LIMIT_RTOL):
         r"""
-        Prompt error messages, if x value is out of bounds.
+        Check the input against the range of the x-values.
 
         Parameters
         ----------
         x : float
             Input value for linear interpolation.
+
+        rtol : float
+            Relative tolerance of the check.
+
+        Returns
+        -------
+        list
+            :py:class:`DomainViolation` entries, empty inside the range.
         """
-        if x > self.x[-1]:
-            msg = (
-                "Operating point above characteristic line range: X="
-                f"{round(x, 3)} with maximum of {self.x[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif x < self.x[0]:
-            msg = (
-                "Operating point below characteristic line range: X="
-                f"{round(x, 3)} with minimum of {self.x[0]} at component {c}."
-            )
-            logger.warning(msg)
+        violation = _axis_violation("x", x, self.x[0], self.x[-1], rtol)
+        return [] if violation is None else [violation]
+
+    def get_domain_errors(self, x, c):
+        r"""
+        Log a warning, if the x value is out of bounds.
+
+        Parameters
+        ----------
+        x : float
+            Input value for linear interpolation.
+
+        c : str
+            Label of the component the characteristic is applied on.
+        """
+        _log_domain_violations(self.domain_violations(x), "CharLine", c)
 
     def get_attr(self, key):
         r"""
@@ -413,9 +468,51 @@ class CharMap:
         """
         return float(self.evaluate_y(y, *self.evaluate_x(x)))
 
+    def _y_row_at(self, x):
+        """Second dimension input array at x, the boundary row outside the
+        range of the x-values."""
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x):
+            return self.y[-1]
+        if xpos == 0:
+            return self.y[0]
+        yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+        return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+
+    def domain_violations(self, x, y, rtol=LIMIT_RTOL):
+        r"""
+        Check the inputs against the range of the map.
+
+        The first dimension is checked against the x-values, the second
+        against the y-values interpolated at x; outside the x-values the
+        y-values of the nearest boundary row apply.
+
+        Parameters
+        ----------
+        x : float
+            Input for first dimension of CharMap.
+
+        y : float
+            Input for second dimension of CharMap.
+
+        rtol : float
+            Relative tolerance of the check.
+
+        Returns
+        -------
+        list
+            :py:class:`DomainViolation` entries, empty inside the range.
+        """
+        yarr = self._y_row_at(x)
+        violations = [
+            _axis_violation("x", x, self.x[0], self.x[-1], rtol),
+            _axis_violation("y", y, yarr[0], yarr[-1], rtol),
+        ]
+        return [v for v in violations if v is not None]
+
     def get_domain_errors_x(self, x, c):
         r"""
-        Prompt error message, if operation is out bounds in first dimension.
+        Log a warning, if operation is out bounds in first dimension.
 
         Parameters
         ----------
@@ -431,30 +528,13 @@ class CharMap:
             Second dimension input array of CharMap calculated from first
             dimension input.
         """
-        xpos = np.searchsorted(self.x, x)
-        if xpos == len(self.x) and x != self.x[-1]:
-            yarr = self.y[xpos - 1]
-            msg = (
-                f"Operating point above CharMap range: X={round(x, 3)} with "
-                "maximum of {self.x[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif xpos == 0 and x != self.x[0]:
-            yarr = self.y[0]
-            msg = (
-                f"Operating point below CharMap range: X={round(x, 3)} with "
-                f"minimum of {self.x[0]} at component {c}."
-            )
-            logger.warning(msg)
-        else:
-            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-
-        return yarr
+        violation = _axis_violation("x", x, self.x[0], self.x[-1], LIMIT_RTOL)
+        _log_domain_violations([] if violation is None else [violation], "CharMap", c)
+        return self._y_row_at(x)
 
     def get_domain_errors_y(self, y, yarr, c):
         r"""
-        Prompt error message, if operation is out bounds in second dimension.
+        Log a warning, if operation is out bounds in second dimension.
 
         Parameters
         ----------
@@ -468,23 +548,12 @@ class CharMap:
         c : str
             Label of the component, the CharMap is applied on.
         """
-        ypos = np.searchsorted(yarr, y)
-        if ypos == len(yarr) and y != yarr[-1]:
-            msg = (
-                f"Operating point above compressor map range: Y={round(y, 3)} "
-                f"with maximum of {yarr[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif ypos == 0 and y != yarr[0]:
-            msg = (
-                f"Operating point below compressor map range: Y={round(y, 3)} "
-                f"with minimum of {yarr[0]} at component {c}."
-            )
-            logger.warning(msg)
+        violation = _axis_violation("y", y, yarr[0], yarr[-1], LIMIT_RTOL)
+        _log_domain_violations([] if violation is None else [violation], "CharMap", c)
 
     def get_domain_errors(self, x, y, c):
         r"""
-        Check the CharMap for bound violations.
+        Log warnings for bound violations of the CharMap.
 
         Parameters
         ----------
@@ -493,9 +562,11 @@ class CharMap:
 
         y : float
             Input for second dimension of CharMap.
+
+        c : str
+            Label of the component, the CharMap is applied on.
         """
-        yarr = self.get_domain_errors_x(x, c)
-        self.get_domain_errors_y(y, yarr, c)
+        _log_domain_violations(self.domain_violations(x, y), "CharMap", c)
 
     def get_attr(self, key):
         r"""
@@ -636,6 +707,10 @@ class Polynomial:
         x = np.asarray(inputs, dtype=float)
         terms = np.prod(np.power(x, self.exponents), axis=1)
         return float(np.dot(self.coefficients, terms))
+
+    def domain_violations(self, *inputs, rtol=LIMIT_RTOL):
+        """A polynomial has no range of its data, nothing is ever violated."""
+        return []
 
     def get_domain_errors(self, *args):
         return

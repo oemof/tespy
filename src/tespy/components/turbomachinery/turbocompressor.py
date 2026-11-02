@@ -249,10 +249,8 @@ class TurboCompressor(Compressor):
         i = self.inl[0]
         o = self.outl[0]
 
-        beta = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * beta)
-
-        yarr, zarr = self.char_map_pr.evaluate_x(beta)
+        x, y = self._char_map_inputs()
+        yarr, zarr = self.char_map_pr.evaluate_x(x)
         # value manipulation with igva
         yarr *= (1 - self.igva.val_SI / 100)
         zarr *= (1 - self.igva.val_SI / 100)
@@ -289,9 +287,7 @@ class TurboCompressor(Compressor):
         i = self.inl[0]
         o = self.outl[0]
 
-        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
-        y = (i.m.val_SI * self._conn_design(i, 'p')) / (self._conn_design(i, 'm') * i.p.val_SI * x)
-
+        x, y = self._char_map_inputs()
         yarr, zarr = self.char_map_eta_s.evaluate_x(x)
         # value manipulation with igva
         yarr *= (1 - self.igva.val_SI / 100)
@@ -322,19 +318,28 @@ class TurboCompressor(Compressor):
             self.igva
         ]
 
-    def check_parameter_bounds(self):
-        r"""Check parameter value limits."""
-        _no_limit_violations = super().check_parameter_bounds()
+    def _char_map_inputs(self):
+        r"""Speedline index and nondimensional mass flow at the inlet state.
 
-        for data in [self.char_map_pr, self.char_map_eta_s]:
-            if data.is_set:
-                x = np.sqrt(self._conn_design(self.inl[0], 'T') / self.inl[0].T.val_SI)
-                y = (
-                    (self.inl[0].m.val_SI * self._conn_design(self.inl[0], 'p'))
-                    / (self._conn_design(self.inl[0], 'm') * self.inl[0].p.val_SI * x)
-                )
-                yarr = data.check_domain_x(x, self.label)
-                yarr *= (1 - self.igva.val_SI / 100)
-                data.check_domain_y(y, yarr, self.label)
+        .. math::
 
-        return _no_limit_violations
+            X = \sqrt{\frac{T_\text{in,design}}{T_\text{in}}}\\
+            Y = \frac{\dot{m}_\text{in} \cdot p_\text{in,design}}
+            {\dot{m}_\text{in,design} \cdot p_\text{in} \cdot X}
+        """
+        i = self.inl[0]
+        x = np.sqrt(self._conn_design(i, 'T') / i.calc_T())
+        y = (
+            (i.m.val_SI * self._conn_design(i, 'p'))
+            / (self._conn_design(i, 'm') * i.p.val_SI * x)
+        )
+        return x, y
+
+    def get_char_inputs(self, key):
+        r"""Map inputs; the inlet guide vane angle scales the mass flow axis of
+        the map, so the nondimensional mass flow is referred to the unscaled
+        data."""
+        if key in ("char_map_pr", "char_map_eta_s"):
+            x, y = self._char_map_inputs()
+            return x, y / (1 - self.igva.val_SI / 100)
+        return super().get_char_inputs(key)

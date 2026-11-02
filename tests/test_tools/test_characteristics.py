@@ -178,3 +178,37 @@ def test_CharMap_evaluate_at_nan_for_y(sample_map_data):
     y = np.nan
     with raises(ValueError):
         map.evaluate(1, y)
+
+
+def test_CharLine_domain_violations(sample_line_data):
+    line = CharLine(**sample_line_data)
+    lower, upper = line.input_bounds(0)
+    assert line.domain_violations(0.5 * (lower + upper)) == []
+    assert line.domain_violations(upper + 1e-9) == []
+    above, = line.domain_violations(upper + 1)
+    assert (above.axis, above.value, above.bound, above.side) == ("x", upper + 1, upper, "above")
+    below, = line.domain_violations(lower - 1)
+    assert (below.bound, below.side) == (lower, "below")
+    assert "x = " in above.message("my_char", "my component")
+    assert "above maximum value" in above.message("my_char", "my component")
+    assert "at component my component" in above.message("my_char", "my component")
+
+
+def test_CharMap_domain_violations(sample_map_data):
+    map = CharMap(**sample_map_data)
+    assert map.domain_violations(2, 3) == []
+    # y range is interpolated at x: between the rows [2, 3, 4] and [3, 4, 5]
+    assert map.domain_violations(2.5, 2.5) == []
+    below, = map.domain_violations(2.5, 2)
+    assert (below.axis, below.bound, below.side) == ("y", 2.5, "below")
+    # outside the x range the boundary row applies to the y check
+    violations = map.domain_violations(4, 6)
+    assert [(v.axis, v.side) for v in violations] == [("x", "above"), ("y", "above")]
+    assert violations[0].bound == 3
+    assert violations[1].bound == 5
+
+
+def test_Polynomial_has_no_domain():
+    from tespy.tools.characteristics import EN12900Polynomial
+    poly = EN12900Polynomial(coefficients=[1] + [0] * 9)
+    assert poly.domain_violations(-100, 200) == []

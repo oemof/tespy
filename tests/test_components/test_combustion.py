@@ -324,6 +324,10 @@ class TestCombustion:
         msg = f'Value of thermal input must be {ti}, is {instance.ti.val}.'
         assert round(ti, 1) == round(instance.ti.val, 1), msg
         instance.set_attr(ti=None)
+        assert instance.characteristics_in_use() == [
+            "tiP_char", "Q1_char", "Q2_char", "Qloss_char"
+        ]
+        assert instance.get_char_inputs("tiP_char") == approx((1.0,))
 
         # test specified heat output 1
         instance.set_attr(Q1=instance.Q1.val)

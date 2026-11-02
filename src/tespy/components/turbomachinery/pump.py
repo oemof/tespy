@@ -339,6 +339,7 @@ class Pump(Turbomachine):
     ...     x=frequencies,
     ...     y=flows,
     ...     z=efficiency,
+    ...     extrapolate=True,
     ...     x_unit="1/s",
     ...     y_unit="m3/s"
     ... )
@@ -348,6 +349,12 @@ class Pump(Turbomachine):
     ...     frequency=2000
     ... )
     >>> nw.solve("design")
+
+    The pump runs outside of the range of both maps now. This is logged as a
+    warning after the calculation. As the maps extrapolate, the status of the
+    calculation is not affected, a map without :code:`extrapolate` would set
+    it to 1 instead.
+
     >>> nw.status == 0  # check if status is successful simulation
     True
 
@@ -696,9 +703,7 @@ class Pump(Turbomachine):
         i = self.inl[0]
         o = self.outl[0]
         vol = i.calc_vol()
-        flow = i.m.val_SI * vol
-        frequency = self.frequency.val_SI
-        eta = self.eta_flow_map.evaluate(frequency, flow)
+        eta = self.eta_flow_map.evaluate(*self._flow_map_inputs())
         return (
             eta * (o.h.val_SI - i.h.val_SI) - vol * (o.p.val_SI - i.p.val_SI)
         )

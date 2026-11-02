@@ -392,24 +392,28 @@ class CombustionEngine(CombustionChamber):
             'power_constraints': MandatoryConstraint(**{
                 'func': self.tiP_char_func,
                 'dependents': self.tiP_char_dependents,
+                'elements': ['tiP_char'],
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to power generation relation"
             }),
             'heat1_constraints': MandatoryConstraint(**{
                 'func': self.Q1_char_func,
                 'dependents': self.Q1_char_dependents,
+                'elements': ['tiP_char', 'Q1_char'],
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 1 heat generation relation"
             }),
             'heat2_constraints': MandatoryConstraint(**{
                 'func': self.Q2_char_func,
                 'dependents': self.Q2_char_dependents,
+                'elements': ['tiP_char', 'Q2_char'],
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heating port 2 heat generation relation"
             }),
             'heatloss_constraints': MandatoryConstraint(**{
                 'func': self.Qloss_char_func,
                 'dependents': self.Qloss_char_dependents,
+                'elements': ['tiP_char', 'Qloss_char'],
                 'num_eq_sets': 1,
                 "description": "equation for thermal input to heat dissipation relation"
             }),
@@ -871,6 +875,11 @@ class CombustionEngine(CombustionChamber):
         else:
             return self.P.val_SI / self.P.design
 
+    def get_char_inputs(self, key):
+        if key in ("tiP_char", "Q1_char", "Q2_char", "Qloss_char"):
+            return (self._calc_char_expr(),)
+        return super().get_char_inputs(key)
+
     @staticmethod
     def initialise_source(c, key):
         r"""
@@ -938,18 +947,6 @@ class CombustionEngine(CombustionChamber):
         if key == 'p':
             return 5e5
         return 0
-
-    def check_parameter_bounds(self):
-        r"""Check parameter value limits."""
-        _no_limit_violations = super().check_parameter_bounds()
-        # get bound errors for characteristic lines
-        expr = self._calc_char_expr()
-        self.tiP_char.check_domain(expr, self.label)
-        self.Qloss_char.check_domain(expr, self.label)
-        self.Q1_char.check_domain(expr, self.label)
-        self.Q2_char.check_domain(expr, self.label)
-
-        return _no_limit_violations
 
     def entropy_balance(self):
         r"""

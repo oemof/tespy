@@ -453,8 +453,13 @@ class Valve(Component):
                 0=K_v ^ 2 \cdot \frac{\Delta p}{100}
                 -\frac{\left(3600 \cdot \dot m \right) ^ 2}{\rho}
         """
-        Kv = self.Kv_char.evaluate(self.opening.val_SI)
+        Kv = self.Kv_char.evaluate(*self.get_char_inputs("Kv_char"))
         return self._Kv_eq(Kv)
+
+    def get_char_inputs(self, key):
+        if key == "Kv_char":
+            return (self.opening.val_SI,)
+        return super().get_char_inputs(key)
 
     def Kv_char_dependents(self):
         return [

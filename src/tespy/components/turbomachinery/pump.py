@@ -750,11 +750,18 @@ class Pump(Turbomachine):
                 0 = H\left(\omega,\dot{V}_\text{in}\right)
                 - \frac{\left( p_\text{out} - p_\text{in} \right) \cdot v}{g}
         """
-        i = self.inl[0]
-        flow = i.m.val_SI * i.calc_vol()
-        frequency = self.frequency.val_SI
-        head = self.head_flow_map.evaluate(frequency, flow)
+        head = self.head_flow_map.evaluate(*self._flow_map_inputs())
         return self.calc_hydraulic_head() - head
+
+    def _flow_map_inputs(self):
+        """Frequency and inlet volumetric flow, the inputs of the maps."""
+        i = self.inl[0]
+        return self.frequency.val_SI, i.m.val_SI * i.calc_vol()
+
+    def get_char_inputs(self, key):
+        if key in ("eta_flow_map", "head_flow_map"):
+            return self._flow_map_inputs()
+        return super().get_char_inputs(key)
 
     def head_flow_frequency_group_dependents(self):
         i = self.inl[0]

@@ -372,6 +372,10 @@ class TestTurbomachinery:
 
         assert approx(self.c1.v.val) == 1.017723
 
+        assert instance.characteristics_in_use() == ["eta_flow_map", "head_flow_map"]
+        frequency, flow = instance.get_char_inputs("head_flow_map")
+        assert frequency == approx(1500 / 60)
+        assert flow == approx(self.c1.m.val_SI * self.c1.calc_vol())
         instance.set_attr(frequency="var")
         self.c1.set_attr(v=2)
 

@@ -13,14 +13,23 @@ the system of equations of all your models.
 Connection Overview
 -------------------
 
-The tables above indicate, which specification parameters are available for
-each class. To set/unset values the same logic applies as is used in
-components.
+The tables above list the parameters of each class and their role:
 
-Specific entropy :code:`s` and specific volume :code:`vol` are result-only
-properties. On :code:`HAConnection`, the humid-air and separated-water mass
-flows :code:`mHA` and :code:`mH2O` are also result-only. They are calculated
-after solving and cannot be specified as inputs or starting values. Passing a
+- **variable**: solved for by the network, e.g. mass flow, pressure, enthalpy
+  and the fluid composition. A specification fixes the variable.
+- **specification**: set by the user, the parameter brings its own equation
+  or a state of the fluid, e.g. the temperature or the vapor quality.
+- **result**: calculated after every solve, e.g. the specific entropy
+  :code:`s` and the specific volume :code:`vol`, on :code:`HAConnection`
+  also the humid-air and separated-water mass flows :code:`mHA` and
+  :code:`mH2O`.
+- **optional result**: calculated on request only, e.g. the exergy of a
+  connection in an exergy evaluation, see :ref:`advanced_exergy_label`. The
+  results table of the network lists these parameters once they have been
+  calculated.
+
+To set and unset values the same logic applies as for components. Results and
+optional results cannot be specified as inputs or starting values. Passing a
 value to :code:`set_attr`, including through a starting-value key such as
 :code:`s0`, raises a :code:`TypeError`.
 

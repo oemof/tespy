@@ -65,6 +65,23 @@ in TESPy only focuses on physical exergy and does not include reaction
 processes yet, chemical exergy is not considered. Changes in kinetic and
 potential exergy are neglected and therefore not considered as well.
 
+The physical exergy of a connection is available in the parameters
+:code:`e_T`, :code:`e_M` and :code:`e_PH` (specific exergy) and :code:`E_T`,
+:code:`E_M` and :code:`E_PH` (exergy flow) after the evaluation with an
+ambient state, e.g. through the exergy analysis of exerpy. They are results
+with units like any other parameter of the connection: :code:`c.e_PH.val` is
+the value in the units of the network, :code:`c.e_PH.val_SI` the SI value,
+and the results table of the network lists them once they are calculated.
+The specific exergy has the quantity :code:`specific_energy`, the exergy flow
+the quantity :code:`power`, so their units are set through the defaults of
+the network like any other quantity, see :ref:`units_label`:
+
+.. code-block:: python
+
+    >>> from tespy.networks import Network
+    >>> nw = Network()
+    >>> nw.units.set_defaults(specific_energy="kJ/kg", power="kW")
+
 .. list-table:: Terminology
     :widths: 20 20 10 50
     :header-rows: 1
@@ -74,20 +91,20 @@ potential exergy are neglected and therefore not considered as well.
       - name
       - symbol
       - description
-    * - :code:`ex_physical`, :code:`Ex_physical`
+    * - :code:`e_PH`, :code:`E_PH`
       - (specific) physical exergy
       - :math:`e^\text{PH}`, :math:`E^\text{PH}`
       - due to the deviation of the temperature and pressure of the system from
         those of the environment
-    * - :code:`ex_therm`, :code:`Ex_therm`
+    * - :code:`e_T`, :code:`E_T`
       - (specific) thermal exergy
       - :math:`e^\text{T}`, :math:`E^\text{T}`
       - associated with the system temperature
-    * - :code:`ex_mech`, :code:`Ex_mech`
+    * - :code:`e_M`, :code:`E_M`
       - (specific) mechanical exergy
       - :math:`e^\text{M}`, :math:`E^\text{M}`
       - associated with the system pressure
-    * - :code:`ex_chemical`, :code:`Ex_chemical`
+    * - :code:`e_CH`, :code:`E_CH`
       - (specific) chemical exergy
       - :math:`e^\text{CH}`, :math:`E^\text{CH}`
       - based on standard chemical exergy in ambient model, the `tespy.data`

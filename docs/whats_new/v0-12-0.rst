@@ -108,6 +108,11 @@ API Changes
   sibling parameters :code:`m_ref`, :code:`p_ref`, :code:`h_ref`,
   :code:`T_ref` and :code:`v_ref` are gone from the parameter tables, the
   attributes stay available with a :code:`FutureWarning`.
+- The physical exergy of a connection is available in the result parameters
+  :code:`e_T`, :code:`e_M`, :code:`e_PH`, :code:`E_T`, :code:`E_M` and
+  :code:`E_PH` with units. They use the new container
+  :py:class:`~tespy.tools.data_containers.OptionalResult` for results that
+  are calculated on request only.
 - The format version of exported networks, saved states and specification
   files is 2. Files of earlier versions hold parameter names that do not exist
   anymore and are refused with a message. Load and save them again with tespy
@@ -123,8 +128,10 @@ Deprecations
   the section attributes are populated after every solve.
 - The former container class names, the :code:`_ref` attributes of connections,
   the :code:`reference_state` dictionary and coefficient lists of the
-  :code:`PolynomialCompressor` and the alias :code:`UA_cecchinato_hc` are
-  deprecated and will be removed in version 0.13.
+  :code:`PolynomialCompressor`, the alias :code:`UA_cecchinato_hc` and the
+  exergy attributes :code:`ex_therm`, :code:`ex_mech`, :code:`ex_physical`,
+  :code:`Ex_therm`, :code:`Ex_mech` and :code:`Ex_physical` of connections
+  are deprecated and will be removed in version 0.13.
 
 Removed Deprecations
 ####################

@@ -10,16 +10,20 @@ tests/test_components/test_combustion.py
 SPDX-License-Identifier: MIT
 """
 from pytest import approx
+from pytest import mark
 from pytest import raises
 
 from tespy.components import CombustionChamber
 from tespy.components import CombustionEngine
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
+from tespy.components import Generator
 from tespy.components import Motor
+from tespy.components import PowerBus
 from tespy.components import PowerSink
 from tespy.components import Sink
 from tespy.components import Source
+from tespy.components import Turbine
 from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
@@ -213,6 +217,86 @@ class TestCombustion:
         self.nw.solve(mode='design')
         self.nw.assert_convergence()
         assert self.c3.fluid.val["O2"] > 0
+
+    @mark.parametrize("fuel", [
+        {'CH4': 1}, {'H2': 1}, {'CH4': 0.5, 'H2': 0.5},
+        {'CH4': 0.6, 'CO2': 0.4}, {'H2': 0.5, 'N2': 0.5},
+    ])
+    @mark.parametrize("specification", ["outlet mass flow", "thermal input"])
+    def test_DiabaticCombustionChamber_fuel_flow_from_generic_start(
+            self, fuel, specification):
+        """Air and fuel mass flow are results. The former fixed air to fuel
+        ratio of the convergence check kept hydrogen rich and diverged,
+        diluted fuels were not recognised as fuel at all."""
+        instance = DiabaticCombustionChamber('combustion chamber')
+        self.setup_CombustionChamber_network(instance)
+
+        instance.set_attr(pr=1, eta=1)
+        self.c1.set_attr(fluid={'O2': 0.21, 'N2': 0.79}, p=1, T=20)
+        self.c2.set_attr(fluid=fuel, p=1, T=20)
+        self.c3.set_attr(T=1200)
+        if specification == "outlet mass flow":
+            self.c3.set_attr(m=1)
+        else:
+            instance.set_attr(ti=1e6)
+
+        self.nw.solve(mode='design')
+        self.nw.assert_convergence()
+        assert instance.lamb.val_SI > 1
+        assert self.c2.m.val_SI > 0
+        # complete combustion: no fuel left in the flue gas
+        for f in instance.fuel_list:
+            assert self.c3.fluid.val[f] == approx(0, abs=1e-9)
+        if specification == "thermal input":
+            ti = sum(
+                self.c2.m.val_SI * x * instance.fuels[f]["LHV"]
+                for f, x in fuel.items() if f in instance.fuels
+            )
+            assert ti == approx(1e6, rel=1e-6)
+
+    @mark.parametrize("fuel, lamb, fuel_per_power", [
+        ({'CH4': 1}, 2.605, 2.631),
+        ({'H2': 1}, 3.072, 2.569),
+    ])
+    def test_gas_turbine_from_generic_starting_values(
+            self, fuel, lamb, fuel_per_power):
+        """Gas turbine with compressor and generator on one shaft, turbine
+        power, inlet temperature and exhaust pressure given. The starting
+        values are rich (lambda near 0.05), the convergence check has to
+        lean them out; hydrogen diverged with the former fixed ratio."""
+        cp = Compressor('compressor')
+        cc = DiabaticCombustionChamber('combustion chamber')
+        tu = Turbine('turbine')
+        shaft = PowerBus('shaft', num_in=1, num_out=2)
+        generator = Generator('generator')
+        grid = PowerSink('grid')
+
+        c1 = Connection(self.air, 'out1', cp, 'in1', label='1')
+        c2 = Connection(cp, 'out1', cc, 'in1', label='2')
+        c3 = Connection(cc, 'out1', tu, 'in1', label='3')
+        c4 = Connection(tu, 'out1', self.fg, 'in1', label='4')
+        c5 = Connection(self.fuel, 'out1', cc, 'in2', label='5')
+        e1 = PowerConnection(tu, 'power', shaft, 'power_in1')
+        e2 = PowerConnection(shaft, 'power_out1', cp, 'power')
+        e3 = PowerConnection(shaft, 'power_out2', generator, 'power_in')
+        e4 = PowerConnection(generator, 'power_out', grid, 'power')
+        self.nw.add_conns(c1, c2, c3, c4, c5, e1, e2, e3, e4)
+
+        cp.set_attr(eta_s=0.85, pr=20)
+        cc.set_attr(pr=1, eta=0.95)
+        tu.set_attr(eta_s=0.9, P=-1e6)
+        generator.set_attr(eta=0.98)
+        c1.set_attr(fluid={'O2': 0.21, 'N2': 0.79}, p=1.013, T=15)
+        c3.set_attr(T=1200)
+        c4.set_attr(p=1.013)
+        c5.set_attr(fluid=fuel, p=20, T=25)
+
+        self.nw.solve('design')
+        self.nw.assert_convergence()
+        assert cc.lamb.val_SI == approx(lamb, rel=1e-3)
+        assert cc.ti.val_SI / e4.E.val_SI == approx(fuel_per_power, rel=1e-3)
+        for f in fuel:
+            assert c3.fluid.val[f] == approx(0, abs=1e-9)
 
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')

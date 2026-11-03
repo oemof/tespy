@@ -77,7 +77,7 @@ vapor quality, specific volume :code:`vol` and volumetric flow.
     >>> round(c1.h.val, 1)  # value in kJ/kg but without unit attached
     668.9
     >>> print(round(c1.vol.val_with_unit, 3))  # will be in m3/kg
-    0.195 m3 / kilogram
+    0.195 meter ** 3 / kilogram
     >>> round(c2.T.val_SI, 1)  # SI value
     259.0
     >>> print(round(c2.T.val_with_unit, 1))  # will be in °C

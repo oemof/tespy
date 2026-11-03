@@ -28,6 +28,108 @@ from .connection import connection_registry
 
 @connection_registry
 class HAConnection(Connection):
+    r"""
+    Connection for humid air with the dry air mass flow as system variable.
+
+    The fluid composition is a mixture of dry air and water, the moisture
+    content is specified through the humidity ratio :code:`w` or the
+    relative humidity :code:`r`. Mass specific properties refer to the mass
+    of dry air.
+
+    Parameters
+    ----------
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the individual design case for this connection.
+
+    e_M : float
+        Specific mechanical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_M : float
+        Mechanical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_PH : float
+        Specific physical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_PH : float
+        Physical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_T : float
+        Specific thermal exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_T : float
+        Thermal exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    fluid : dict
+        Mass fractions of the fluid composition.
+
+    fluid_balance : bool
+        Apply an equation which closes the fluid balance with at least two
+        unknown fluid mass fractions.
+        Equation: :py:meth:`fluid_balance_func <tespy.connections.connection.Connection.fluid_balance_func>`.
+
+    h : float
+        Dry air mass specific enthalpy (system variable).
+
+    label : str
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    m : float
+        Mass flow of dry air (system variable).
+
+    mH2O : float
+        Mass flow of liquid or solid water not contained in humid air. Result
+        only - calculated after each solve.
+
+    mHA : float
+        Mass flow of humid air. Result only - calculated after each solve.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    p : float
+        Absolute pressure of the fluid (system variable).
+
+    printout : bool
+        Include this connection in the network's results printout.
+
+    r : float
+        Relative humidity.
+        Equation: :py:meth:`r_func <tespy.connections.humidairconnection.HAConnection.r_func>`.
+
+    s : float
+        Specific entropy of the fluid. Result only - calculated after each
+        solve.
+
+    T : float
+        Temperature of the fluid.
+        Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    v : float
+        Volumetric flow of the fluid.
+        Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
+
+    vol : float
+        Specific volume of the fluid. Result only - calculated after each solve.
+
+    w : float
+        Mass of water per mass of dry air.
+    """
 
     _state_specifications = ("p", "h", "T", "w")
 

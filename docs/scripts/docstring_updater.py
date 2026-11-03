@@ -40,6 +40,7 @@ from tespy.tools.data_containers import ConfigParameter
 from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
 from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import OptionalResult
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.data_containers import ReferenceEquation
 
@@ -146,6 +147,8 @@ def _dc_type(dc):
         return "bool" if not dc.elements else type(dc).__name__
     if isinstance(dc, ReferenceEquation):
         return "Ref"
+    if isinstance(dc, OptionalResult):
+        return "float"
     if isinstance(dc, ConnectionParameter):
         if dc.reference is not None:
             return "float, Ref"
@@ -275,6 +278,14 @@ def _parameters_section(instance, base_params=None, param_filter=None):
                 )
         if isinstance(dc, ConnectionParameter) and dc.result_only:
             meta_parts.append("Result only - calculated after each solve.")
+        if isinstance(dc, OptionalResult):
+            q = getattr(dc, "quantity", None)
+            if q:
+                meta_parts.append(f"Quantity: :code:`{q}`.")
+            meta_parts.append(
+                "Optional result - calculated on request only, e.g. by an "
+                "exergy evaluation."
+            )
         if isinstance(dc, OptionalEquation):
             elements = getattr(dc, "elements", None) or []
             if elements:

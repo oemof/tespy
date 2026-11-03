@@ -10,6 +10,41 @@ from tespy.tools.logger import logger
 
 @connection_registry
 class PowerConnection(ConnectionBase):
+    r"""
+    Connection for non-material energy flows, e.g. mechanical or electrical
+    power between turbomachinery, motors, generators and buses.
+
+    The connection holds the energy flow :code:`E` as its only variable and
+    links the power outlet of the source to the power inlet of the target
+    component.
+
+    Parameters
+    ----------
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the individual design case for this connection.
+
+    E : float, Ref
+        Energy flow (system variable).
+
+    label : str
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this connection in the network's results printout.
+    """
 
     _has_fluid_vector = False
 

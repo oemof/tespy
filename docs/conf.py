@@ -17,6 +17,7 @@ from tespy.tools.data_containers import ConfigParameter
 from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
 from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import OptionalResult
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.schema import _instantiate_component
@@ -151,35 +152,52 @@ def collect_component_parameters(instance):
     return unconditional_constraints, conditional_constraints, parameters_with_equation, grouped_parameters, characteristic_lines_and_maps, array_properties
 
 
+def _connection_parameter_role(instance, key, value):
+    """Role of a connection parameter: solved for, set by the user, calculated
+    after every solve or calculated on request only."""
+    if isinstance(value, OptionalResult):
+        return "optional result"
+    if isinstance(value, FluidComposition) or key in instance.get_variables():
+        return "variable"
+    if isinstance(value, ConnectionParameter) and value.result_only:
+        return "result"
+    return "specification"
+
+
 def collect_connection_parameters(instance):
     parameters = {}
 
     for key, value in instance.property_data.items():
         eq_reference = _get_eq_reference(value)
+        role = _connection_parameter_role(instance, key, value)
 
-        if isinstance(value, ConnectionParameter):
+        if isinstance(value, (ConnectionParameter, OptionalResult)):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
-                "quantity": value.quantity
+                "quantity": value.quantity,
+                "role": role
             }
         elif isinstance(value, FluidComposition):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
-                "quantity": value.quantity
+                "quantity": value.quantity,
+                "role": role
             }
         elif isinstance(value, ReferenceEquation):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
-                "quantity": value.quantity
+                "quantity": value.quantity,
+                "role": role
             }
         elif isinstance(value, (ConfigParameter, OptionalEquation)):
             parameters[key] = {
                 "eq_reference": eq_reference,
                 "description": value.description,
-                "quantity":  None
+                "quantity":  None,
+                "role": role
             }
 
     return parameters
@@ -296,6 +314,7 @@ def create_tabular_connection_views():
         headers = {
             "description": "Description",
             "quantity": "Quantity",
+            "role": "Role",
             "eq_reference": "Method"
         }
 

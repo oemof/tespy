@@ -766,6 +766,45 @@ class ComponentParameter(ScalarParameter):
             self.is_var = False
 
 
+class OptionalResult(ScalarParameter):
+    """
+    Data container for a scalar result that is calculated on request only.
+
+    The value has a physical quantity and units like any other scalar
+    parameter, e.g. the exergy of a connection after an evaluation with an
+    ambient state. It is never specified by the user and not part of the
+    equation system, it is reported in the results once it has been
+    calculated.
+
+    Takes the parameters of :py:class:`ScalarParameter`.
+    """
+
+    def _is_input(self):
+        return False
+
+    @property
+    def is_calculated(self):
+        return not np.isnan(self.val_SI)
+
+    def accept(self, value):
+        if value is None or (_is_numeric(value) and np.isnan(value)):
+            self.val_SI = np.nan
+            self._val = np.nan
+            return
+        raise TypeError(
+            "This parameter is a result and cannot be set by the user."
+        )
+
+    def set_from_SI(self, value, units=None):
+        """Store a calculated SI value, in the units of the network when they
+        are known."""
+        self.val_SI = value
+        if units is not None:
+            self.set_val_from_SI(units)
+        else:
+            self._val = value
+
+
 class ArrayParameter(_EquationMixin, DataContainer):
     """
     Data container for array valued component parameters.

@@ -2695,7 +2695,10 @@ class Network:
 
     @property
     def results(self):
-        if self._results_stale:
+        optional_changed = any(
+            c._optional_results_stale for c in self.conns["object"]
+        )
+        if self._results_stale or optional_changed:
             self._build_results()
         self._ensure_result_frames()
         return self._results
@@ -2708,12 +2711,16 @@ class Network:
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
             if conn_type not in buckets:
-                buckets[conn_type] = ([], [])
+                buckets[conn_type] = ([], [], [], c._get_result_cols(set(self.all_fluids)))
             buckets[conn_type][0].append(c.label)
             buckets[conn_type][1].append(c.collect_results(self.all_fluids))
-        for conn_type, (labels, rows) in buckets.items():
-            cols = self._results[conn_type].columns
-            self._results[conn_type] = pd.DataFrame(rows, index=labels, columns=cols)
+            buckets[conn_type][2].append(c.collect_optional_results())
+        for conn_type, (labels, rows, optional, cols) in buckets.items():
+            frame = pd.DataFrame(rows, index=labels, columns=cols)
+            optional = pd.DataFrame(optional, index=labels)
+            if not optional.empty:
+                frame = frame.join(optional)
+            self._results[conn_type] = frame
 
         buckets = {}
         for cp in self.comps['object']:

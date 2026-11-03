@@ -80,12 +80,12 @@ class HAConnection(Connection):
             "vol": ConnectionParameter(
                 calc=self.calc_vol,
                 quantity="specific_volume",
-                description="specific volume of the fluid (output only)"
+                description="specific volume of the fluid"
             ),
             "s": ConnectionParameter(
                 calc=self.calc_s,
                 quantity="entropy",
-                description="specific entropy of the fluid (output only)"
+                description="specific entropy of the fluid"
             ),
             "r": ConnectionParameter(
                 func=self.r_func,
@@ -99,6 +99,7 @@ class HAConnection(Connection):
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
             ),
+            **self._exergy_results(),
         }
 
     def _parameter_specification(self, key, value):
@@ -331,6 +332,7 @@ class HAConnection(Connection):
         return self.m.val_SI * (w_mixture - self.w.val_SI)
 
     def calc_results(self, units, skip_postprocess):
+        self.reset_optional_results()
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)

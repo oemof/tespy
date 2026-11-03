@@ -17,11 +17,13 @@ from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import FluidComposition
 from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import OptionalResult
 from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.data_containers import ReferenceEquation
 
 # Human-readable names for each data-container class, most specific first
 _DC_TYPE_NAMES = [
+    (OptionalResult, "OptionalResult"),
     (ComponentParameter, "ComponentParameter"),
     (ConnectionParameter, "ConnectionParameter"),
     (ArrayParameter, "ArrayParameter"),
@@ -66,7 +68,7 @@ def _serialize_parameter(name, dc_instance):
         entry["quantities"] = dict(dc_instance.quantities)
     if isinstance(dc_instance, ConfigParameter):
         entry["dtype"] = dc_instance.dtype
-    if isinstance(dc_instance, (ComponentParameter, ArrayParameter)):
+    if isinstance(dc_instance, (ComponentParameter, ArrayParameter, OptionalResult)):
         entry["result_only"] = dc_instance.result_only
     if isinstance(dc_instance, ConnectionParameter):
         entry["reference"] = dc_instance.reference is not None

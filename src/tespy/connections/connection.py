@@ -24,6 +24,7 @@ from tespy.tools.data_containers import ConnectionParameter
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.data_containers import FluidComposition
 from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import OptionalResult
 from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.data_containers import _display_repr
 from tespy.tools.data_containers import _format_value
@@ -357,6 +358,7 @@ class ConnectionBase:
 
         self.property_data = self.get_parameters()
         self.property_data0 = [f"{x}0" for x in self.property_data.keys()]
+        self._optional_results_stale = False
         self.parameters = self._build_parameters()
         self.__dict__.update(self.property_data)
         self._mark_consumed_parameters()
@@ -579,6 +581,30 @@ class ConnectionBase:
     def collect_results(self, all_fluids):
         return None
 
+    def optional_results(self):
+        """The :py:class:`~tespy.tools.data_containers.OptionalResult`
+        containers of the connection by name."""
+        return {
+            key: data for key, data in self.property_data.items()
+            if isinstance(data, OptionalResult)
+        }
+
+    def reset_optional_results(self):
+        """Discard the optional results, e.g. after a new solution."""
+        for data in self.optional_results().values():
+            data.accept(None)
+        self._optional_results_stale = False
+
+    def collect_optional_results(self):
+        """Values and units of the optional results that have been
+        calculated, keyed like the result columns."""
+        self._optional_results_stale = False
+        return {
+            k: v for key, data in self.optional_results().items()
+            if data.is_calculated
+            for k, v in ((key, data.val), (f"{key}_unit", data.unit))
+        }
+
     def _get_design_state_SI(self, data, units):
         state = {}
         for var in self._result_attributes():
@@ -732,10 +758,6 @@ class ConnectionBase:
 
 @connection_registry
 class Connection(ConnectionBase):
-
-    _state_specifications = (
-        "p", "h", "T", "x", "td_bubble", "td_dew", "T_dew", "T_bubble"
-    )
     r"""
     Class connection is the container for fluid properties between components.
 
@@ -747,6 +769,30 @@ class Connection(ConnectionBase):
 
     design_path : str
         Path to the individual design case for this connection.
+
+    e_M : float
+        Specific mechanical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_M : float
+        Mechanical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_PH : float
+        Specific physical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_PH : float
+        Physical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_T : float
+        Specific thermal exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_T : float
+        Thermal exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
 
     fluid : dict
         Mass fractions of the fluid composition (system variable).
@@ -780,25 +826,26 @@ class Connection(ConnectionBase):
     printout : bool
         Include this connection in the network's results printout.
 
-    s : float, Ref
-        Specific entropy of the fluid (output only).
+    s : float
+        Specific entropy of the fluid. Result only - calculated after each
+        solve.
 
     T : float, Ref
         Temperature of the fluid.
         Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
 
-    T_bubble : float, Ref
+    T_bubble : float
         Determine pressure based on the provided bubble temperature of the
         fluid.
 
-    T_dew : float, Ref
+    T_dew : float
         Determine pressure based on the provided dew temperature of the fluid.
 
-    td_bubble : float, Ref
+    td_bubble : float
         Subcooling temperature difference to bubble line temperature.
         Equation: :py:meth:`td_bubble_func <tespy.connections.connection.Connection.td_bubble_func>`.
 
-    td_dew : float, Ref
+    td_dew : float
         Superheating temperature difference to dew line temperature.
         Equation: :py:meth:`td_dew_func <tespy.connections.connection.Connection.td_dew_func>`.
 
@@ -806,10 +853,10 @@ class Connection(ConnectionBase):
         Volumetric flow of the fluid.
         Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
 
-    vol : float, Ref
-        Specific volume of the fluid (output only).
+    vol : float
+        Specific volume of the fluid. Result only - calculated after each solve.
 
-    x : float, Ref
+    x : float
         Vapor mass fraction/quality of the two-phase fluid.
         Equation: :py:meth:`x_func <tespy.connections.connection.Connection.x_func>`.
 
@@ -869,7 +916,7 @@ class Connection(ConnectionBase):
     information.
 
     >>> type(so_si1.v)
-    <class 'tespy.tools.data_containers.FluidProperties'>
+    <class 'tespy.tools.data_containers.ConnectionParameter'>
     >>> type(so_si1.fluid)
     <class 'tespy.tools.data_containers.FluidComposition'>
 
@@ -938,6 +985,9 @@ class Connection(ConnectionBase):
     """
 
     _has_fluid_vector = True
+    _state_specifications = (
+        "p", "h", "T", "x", "td_bubble", "td_dew", "T_dew", "T_bubble"
+    )
 
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
@@ -2102,12 +2152,12 @@ class Connection(ConnectionBase):
             ),
             "vol": ConnectionParameter(
                 quantity="specific_volume",
-                description="specific volume of the fluid (output only)",
+                description="specific volume of the fluid",
                 calc=self._calc_vol_result
             ),
             "s": ConnectionParameter(
                 quantity="entropy",
-                description="specific entropy of the fluid (output only)",
+                description="specific entropy of the fluid",
                 calc=self.calc_s
             ),
             "fluid": FluidComposition(
@@ -2117,7 +2167,8 @@ class Connection(ConnectionBase):
                 func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
-            )
+            ),
+            **self._exergy_results(),
         }
 
     def get_fluid_data(self):
@@ -2441,6 +2492,7 @@ class Connection(ConnectionBase):
             return np.nan
 
     def calc_results(self, units, skip_postprocess):
+        self.reset_optional_results()
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)
@@ -2783,17 +2835,51 @@ class Connection(ConnectionBase):
         )
         return msg
 
+    @staticmethod
+    def _exergy_results():
+        return {
+            "e_T": OptionalResult(
+                quantity="specific_energy",
+                description="specific thermal exergy"
+            ),
+            "e_M": OptionalResult(
+                quantity="specific_energy",
+                description="specific mechanical exergy"
+            ),
+            "e_PH": OptionalResult(
+                quantity="specific_energy",
+                description="specific physical exergy"
+            ),
+            "E_T": OptionalResult(
+                quantity="power",
+                description="thermal exergy flow"
+            ),
+            "E_M": OptionalResult(
+                quantity="power",
+                description="mechanical exergy flow"
+            ),
+            "E_PH": OptionalResult(
+                quantity="power",
+                description="physical exergy flow"
+            ),
+        }
+
     def _get_physical_exergy(self, pamb, Tamb):
         r"""
-        Get the value of a connection's specific physical exergy.
+        Calculate the physical exergy of the connection.
+
+        The results are stored in the optional result parameters
+        :code:`e_T`, :code:`e_M`, :code:`e_PH` (specific exergy) and
+        :code:`E_T`, :code:`E_M`, :code:`E_PH` (exergy flow), in SI units
+        and in the units of the network of the last calculation.
 
         Parameters
         ----------
-        p0 : float
-            Ambient pressure p0 / Pa.
+        pamb : float, pint.Quantity
+            Ambient pressure, a plain number in Pa.
 
-        T0 : float
-            Ambient temperature T0 / K.
+        Tamb : float, pint.Quantity
+            Ambient temperature, a plain number in K.
 
         Note
         ----
@@ -2804,15 +2890,39 @@ class Connection(ConnectionBase):
                 E^\text{M} = \dot{m} \cdot e^\text{M}\\
                 E^\text{PH} = \dot{m} \cdot e^\text{PH}
         """
-        self.ex_therm, self.ex_mech = fp.functions.calc_physical_exergy(
+        if isinstance(pamb, pint.Quantity):
+            pamb = pamb.to("Pa").magnitude
+        if isinstance(Tamb, pint.Quantity):
+            Tamb = Tamb.to("K").magnitude
+        e_T, e_M = fp.functions.calc_physical_exergy(
             self.h.val_SI, self.s.val_SI, self.p.val_SI, pamb, Tamb,
             self.fluid_data, self.mixing_rule, self.T.val_SI
         )
-        self.Ex_therm = self.ex_therm * self.m.val_SI
-        self.Ex_mech = self.ex_mech * self.m.val_SI
+        units = self.m._units
+        values = {
+            "e_T": e_T, "e_M": e_M, "e_PH": e_T + e_M,
+            "E_T": e_T * self.m.val_SI, "E_M": e_M * self.m.val_SI,
+            "E_PH": (e_T + e_M) * self.m.val_SI,
+        }
+        for key, value in values.items():
+            self.get_attr(key).set_from_SI(value, units)
+        self._optional_results_stale = True
 
-        self.ex_physical = self.ex_therm + self.ex_mech
-        self.Ex_physical = self.m.val_SI * self.ex_physical
+    def _deprecated_exergy_value(self, old, new):
+        warnings.warn(
+            f"The attribute '{old}' is deprecated and will be removed in "
+            f"version 0.13, use '{new}.val_SI' instead.",
+            FutureWarning, stacklevel=3
+        )
+        return self.get_attr(new).val_SI
+
+    ex_therm = property(lambda self: self._deprecated_exergy_value("ex_therm", "e_T"))
+    ex_mech = property(lambda self: self._deprecated_exergy_value("ex_mech", "e_M"))
+    ex_physical = property(lambda self: self._deprecated_exergy_value("ex_physical", "e_PH"))
+    Ex_therm = property(lambda self: self._deprecated_exergy_value("Ex_therm", "E_T"))
+    Ex_mech = property(lambda self: self._deprecated_exergy_value("Ex_mech", "E_M"))
+    Ex_physical = property(lambda self: self._deprecated_exergy_value("Ex_physical", "E_PH"))
+
 
 class Ref:
     r"""

@@ -20,6 +20,7 @@ from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
@@ -886,7 +887,7 @@ class CombustionChamber(Component):
 
         ######################################################################
         # additional checks for performance improvement
-        if not self.lamb.is_set and self.lamb.val_SI < 2:
+        if not self.lamb.is_set and self.lamb.val_SI < 2 - ERR:
             # rich mixtures stall the solver: redistribute the inlet flows
             # so that lambda is 2 for the actual fuel's oxygen demand
             self._set_inlet_flows_for_lambda(2)

@@ -83,9 +83,9 @@ def smoothed_lmtd(td_a, td_b):
     eps = _LMTD_SMOOTHING_EPS
     xi = _LMTD_SMOOTHING_XI
     if td_a > eps and td_b > eps:
-        # round is required because tiny differences may cause inconsistencies
-        # due to rounding errors
-        if round(td_a, 6) == round(td_b, 6):
+        # the mean of nearly equal differences avoids the division of two
+        # vanishing numbers, the lmtd is continuous at the switch
+        if abs(td_a - td_b) < 1e-6:
             return (td_a + td_b) / 2
         return (td_a - td_b) / math.log(td_a / td_b)
     if td_a > eps:

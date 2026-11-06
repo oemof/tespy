@@ -20,8 +20,8 @@ from tespy.connections import Connection
 from tespy.networks import Network
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.fluid_properties.wrappers.base import cache_generation
-from tespy.tools.fluid_properties.wrappers.base import property_memo
 from tespy.tools.fluid_properties.wrappers.base import next_cache_generation
+from tespy.tools.fluid_properties.wrappers.base import property_memo
 
 STATES = [(p, h) for p in (2e5, 8e5, 20e5) for h in (2.5e5, 4.5e5, 6.5e5)]
 

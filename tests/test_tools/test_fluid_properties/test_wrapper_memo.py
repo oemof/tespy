@@ -167,7 +167,8 @@ def test_solve_results_independent_of_memo(monkeypatch):
         nw.solve("design")
         nw.assert_convergence()
         results[enabled] = [
-            (c.m.val_SI, c.p.val_SI, c.h.val_SI) for c in nw.conns["object"]
+            value for c in nw.conns["object"]
+            for value in (c.m.val_SI, c.p.val_SI, c.h.val_SI)
         ]
 
     assert results[True] == pytest.approx(results[False], rel=1e-9)

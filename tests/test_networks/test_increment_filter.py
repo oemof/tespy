@@ -99,7 +99,8 @@ def test_solve_results_independent_of_filter():
         nw.solve("design", increment_filter=rtol)
         nw.assert_convergence()
         results[rtol] = [
-            (c.m.val_SI, c.p.val_SI, c.h.val_SI) for c in nw.conns["object"]
+            value for c in nw.conns["object"]
+            for value in (c.m.val_SI, c.p.val_SI, c.h.val_SI)
         ]
         iterations[rtol] = nw._problem.iter
 

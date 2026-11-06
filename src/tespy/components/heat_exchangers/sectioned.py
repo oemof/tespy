@@ -24,6 +24,7 @@ from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties.wrappers.base import cache_generation
 
 _PHASE_TO_INT = {"l": 0, "tp": 1, "g": 2, "sc": 3}
 
@@ -703,8 +704,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def _store_sections(self):
         super()._store_sections()
-        steps1, zp1 = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps2, zp2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps1, zp1 = self._moving_steps(0)
+        steps2, zp2 = self._moving_steps(1)
         steps_all = self._assign_steps(steps1, steps2)
         self.phase_hot_per_section.val_SI = np.array(
             self._section_phases(steps_all, np.array(steps1), zp1)
@@ -728,6 +729,25 @@ class SectionedHeatExchanger(HeatExchanger):
             Uniformly spaced step fractions from 0 to 1.
         """
         return np.linspace(0, 1, num_steps)
+
+    def _moving_steps(self, side):
+        """Phase boundary steps of one side, cached within a solver iteration
+        and keyed on the inlet and outlet state of that side: a derivative
+        perturbation of a variable of one side leaves the steps of the other
+        side unchanged."""
+        c1, c2 = self.inl[side], self.outl[side]
+        key = (c1.p.val_SI, c1.h.val_SI, c2.p.val_SI, c2.h.val_SI)
+        cache = getattr(self, "_steps_cache", None)
+        if cache is None or cache["generation"] != cache_generation.value:
+            cache = self._steps_cache = {
+                "generation": cache_generation.value, 0: {}, 1: {}
+            }
+        try:
+            return cache[side][key]
+        except KeyError:
+            result = self._get_moving_steps(c1, c2)
+            cache[side][key] = result
+            return result
 
     @staticmethod
     def _get_moving_steps(c1, c2):
@@ -759,90 +779,77 @@ class SectionedHeatExchanger(HeatExchanger):
         # connection (enthalpy will be rising in the list)
         if c1.h.val_SI > c2.h.val_SI:
             c1, c2 = c2, c1
+        p1, h1, p2, h2 = c1.p.val_SI, c1.h.val_SI, c2.p.val_SI, c2.h.val_SI
+        fd1, fd2 = c1.fluid_data, c2.fluid_data
 
         h_at_steps = [0, 1]
         zone_phases = [2]
-        fluid = single_fluid(c1.fluid_data)
+        fluid = single_fluid(fd1)
         # this should be generalized to "supports two-phase" because it does
         # not work with incompressibles
         is_pure_fluid = fluid is not None
 
         if is_pure_fluid:
-            phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
-            phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
+            phase_h_low = phase_mix_ph(p1, h1, fd1)
+            phase_h_high = phase_mix_ph(p2, h2, fd2)
 
-            delta_h = c2.h.val_SI - c1.h.val_SI
+            delta_h = h2 - h1
             # we can round delta p here because we only need it in case it is
             # not zero, and then it will never be in the magnitude of subdigit
             # Pascal
-            delta_p = round(c2.p.val_SI - c1.p.val_SI, 3)
+            delta_p = round(p2 - p1, 3)
             if phase_h_high == "g" and phase_h_low == "tp":
                 if delta_p == 0:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    x_gas = (h_sat_gas - h1) / delta_h
                     h_at_steps = [0, x_gas, 1]
                     zone_phases = [1, 2]
                 else:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    if np.isclose(h_sat_gas, c1.h.val_SI):
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    if _isclose(h_sat_gas, h1):
                         h_at_steps = [0, 1]
                         zone_phases = [2]
-                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data), c2.h.val_SI):
+                    elif _isclose(h_mix_pQ(p2, 1, fd2), h2):
                         h_at_steps = [0, 1]
                         zone_phases = [1]
                     else:
-                        x_gas = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                1, c1.fluid_data#
-                            )
+                        x_gas = _step_at_saturation(
+                            0, 1, (h_sat_gas - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 1, fd1
                         )
                         h_at_steps = [0, x_gas, 1]
                         zone_phases = [1, 2]
 
             elif phase_h_high == "g" and phase_h_low == "l":
                 if delta_p == 0:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    x_gas = (h_sat_gas - h1) / delta_h
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq = (h_sat_liquid - h1) / delta_h
                     h_at_steps = [0, x_liq, x_gas, 1]
                     zone_phases = [0, 1, 2]
                 else:
                     # c2 is the higher enthalpy, we have to check if it is
                     # at saturated gas
-                    h_sat_gas = h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data)
-                    x_gas_is_one = np.isclose(h_sat_gas, c2.h.val_SI)
+                    h_sat_gas = h_mix_pQ(p2, 1, fd2)
+                    x_gas_is_one = _isclose(h_sat_gas, h2)
                     if x_gas_is_one:
                         x_gas = 1
                     else:
-                        x_gas = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                1, c1.fluid_data
-                            )
+                        x_gas = _step_at_saturation(
+                            0, 1, (h_sat_gas - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 1, fd1
                         )
                     # c1 is the lower enthalpy, we have to check if it is
                     # at saturated liquid
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq_is_zero = np.isclose(h_sat_liquid, c1.h.val_SI)
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq_is_zero = _isclose(h_sat_liquid, h1)
                     if x_liq_is_zero:
                         x_liq = 0
                     else:
-                        x_liq = brentq(
-                            identify_step_at_saturation,
-                            0, x_gas,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                0, c1.fluid_data#
-                            )
+                        x_liq = _step_at_saturation(
+                            0, x_gas, (h_sat_liquid - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 0, fd1
                         )
                     h_at_steps = [0, x_liq, x_gas, 1]
                     if x_liq_is_zero and x_gas_is_one:
@@ -856,27 +863,22 @@ class SectionedHeatExchanger(HeatExchanger):
 
             elif phase_h_high == "tp" and phase_h_low == "l":
                 if delta_p == 0:
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq = (h_sat_liquid - h1) / delta_h
                     h_at_steps = [0, x_liq, 1]
                     zone_phases = [0, 1]
                 else:
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    if np.isclose(h_sat_liquid, c1.h.val_SI):
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    if _isclose(h_sat_liquid, h1):
                         h_at_steps = [0, 1]
                         zone_phases = [1]
-                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 0, c2.fluid_data), c2.h.val_SI):
+                    elif _isclose(h_mix_pQ(p2, 0, fd2), h2):
                         h_at_steps = [0, 1]
                         zone_phases = [0]
                     else:
-                        x_liq = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                0, c1.fluid_data#
-                            )
+                        x_liq = _step_at_saturation(
+                            0, 1, (h_sat_liquid - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 0, fd1
                         )
                         h_at_steps = [0, x_liq, 1]
                         zone_phases = [0, 1]
@@ -888,16 +890,16 @@ class SectionedHeatExchanger(HeatExchanger):
                 # minimum required version is bumped:
                 #
                 #   elif phase_h_high == "sc" and phase_h_low == "l":
-                #       wrapper = c1.fluid_data[fluid]["wrapper"]
-                #       h_at_tc = wrapper.h_pT(c1.p.val_SI, wrapper._T_crit)
-                #       if np.isclose(h_at_tc, c1.h.val_SI):
+                #       wrapper = fd1[fluid]["wrapper"]
+                #       h_at_tc = wrapper.h_pT(p1, wrapper._T_crit)
+                #       if _isclose(h_at_tc, h1):
                 #           h_at_steps = [0, 1]
                 #           zone_phases = [3]
-                #       elif np.isclose(h_at_tc, c2.h.val_SI):
+                #       elif _isclose(h_at_tc, h2):
                 #           h_at_steps = [0, 1]
                 #           zone_phases = [0]
                 #       else:
-                #           x_tc = (h_at_tc - c1.h.val_SI) / delta_h
+                #           x_tc = (h_at_tc - h1) / delta_h
                 #           h_at_steps = [0, x_tc, 1]
                 #           zone_phases = [0, 3]
                 zone_phases = [3]
@@ -927,9 +929,9 @@ class SectionedHeatExchanger(HeatExchanger):
         """
         num_steps = self.num_sections.val + 1
         if steps_hot is None:
-            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+            steps_hot, _ = self._moving_steps(0)
         if steps_cold is None:
-            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+            steps_cold, _ = self._moving_steps(1)
         return np.unique(np.r_[self._get_steps(num_steps), steps_hot, steps_cold])
 
     def calc_UA(self, sections):
@@ -1226,8 +1228,8 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             Residual value of the equation.
         """
-        steps1, zone_phases1 = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps2, zone_phases2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps1, zone_phases1 = self._moving_steps(0)
+        steps2, zone_phases2 = self._moving_steps(1)
         steps_all = self._assign_steps(steps1, steps2)
         T_hot, T_cold = self._get_T_at_steps(steps_all)
         lmtd_per_section = self._calc_lmtd_per_section(T_hot, T_cold, postprocess=False)
@@ -1254,6 +1256,47 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def area_zones_dependents(self):
         return self.UA_dependents()
+
+
+def _isclose(a, b):
+    """Scalar version of :code:`numpy.isclose` with its default tolerances,
+    the numpy call costs 20 µs on scalars."""
+    return abs(a - b) <= 1e-8 + 1e-5 * abs(b)
+
+
+def _step_at_saturation(lo, hi, x0, *args):
+    """Root of :func:`identify_step_at_saturation` in :code:`[lo, hi]`.
+
+    :code:`x0` is the step for zero pressure drop (from the saturation
+    enthalpy the caller has evaluated anyway), the second point comes from
+    the slope of the residual without the pressure dependency of the
+    saturation enthalpy, secant steps finish. :func:`scipy.optimize.newton`
+    would do the same but spends three times the evaluation cost in its own
+    checks. :func:`scipy.optimize.brentq` takes over if the secant leaves
+    the bracket or stalls.
+    """
+    delta_p, delta_h = args[2], args[3]
+    x0 = min(max(x0, lo), hi)
+    f0 = identify_step_at_saturation(x0, *args)
+    if f0 == 0:
+        return x0
+    x1 = min(max(x0 - f0 / (delta_p * delta_h), lo), hi)
+    if x1 == x0:
+        x1 = hi if x0 - lo < hi - x0 else lo
+    f1 = identify_step_at_saturation(x1, *args)
+    for _ in range(10):
+        if f1 == f0:
+            break
+        x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
+        if not lo <= x2 <= hi:
+            break
+        if abs(x2 - x1) < 1e-12:
+            return x2
+        f2 = identify_step_at_saturation(x2, *args)
+        if f2 == 0:
+            return x2
+        x0, f0, x1, f1 = x1, f1, x2, f2
+    return brentq(identify_step_at_saturation, lo, hi, args=args)
 
 
 def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):

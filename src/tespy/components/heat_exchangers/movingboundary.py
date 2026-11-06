@@ -424,7 +424,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
             sections.
         """
         if steps_hot is None:
-            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+            steps_hot, _ = self._moving_steps(0)
         if steps_cold is None:
-            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+            steps_cold, _ = self._moving_steps(1)
         return np.unique(np.r_[steps_hot, steps_cold])

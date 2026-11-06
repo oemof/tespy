@@ -12,6 +12,16 @@ SPDX-License-Identifier: MIT
 """
 
 
+class cache_generation:
+    """Counter of the solver iterations, the per iteration property memo of
+    the wrappers is invalidated when it changes."""
+    value = 0
+
+
+def next_cache_generation():
+    cache_generation.value += 1
+
+
 def wrapper_registry(type):
     wrapper_registry.items[type.__name__] = type
     return type

@@ -26,6 +26,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
+from tespy.tools.fluid_properties.wrappers.base import next_cache_generation
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLAT_ENTHALPY_DIFFERENCE
 from tespy.tools.global_vars import LINE_SEARCH_STEPS
@@ -2518,6 +2519,7 @@ class Problem:
         r"""
         Calculate the residual and derivatives of all equations.
         """
+        next_cache_generation()
         to_solve = self._all_objects() if objects is None else objects
 
         if residual_only:

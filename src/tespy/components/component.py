@@ -563,6 +563,7 @@ class Component:
                     vector_dependents = [{} for _ in range(data.num_eq)]
 
         eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._sorted_scalar_dependents = None
         eq_dict[value]._vector_dependents = vector_dependents
         eq_dict[value]._first_eq_index = eq_counter
 

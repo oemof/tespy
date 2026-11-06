@@ -343,6 +343,7 @@ class UserDefinedEquation:
                     vector_dependents = [{} for _ in range(data.num_eq)]
 
         eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._sorted_scalar_dependents = None
         eq_dict[value]._vector_dependents = vector_dependents
         eq_dict[value]._first_eq_index = eq_counter
 
@@ -554,11 +555,14 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
         )
     else:
         # deterministic evaluation order: the set iterates in the per
-        # process id order, which must not leak into the numerics
-        all_scalar_deps = sorted(
-            set().union(*data._scalar_dependents),
-            key=lambda dep: dep.J_col if dep.is_var else -1
-        )
+        # process id order, which must not leak into the numerics. The
+        # dependents do not change within a solve, the order is kept
+        all_scalar_deps = data._sorted_scalar_dependents
+        if all_scalar_deps is None:
+            all_scalar_deps = data._sorted_scalar_dependents = sorted(
+                set().union(*data._scalar_dependents),
+                key=lambda dep: dep.J_col if dep.is_var else -1
+            )
         for dependent in all_scalar_deps:
             result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
             if result is None:

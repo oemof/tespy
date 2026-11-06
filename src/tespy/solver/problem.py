@@ -48,6 +48,16 @@ except ModuleNotFoundError:
     cu = None
 
 
+# relative increment below which the derivatives of the previous iteration
+# are kept: a variable that moved by less than this relative to its magnitude
+# is converged at the solver tolerance, its jacobian column does not change
+# anymore. None restores the absolute filter of ERR ** 2
+INCREMENT_FILTER_RTOL = 1e-6
+# the relative filter only applies while the largest relative increment of
+# the iteration is below this level
+INCREMENT_FILTER_CONTRACTION = 1e-3
+
+
 class Problem:
     r"""
     Solver representation of a prepared network.
@@ -1658,7 +1668,7 @@ class Problem:
         # parameter definitions
         self.residual_history = np.array([])
         self.residual = np.zeros([self.variable_counter])
-        self.increment = np.ones([self.variable_counter])
+        self.increment = np.full(self.variable_counter, np.inf)
         self.jacobian = np.zeros((self.variable_counter, self.variable_counter))
         self.residual_scales = np.ones([self.variable_counter])
         self.variable_weights = np.ones([self.variable_counter])
@@ -1724,12 +1734,12 @@ class Problem:
 
     def _reset_attempt_state(self, variables=None):
         """Fresh solver state for a solution attempt of a block or the full
-        system. The increment is seeded so the increment filter does not
-        suppress the first derivative evaluation."""
-        if variables is None:
-            self.increment = np.ones(self.variable_counter)
-        else:
-            self.increment[variables] = 1
+        system. The increment is seeded with infinity for all variables so no
+        increment filter suppresses the first derivative evaluation: the
+        residual scales use the full jacobian rows of the block's equations,
+        so the derivatives with respect to the variables of other blocks
+        must be current as well."""
+        self.increment = np.full(self.variable_counter, np.inf)
         self._prev_residual = None
         self._auto_damping = False
         self._line_search_active = self.line_search == "always"
@@ -2386,8 +2396,11 @@ class Problem:
             np.abs(self.increment) / self.variable_weights
         ).max() > 1e-6
 
+        # a bound can only be violated by a variable that moved: the newton
+        # step moves the variables here
+        moved = np.abs(self.increment) / self.variable_weights > 1e-6
         if increment_moving:
-            self._apply_property_bounds(connections)
+            self._apply_property_bounds(connections, moved)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
 
@@ -2403,10 +2416,13 @@ class Problem:
                 and increment_moving
                 and self.network.mode == "design"
             ):
+            values_before_heuristics = self._variable_values()
             for cp in components:
                 cp.convergence_check()
 
-            self._apply_property_bounds(connections)
+            # the heuristics move variables without an increment
+            moved = self._variable_values() != values_before_heuristics
+            self._apply_property_bounds(connections, moved)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
         # detect if any heuristic modifications were applied. Changes
@@ -2422,8 +2438,12 @@ class Problem:
         )
         return bool(relative_change.max() > SCALED_RESIDUAL_TOLERANCE)
 
-    def _apply_property_bounds(self, connections):
+    def _apply_property_bounds(self, connections, moved=None):
         """Clamp variables to the tightest bounds of their represented ones.
+
+        :code:`moved` masks the variables whose values changed since the
+        last check, only those (and the enthalpies of connections whose
+        pressure changed, the enthalpy bounds depend on it) are checked.
 
         Every connection provides the bounds of its own m, p and h in its
         value space. The bounds are mapped through the affine relation into
@@ -2433,12 +2453,26 @@ class Problem:
         turn.
         """
         connections = set(connections)
+        if moved is None:
+            moved = np.ones(self.variable_counter, dtype=bool)
         # the enthalpy bounds depend on pressure, so pressures are adjusted
         # first
         for props in (("m", "p"), ("h",)):
             for key, data in self.variables_dict.items():
                 if data["variable"] not in props or not data["obj"].is_var:
                     continue
+                if not moved[key]:
+                    if props != ("h",):
+                        continue
+                    pressures = [
+                        self._variable_lookup[var]["object"].p
+                        for var in data["_represents"]
+                    ]
+                    if not any(
+                            pres.is_var and moved[pres.J_col]
+                            for pres in pressures
+                        ):
+                        continue
 
                 lower, upper = -np.inf, np.inf
                 labels = []
@@ -2514,6 +2548,26 @@ class Problem:
         if rows is None:
             return np.abs(self.residual) / self.residual_scales
         return np.abs(self.residual[rows]) / self.residual_scales[rows]
+
+    def _increment_filter(self):
+        """Mask of the variables whose derivatives are not recomputed in this
+        iteration.
+
+        Variables that are not updated at all (zero increment, e.g. the
+        variables of other blocks) keep their derivatives. The derivatives
+        of a variable that moved by less than the relative tolerance are
+        kept only while the whole iterate contracts: the jacobian column of
+        a converged variable still changes through the mixed partials when
+        other variables move by large steps.
+        """
+        increment = np.absolute(self.increment)
+        if INCREMENT_FILTER_RTOL is None:
+            return increment < ERR ** 2
+        relative = increment / self.variable_weights
+        converged = relative < INCREMENT_FILTER_RTOL
+        if relative.max() > INCREMENT_FILTER_CONTRACTION:
+            return increment == 0
+        return converged
 
     def _solve_equations(self, objects=None, residual_only=False):
         r"""

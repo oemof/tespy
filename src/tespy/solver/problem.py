@@ -29,6 +29,8 @@ from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.fluid_properties.wrappers.base import next_cache_generation
 from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLAT_ENTHALPY_DIFFERENCE
+from tespy.tools.global_vars import INCREMENT_FILTER_CONTRACTION
+from tespy.tools.global_vars import INCREMENT_FILTER_RTOL
 from tespy.tools.global_vars import LINE_SEARCH_STEPS
 from tespy.tools.global_vars import SCALED_INCREMENT_TOLERANCE
 from tespy.tools.global_vars import SCALED_RESIDUAL_TOLERANCE
@@ -48,16 +50,6 @@ except ModuleNotFoundError:
     cu = None
 
 
-# relative increment below which the derivatives of the previous iteration
-# are kept: a variable that moved by less than this relative to its magnitude
-# is converged at the solver tolerance, its jacobian column does not change
-# anymore. None restores the absolute filter of ERR ** 2
-INCREMENT_FILTER_RTOL = 1e-6
-# the relative filter only applies while the largest relative increment of
-# the iteration is below this level
-INCREMENT_FILTER_CONTRACTION = 1e-3
-
-
 class Problem:
     r"""
     Solver representation of a prepared network.
@@ -75,6 +67,7 @@ class Problem:
         # of connections solved in an earlier block repeat in every later
         # block iteration, within a block the keys change with the variables
         next_cache_generation()
+        self.increment_filter_rtol = INCREMENT_FILTER_RTOL
 
         self.variable_counter = 0
         self.variables_dict = {}
@@ -1621,7 +1614,8 @@ class Problem:
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True,
                    block_solve=False, pause_on_block_failure=None,
-                   line_search="stagnation"):
+                   line_search="stagnation",
+                   increment_filter=INCREMENT_FILTER_RTOL):
         r"""Loop of the newton algorithm."""
         if line_search not in ("off", "stagnation", "always"):
             msg = (
@@ -1629,7 +1623,14 @@ class Problem:
                 f"or 'always', got {line_search!r}."
             )
             raise ValueError(msg)
+        if increment_filter is not None and not 0 <= increment_filter < 1:
+            msg = (
+                "The increment_filter option must be None or a relative "
+                f"increment in [0, 1), got {increment_filter!r}."
+            )
+            raise ValueError(msg)
         self.line_search = line_search
+        self.increment_filter_rtol = increment_filter
         self._line_search_active = line_search == "always"
         self.max_iter = max_iter
         self.min_iter = min_iter
@@ -2565,10 +2566,10 @@ class Problem:
         other variables move by large steps.
         """
         increment = np.absolute(self.increment)
-        if INCREMENT_FILTER_RTOL is None:
+        if self.increment_filter_rtol is None:
             return increment < ERR ** 2
         relative = increment / self.variable_weights
-        converged = relative < INCREMENT_FILTER_RTOL
+        converged = relative < self.increment_filter_rtol
         if relative.max() > INCREMENT_FILTER_CONTRACTION:
             return increment == 0
         return converged

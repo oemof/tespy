@@ -17,14 +17,9 @@ import numpy as np
 
 from .base import FluidPropertyWrapper
 from .base import cache_generation
+from .base import property_memo
 from .base import wrapper_registry
 
-MEMO_ENABLED = True
-# the memo is cleared at the start of every solve (up to 8000 states per
-# solve for the benchmark models, 40000 for a 100 section heat exchanger
-# model), the cap bounds the memory at about 600 bytes per state, the
-# oldest states are evicted first
-MEMO_MAX_STATES = 20000
 _EAGER_OUTPUTS = ("T", "p", "hmass", "smass", "rhomass")
 # every connection holds its own wrapper instance, the memo is shared by all
 # instances of the same fluid and back end
@@ -78,7 +73,7 @@ class CoolPropWrapper(FluidPropertyWrapper):
         and the states of connections solved in an earlier block repeat in
         every later block iteration, the memo answers the repeats without a
         flash."""
-        if not MEMO_ENABLED:
+        if not property_memo["enabled"]:
             self._update(input_pair, a, b)
             return getattr(self.AS, output)()
         memo = self._memo
@@ -88,10 +83,11 @@ class CoolPropWrapper(FluidPropertyWrapper):
         key = (input_pair, a, b)
         outputs = memo["data"].get(key)
         if outputs is None:
-            if len(memo["data"]) >= MEMO_MAX_STATES:
+            max_states = property_memo["max_states"]
+            if len(memo["data"]) >= max_states:
                 # the oldest tenth goes (insertion order), one entry at a
                 # time would scan the deleted slots at the front of the dict
-                for old in list(islice(memo["data"], MEMO_MAX_STATES // 10)):
+                for old in list(islice(memo["data"], max_states // 10)):
                     del memo["data"][old]
             outputs = memo["data"][key] = {}
         elif output in outputs:

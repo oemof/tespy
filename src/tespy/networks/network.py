@@ -39,6 +39,7 @@ from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import DataContainer
 from tespy.tools.data_containers import ScalarParameter
 from tespy.tools.global_vars import ERR
+from tespy.tools.global_vars import INCREMENT_FILTER_RTOL
 from tespy.tools.units import SI_UNITS
 from tespy.tools.units import Units
 
@@ -2358,7 +2359,8 @@ class Network:
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
               oscillation_damping=False, block_solve=True,
-              pause_on_block_failure=False, line_search="stagnation"):
+              pause_on_block_failure=False, line_search="stagnation",
+              increment_filter=INCREMENT_FILTER_RTOL):
         r"""
         Solve the network.
 
@@ -2454,6 +2456,13 @@ class Network:
             :code:`max_iter` iterations. :code:`"always"` applies the line
             search from the first iteration, :code:`"off"` disables it.
 
+        increment_filter : float, optional
+            Derivatives of a variable are not recomputed while its last
+            increment relative to its magnitude stays below this value and
+            the iteration contracts (largest relative increment below
+            1e-3), default :code:`1e-6`. :code:`None` recomputes all
+            derivatives in every iteration.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -2473,7 +2482,7 @@ class Network:
             skip_postprocess=skip_postprocess,
             oscillation_damping=oscillation_damping, block_solve=block_solve,
             pause_on_block_failure=pause_on_block_failure,
-            line_search=line_search
+            line_search=line_search, increment_filter=increment_filter
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2569,7 +2578,8 @@ class Network:
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
                        block_solve=True, pause_on_block_failure=None,
-                       line_search="stagnation"):
+                       line_search="stagnation",
+                       increment_filter=INCREMENT_FILTER_RTOL):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2622,7 +2632,7 @@ class Network:
                 iterinfo=self.iterinfo, print_results=print_results,
                 block_solve=block_solve,
                 pause_on_block_failure=pause_on_block_failure,
-                line_search=line_search
+                line_search=line_search, increment_filter=increment_filter
             )
         except ValueError as e:
             self.status = 99

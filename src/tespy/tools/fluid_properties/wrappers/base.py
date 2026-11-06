@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 
 
 class cache_generation:
-    """Counter of the solver iterations, the per iteration property memo of
-    the wrappers is invalidated when it changes."""
+    """Counter of the solves, the property memo of the wrappers is
+    invalidated when it changes."""
     value = 0
 
 

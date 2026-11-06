@@ -10,6 +10,8 @@ tespy/tools/fluid_properties/wrappers/coolprop.py
 
 SPDX-License-Identifier: MIT
 """
+from itertools import islice
+
 import CoolProp as CP
 import numpy as np
 
@@ -18,10 +20,10 @@ from .base import cache_generation
 from .base import wrapper_registry
 
 MEMO_ENABLED = True
-# a solve clears the memo every iteration (a few hundred states for the
-# benchmark models, 4400 for a 100 section heat exchanger model), the cap
-# bounds the memory of property calls outside of a solve, about 600 bytes
-# per state
+# the memo is cleared at the start of every solve (up to 8000 states per
+# solve for the benchmark models, 40000 for a 100 section heat exchanger
+# model), the cap bounds the memory at about 600 bytes per state, the
+# oldest states are evicted first
 MEMO_MAX_STATES = 20000
 _EAGER_OUTPUTS = ("T", "p", "hmass", "smass", "rhomass")
 # every connection holds its own wrapper instance, the memo is shared by all
@@ -71,9 +73,11 @@ class CoolPropWrapper(FluidPropertyWrapper):
         self._eager_phase = True
 
     def _get(self, input_pair, a, b, output):
-        """Output of the state, memoized per solver iteration: equations and
-        their derivatives request the same states repeatedly within one
-        iteration, the memo answers the repeats without a flash."""
+        """Output of the state, memoized per solve: equations and their
+        derivatives request the same states repeatedly within one iteration,
+        and the states of connections solved in an earlier block repeat in
+        every later block iteration, the memo answers the repeats without a
+        flash."""
         if not MEMO_ENABLED:
             self._update(input_pair, a, b)
             return getattr(self.AS, output)()
@@ -85,7 +89,10 @@ class CoolPropWrapper(FluidPropertyWrapper):
         outputs = memo["data"].get(key)
         if outputs is None:
             if len(memo["data"]) >= MEMO_MAX_STATES:
-                memo["data"].clear()
+                # the oldest tenth goes (insertion order), one entry at a
+                # time would scan the deleted slots at the front of the dict
+                for old in list(islice(memo["data"], MEMO_MAX_STATES // 10)):
+                    del memo["data"][old]
             outputs = memo["data"][key] = {}
         elif output in outputs:
             return outputs[output]

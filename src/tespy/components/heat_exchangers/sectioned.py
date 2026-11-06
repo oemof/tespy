@@ -731,10 +731,10 @@ class SectionedHeatExchanger(HeatExchanger):
         return np.linspace(0, 1, num_steps)
 
     def _moving_steps(self, side):
-        """Phase boundary steps of one side, cached within a solver iteration
-        and keyed on the inlet and outlet state of that side: a derivative
-        perturbation of a variable of one side leaves the steps of the other
-        side unchanged."""
+        """Phase boundary steps of one side, cached within a solve and keyed
+        on the inlet and outlet state of that side: a derivative perturbation
+        of a variable of one side leaves the steps of the other side
+        unchanged."""
         c1, c2 = self.inl[side], self.outl[side]
         key = (c1.p.val_SI, c1.h.val_SI, c2.p.val_SI, c2.h.val_SI)
         cache = getattr(self, "_steps_cache", None)

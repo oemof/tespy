@@ -71,6 +71,10 @@ class Problem:
 
     def __init__(self, network):
         self.network = network
+        # the property memos of the wrappers live for one solve: the states
+        # of connections solved in an earlier block repeat in every later
+        # block iteration, within a block the keys change with the variables
+        next_cache_generation()
 
         self.variable_counter = 0
         self.variables_dict = {}
@@ -2573,7 +2577,6 @@ class Problem:
         r"""
         Calculate the residual and derivatives of all equations.
         """
-        next_cache_generation()
         to_solve = self._all_objects() if objects is None else objects
 
         if residual_only:

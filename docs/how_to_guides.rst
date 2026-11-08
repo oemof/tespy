@@ -82,6 +82,13 @@ different applications see the :ref:`model library <model_library_label>`.
         .. image:: /_static/images/thumbnails/how_to_guides/powerconnection_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card:: Choose a turbine model
+        :link: how_to_choose_turbine_label
+        :link-type: ref
+
+        Compare an overall efficiency with a dry-efficiency and wetness model
+        using an executable steam expansion notebook.
+
     .. grid-item-card::  Model humid air streams
         :link: tutorial_humidair_label
         :link-type: ref
@@ -113,5 +120,6 @@ different applications see the :ref:`model library <model_library_label>`.
     how_to_guides/heat_exchangers
     how_to_guides/zeotropic_heat_pump
     how_to_guides/powerconnections
+    how_to_guides/turbine_model_selection
     how_to_guides/humid_air
     how_to_guides/faq

@@ -623,6 +623,7 @@ linkcheck_ignore = [    # DOIs always redirect, we believe they will always work
     "https://product-selection.grundfos.com/",
     "https://docutils.sourceforge.io/rst.html",
     r"https://github\.com/tub-hofmann",
+    "https://github.com/fwitte/KCORC_summer_school/tree/main/tespy#tespy-workshop-at-the-kcorc-summer-school-2026",
 ]
 
 # the publication list is curated by hand and the repository hosts it links to

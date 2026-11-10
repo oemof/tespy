@@ -26,7 +26,6 @@ and collected in the **Under discussion** section.
   .. rubric:: Framework & API
 
   - Backtracking line search solver strategy :issue:`986`
-  - Custom per variable bounds :issue:`1072`
   - Refactoring of the data containers with clearly separated responsibilities
     and documented attributes for connections and components :issue:`1019`
     :issue:`383`
@@ -41,9 +40,6 @@ and collected in the **Under discussion** section.
   - Thermopack as alternative property back end :issue:`624`
   - Unit agnostic polynomial coefficients and reference states for the
     :code:`PolynomialCompressor` :issue:`1017`
-  - Connections through named ports, e.g.
-    :code:`Connection(turbine.outlet, condenser.hot_inlet)` and
-    :code:`component.hot_inlet` instead of :code:`inl[0]` :issue:`689`
 
 - .. rubric:: v0.13
      :class: roadmap-release
@@ -65,6 +61,10 @@ and collected in the **Under discussion** section.
     and :code:`Generator` :issue:`700`
   - Well defined specification of fluid composition with partially unknown
     species :issue:`464`
+  - Custom per variable bounds :issue:`1072`
+  - Connections through named ports, e.g.
+    :code:`Connection(turbine.outlet, condenser.hot_inlet)` and
+    :code:`component.hot_inlet` instead of :code:`inl[0]` :issue:`689`
 
   .. container:: roadmap-additions
 

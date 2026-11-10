@@ -138,57 +138,57 @@ Characteristic lines
 
 **HeatExchanger**
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char1_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char1_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char1_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char1_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-dark
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char1_CONDENSING_FLUID.svg
-    :alt: Characteristic line "CONDENSING FLUID" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char1_CONDENSING_FLUID.svg
+    :alt: Characteristic line "CONDENSING FLUID" for parameter "UA_char1".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char1_CONDENSING_FLUID_darkmode.svg
-    :alt: Characteristic line "CONDENSING FLUID" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char1_CONDENSING_FLUID_darkmode.svg
+    :alt: Characteristic line "CONDENSING FLUID" for parameter "UA_char1".
     :align: center
     :figclass: only-dark
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char2_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char2_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char2_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char2_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-dark
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char2_EVAPORATING_FLUID.svg
-    :alt: Characteristic line "EVAPORATING FLUID" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char2_EVAPORATING_FLUID.svg
+    :alt: Characteristic line "EVAPORATING FLUID" for parameter "UA_char2".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/HeatExchanger_kA_char2_EVAPORATING_FLUID_darkmode.svg
-    :alt: Characteristic line "EVAPORATING FLUID" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/HeatExchanger_UA_char2_EVAPORATING_FLUID_darkmode.svg
+    :alt: Characteristic line "EVAPORATING FLUID" for parameter "UA_char2".
     :align: center
     :figclass: only-dark
 
@@ -196,29 +196,29 @@ Characteristic lines
 
 **Condenser**
 
-.. figure:: /api/_images/characteristics/Condenser_kA_char1_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/Condenser_UA_char1_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Condenser_kA_char1_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/Condenser_UA_char1_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-dark
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Condenser_kA_char2_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/Condenser_UA_char2_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Condenser_kA_char2_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/Condenser_UA_char2_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-dark
 
@@ -226,29 +226,29 @@ Characteristic lines
 
 **Desuperheater**
 
-.. figure:: /api/_images/characteristics/Desuperheater_kA_char1_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/Desuperheater_UA_char1_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Desuperheater_kA_char1_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char1".
+.. figure:: /api/_images/characteristics/Desuperheater_UA_char1_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char1".
     :align: center
     :figclass: only-dark
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Desuperheater_kA_char2_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/Desuperheater_UA_char2_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Desuperheater_kA_char2_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char2".
+.. figure:: /api/_images/characteristics/Desuperheater_UA_char2_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char2".
     :align: center
     :figclass: only-dark
 
@@ -256,15 +256,15 @@ Characteristic lines
 
 **SimpleHeatExchanger**
 
-.. figure:: /api/_images/characteristics/SimpleHeatExchanger_kA_char_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char".
+.. figure:: /api/_images/characteristics/SimpleHeatExchanger_UA_char_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/SimpleHeatExchanger_kA_char_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char".
+.. figure:: /api/_images/characteristics/SimpleHeatExchanger_UA_char_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char".
     :align: center
     :figclass: only-dark
 
@@ -272,15 +272,15 @@ Characteristic lines
 
 **Pipe**
 
-.. figure:: /api/_images/characteristics/Pipe_kA_char_DEFAULT.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char".
+.. figure:: /api/_images/characteristics/Pipe_UA_char_DEFAULT.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char".
     :align: center
     :figclass: only-light
 
     Reference: Generic data.
 
-.. figure:: /api/_images/characteristics/Pipe_kA_char_DEFAULT_darkmode.svg
-    :alt: Characteristic line "DEFAULT" for parameter "kA_char".
+.. figure:: /api/_images/characteristics/Pipe_UA_char_DEFAULT_darkmode.svg
+    :alt: Characteristic line "DEFAULT" for parameter "UA_char".
     :align: center
     :figclass: only-dark
 

@@ -1,12 +1,50 @@
+import numpy as np
+
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
-from tespy.tools.data_containers import FluidProperties as dc_prop
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import ReferenceEquation
 from tespy.tools.helpers import TESPyConnectionError
 from tespy.tools.logger import logger
 
 
 @connection_registry
 class PowerConnection(ConnectionBase):
+    r"""
+    Connection for non-material energy flows, e.g. mechanical or electrical
+    power between turbomachinery, motors, generators and buses.
+
+    The connection holds the energy flow :code:`E` as its only variable and
+    links the power outlet of the source to the power inlet of the target
+    component.
+
+    Parameters
+    ----------
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the individual design case for this connection.
+
+    E : float, Ref
+        Energy flow (system variable).
+
+    label : str
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this connection in the network's results printout.
+    """
 
     _has_fluid_vector = False
 
@@ -30,7 +68,7 @@ class PowerConnection(ConnectionBase):
 
         Parameters
         ----------
-        E : float
+        E : float, Ref
             Energy flow specification.
 
         design : list
@@ -69,26 +107,37 @@ class PowerConnection(ConnectionBase):
                 logger.error(msg)
                 raise KeyError(msg)
 
+    def _seed_starting_values(self, units):
+        if self.E.is_var and (
+                self.good_starting_values or not np.isnan(self.E.val0)
+        ):
+            self.E.set_SI_from_val0(units)
+            self.E.set_reference_val_SI(self.E._val_SI)
+            return [self.E._reference_container]
+        return []
+
     def _guess_starting_values(self, units, covered):
-        if self.E.is_var:
-            if not self.good_starting_values:
-                self.E.set_reference_val_SI(0.0)
-            else:
-                # Push the value preserved across the previous solve's
-                # `detach()` into the freshly (re-)built reference
-                # container, mirroring what `Connection._guess_starting_values`
-                # does for m/p/h. Without this, presolve's fresh
-                # `_reference_container` for `E` starts uninitialized on
-                # every solve call after the first, discarding the warm
-                # start even when good_starting_values is True.
-                self.E.set_reference_val_SI(self.E._val_SI)
+        if self.E.is_var and self.E._reference_container not in covered:
+            self.E.set_reference_val_SI(0.0)
         return []
 
     def get_variables(self):
         return {"E": self.E}
 
     def get_parameters(self):
-        return {"E": dc_prop(d=1e-4, quantity="power")}
+        return {
+            "E": ConnectionParameter(
+                d=1e-4, quantity="power",
+                description="energy flow (system variable)",
+                reference=ReferenceEquation(
+                    num_eq=1,
+                    func_params={"variable": "E"},
+                    structure_matrix=self.primary_ref_structure_matrix,
+                    quantity="power",
+                    description="equation for linear relationship between two energy flows"
+                )
+            )
+        }
 
     def calc_results(self, units, skip_postprocess):
         self.E.set_val_from_SI(units)

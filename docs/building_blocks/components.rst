@@ -22,22 +22,40 @@ links to the underlying equations, the class documentation and example.
 Component parametrisation
 -------------------------
 
-All parameters of components can be set and unset through the :code:`set_attr`
-method. As seen in the tables above, there are different types of parameters:
+Input parameters of components can be set and unset through the :code:`set_attr`
+method. Result-only properties, such as the logarithmic mean temperature
+difference :code:`lmtd`, are calculated after solving. Specifying them as
+inputs raises a :code:`TypeError`. Their calculated values remain available
+through the usual :code:`val`, :code:`val_SI` and :code:`val_with_unit`
+attributes.
 
-- Simple component parameters: If an equation/method is associated with the
-  parameter, setting a value for the parameter will activate that equation.
-- Grouped component parameters: Multiple simple parameters can be part of a
-  parameter group. To activate the equation associated with the parameter
-  group, values for all elements of the group have to be set by the user.
+As seen in the tables above, there are different types of input parameters:
+
+- Component parameters: A scalar with a physical quantity, e.g. a pressure
+  ratio or a heat transfer coefficient. If an equation is associated with the
+  parameter, setting a value activates that equation. Parameters that are
+  calculated after solving and have no equation, e.g. the logarithmic mean
+  temperature difference, are result-only and cannot be set.
+- Parameter groups: Multiple parameters are elements of a group. The equation
+  of the group is activated as soon as values for all of its elements have
+  been set.
 - Component parameters that serve as variable in the model: Specifically in the
-  context of grouped parameters it is possible to set one of the parameters as
+  context of parameter groups it is possible to set one of the parameters as
   a variable. If values for all other parameters of the group are specified as
   well, then the group equation is activated and the solver will include the
   one parameter marked as variable in the variables.
-- Component characteristics and characteristic groups: Lookup-tables are
-  implemented here to interpolate over a variable or an expression and modify
-  the outcome of an equation.
+- Optional equations: An equation the user switches on and off directly, e.g.
+  the cone law of a turbine with :code:`cone=True` or the characteristic
+  based heat transfer of a heat exchanger with :code:`UA_char` in the
+  offdesign parameter list.
+- Characteristics: Lookup tables or polynomials over a variable or an
+  expression. A characteristic either comes with its own equation, e.g.
+  :code:`eta_s_char` of a turbine, or is data read by another equation, e.g.
+  :code:`UA_char1` of a heat exchanger.
+- Array parameters: Array valued results of a component, e.g. the heat
+  transferred per section of a heat exchanger.
+- Configuration values: Values without physical quantity and without
+  equation, e.g. the number of outlets of a splitter.
 
 Component parameters
 ^^^^^^^^^^^^^^^^^^^^
@@ -48,7 +66,7 @@ at the example of the heat transfer coefficient of an evaporator.
 .. code-block:: python
 
     >>> from tespy.components import HeatExchanger
-    >>> from tespy.tools import ComponentProperties as dc_cp
+    >>> from tespy.tools import ComponentParameter
     >>> import numpy as np
 
     >>> he = HeatExchanger('evaporator')
@@ -164,7 +182,7 @@ a pipe are present in the results:
     20.1
 
 Result parameters are declared with a :code:`calc` method on the
-:code:`ComponentProperties` data container. The base class
+:code:`ComponentParameter` data container. The base class
 :py:meth:`~tespy.components.component.Component.calc_parameters` dispatches
 all such methods automatically in the correct order after convergence. For
 details on defining :code:`calc`, :code:`calc_params` and :code:`calc_deps`
@@ -185,22 +203,26 @@ is possible to specify your own data for these characteristic functions.
 
     **There are two different characteristics specifications**
 
-    The characteristic function can be an auxiliary parameter of a different
-    component property. This is the case for :code:`UA_char1`
-    and :code:`UA_char2` of heat exchangers as well as the characteristics of a
-    combustion engine: :code:`tiP_char`, :code:`Q1_char`, :code:`Q2_char`
-    and :code:`Qloss_char`.
+    A characteristic can be data read by another equation. This is the case
+    for :code:`UA_char1` and :code:`UA_char2` of heat exchangers as well as
+    the characteristics of a combustion engine: :code:`tiP_char`,
+    :code:`Q1_char`, :code:`Q2_char` and :code:`Qloss_char`. Providing the
+    data does not activate anything, the optional equation reading them does,
+    e.g. :code:`UA_char` of a heat exchanger with
+    :code:`.UA_char.is_set=True` or the offdesign parameter list.
 
-    For all other components, the characteristic function is an individual
-    parameter of the component.
+    For all other components, the characteristic comes with its own equation,
+    e.g. :code:`eta_s_char` of a turbine. Providing custom data does not
+    activate the equation either, it is activated with
+    :code:`.eta_s_char.is_set=True` or the offdesign parameter list, so that
+    custom data can be set for the offdesign calculation while the design
+    calculation uses a fixed value.
 
-    **What does this mean?**
-
-    For the auxiliary functionality the main parameter, e.g. :code:`UA_char`
-    of a heat exchanger must be set :code:`.UA_char.is_set=True`.
-
-    For the other functionality the characteristics parameter must be
-    set e.g. :code:`.eta_s_char.is_set=True`.
+    The data follow the default units of the network for dimensioned axes,
+    e.g. the volumetric flow and pressure rise of the :code:`flow_char` of a
+    pump. Declare other units on the data, e.g.
+    :code:`CharLine(x, y, x_unit="m3/h", y_unit="bar")`, or pass
+    :code:`pint` quantity arrays.
 
 For example, :code:`UA_char` specification for heat exchangers:
 

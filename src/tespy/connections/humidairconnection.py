@@ -12,9 +12,9 @@ import numpy as np
 from CoolProp.CoolProp import HAPropsSI
 
 from tespy.tools import fluid_properties as fp
-from tespy.tools.data_containers import FluidComposition as dc_flu
-from tespy.tools.data_containers import FluidProperties as dc_prop
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConnectionParameter
+from tespy.tools.data_containers import FluidComposition
+from tespy.tools.data_containers import OptionalEquation
 from tespy.tools.fluid_properties.functions import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import _get_fluid_alias
 from tespy.tools.fluid_properties.mixtures import w_mix_fluid_data
@@ -28,73 +28,180 @@ from .connection import connection_registry
 
 @connection_registry
 class HAConnection(Connection):
+    r"""
+    Connection for humid air with the dry air mass flow as system variable.
+
+    The fluid composition is a mixture of dry air and water, the moisture
+    content is specified through the humidity ratio :code:`w` or the
+    relative humidity :code:`r`. Mass specific properties refer to the mass
+    of dry air.
+
+    Parameters
+    ----------
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the individual design case for this connection.
+
+    e_M : float
+        Specific mechanical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_M : float
+        Mechanical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_PH : float
+        Specific physical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_PH : float
+        Physical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_T : float
+        Specific thermal exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_T : float
+        Thermal exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    fluid : dict
+        Mass fractions of the fluid composition.
+
+    fluid_balance : bool
+        Apply an equation which closes the fluid balance with at least two
+        unknown fluid mass fractions.
+        Equation: :py:meth:`fluid_balance_func <tespy.connections.connection.Connection.fluid_balance_func>`.
+
+    h : float
+        Dry air mass specific enthalpy (system variable).
+
+    label : str
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    m : float
+        Mass flow of dry air (system variable).
+
+    mH2O : float
+        Mass flow of liquid or solid water not contained in humid air. Result
+        only - calculated after each solve.
+
+    mHA : float
+        Mass flow of humid air. Result only - calculated after each solve.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    p : float
+        Absolute pressure of the fluid (system variable).
+
+    printout : bool
+        Include this connection in the network's results printout.
+
+    r : float
+        Relative humidity.
+        Equation: :py:meth:`r_func <tespy.connections.humidairconnection.HAConnection.r_func>`.
+
+    s : float
+        Specific entropy of the fluid. Result only - calculated after each
+        solve.
+
+    T : float
+        Temperature of the fluid.
+        Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    v : float
+        Volumetric flow of the fluid.
+        Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
+
+    vol : float
+        Specific volume of the fluid. Result only - calculated after each solve.
+
+    w : float
+        Mass of water per mass of dry air.
+    """
+
+    _state_specifications = ("p", "h", "T", "w")
 
     def get_parameters(self):
         return {
-            "fluid": dc_flu(
+            "fluid": FluidComposition(
                 d=1e-5,
                 description="mass fractions of the fluid composition"
             ),
-            "m": dc_prop(
+            "m": ConnectionParameter(
                 quantity="mass_flow",
                 description="mass flow of dry air (system variable)"
             ),
-            "mHA": dc_prop(
+            "mHA": ConnectionParameter(
+                calc=self._calc_mHA,
                 quantity="mass_flow",
                 description="mass flow of humid air"
             ),
-            "mH2O": dc_prop(
+            "mH2O": ConnectionParameter(
+                calc=self._calc_mH2O,
                 quantity="mass_flow",
                 description="mass flow of liquid or solid water not contained in humid air"
             ),
-            "p": dc_prop(
+            "p": ConnectionParameter(
                 quantity="pressure",
                 description="absolute pressure of the fluid (system variable)"
             ),
-            "h": dc_prop(
+            "h": ConnectionParameter(
                 quantity="enthalpy",
                 description="dry air mass specific enthalpy (system variable)"
             ),
-            "w": dc_prop(
+            "w": ConnectionParameter(
                 quantity="ratio",
                 description="mass of water per mass of dry air"
             ),
-            "T": dc_prop(
+            "T": ConnectionParameter(
                 func=self.T_func,
                 dependents=self.T_dependents,
                 num_eq=1,
                 quantity="temperature",
                 description="temperature of the fluid"
             ),
-            "v": dc_prop(
+            "v": ConnectionParameter(
                 func=self.v_func,
                 dependents=self.v_dependents,
                 num_eq=1,
                 quantity="volumetric_flow",
                 description="volumetric flow of the fluid"
             ),
-            "vol": dc_prop(
+            "vol": ConnectionParameter(
+                calc=self.calc_vol,
                 quantity="specific_volume",
-                description="specific volume of the fluid (output only)"
+                description="specific volume of the fluid"
             ),
-            "s": dc_prop(
+            "s": ConnectionParameter(
+                calc=self.calc_s,
                 quantity="entropy",
-                description="specific entropy of the fluid (output only)"
+                description="specific entropy of the fluid"
             ),
-            "r": dc_prop(
+            "r": ConnectionParameter(
                 func=self.r_func,
                 dependents=self.r_dependents,
                 num_eq=1,
                 quantity="ratio",
                 description="relative humidity"
             ),
-            "fluid_balance": dc_simple(
-                dtype="bool",
-                func=self.fluid_balance_func,
-                _val=False, num_eq_sets=1,
+            "fluid_balance": OptionalEquation(
+                func=self.fluid_balance_func, num_eq_sets=1,
                 dependents=self.fluid_balance_dependents,
                 description="apply an equation which closes the fluid balance with at least two unknown fluid mass fractions"
             ),
+            **self._exergy_results(),
         }
 
     def _parameter_specification(self, key, value):
@@ -316,7 +423,18 @@ class HAConnection(Connection):
     def calc_w(self):
         return w_mix_pT_humidair(self.p.val_SI, self.T.val_SI, self.fluid_data)
 
+    def _calc_mHA(self):
+        """Mass flow of humid air from the mass flow of dry air."""
+        return self.m.val_SI * (1 + self.w.val_SI)
+
+    def _calc_mH2O(self):
+        """Mass flow of liquid or solid water not contained in the humid
+        air."""
+        w_mixture = w_mix_fluid_data(self.fluid_data)
+        return self.m.val_SI * (w_mixture - self.w.val_SI)
+
     def calc_results(self, units, skip_postprocess):
+        self.reset_optional_results()
         self.m.set_val0_from_SI(units)
         self.p.set_val0_from_SI(units)
         self.h.set_val0_from_SI(units)
@@ -328,18 +446,9 @@ class HAConnection(Connection):
             return True
 
         self.T.val_SI = self.calc_T()
-        self.vol.val_SI = self.calc_vol()  # Mixture volume per mass of dry air
-        self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
-        # handle the water fraction
         self.w.val_SI = self.calc_w()
-        # # Convert from kg water/kg dry air to mass fraction of water in humid air
-        # x_h2o = self.w.val_SI / (1 + self.w.val_SI)
-        # x_air = 1 - x_h2o
-        self.mHA.val_SI = self.m.val_SI * (1 + self.w.val_SI)
-        w_mixture = w_mix_fluid_data(self.fluid_data)
-        # Calculate kg water/kg dry air that is not in the humid air
-        delta_w = w_mixture - self.w.val_SI
-        self.mH2O.val_SI = self.m.val_SI * delta_w
+        self._calc_result_parameters()
+        self.v.val_SI = self.vol.val_SI * self.m.val_SI  # Mixture volume flow rate
         self.r.val_SI = self.calc_r()
         # if self.r.val_SI > 1:
         #     self.r.val_SI = np.nan

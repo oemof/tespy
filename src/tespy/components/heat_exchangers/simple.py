@@ -12,24 +12,21 @@ SPDX-License-Identifier: MIT
 """
 
 import math
-import warnings
 
 import numpy as np
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import smoothed_lmtd
-from tespy.tools import logger
-from tespy.tools.data_containers import ComponentCharacteristics as dc_cc
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import CharacteristicData
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties.helpers import darcy_friction_factor as dff
 from tespy.tools.helpers import TESPyNetworkError
-from tespy.tools.helpers import _numeric_deriv
 
 
 @component_registry
@@ -48,8 +45,6 @@ class SimpleHeatExchanger(Component):
 
     - Fluid inlets: in1
     - Fluid outlets: out1
-    - Power inlets: heat
-    - Power outlets: heat
     - Heat inlets: heat
     - Heat outlets: heat
 
@@ -73,7 +68,7 @@ class SimpleHeatExchanger(Component):
         Diameter of channel. Quantity: :code:`length`. Can be set as a system
         variable by passing :code:`"var"` as its value.
 
-    darcy_group : GroupedComponentProperties
+    darcy_group : ParameterGroup
         Darcy-Weißbach equation for pressure loss. Elements: :code:`L`,
         :code:`ks`, :code:`D`.
         Equation: :py:meth:`darcy_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.darcy_func>`.
@@ -92,26 +87,10 @@ class SimpleHeatExchanger(Component):
         :code:`pressure_difference`.
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
-    hw_group : GroupedComponentProperties
+    hw_group : ParameterGroup
         Hazen-Williams equation for pressure loss. Elements: :code:`L`,
         :code:`ks_HW`, :code:`D`.
         Equation: :py:meth:`hazen_williams_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.hazen_williams_func>`.
-
-    kA : float, dict, :code:`"var"`
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`. Can be set as a system variable by
-        passing :code:`"var"` as its value.
-
-    kA_char : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char` instead.
-
-    kA_char_group : GroupedComponentProperties
-        Deprecated, use :code:`UA_char_group` instead. Elements:
-        :code:`kA_char`, :code:`Tamb`.
-
-    kA_group : GroupedComponentProperties
-        Deprecated, use :code:`UA_group` instead. Elements: :code:`kA`,
-        :code:`Tamb`.
 
     ks : float, dict, :code:`"var"`
         Roughness of wall material. Quantity: :code:`length`. Can be set as a
@@ -130,7 +109,8 @@ class SimpleHeatExchanger(Component):
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     local_design : bool
         Treat this component in design mode in an offdesign calculation.
@@ -163,18 +143,15 @@ class SimpleHeatExchanger(Component):
     UA_char : tespy.tools.characteristics.CharLine, dict
         Heat transfer coefficient lookup table for offdesign.
 
-    UA_char_group : GroupedComponentProperties
+    UA_char_group : ParameterGroup
         Heat transfer from design heat transfer coefficient, modifier lookup
         table and ambient temperature. Elements: :code:`UA_char`, :code:`Tamb`.
         Equation: :py:meth:`UA_char_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_char_group_func>`.
 
-    UA_group : GroupedComponentProperties
+    UA_group : ParameterGroup
         Equation for heat transfer based on ambient temperature and heat
         transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
         Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
-
-    zeta : float, dict
-        Deprecated, use :code:`zeta_d4` instead.
 
     zeta_d4 : float, dict
         Geometry-independent friction coefficient zeta/D^4 for pressure loss
@@ -217,10 +194,10 @@ class SimpleHeatExchanger(Component):
     >>> inc.set_attr(fluid={'N2': 1}, m=1, T=200, p=5)
     >>> outg.set_attr(T=150, design=['T'])
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(heat_sink.Q.val, 0)
     -52581.0
-    >>> round(heat_sink.kA.val, 0)
+    >>> round(heat_sink.UA.val, 0)
     321.0
     >>> inc.set_attr(m=1.25)
     >>> nw.solve('offdesign', design_path=design_state)
@@ -258,18 +235,10 @@ class SimpleHeatExchanger(Component):
     True
     """
 
-    _parameter_aliases = {
-        'kA': 'UA',
-        'kA_char': 'UA_char',
-        'kA_group': 'UA_group',
-        'kA_char_group': 'UA_char_group',
-        'zeta': 'zeta_d4',
-    }
-
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        if self.power_inl + self.power_outl + self.heat_inl + self.heat_outl:
-            constraints["energy_connector_balance"] = dc_cmc(**{
+        if self.heat_inl + self.heat_outl:
+            constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
                 "num_eq_sets": 1
@@ -300,7 +269,7 @@ class SimpleHeatExchanger(Component):
 
     def get_parameters(self):
         return {
-            'Q': dc_cp(
+            'Q': ComponentParameter(
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
@@ -308,7 +277,7 @@ class SimpleHeatExchanger(Component):
                 description="heat transfer",
                 calc=self._calc_Q
             ),
-            'pr': dc_cp(
+            'pr': ComponentParameter(
                 min_val=1e-4, max_val=1, num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
                 func_params={'pr': 'pr'},
@@ -316,7 +285,7 @@ class SimpleHeatExchanger(Component):
                 description="outlet to inlet pressure ratio",
                 calc=self._calc_pr
             ),
-            'dp': dc_cp(
+            'dp': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
                 func_params={'dp': 'dp'},
@@ -324,7 +293,7 @@ class SimpleHeatExchanger(Component):
                 description="inlet to outlet absolute pressure change",
                 calc=self._calc_dp
             ),
-            'zeta_d4': dc_cp(
+            'zeta_d4': ComponentParameter(
                 min_val=0, max_val=1e15, num_eq_sets=1,
                 func=self.zeta_d4_func,
                 dependents=self.zeta_d4_dependents,
@@ -332,113 +301,90 @@ class SimpleHeatExchanger(Component):
                 description="geometry-independent friction coefficient zeta/D^4 for pressure loss calculation",
                 calc=self._calc_zeta_d4
             ),
-            'zeta': dc_cp(
-                min_val=0, max_val=1e15, is_result=True,
-                description="deprecated, use :code:`zeta_d4` instead",
-                calc=self._calc_zeta_d4
-            ),
-            'D': dc_cp(
+            'D': ComponentParameter(
                 min_val=1e-2, max_val=2, d=1e-5, quantity="length",
                 description="diameter of channel",
                 _allows_var=True
             ),
-            'L': dc_cp(
+            'L': ComponentParameter(
                 min_val=1e-1, quantity="length",
                 description="length of channel",
                 _allows_var=True
             ),
-            'ks': dc_cp(
+            'ks': ComponentParameter(
                 _val=1e-4, min_val=1e-7, max_val=1e-3,
                 quantity="length", description="roughness of wall material",
                 _allows_var=True
             ),
-            'ks_HW': dc_cp(
+            'ks_HW': ComponentParameter(
                 _val=10, min_val=1e-1, max_val=1e3,
                 description="Hazen-Williams roughness",
                 _allows_var=True
             ),
-            'UA': dc_cp(
+            'UA': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient",
                 description="heat transfer coefficient considering ambient temperature",
                 _allows_var=True,
                 calc=self._calc_UA, calc_deps=['Q']
             ),
-            'kA': dc_cp(
-                min_val=0, quantity="heat_transfer_coefficient",
-                description="deprecated, use :code:`UA` instead",
-                _allows_var=True,
-                calc=self._calc_UA, calc_deps=['Q']
-            ),
-            'lmtd': dc_cp(
-                min_val=0, is_result=True, quantity="temperature_difference",
+            'lmtd': ComponentParameter(
+                min_val=0, quantity="temperature_difference",
                 description="effective logarithmic mean temperature difference :code:`Q/UA`",
                 calc=self._calc_lmtd, calc_deps=['Q', 'UA']
             ),
-            'UA_char': dc_cc(
+            'UA_char': CharacteristicData(
                 param='m',
                 description="heat transfer coefficient lookup table for offdesign",
             ),
-            'kA_char': dc_cc(
-                param='m',
-                description="deprecated, use :code:`UA_char` instead"
-            ),
-            'Tamb': dc_cp(
+            'Tamb': ComponentParameter(
                 quantity="temperature",
                 description="ambient temperature"
             ),
-            'dissipative': dc_simple(_val=None, dtype="bool"),
-            'darcy_group': dc_gcp(
+            'dissipative': ConfigParameter(_val=None, dtype="bool"),
+            'darcy_group': ParameterGroup(
                 elements=['L', 'ks', 'D'], num_eq_sets=1,
                 func=self.darcy_func,
                 dependents=self.darcy_dependents,
                 description="Darcy-Weißbach equation for pressure loss"
             ),
-            'hw_group': dc_gcp(
+            'hw_group': ParameterGroup(
                 elements=['L', 'ks_HW', 'D'], num_eq_sets=1,
                 func=self.hazen_williams_func,
                 dependents=self.hazen_williams_dependents,
                 description="Hazen-Williams equation for pressure loss"
             ),
-            'UA_group': dc_gcp(
+            'UA_group': ParameterGroup(
                 elements=['UA', 'Tamb'], num_eq_sets=1,
                 func=self.UA_group_func,
                 dependents=self.UA_group_dependents,
                 description="equation for heat transfer based on ambient temperature and heat transfer coefficient"
             ),
-            'kA_group': dc_gcp(
-                elements=['kA', 'Tamb'],
-                description="deprecated, use :code:`UA_group` instead"
-            ),
-            'UA_char_group': dc_gcp(
+            'UA_char_group': ParameterGroup(
                 elements=['UA_char', 'Tamb'], num_eq_sets=1,
                 func=self.UA_char_group_func,
                 dependents=self.UA_char_group_dependents,
                 description="heat transfer from design heat transfer coefficient, modifier lookup table and ambient temperature"
-            ),
-            'kA_char_group': dc_gcp(
-                elements=['kA_char', 'Tamb'],
-                description="deprecated, use :code:`UA_char_group` instead"
             )
         }
 
     def get_bypass_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'm'}
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'p'}
             }),
-            'enthalpy_constraints': dc_cmc(**{
+            'enthalpy_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'h'}
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.variable_equality_structure_matrix,
                 'num_eq_sets': self.num_i,
                 'func_params': {'variable': 'fluid'}
@@ -454,14 +400,6 @@ class SimpleHeatExchanger(Component):
         return ['out1']
 
     @staticmethod
-    def powerinlets():
-        return ['heat']
-
-    @staticmethod
-    def poweroutlets():
-        return ['heat']
-
-    @staticmethod
     def heatinlets():
         return ['heat']
 
@@ -469,43 +407,20 @@ class SimpleHeatExchanger(Component):
     def heatoutlets():
         return ['heat']
 
-    def _forward_compatible(self, data):
-        if getattr(self, "power_inl", []) or getattr(self, "power_outl", []):
-            warnings.warn(
-                f"Component {self.label} is connected via PowerConnection. "
-                "Files with this connection cannot be loaded with tespy 0.12, "
-                "connect a HeatConnection instead before saving.",
-                FutureWarning, stacklevel=2
-            )
-        return super()._forward_compatible(data)
-
     def _validate_connections(self):
         super()._validate_connections()
-        all_energy = self.power_inl + self.power_outl + self.heat_inl + self.heat_outl
-        if len(all_energy) > 1:
+        if len(self.heat_inl + self.heat_outl) > 1:
             msg = (
-                f"Component {self.label} has more than one energy connection. "
-                "Connect to exactly one side using one connection type."
+                f"Component {self.label} has more than one heat connection. "
+                "Connect to exactly one side."
             )
             raise TESPyNetworkError(msg)
-        if self.power_inl or self.power_outl:
-            warnings.warn(
-                f"Component {self.label} is connected via PowerConnection. "
-                "Please use HeatConnection instead. PowerConnection support for "
-                "SimpleHeatExchanger will be removed in version 0.12.",
-                FutureWarning,
-                stacklevel=2,
-            )
 
     def _get_energy_connector_location(self):
         """Return (connector, side, val_attr) for the active energy connection."""
         if self.heat_inl:
             return self.heat_inl[0], "inlet"
-        if self.heat_outl:
-            return self.heat_outl[0], "outlet"
-        if self.power_inl:
-            return self.power_inl[0], "inlet"
-        return self.power_outl[0], "outlet"
+        return self.heat_outl[0], "outlet"
 
     def energy_connector_balance_func(self):
         connector, side = self._get_energy_connector_location()
@@ -731,7 +646,7 @@ class SimpleHeatExchanger(Component):
         p = self.UA_char.param
 
         expr = self.get_char_expr(p, **self.UA_char.char_params)
-        fkA = 2 / (1 + 1 / self.UA_char.char_func.evaluate(expr))
+        fkA = 2 / (1 + 1 / self.UA_char.evaluate(expr))
 
         Q = i.m.val_SI * (o.h.val_SI - i.h.val_SI)
         ttd_1 = i.calc_T() - self.Tamb.val_SI
@@ -840,15 +755,6 @@ class SimpleHeatExchanger(Component):
         if key == 'p':
             return 1e5
         return 0
-
-    def calc_parameters(self):
-        r"""Postprocessing parameter calculation."""
-        super().calc_parameters()
-        if "UA" not in self.parameters:
-            return
-        self.UA.is_result = self.Tamb.is_set
-        self.kA.is_result = self.Tamb.is_set
-        self.lmtd.is_result = self.Tamb.is_set
 
     def entropy_balance(self):
         r"""

@@ -26,6 +26,15 @@ SCALED_INCREMENT_TOLERANCE = 1e-7
 # declared bound by less than this fraction of its scale is numerical noise
 # of the converged solution and snapped onto the bound instead of reported
 LIMIT_RTOL = 1e-6
+# derivatives of a variable are not recomputed while its last increment
+# relative to its magnitude is below INCREMENT_FILTER_RTOL and the largest
+# relative increment of the iteration is below INCREMENT_FILTER_CONTRACTION
+# (the jacobian column of a converged variable still changes through the
+# mixed partials when other variables move by large steps). The default of
+# the increment_filter argument of Network.solve, None restores the
+# absolute filter of ERR ** 2
+INCREMENT_FILTER_RTOL = 1e-6
+INCREMENT_FILTER_CONTRACTION = 1e-3
 GAS_CONSTANT_UNI = 8.314462618
 GRAVITY = 9.80665
 

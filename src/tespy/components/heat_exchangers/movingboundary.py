@@ -86,9 +86,8 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Cold to hot side convective heat transfer coefficient ratio; with the
-        deprecated :code:`UA_cecchinato` group it is the secondary to
-        refrigerant side ratio instead. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio. Quantity:
+        :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -97,12 +96,9 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Cold to hot side heat transfer area ratio; with the deprecated
-        :code:`UA_cecchinato` group it is the secondary to refrigerant side
-        ratio instead, this will change to cold to hot side in version 0.12.
-        Quantity: :code:`ratio`.
+        Cold to hot side heat transfer area ratio. Quantity: :code:`ratio`.
 
-    area_zones : GroupedComponentProperties
+    area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
         set for the group to activate. For phases that do not occur in your
         application set the corresponding alpha to any value - it only needs to
@@ -144,26 +140,13 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
-
-    kA_char : GroupedComponentCharacteristics
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
-
     label : str
         The label of the component.
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -223,19 +206,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     re_exp_hot : float, dict
         Reynolds exponent for UA modification based on hot side mass flow.
 
-    re_exp_r : float, dict
-        Deprecated - Reynolds exponent for refrigerant side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        refrigerant flows on.
-
-    re_exp_sf : float, dict
-        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        secondary fluid flows on.
-
-    refrigerant_index : int
-        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
-
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
@@ -245,10 +215,6 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         Hot side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
         solve.
-
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
 
     td_pinch : float, dict
         Equation for minimum pinch. Quantity: :code:`temperature_difference`.
@@ -274,23 +240,13 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
         :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
-    UA_cecchinato : GroupedComponentProperties
-        Deprecated - equation for UA modification in offdesign using
-        refrigerant/secondary-fluid Reynolds exponents; use
-        :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
-        instead. Elements: :code:`re_exp_r`, :code:`re_exp_sf`,
+    UA_cecchinato : ParameterGroup
+        Equation for UA modification in offdesign using hot and cold side
+        Reynolds exponents. Elements: :code:`re_exp_hot`, :code:`re_exp_cold`,
         :code:`alpha_ratio`, :code:`area_ratio`.
-        Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
-
-    UA_cecchinato_hc : GroupedComponentProperties
-        Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in version 0.12
-        :code:`UA_cecchinato` will adopt the hot/cold convention of
-        :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
-        :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for sectioned UA modification based on characteristic lines.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
@@ -301,16 +257,10 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -401,14 +351,11 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     >>> delta_T_between_sections.round(2).tolist()
     [9.88, 14.8, 5.0, 19.88]
 
-    Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
-    `UA` value takes into account the heat transfer per section and calculates
-    the heat transfer coefficient as the sum of all sections, while the `kA`
-    value only takes into account the inlet and outlet temperatures and the
-    total heat transfer.
+    Finally, in contrast to the baseclass :code:`HeatExchanger`, the `UA`
+    value takes into account the heat transfer per section and calculates the
+    heat transfer coefficient as the sum of all sections instead of using the
+    inlet and outlet temperatures and the total heat transfer only.
 
-    >>> round(cd.kA.val)
-    173307
     >>> round(cd.UA.val)
     273449
 
@@ -421,14 +368,14 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
     - cold to hot side area ratio (:code:`area_ratio`)
     - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
     ...     re_exp_hot=0.8,
     ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato_hc"]
+    ...     offdesign=["UA_cecchinato"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 
@@ -477,7 +424,7 @@ class MovingBoundaryHeatExchanger(SectionedHeatExchanger):
             sections.
         """
         if steps_hot is None:
-            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+            steps_hot, _ = self._moving_steps(0)
         if steps_cold is None:
-            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+            steps_cold, _ = self._moving_steps(1)
         return np.unique(np.r_[steps_hot, steps_cold])

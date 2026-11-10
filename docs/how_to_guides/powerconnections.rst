@@ -244,7 +244,7 @@ method in the model of the motor.
     >>> motor.set_attr(eta_char=CharLine(x=[0.5, 0.75, 1, 1.25], y=[0.9, 0.975, 1, 0.975]))
     >>> motor.set_attr(eta=0.98, design=["eta"], offdesign=["eta_char"])
     >>> nw.solve("design")
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> nw.assert_convergence()
 
 After performing the design simulation we can change the fluid mass flow and

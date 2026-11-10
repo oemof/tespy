@@ -13,13 +13,14 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import Component
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
+from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
@@ -44,7 +45,7 @@ class CombustionChamber(Component):
     -----
 
     - Fluid inlets: in1, in2
-    - Fluid outlets: out1
+    - Fluid outlets: out1 (flue gas)
 
     Mandatory Equations
     -------------------
@@ -184,7 +185,7 @@ class CombustionChamber(Component):
 
     def get_parameters(self):
         return {
-            "lamb": dc_cp(
+            "lamb": ComponentParameter(
                 min_val=1,
                 func=self.lambda_func,
                 dependents=self.lambda_dependents,
@@ -193,7 +194,7 @@ class CombustionChamber(Component):
                 description="available oxygen to stoichiometric oxygen ratio",
                 calc=self._calc_lambda
             ),
-            "ti": dc_cp(
+            "ti": ComponentParameter(
                 min_val=0,
                 func=self.ti_func,
                 dependents=self.ti_dependents,
@@ -202,7 +203,7 @@ class CombustionChamber(Component):
                 description="thermal input of fuel: lower heating value multiplied with mass flow",
                 calc=self._calc_ti
             ),
-            "f_nox": dc_cp(
+            "f_nox": ComponentParameter(
                 quantity="ratio",
                 min_val=0,
                 max_val=1,
@@ -218,24 +219,25 @@ class CombustionChamber(Component):
 
     def get_mandatory_constraints(self):
         return {
-            "mass_flow_constraints": dc_cmc(**{
+            "mass_flow_constraints": MandatoryConstraint(**{
                 "func": self.mass_flow_func,
                 "dependents": self.mass_flow_dependents,
                 "num_eq_sets": 1,
                 "description": "mass flow balance over all inflows and outflows"
             }),
-            "reactor_pressure_constraints": dc_cmc(**{
+            "reactor_pressure_constraints": MandatoryConstraint(**{
                 "structure_matrix": self.combustion_pressure_structure_matrix,
                 "num_eq_sets": 2,
                 "description": "pressure equality constraints"
             }),
-            "stoichiometry_constraints": dc_cmc(**{
+            "stoichiometry_constraints": MandatoryConstraint(**{
                 "func": self.stoichiometry_func,
                 "dependents": self.stoichiometry_dependents,
                 "num_eq_sets": 1,
+                "elements": ["f_nox"],
                 "description": "constraints for stoichiometry of the reaction"
             }),
-            "energy_balance_constraints": dc_cmc(**{
+            "energy_balance_constraints": MandatoryConstraint(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
                 "num_eq_sets": 1,
@@ -250,6 +252,12 @@ class CombustionChamber(Component):
     @staticmethod
     def outlets():
         return ["out1"]
+
+    @staticmethod
+    def port_descriptions():
+        return {
+            "out1": "flue gas",
+        }
 
     def propagate_wrapper_to_target(self, branch):
         if self in branch["components"]:
@@ -879,30 +887,18 @@ class CombustionChamber(Component):
 
         ######################################################################
         # additional checks for performance improvement
-        if not self.lamb.is_set and self.lamb.val_SI < 2:
-            # search fuel and air inlet
-            for i in inl:
-                fuel_found = False
-                if not i.good_starting_values:
-                    fuel = 0
-                    for f in self.fuel_list:
-                        fuel += i.fluid.val.get(f, 0)
-                    # found the fuel inlet
-                    if fuel > 0.75 and i.m.is_var:
-                        fuel_found = True
-                        fuel_inlet = i
+        if not self.lamb.is_set and self.lamb.val_SI < 2 - ERR:
+            # rich mixtures stall the solver: redistribute the inlet flows
+            # so that lambda is 2 for the actual fuel's oxygen demand
+            self._set_inlet_flows_for_lambda(2)
 
-                    # found the air inlet
-                    if fuel < 0.75:
-                        air_tmp = i.m.val_SI
+    def _oxygen_balance_per_kg(self, connection):
+        r"""
+        Oxygen supply and stoichiometric demand in mol/kg of an inlet fluid.
 
-            if fuel_found:
-                fuel_inlet.m.set_reference_val_SI(air_tmp / 25)
-
-    def _initial_flow_relations(self):
-        # force a reasonable ratio between oxygen and fuel flow
+        Returns :code:`(supply, demand)` or :code:`None` without molar masses.
+        """
         inl, _ = self._get_combustion_connections()
-        lamb = self.lamb.val_SI if self.lamb.is_set else 2
 
         def molar_mass(fluid):
             for c in inl:
@@ -911,20 +907,63 @@ class CombustionChamber(Component):
             return None
 
         if molar_mass(self.o2) is None:
-            return []
+            return None
+
+        supply = connection.fluid.val.get(self.o2, 0) / molar_mass(self.o2)
+        demand = 0
+        for f in self.fuel_list:
+            x = connection.fluid.val.get(f, 0)
+            if x > 0:
+                demand += x / molar_mass(f) * (
+                    self.fuels[f]["C"] + self.fuels[f]["H"] / 4
+                    - self.fuels[f]["O"] / 2
+                )
+        return supply, demand
+
+    def _set_inlet_flows_for_lambda(self, lamb):
+        r"""
+        Move the variable inlet mass flows to the air ratio lamb.
+
+        With :math:`c_i = s_i - \lambda \cdot d_i` (oxygen supply and demand
+        per kg, see :py:meth:`_oxygen_balance_per_kg`) the air ratio holds for
+        :math:`\sum_i \dot{m}_i \cdot c_i = 0`. Two variable flows are
+        redistributed at their current total, a single variable flow is
+        scaled to the fixed one. Nothing happens for inlets of the same sign
+        (premixed reactants) or with good starting values.
+        """
+        inl, _ = self._get_combustion_connections()
+        if any(i.good_starting_values for i in inl):
+            return
+        coefficients = []
+        for i in inl:
+            balance = self._oxygen_balance_per_kg(i)
+            if balance is None:
+                return
+            coefficients.append(balance[0] - lamb * balance[1])
+        if not min(coefficients) < 0 < max(coefficients):
+            return
+        (a, c_a), (b, c_b) = zip(inl, coefficients)
+        if a.m.is_var and b.m.is_var:
+            total = a.m.val_SI + b.m.val_SI
+            a.m.set_reference_val_SI(total * -c_b / (c_a - c_b))
+            b.m.set_reference_val_SI(total * c_a / (c_a - c_b))
+        elif a.m.is_var:
+            a.m.set_reference_val_SI(-b.m.val_SI * c_b / c_a)
+        elif b.m.is_var:
+            b.m.set_reference_val_SI(-a.m.val_SI * c_a / c_b)
+
+    def _initial_flow_relations(self):
+        # force a reasonable ratio between oxygen and fuel flow
+        inl, _ = self._get_combustion_connections()
+        lamb = self.lamb.val_SI if self.lamb.is_set else 2
 
         relation = {}
         for i in inl:
             # available oxygen and demand for oxygen by fuel
-            supply = i.fluid.val.get(self.o2, 0) / molar_mass(self.o2)
-            demand = 0
-            for f in self.fuel_list:
-                x = i.fluid.val.get(f, 0)
-                if x > 0:
-                    demand += x / molar_mass(f) * (
-                        self.fuels[f]["C"] + self.fuels[f]["H"] / 4
-                        - self.fuels[f]["O"] / 2
-                    )
+            balance = self._oxygen_balance_per_kg(i)
+            if balance is None:
+                return []
+            supply, demand = balance
             relation[i.m] = supply - lamb * demand
 
         coefficients = list(relation.values())

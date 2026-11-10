@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 @component_registry
@@ -56,6 +57,21 @@ class NodeBase(Component):
     @staticmethod
     def get_bypass_constraints():
         return {}
+
+    def get_mandatory_constraints(self):
+        return {
+            'mass_flow_constraints': MandatoryConstraint(**{
+                'func': self.mass_flow_func,
+                'dependents': self.mass_flow_dependents,
+                'num_eq_sets': 1,
+                'description': 'mass balance constraint'
+            }),
+            'pressure_constraints': MandatoryConstraint(**{
+                'structure_matrix': self.pressure_structure_matrix,
+                'num_eq_sets': self.num_i + self.num_o - 1,
+                'description': 'pressure equality constraints'
+            })
+        }
 
     def _initial_affine_edges(self):
         connections = self.inl + self.outl

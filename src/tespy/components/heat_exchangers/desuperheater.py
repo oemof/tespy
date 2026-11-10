@@ -13,7 +13,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
+from tespy.tools.data_containers import MandatoryConstraint
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import dh_mix_dpQ
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import single_fluid
@@ -83,26 +84,13 @@ class Desuperheater(HeatExchanger):
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
-
-    kA_char : GroupedComponentCharacteristics
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
-
     label : str
         The label of the component.
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -152,10 +140,6 @@ class Desuperheater(HeatExchanger):
         :code:`temperature`. Result only - populated by the network after each
         solve.
 
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
-
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
         Quantity: :code:`temperature_difference`.
@@ -176,7 +160,7 @@ class Desuperheater(HeatExchanger):
         Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.base.HeatExchanger.UA_char_func>`.
@@ -187,16 +171,10 @@ class Desuperheater(HeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -251,7 +229,7 @@ class Desuperheater(HeatExchanger):
     >>> et_de.set_attr(fluid={'ethanol': 1}, td_dew=100, v=10)
     >>> de_et.set_attr(p=1)
     >>> nw.solve('design')
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> round(de_cw.T.val, 1)
     15.5
     >>> round(de_et.x.val, 1)
@@ -269,7 +247,7 @@ class Desuperheater(HeatExchanger):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            'saturated_gas_constraints': dc_cmc(**{
+            'saturated_gas_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.saturated_gas_func,
                 'deriv': self.saturated_gas_deriv,

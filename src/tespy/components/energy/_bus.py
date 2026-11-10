@@ -10,8 +10,8 @@ SPDX-License-Identifier: MIT
 """
 
 from tespy.components.component import Component
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 class _EnergyBus(Component):
@@ -67,13 +67,13 @@ class _EnergyBus(Component):
 
     def get_parameters(self):
         return {
-            "num_in": dc_simple(val=0, dtype="int", description="number of inlets"),
-            "num_out": dc_simple(val=0, dtype="int", description="number of outlets"),
+            "num_in": ConfigParameter(val=0, dtype="int", description="number of inlets"),
+            "num_out": ConfigParameter(val=0, dtype="int", description="number of outlets"),
         }
 
     def get_mandatory_constraints(self):
         return {
-            "energy_balance_constraint": dc_cmc(**{
+            "energy_balance_constraint": MandatoryConstraint(**{
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
                 "num_eq_sets": 1,

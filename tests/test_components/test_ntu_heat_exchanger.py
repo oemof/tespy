@@ -267,7 +267,7 @@ class TestNTUHeatExchanger:
 
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         # air is the minimum capacity rate side, so the design effectiveness
         # is the air temperature ratio (85 - 45) / (85 - 25)

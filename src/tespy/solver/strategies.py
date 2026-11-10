@@ -380,9 +380,7 @@ class NewtonStrategy:
         while it < budget - 1:
             it += 1
             problem.iter = it
-            problem.increment_filter = (
-                np.absolute(problem.increment) < ERR ** 2
-            )
+            problem.increment_filter = problem._increment_filter()
             fallback = problem._fallback_available()
             failed = rescued = False
             try:

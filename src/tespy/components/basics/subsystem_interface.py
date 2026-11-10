@@ -13,8 +13,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import Component
 from tespy.components.component import component_registry
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 @component_registry
@@ -144,13 +144,13 @@ class SubsystemInterface(Component):
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
         constraints.update({
-            "pressure_equality_constraint": dc_cmc(**{
+            "pressure_equality_constraint": MandatoryConstraint(**{
                 "num_eq_sets": self.num_i,
                 "structure_matrix": self.variable_equality_structure_matrix,
                 "func_params": {"variable": "p"},
                 "description": "pressure equality constraint"
             }),
-            "enthalpy_equality_constraint": dc_cmc(**{
+            "enthalpy_equality_constraint": MandatoryConstraint(**{
                 "num_eq_sets": self.num_i,
                 "structure_matrix": self.variable_equality_structure_matrix,
                 "func_params": {"variable": "h"},
@@ -158,13 +158,13 @@ class SubsystemInterface(Component):
             })
         })
         if self.num_power_i > 0:
-            constraints["power_equality_constraint"] = dc_cmc(**{
+            constraints["power_equality_constraint"] = MandatoryConstraint(**{
                 "num_eq_sets": self.num_power_i,
                 "structure_matrix": self.power_equality_structure_matrix,
                 "description": "power equality constraint"
             })
         if self.num_heat_i > 0:
-            constraints["heat_equality_constraint"] = dc_cmc(**{
+            constraints["heat_equality_constraint"] = MandatoryConstraint(**{
                 "num_eq_sets": self.num_heat_i,
                 "structure_matrix": self.heat_equality_structure_matrix,
                 "description": "heat equality constraint"
@@ -184,13 +184,13 @@ class SubsystemInterface(Component):
     @staticmethod
     def get_parameters():
         return {
-            "num_inter": dc_simple(
+            "num_inter": ConfigParameter(
                 dtype="int", description="number of interfacing connections"
             ),
-            "num_power_inter": dc_simple(
+            "num_power_inter": ConfigParameter(
                 dtype="int", description="number of power interfacing connections"
             ),
-            "num_heat_inter": dc_simple(
+            "num_heat_inter": ConfigParameter(
                 dtype="int", description="number of heat interfacing connections"
             ),
         }

@@ -11,6 +11,8 @@ tespy/tools/fluid_properties/wrappers/pyromat.py
 SPDX-License-Identifier: MIT
 """
 
+import numpy as np
+
 from .base import FluidPropertyWrapper
 from .base import wrapper_registry
 
@@ -115,7 +117,13 @@ class PyromatWrapper(FluidPropertyWrapper):
     def Q_ph(self, p, h):
         if self.back_end == "ig":
             self._not_implemented()
-        return self.AS.x(p=p, h=h)[0]
+        if p >= self._p_crit:
+            return np.nan
+        # pyromat returns -1 for any single phase state
+        x = self.AS.x(p=p, h=h)[0]
+        if x < 0:
+            return 0 if h <= self.h_pQ(p, 0) else 1
+        return x
 
     def d_QT(self, Q, T):
         if self.back_end == "ig":

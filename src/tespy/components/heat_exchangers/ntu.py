@@ -17,9 +17,9 @@ from scipy.optimize import minimize_scalar
 
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import OptionalEquation
 
 FLOW_ARRANGEMENTS = (
     "counterflow",
@@ -349,7 +349,8 @@ class NTUHeatExchanger(HeatExchanger):
     ----------
 
     C_r : float, dict
-        Minimum to maximum capacity rate ratio. Quantity: :code:`ratio`.
+        Minimum to maximum capacity rate ratio. Quantity: :code:`ratio`. Result
+        only - calculated after each solve.
 
     char_warnings : bool
         Ignore warnings on default characteristics usage for this component.
@@ -395,26 +396,13 @@ class NTUHeatExchanger(HeatExchanger):
         :code:`'crossflow_cold_mixed'`, :code:`'crossflow_both_mixed'`,
         :code:`'shell_and_tube'`.
 
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
-
-    kA_char : GroupedComponentCharacteristics
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
-
     label : str
         The label of the component.
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -472,10 +460,6 @@ class NTUHeatExchanger(HeatExchanger):
         :code:`temperature`. Result only - populated by the network after each
         solve.
 
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
-
     ttd_l : float, dict
         Terminal temperature difference at hot side outlet to cold side inlet.
         Quantity: :code:`temperature_difference`.
@@ -496,7 +480,7 @@ class NTUHeatExchanger(HeatExchanger):
         through the NTU relation. Quantity: :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.UA_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for heat transfer based on UA and modification factor.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.UA_char_func>`.
@@ -507,16 +491,10 @@ class NTUHeatExchanger(HeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -591,7 +569,7 @@ class NTUHeatExchanger(HeatExchanger):
     mass flow the air outlet temperature will decrease and the effectiveness
     will increase.
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> c1.set_attr(m=0.75)
     >>> nw.solve("offdesign", design_path=design_state)
     >>> round(he.eps.val, 3) > 0.667
@@ -603,21 +581,21 @@ class NTUHeatExchanger(HeatExchanger):
     def get_parameters(self):
         params = super().get_parameters()
         arrangements = ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
-        params["flow_arrangement"] = dc_simple(
+        params["flow_arrangement"] = ConfigParameter(
             dtype="str",
             description=(
                 "flow arrangement for the effectiveness-NTU relation, "
                 f"mandatory, one of {arrangements}"
             )
         )
-        params["num_shell_passes"] = dc_simple(
+        params["num_shell_passes"] = ConfigParameter(
             val=1, dtype="int",
             description=(
                 "number of shell passes for the shell and tube flow "
                 "arrangement (with 2, 4, 6, ... tube passes per shell pass)"
             )
         )
-        params["UA"] = dc_cp(
+        params["UA"] = ComponentParameter(
             min_val=0, num_eq_sets=1,
             func=self.UA_func,
             dependents=self.UA_dependents,
@@ -628,7 +606,7 @@ class NTUHeatExchanger(HeatExchanger):
             ),
             calc=self._calc_UA, calc_deps=["Q"]
         )
-        params["UA_char"] = dc_gcc(
+        params["UA_char"] = OptionalEquation(
             elements=["UA_char1", "UA_char2"],
             num_eq_sets=1,
             func=self.UA_char_func,
@@ -638,7 +616,7 @@ class NTUHeatExchanger(HeatExchanger):
                 "factor"
             )
         )
-        params["NTU"] = dc_cp(
+        params["NTU"] = ComponentParameter(
             min_val=0, num_eq_sets=1,
             func=self.NTU_func,
             dependents=self.UA_dependents,
@@ -648,12 +626,12 @@ class NTUHeatExchanger(HeatExchanger):
             ),
             calc=self._calc_NTU, calc_deps=["UA"]
         )
-        params["C_r"] = dc_cp(
-            min_val=0, max_val=1, is_result=True, quantity="ratio",
+        params["C_r"] = ComponentParameter(
+            min_val=0, max_val=1, quantity="ratio",
             description="minimum to maximum capacity rate ratio",
             calc=self._calc_C_r
         )
-        params["eps"] = dc_cp(
+        params["eps"] = ComponentParameter(
             min_val=0, max_val=1, num_eq_sets=1, quantity="efficiency",
             func=self.eps_func,
             dependents=self.UA_dependents,
@@ -903,8 +881,8 @@ class NTUHeatExchanger(HeatExchanger):
             f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
             f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.UA_char1.char_func.evaluate(f1)
-        fUA2 = self.UA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.evaluate(f1)
+        fUA2 = self.UA_char2.evaluate(f2)
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
         return self._ntu_residual(UA=self.UA.design * fUA)

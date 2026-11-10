@@ -91,7 +91,7 @@ class TestWaterElectrolyzer:
         self.nw.assert_convergence()
         msg = f"Value of heat must be {-8e5}, is {self.instance.Q.val}."
         assert approx(-8e5) == self.instance.Q.val, msg
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         # check heat output constraint (offdesign test)
         Q = self.instance.Q.val * 0.9
@@ -148,7 +148,7 @@ class TestWaterElectrolyzer:
         pr = 0.95
         self.instance.set_attr(pr=pr, e=None, eta=None, P=2e7)
         self.nw.solve('design')
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."
@@ -261,7 +261,7 @@ class TestFuelCell:
         pr = 0.95
         self.instance.set_attr(pr=pr, e=None, eta=None, P=-2e5)
         self.nw.solve('design')
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         self.nw.assert_convergence()
         msg = (
             f"Value of pressure ratio must be {pr}, is {self.instance.pr.val}."

@@ -12,8 +12,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 @component_registry
@@ -126,7 +126,7 @@ class Separator(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
+        return {'num_out': ConfigParameter(dtype="int", description="number of outlets")}
 
     @classmethod
     def port_schema(cls):
@@ -152,25 +152,25 @@ class Separator(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
                 'description': 'mass balance constraint'
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'num_eq_sets': self.num_o,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'description': 'equal temperature at all outlets constraints'
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'num_eq_sets': self.num_o,
                 'structure_matrix': self.pressure_structure_matrix,
                 'description': 'pressure equality constraints'

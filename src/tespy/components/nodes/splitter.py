@@ -12,8 +12,8 @@ SPDX-License-Identifier: MIT
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 
 
 @component_registry
@@ -119,7 +119,7 @@ class Splitter(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_out': dc_simple(dtype="int", description="number of outlets")}
+        return {'num_out': ConfigParameter(dtype="int", description="number of outlets")}
 
     @classmethod
     def port_schema(cls):
@@ -134,23 +134,23 @@ class Splitter(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
                 'num_eq_sets': 1,
                 'description': 'mass balance constraint'
             }),
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.enthalpy_structure_matrix,
                 'num_eq_sets': self.num_o,
                 'description': 'equal enthalpy at all outlets constraint'
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.pressure_structure_matrix,
                 'num_eq_sets': self.num_o,
                 'description': 'pressure equality constraints'
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.fluid_structure_matrix,
                 'num_eq_sets': self.num_o,
                 'description': 'fluid equality constraints'

@@ -10,23 +10,21 @@ tespy/components/heat_exchangers/sectioned.py
 
 SPDX-License-Identifier: MIT
 """
-import warnings
-
 import numpy as np
 from scipy.optimize import brentq
 
-from tespy.components.component import _is_specified
 from tespy.components.component import component_registry
 from tespy.components.heat_exchangers.base import HeatExchanger
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentArrayProperties as dc_cap
-from tespy.tools.data_containers import ComponentProperties as dc_cp
-from tespy.tools.data_containers import GroupedComponentCharacteristics as dc_gcc
-from tespy.tools.data_containers import GroupedComponentProperties as dc_gcp
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ArrayParameter
+from tespy.tools.data_containers import ComponentParameter
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import OptionalEquation
+from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties import h_mix_pQ
 from tespy.tools.fluid_properties import phase_mix_ph
 from tespy.tools.fluid_properties import single_fluid
+from tespy.tools.fluid_properties.wrappers.base import cache_generation
 
 _PHASE_TO_INT = {"l": 0, "tp": 1, "g": 2, "sc": 3}
 
@@ -102,9 +100,8 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`heat_transfer_coefficient_per_area`.
 
     alpha_ratio : float, dict
-        Cold to hot side convective heat transfer coefficient ratio; with the
-        deprecated :code:`UA_cecchinato` group it is the secondary to
-        refrigerant side ratio instead. Quantity: :code:`ratio`.
+        Cold to hot side convective heat transfer coefficient ratio. Quantity:
+        :code:`ratio`.
 
     area_hot : float, dict
         Hot-side heat exchange area; if not set, it is computed as a result
@@ -113,12 +110,9 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`area`.
 
     area_ratio : float, dict
-        Cold to hot side heat transfer area ratio; with the deprecated
-        :code:`UA_cecchinato` group it is the secondary to refrigerant side
-        ratio instead, this will change to cold to hot side in version 0.12.
-        Quantity: :code:`ratio`.
+        Cold to hot side heat transfer area ratio. Quantity: :code:`ratio`.
 
-    area_zones : GroupedComponentProperties
+    area_zones : ParameterGroup
         Bell (2015) area-based heat exchanger constraint. All elements must be
         set for the group to activate. For phases that do not occur in your
         application set the corresponding alpha to any value - it only needs to
@@ -160,26 +154,13 @@ class SectionedHeatExchanger(HeatExchanger):
         Maximum heat exchanger effectiveness. Quantity: :code:`efficiency`.
         Equation: :py:meth:`eff_max_func <tespy.components.heat_exchangers.base.HeatExchanger.eff_max_func>`.
 
-    kA : float, dict
-        Deprecated, use :code:`UA` instead. Quantity:
-        :code:`heat_transfer_coefficient`.
-
-    kA_char : GroupedComponentCharacteristics
-        Deprecated, use :code:`UA_char` instead. Elements: :code:`kA_char1`,
-        :code:`kA_char2`.
-
-    kA_char1 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char1` instead.
-
-    kA_char2 : tespy.tools.characteristics.CharLine, dict
-        Deprecated, use :code:`UA_char2` instead.
-
     label : str
         The label of the component.
 
     lmtd : float, dict
         Effective logarithmic mean temperature difference :code:`Q/UA`.
-        Quantity: :code:`temperature_difference`.
+        Quantity: :code:`temperature_difference`. Result only - calculated after
+        each solve.
 
     lmtd_per_section : numpy.ndarray
         Logarithmic mean temperature difference in each section. Quantity:
@@ -242,19 +223,6 @@ class SectionedHeatExchanger(HeatExchanger):
     re_exp_hot : float, dict
         Reynolds exponent for UA modification based on hot side mass flow.
 
-    re_exp_r : float, dict
-        Deprecated - Reynolds exponent for refrigerant side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        refrigerant flows on.
-
-    re_exp_sf : float, dict
-        Deprecated - Reynolds exponent for secondary fluid side mass flow; use
-        :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side the
-        secondary fluid flows on.
-
-    refrigerant_index : int
-        Deprecated - side on which the refrigerant is flowing (0: hot, 1:cold).
-
     T_cold_sections : numpy.ndarray
         Cold side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
@@ -264,10 +232,6 @@ class SectionedHeatExchanger(HeatExchanger):
         Hot side temperature at each section boundary. Quantity:
         :code:`temperature`. Result only - populated by the network after each
         solve.
-
-    td_log : float, dict
-        Deprecated, use :code:`lmtd` instead. Quantity:
-        :code:`temperature_difference`.
 
     td_pinch : float, dict
         Equation for minimum pinch. Quantity: :code:`temperature_difference`.
@@ -293,23 +257,13 @@ class SectionedHeatExchanger(HeatExchanger):
         :code:`heat_transfer_coefficient`.
         Equation: :py:meth:`UA_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_func>`.
 
-    UA_cecchinato : GroupedComponentProperties
-        Deprecated - equation for UA modification in offdesign using
-        refrigerant/secondary-fluid Reynolds exponents; use
-        :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and :code:`re_exp_cold`
-        instead. Elements: :code:`re_exp_r`, :code:`re_exp_sf`,
+    UA_cecchinato : ParameterGroup
+        Equation for UA modification in offdesign using hot and cold side
+        Reynolds exponents. Elements: :code:`re_exp_hot`, :code:`re_exp_cold`,
         :code:`alpha_ratio`, :code:`area_ratio`.
-        Equation: :py:meth:`UA_cecchinato_legacy_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_legacy_func>`.
-
-    UA_cecchinato_hc : GroupedComponentProperties
-        Temporary name - equation for UA modification in offdesign using
-        explicit hot/cold Reynolds exponents; in version 0.12
-        :code:`UA_cecchinato` will adopt the hot/cold convention of
-        :code:`UA_cecchinato_hc`. Elements: :code:`re_exp_hot`,
-        :code:`re_exp_cold`, :code:`alpha_ratio`, :code:`area_ratio`.
         Equation: :py:meth:`UA_cecchinato_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_cecchinato_func>`.
 
-    UA_char : GroupedComponentCharacteristics
+    UA_char : OptionalEquation
         Equation for sectioned UA modification based on characteristic lines.
         Elements: :code:`UA_char1`, :code:`UA_char2`.
         Equation: :py:meth:`UA_char_func <tespy.components.heat_exchangers.sectioned.SectionedHeatExchanger.UA_char_func>`.
@@ -320,16 +274,10 @@ class SectionedHeatExchanger(HeatExchanger):
     UA_char2 : tespy.tools.characteristics.CharLine, dict
         Cold side UA modification lookup table for offdesign.
 
-    zeta1 : float, dict
-        Deprecated, use :code:`zeta1_d4` instead.
-
     zeta1_d4 : float, dict
         Hot side geometry-independent friction coefficient zeta/D^4 for pressure
         loss calculation.
         Equation: :py:meth:`zeta_d4_func <tespy.components.component.Component.zeta_d4_func>`.
-
-    zeta2 : float, dict
-        Deprecated, use :code:`zeta2_d4` instead.
 
     zeta2_d4 : float, dict
         Cold side geometry-independent friction coefficient zeta/D^4 for
@@ -423,14 +371,11 @@ class SectionedHeatExchanger(HeatExchanger):
     >>> delta_T_between_sections[:6].round(2).tolist()
     [9.88, 14.8, 14.68, 14.48, 14.28, 14.08]
 
-    Finally, in contrast to the baseclass :code:`HeatExchanger` `kA` value, the
-    `UA` value takes into account the heat transfer per section and calculates
-    the heat transfer coefficient as the sum of all sections, while the `kA`
-    value only takes into account the inlet and outlet temperatures and the
-    total heat transfer.
+    Finally, in contrast to the baseclass :code:`HeatExchanger`, the `UA`
+    value takes into account the heat transfer per section and calculates the
+    heat transfer coefficient as the sum of all sections instead of using the
+    inlet and outlet temperatures and the total heat transfer only.
 
-    >>> round(cd.kA.val)
-    173307
     >>> round(cd.UA.val)
     273456
 
@@ -443,14 +388,14 @@ class SectionedHeatExchanger(HeatExchanger):
     - cold to hot side area ratio (:code:`area_ratio`)
     - cold to hot side alpha (heat transfer coefficient) ratio (:code:`alpha_ratio`)
 
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
     >>> cd.set_attr(
     ...     area_ratio=20,        # typical for a finned heat exchanger
     ...     alpha_ratio=1e-2,     # alpha for water side is higher
     ...     re_exp_hot=0.8,
     ...     re_exp_cold=0.55,
     ...     design=["td_pinch"],
-    ...     offdesign=["UA_cecchinato_hc"]
+    ...     offdesign=["UA_cecchinato"]
     ... )
     >>> nw.solve("offdesign", design_path=design_state)
 
@@ -560,7 +505,7 @@ class SectionedHeatExchanger(HeatExchanger):
     Solve the design point and save results:
 
     >>> nw.solve("design")
-    >>> design_state = nw.save(as_dict=True)
+    >>> design_state = nw.save()
 
     After design computation, the CO2 outlet state is:
 
@@ -625,97 +570,16 @@ class SectionedHeatExchanger(HeatExchanger):
     exponents, area ratio and alpha ratio of the involved fluids.
     """
 
-    _parameter_aliases = {
-        'kA_char': 'UA_char',
-        'kA_char1': 'UA_char1',
-        'kA_char2': 'UA_char2',
-        'zeta1': 'zeta1_d4',
-        'zeta2': 'zeta2_d4',
-    }
-
-    def _forward_compatible(self, data):
-        # tespy 0.12 removes the refrigerant and secondary fluid convention,
-        # UA_cecchinato_hc carries the specification in the hot and cold side
-        # convention, which both versions read
-        data = super()._forward_compatible(data)
-        legacy = {
-            key: data.pop(key)
-            for key in ("re_exp_r", "re_exp_sf", "refrigerant_index")
-            if key in data
-        }
-        # the activity of the groups is derived from their elements, tespy
-        # 0.12 knows the hot and cold side group as UA_cecchinato only
-        data.pop("UA_cecchinato", None)
-        data.pop("UA_cecchinato_hc", None)
-        for key in ("design", "offdesign"):
-            if key in data:
-                data[key] = list(dict.fromkeys(
-                    "UA_cecchinato_hc" if name == "UA_cecchinato" else name
-                    for name in data[key]
-                ))
-        uses_legacy = (
-            _is_specified(legacy.get("re_exp_r"))
-            or _is_specified(legacy.get("re_exp_sf"))
-        )
-        uses_hot_cold = (
-            _is_specified(data.get("re_exp_hot"))
-            or _is_specified(data.get("re_exp_cold"))
-        )
-        if not uses_legacy or uses_hot_cold:
-            return data
-
-        refrigerant_hot = legacy.get("refrigerant_index", {}).get("val", 0) == 0
-        hot, cold = ("re_exp_r", "re_exp_sf") if refrigerant_hot else ("re_exp_sf", "re_exp_r")
-        for new, old in (("re_exp_hot", hot), ("re_exp_cold", cold)):
-            if _is_specified(legacy.get(old)):
-                data[new] = legacy[old]
-        if not refrigerant_hot:
-            # the legacy ratios are secondary fluid to refrigerant, which is
-            # hot to cold with the refrigerant on the cold side
-            for ratio in ("alpha_ratio", "area_ratio"):
-                entry = data.get(ratio)
-                if _is_specified(entry) and entry.get("val"):
-                    data[ratio] = {**entry, "val": 1 / entry["val"]}
-        return data
-
-    def set_attr(self, **kwargs):
-        for old, msg in [
-            (
-                'refrigerant_index',
-                f"The parameter 'refrigerant_index' of component {self.label!r} is "
-                "deprecated. Use 'UA_cecchinato_hc' with 're_exp_hot' and 're_exp_cold' "
-                "instead. In version 0.12 'UA_cecchinato' will adopt the "
-                "hot/cold convention of 'UA_cecchinato_hc'."
-            ),
-            (
-                're_exp_r',
-                f"The parameter 're_exp_r' of component {self.label!r} is deprecated. "
-                "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the refrigerant flows on. In version 0.12 "
-                "'UA_cecchinato' will adopt the hot/cold convention of "
-                "'UA_cecchinato_hc'."
-            ),
-            (
-                're_exp_sf',
-                f"The parameter 're_exp_sf' of component {self.label!r} is deprecated. "
-                "Use 'UA_cecchinato_hc' with 're_exp_hot' or 're_exp_cold' instead, "
-                "depending on which side the secondary fluid flows on. In version "
-                "0.12 'UA_cecchinato' will adopt the hot/cold convention of "
-                "'UA_cecchinato_hc'."
-            ),
-        ]:
-            if old in kwargs:
-                warnings.warn(msg, FutureWarning, stacklevel=2)
-        super().set_attr(**kwargs)
+    _parameter_aliases = {'UA_cecchinato_hc': ('UA_cecchinato', '0.13')}
 
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'num_sections': dc_simple(
+            'num_sections': ConfigParameter(
                 val=50, dtype="int",
                 description="number of sections of the heat exchanger"
             ),
-            'UA': dc_cp(
+            'UA': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.UA_func,
                 dependents=self.UA_dependents,
@@ -724,71 +588,38 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_UA_from_sections,
                 calc_deps=[]
             ),
-            'UA_char': dc_gcc(
+            'UA_char': OptionalEquation(
                 elements=['UA_char1', 'UA_char2'],
                 num_eq_sets=1,
                 func=self.UA_char_func,
                 dependents=self.UA_dependents,
                 description="equation for sectioned UA modification based on characteristic lines"
             ),
-            'refrigerant_index': dc_simple(
-                val=0, dtype="int",
-                description="deprecated - side on which the refrigerant is flowing (0: hot, 1:cold)"
-            ),
-            're_exp_hot': dc_cp(
+            're_exp_hot': ComponentParameter(
                 description="Reynolds exponent for UA modification based on hot side mass flow"
             ),
-            're_exp_cold': dc_cp(
+            're_exp_cold': ComponentParameter(
                 description="Reynolds exponent for UA modification based on cold side mass flow"
             ),
-            're_exp_r': dc_cp(
-                description="deprecated - Reynolds exponent for refrigerant side mass flow; "
-                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
-                "the refrigerant flows on"
-            ),
-            're_exp_sf': dc_cp(
-                description="deprecated - Reynolds exponent for secondary fluid side mass flow; "
-                "use :code:`re_exp_hot` or :code:`re_exp_cold` depending on which side "
-                "the secondary fluid flows on"
-            ),
-            'alpha_ratio': dc_cp(
+            'alpha_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
-                description="cold to hot side convective heat transfer coefficient ratio; "
-                "with the deprecated :code:`UA_cecchinato` group it is the secondary to "
-                "refrigerant side ratio instead"
+                description="cold to hot side convective heat transfer coefficient ratio"
             ),
-            'area_ratio': dc_cp(
+            'area_ratio': ComponentParameter(
                 quantity="ratio", min_val=0,
-                description="cold to hot side heat transfer area ratio; with the "
-                "deprecated :code:`UA_cecchinato` group it is the secondary to "
-                "refrigerant side ratio instead, this will change to cold to hot side in "
-                "version 0.12"
+                description="cold to hot side heat transfer area ratio"
             ),
-            'UA_cecchinato': dc_gcp(
-                elements=['re_exp_r', 're_exp_sf', 'alpha_ratio', 'area_ratio'],
-                num_eq_sets=1,
-                func=self.UA_cecchinato_legacy_func,
-                dependents=self.UA_dependents,
-                description=(
-                    "deprecated - equation for UA modification in offdesign using "
-                    "refrigerant/secondary-fluid Reynolds exponents; use "
-                    ":code:`UA_cecchinato_hc` with :code:`re_exp_hot` and "
-                    ":code:`re_exp_cold` instead"
-                )
-            ),
-            'UA_cecchinato_hc': dc_gcp(
+            'UA_cecchinato': ParameterGroup(
                 elements=['re_exp_hot', 're_exp_cold', 'alpha_ratio', 'area_ratio'],
                 num_eq_sets=1,
                 func=self.UA_cecchinato_func,
                 dependents=self.UA_dependents,
                 description=(
-                    "temporary name - equation for UA modification in offdesign using "
-                    "explicit hot/cold Reynolds exponents; in version 0.12 "
-                    ":code:`UA_cecchinato` will adopt the hot/cold convention of "
-                    ":code:`UA_cecchinato_hc`"
+                    "equation for UA modification in offdesign using hot and "
+                    "cold side Reynolds exponents"
                 )
             ),
-            'td_pinch': dc_cp(
+            'td_pinch': ComponentParameter(
                 min_val=0, num_eq_sets=1,
                 func=self.td_pinch_func,
                 dependents=self.td_pinch_dependents,
@@ -797,51 +628,51 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_td_pinch,
                 calc_deps=[]
             ),
-            'alpha1_l': dc_cp(
+            'alpha1_l': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in subcooled zone"
             ),
-            'alpha1_tp': dc_cp(
+            'alpha1_tp': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha1_g': dc_cp(
+            'alpha1_g': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in superheated zone"
             ),
-            'alpha1_sc': dc_cp(
+            'alpha1_sc': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="hot-side heat transfer coefficient in supercritical zone"
             ),
-            'alpha2_l': dc_cp(
+            'alpha2_l': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in subcooled zone"
             ),
-            'alpha2_tp': dc_cp(
+            'alpha2_tp': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in two-phase zone"
             ),
-            'alpha2_g': dc_cp(
+            'alpha2_g': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in superheated zone"
             ),
-            'alpha2_sc': dc_cp(
+            'alpha2_sc': ComponentParameter(
                 min_val=0, quantity="heat_transfer_coefficient_per_area",
                 description="cold-side heat transfer coefficient in supercritical zone"
             ),
-            'phase_hot_per_section': dc_cap(
+            'phase_hot_per_section': ArrayParameter(
                 quantity=None,
                 description="phase index per section on hot side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
             ),
-            'phase_cold_per_section': dc_cap(
+            'phase_cold_per_section': ArrayParameter(
                 quantity=None,
                 description="phase index per section on cold side (0=liquid, 1=two-phase, 2=gas, 3=supercritical)"
             ),
-            'R_cond': dc_cp(
+            'R_cond': ComponentParameter(
                 min_val=0, quantity="thermal_resistance",
                 description="wall conduction thermal resistance"
             ),
-            'area_hot': dc_cp(
+            'area_hot': ComponentParameter(
                 min_val=0, quantity="area",
                 description="hot-side heat exchange area; if not set, it is "
                 "computed as a result after each solve, in case "
@@ -850,7 +681,7 @@ class SectionedHeatExchanger(HeatExchanger):
                 calc=self._calc_area_hot,
                 calc_deps=[]
             ),
-            'area_zones': dc_gcp(
+            'area_zones': ParameterGroup(
                 elements=[
                     'area_hot', 'area_ratio',
                     'alpha1_l', 'alpha1_tp', 'alpha1_g', 'alpha1_sc',
@@ -873,8 +704,8 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def _store_sections(self):
         super()._store_sections()
-        steps1, zp1 = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps2, zp2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps1, zp1 = self._moving_steps(0)
+        steps2, zp2 = self._moving_steps(1)
         steps_all = self._assign_steps(steps1, steps2)
         self.phase_hot_per_section.val_SI = np.array(
             self._section_phases(steps_all, np.array(steps1), zp1)
@@ -898,6 +729,25 @@ class SectionedHeatExchanger(HeatExchanger):
             Uniformly spaced step fractions from 0 to 1.
         """
         return np.linspace(0, 1, num_steps)
+
+    def _moving_steps(self, side):
+        """Phase boundary steps of one side, cached within a solve and keyed
+        on the inlet and outlet state of that side: a derivative perturbation
+        of a variable of one side leaves the steps of the other side
+        unchanged."""
+        c1, c2 = self.inl[side], self.outl[side]
+        key = (c1.p.val_SI, c1.h.val_SI, c2.p.val_SI, c2.h.val_SI)
+        cache = getattr(self, "_steps_cache", None)
+        if cache is None or cache["generation"] != cache_generation.value:
+            cache = self._steps_cache = {
+                "generation": cache_generation.value, 0: {}, 1: {}
+            }
+        try:
+            return cache[side][key]
+        except KeyError:
+            result = self._get_moving_steps(c1, c2)
+            cache[side][key] = result
+            return result
 
     @staticmethod
     def _get_moving_steps(c1, c2):
@@ -929,90 +779,77 @@ class SectionedHeatExchanger(HeatExchanger):
         # connection (enthalpy will be rising in the list)
         if c1.h.val_SI > c2.h.val_SI:
             c1, c2 = c2, c1
+        p1, h1, p2, h2 = c1.p.val_SI, c1.h.val_SI, c2.p.val_SI, c2.h.val_SI
+        fd1, fd2 = c1.fluid_data, c2.fluid_data
 
         h_at_steps = [0, 1]
         zone_phases = [2]
-        fluid = single_fluid(c1.fluid_data)
+        fluid = single_fluid(fd1)
         # this should be generalized to "supports two-phase" because it does
         # not work with incompressibles
         is_pure_fluid = fluid is not None
 
         if is_pure_fluid:
-            phase_h_low = phase_mix_ph(c1.p.val_SI, c1.h.val_SI, c1.fluid_data)
-            phase_h_high = phase_mix_ph(c2.p.val_SI, c2.h.val_SI, c2.fluid_data)
+            phase_h_low = phase_mix_ph(p1, h1, fd1)
+            phase_h_high = phase_mix_ph(p2, h2, fd2)
 
-            delta_h = c2.h.val_SI - c1.h.val_SI
+            delta_h = h2 - h1
             # we can round delta p here because we only need it in case it is
             # not zero, and then it will never be in the magnitude of subdigit
             # Pascal
-            delta_p = round(c2.p.val_SI - c1.p.val_SI, 3)
+            delta_p = round(p2 - p1, 3)
             if phase_h_high == "g" and phase_h_low == "tp":
                 if delta_p == 0:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    x_gas = (h_sat_gas - h1) / delta_h
                     h_at_steps = [0, x_gas, 1]
                     zone_phases = [1, 2]
                 else:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    if np.isclose(h_sat_gas, c1.h.val_SI):
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    if _isclose(h_sat_gas, h1):
                         h_at_steps = [0, 1]
                         zone_phases = [2]
-                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data), c2.h.val_SI):
+                    elif _isclose(h_mix_pQ(p2, 1, fd2), h2):
                         h_at_steps = [0, 1]
                         zone_phases = [1]
                     else:
-                        x_gas = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                1, c1.fluid_data#
-                            )
+                        x_gas = _step_at_saturation(
+                            0, 1, (h_sat_gas - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 1, fd1
                         )
                         h_at_steps = [0, x_gas, 1]
                         zone_phases = [1, 2]
 
             elif phase_h_high == "g" and phase_h_low == "l":
                 if delta_p == 0:
-                    h_sat_gas = h_mix_pQ(c1.p.val_SI, 1, c1.fluid_data)
-                    x_gas = (h_sat_gas - c1.h.val_SI) / delta_h
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_sat_gas = h_mix_pQ(p1, 1, fd1)
+                    x_gas = (h_sat_gas - h1) / delta_h
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq = (h_sat_liquid - h1) / delta_h
                     h_at_steps = [0, x_liq, x_gas, 1]
                     zone_phases = [0, 1, 2]
                 else:
                     # c2 is the higher enthalpy, we have to check if it is
                     # at saturated gas
-                    h_sat_gas = h_mix_pQ(c2.p.val_SI, 1, c2.fluid_data)
-                    x_gas_is_one = np.isclose(h_sat_gas, c2.h.val_SI)
+                    h_sat_gas = h_mix_pQ(p2, 1, fd2)
+                    x_gas_is_one = _isclose(h_sat_gas, h2)
                     if x_gas_is_one:
                         x_gas = 1
                     else:
-                        x_gas = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                1, c1.fluid_data
-                            )
+                        x_gas = _step_at_saturation(
+                            0, 1, (h_sat_gas - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 1, fd1
                         )
                     # c1 is the lower enthalpy, we have to check if it is
                     # at saturated liquid
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq_is_zero = np.isclose(h_sat_liquid, c1.h.val_SI)
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq_is_zero = _isclose(h_sat_liquid, h1)
                     if x_liq_is_zero:
                         x_liq = 0
                     else:
-                        x_liq = brentq(
-                            identify_step_at_saturation,
-                            0, x_gas,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                0, c1.fluid_data#
-                            )
+                        x_liq = _step_at_saturation(
+                            0, x_gas, (h_sat_liquid - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 0, fd1
                         )
                     h_at_steps = [0, x_liq, x_gas, 1]
                     if x_liq_is_zero and x_gas_is_one:
@@ -1026,27 +863,22 @@ class SectionedHeatExchanger(HeatExchanger):
 
             elif phase_h_high == "tp" and phase_h_low == "l":
                 if delta_p == 0:
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    x_liq = (h_sat_liquid - c1.h.val_SI) / delta_h
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    x_liq = (h_sat_liquid - h1) / delta_h
                     h_at_steps = [0, x_liq, 1]
                     zone_phases = [0, 1]
                 else:
-                    h_sat_liquid = h_mix_pQ(c1.p.val_SI, 0, c1.fluid_data)
-                    if np.isclose(h_sat_liquid, c1.h.val_SI):
+                    h_sat_liquid = h_mix_pQ(p1, 0, fd1)
+                    if _isclose(h_sat_liquid, h1):
                         h_at_steps = [0, 1]
                         zone_phases = [1]
-                    elif np.isclose(h_mix_pQ(c2.p.val_SI, 0, c2.fluid_data), c2.h.val_SI):
+                    elif _isclose(h_mix_pQ(p2, 0, fd2), h2):
                         h_at_steps = [0, 1]
                         zone_phases = [0]
                     else:
-                        x_liq = brentq(
-                            identify_step_at_saturation,
-                            0, 1,
-                            args=(
-                                c1.p.val_SI, c1.h.val_SI,
-                                delta_p, delta_h,
-                                0, c1.fluid_data#
-                            )
+                        x_liq = _step_at_saturation(
+                            0, 1, (h_sat_liquid - h1) / delta_h,
+                            p1, h1, delta_p, delta_h, 0, fd1
                         )
                         h_at_steps = [0, x_liq, 1]
                         zone_phases = [0, 1]
@@ -1058,16 +890,16 @@ class SectionedHeatExchanger(HeatExchanger):
                 # minimum required version is bumped:
                 #
                 #   elif phase_h_high == "sc" and phase_h_low == "l":
-                #       wrapper = c1.fluid_data[fluid]["wrapper"]
-                #       h_at_tc = wrapper.h_pT(c1.p.val_SI, wrapper._T_crit)
-                #       if np.isclose(h_at_tc, c1.h.val_SI):
+                #       wrapper = fd1[fluid]["wrapper"]
+                #       h_at_tc = wrapper.h_pT(p1, wrapper._T_crit)
+                #       if _isclose(h_at_tc, h1):
                 #           h_at_steps = [0, 1]
                 #           zone_phases = [3]
-                #       elif np.isclose(h_at_tc, c2.h.val_SI):
+                #       elif _isclose(h_at_tc, h2):
                 #           h_at_steps = [0, 1]
                 #           zone_phases = [0]
                 #       else:
-                #           x_tc = (h_at_tc - c1.h.val_SI) / delta_h
+                #           x_tc = (h_at_tc - h1) / delta_h
                 #           h_at_steps = [0, x_tc, 1]
                 #           zone_phases = [0, 3]
                 zone_phases = [3]
@@ -1097,9 +929,9 @@ class SectionedHeatExchanger(HeatExchanger):
         """
         num_steps = self.num_sections.val + 1
         if steps_hot is None:
-            steps_hot, _ = self._get_moving_steps(self.inl[0], self.outl[0])
+            steps_hot, _ = self._moving_steps(0)
         if steps_cold is None:
-            steps_cold, _ = self._get_moving_steps(self.inl[1], self.outl[1])
+            steps_cold, _ = self._moving_steps(1)
         return np.unique(np.r_[self._get_steps(num_steps), steps_hot, steps_cold])
 
     def calc_UA(self, sections):
@@ -1110,8 +942,8 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             Sum of UA values of all heat exchanger sections.
         """
-        _, _, _, Q_per_section, td_log_per_section = sections
-        UA_sections = Q_per_section / td_log_per_section
+        _, _, _, Q_per_section, lmtd_per_section = sections
+        UA_sections = Q_per_section / lmtd_per_section
         return sum(UA_sections)
 
     def UA_func(self, **kwargs):
@@ -1151,8 +983,8 @@ class SectionedHeatExchanger(HeatExchanger):
         f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
         f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
-        fUA1 = self.UA_char1.char_func.evaluate(f1)
-        fUA2 = self.UA_char2.char_func.evaluate(f2)
+        fUA1 = self.UA_char1.evaluate(f1)
+        fUA2 = self.UA_char2.evaluate(f2)
 
         fUA = 2 / (1 / fUA1 + 1 / fUA2)
 
@@ -1222,35 +1054,6 @@ class SectionedHeatExchanger(HeatExchanger):
             hot_index=0,
             cold_index=1,
         )
-
-    def UA_cecchinato_legacy_func(self):
-        r"""
-        Deprecated - use :code:`UA_cecchinato_hc` with :code:`re_exp_hot` and
-        :code:`re_exp_cold` instead. In version 0.12
-        :code:`UA_cecchinato` will adopt the new hot/cold parameter convention
-        and this group will be removed.
-
-        Requires :code:`re_exp_r`, :code:`re_exp_sf`, :code:`alpha_ratio`,
-        :code:`area_ratio`, and :code:`refrigerant_index`. Here
-        :code:`alpha_ratio` and :code:`area_ratio` are the secondary fluid to
-        refrigerant side ratios, i.e. their direction relative to hot and cold
-        side depends on :code:`refrigerant_index`.
-
-        Returns
-        -------
-        float
-            residual value of equation
-        """
-        refrigerant_index = self.refrigerant_index.val
-        if refrigerant_index == 0:
-            hot_index, cold_index = 0, 1
-            re_exp_hot = self.re_exp_r.val_SI
-            re_exp_cold = self.re_exp_sf.val_SI
-        else:
-            hot_index, cold_index = 1, 0
-            re_exp_hot = self.re_exp_sf.val_SI
-            re_exp_cold = self.re_exp_r.val_SI
-        return self._UA_cecchinato_residual(re_exp_hot, re_exp_cold, hot_index, cold_index)
 
     def UA_dependents(self):
         return [
@@ -1425,8 +1228,8 @@ class SectionedHeatExchanger(HeatExchanger):
         float
             Residual value of the equation.
         """
-        steps1, zone_phases1 = self._get_moving_steps(self.inl[0], self.outl[0])
-        steps2, zone_phases2 = self._get_moving_steps(self.inl[1], self.outl[1])
+        steps1, zone_phases1 = self._moving_steps(0)
+        steps2, zone_phases2 = self._moving_steps(1)
         steps_all = self._assign_steps(steps1, steps2)
         T_hot, T_cold = self._get_T_at_steps(steps_all)
         lmtd_per_section = self._calc_lmtd_per_section(T_hot, T_cold, postprocess=False)
@@ -1453,6 +1256,47 @@ class SectionedHeatExchanger(HeatExchanger):
 
     def area_zones_dependents(self):
         return self.UA_dependents()
+
+
+def _isclose(a, b):
+    """Scalar version of :code:`numpy.isclose` with its default tolerances,
+    the numpy call costs 20 µs on scalars."""
+    return abs(a - b) <= 1e-8 + 1e-5 * abs(b)
+
+
+def _step_at_saturation(lo, hi, x0, *args):
+    """Root of :func:`identify_step_at_saturation` in :code:`[lo, hi]`.
+
+    :code:`x0` is the step for zero pressure drop (from the saturation
+    enthalpy the caller has evaluated anyway), the second point comes from
+    the slope of the residual without the pressure dependency of the
+    saturation enthalpy, secant steps finish. :func:`scipy.optimize.newton`
+    would do the same but spends three times the evaluation cost in its own
+    checks. :func:`scipy.optimize.brentq` takes over if the secant leaves
+    the bracket or stalls.
+    """
+    delta_p, delta_h = args[2], args[3]
+    x0 = min(max(x0, lo), hi)
+    f0 = identify_step_at_saturation(x0, *args)
+    if f0 == 0:
+        return x0
+    x1 = min(max(x0 - f0 / (delta_p * delta_h), lo), hi)
+    if x1 == x0:
+        x1 = hi if x0 - lo < hi - x0 else lo
+    f1 = identify_step_at_saturation(x1, *args)
+    for _ in range(10):
+        if f1 == f0:
+            break
+        x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
+        if not lo <= x2 <= hi:
+            break
+        if abs(x2 - x1) < 1e-12:
+            return x2
+        f2 = identify_step_at_saturation(x2, *args)
+        if f2 == 0:
+            return x2
+        x0, f0, x1, f1 = x1, f1, x2, f2
+    return brentq(identify_step_at_saturation, lo, hi, args=args)
 
 
 def identify_step_at_saturation(x, p_in, h_in, delta_p, delta_h, Q, fluid_data):

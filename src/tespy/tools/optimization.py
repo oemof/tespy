@@ -8,7 +8,6 @@ available from its original location tespy/tools/optimization.py
 
 SPDX-License-Identifier: MIT
 """
-import warnings
 
 import numpy as np
 
@@ -24,119 +23,6 @@ except ModuleNotFoundError:
             pass
 
 from tespy.tools.logger import logger
-
-
-class _NestedModelAdapter:
-    """Wraps a nested-API model to present the flat get_parameter/solve_model interface."""
-
-    def __init__(self, model, param_mapping):
-        self._model = model
-        self._mapping = param_mapping
-
-    def solve_model(self, **flat_kwargs):
-        nested = {}
-        for flat_name, value in flat_kwargs.items():
-            obj, label, param = self._mapping[flat_name]
-            if param is not None:
-                nested.setdefault(obj, {}).setdefault(label, {})[param] = value
-            else:
-                nested.setdefault(obj, {})[label] = value
-        self._model.solve_model(**nested)
-
-    def get_parameter(self, name):
-        if name in self._mapping:
-            obj, label, param = self._mapping[name]
-            return self._model.get_param(obj, label, param)
-        return self._model.get_objective(name)
-
-    def get_objectives(self, objective_list):
-        return self._model.get_objectives(objective_list)
-
-    def penalize(self, fitness, c):
-        return self._model.penalize(fitness, c)
-
-
-def _is_nested(variables, constraints, kpi):
-    if variables and not any(
-        isinstance(v, dict) and ("min" in v or "max" in v)
-        for v in variables.values()
-    ):
-        return True
-    if "lower limits" in constraints or "upper limits" in constraints:
-        return True
-    if isinstance(kpi, dict):
-        return True
-    return False
-
-
-def _translate_nested(variables, constraints, kpi):
-    """Translate legacy nested dicts to flat equivalents.
-
-    Returns (flat_vars, flat_constraints, flat_kpi, param_mapping).
-    param_mapping: flat_name -> (obj, label, param)  - param is None for Customs.
-    """
-    param_mapping = {}
-
-    flat_vars = {}
-    for obj, data in variables.items():
-        if obj in ("Connections", "Components"):
-            for label, params in data.items():
-                for param, bounds in params.items():
-                    flat_name = f"{obj}-{label}-{param}"
-                    flat_vars[flat_name] = bounds
-                    param_mapping[flat_name] = (obj, label, param)
-        else:
-            for label, bounds in data.items():
-                flat_name = f"{obj}-{label}"
-                flat_vars[flat_name] = bounds
-                param_mapping[flat_name] = (obj, label, None)
-
-    ref_map = {}
-    for key, value in constraints.items():
-        if key not in ("lower limits", "upper limits") and isinstance(value, list):
-            obj, label, param = value
-            ref_flat = f"{obj}-{label}-{param}"
-            ref_map[key] = ref_flat
-            param_mapping[ref_flat] = (obj, label, param)
-
-    flat_constraints = {}
-    for border, direction in [("lower", "min"), ("upper", "max")]:
-        limit_key = f"{border} limits"
-        if limit_key not in constraints:
-            continue
-        for obj, data in constraints[limit_key].items():
-            if obj in ("Connections", "Components"):
-                for label, params in data.items():
-                    for param, val in params.items():
-                        flat_name = f"{obj}-{label}-{param}"
-                        param_mapping.setdefault(flat_name, (obj, label, param))
-                        bound = ref_map[val] if isinstance(val, str) and val in ref_map else val
-                        flat_constraints.setdefault(flat_name, {})[direction] = bound
-            else:
-                for label, val in data.items():
-                    flat_name = f"{obj}-{label}"
-                    param_mapping.setdefault(flat_name, (obj, label, None))
-                    bound = ref_map[val] if isinstance(val, str) and val in ref_map else val
-                    flat_constraints.setdefault(flat_name, {})[direction] = bound
-
-    flat_kpi = []
-    if isinstance(kpi, dict):
-        for obj, data in kpi.items():
-            if obj in ("Connections", "Components"):
-                for label, params in data.items():
-                    for param in params:
-                        flat_name = f"{obj}-{label}-{param}"
-                        flat_kpi.append(flat_name)
-                        param_mapping.setdefault(flat_name, (obj, label, param))
-            else:
-                for label in data:
-                    flat_name = f"{obj}-{label}"
-                    flat_kpi.append(flat_name)
-                    param_mapping.setdefault(flat_name, (obj, label, None))
-    else:
-        flat_kpi = list(kpi)
-
-    return flat_vars, flat_constraints, flat_kpi, param_mapping
 
 
 class OptimizationProblem(ElementwiseProblem):
@@ -210,17 +96,6 @@ class OptimizationProblem(ElementwiseProblem):
             objective = []
         if kpi is None:
             kpi = []
-
-        if _is_nested(variables, constraints, kpi):
-            warnings.warn(
-                "Passing nested dictionaries to OptimizationProblem is "
-                "deprecated and will be removed in version 0.12. Use flat "
-                "parameter name dictionaries instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            variables, constraints, kpi, param_mapping = _translate_nested(variables, constraints, kpi)
-            model = _NestedModelAdapter(model, param_mapping)
 
         self.model = model
         self.variables = variables

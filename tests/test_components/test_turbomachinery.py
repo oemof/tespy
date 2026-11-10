@@ -56,7 +56,7 @@ class TestTurbomachinery:
         self.nw.solve("design")
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         # test isentropic efficiency value
         eta_s_d = (
@@ -153,7 +153,7 @@ class TestTurbomachinery:
         self.nw.solve("design")
         self.nw.assert_convergence()
         assert self.nw.status == 0
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         # test isentropic efficiency value
         eta_s_d = (
@@ -252,7 +252,7 @@ class TestTurbomachinery:
         instance.set_attr(eta_s=eta_s_d)
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         self.c2.set_attr(p=None)
 
         # flow char (pressure rise vs. volumetric flow)
@@ -372,6 +372,10 @@ class TestTurbomachinery:
 
         assert approx(self.c1.v.val) == 1.017723
 
+        assert instance.characteristics_in_use() == ["eta_flow_map", "head_flow_map"]
+        frequency, flow = instance.get_char_inputs("head_flow_map")
+        assert frequency == approx(1500 / 60)
+        assert flow == approx(self.c1.m.val_SI * self.c1.calc_vol())
         instance.set_attr(frequency="var")
         self.c1.set_attr(v=2)
 
@@ -408,7 +412,7 @@ class TestTurbomachinery:
         instance.set_attr(eta_s=0.85)
         self.nw.solve("design")
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         # design value of isentropic efficiency
         eta_s_d = (

@@ -167,9 +167,9 @@ The behaviours announced for removal in version 0.12 are gone:
 Other Changes
 #############
 
-- All characteristics in use are checked against the range of their data
-  after convergence. Outside the range the status of the calculation is 1,
-  unless the characteristic extrapolates
+- All characteristics in use are checked against the range of their data after
+  convergence. Outside the range the status of the calculation is 1, unless the
+  characteristic extrapolates
   (`PR #1107 <https://github.com/oemof/tespy/pull/1107>`__).
 - Components can declare the role of their ports in
   :py:meth:`~tespy.components.component.Component.port_descriptions`, e.g. the
@@ -181,9 +181,9 @@ Other Changes
   now, e.g. :code:`e2.set_attr(E=Ref(e1, 0.5, 0))`.
 - :code:`UA`, :code:`kA` and :code:`lmtd` of the
   :py:class:`~tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
-  and :code:`Q_loss` of the solar collectors are calculated in every case,
-  the value is :code:`nan` when the ambient temperature or the energy group
-  is not specified. :code:`lmtd` and :code:`Q_loss` are result-only.
+  and :code:`Q_loss` of the solar collectors are calculated in every case, the
+  value is :code:`nan` when the ambient temperature or the energy group is not
+  specified. :code:`lmtd` and :code:`Q_loss` are result-only.
 
 Bug Fixes
 #########
@@ -193,10 +193,10 @@ Bug Fixes
   an overdetermination error now. With a variable fluid composition the
   saturation properties are not available: specifying :code:`T_dew`,
   :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there raises
-  an error instead of the specification being ignored.
+  an error instead ignoring the specification.
 - The vapour quality of pure fluids is 0 for liquid and 1 for vapour at
-  subcritical pressure, also above the critical temperature, and :code:`nan`
-  at supercritical pressure, consistently for all fluid property wrappers
+  subcritical pressure, also above the critical temperature, and :code:`nan` at
+  supercritical pressure, consistently for all fluid property wrappers
   (`PR #1102 <https://github.com/oemof/tespy/pull/1102>`__).
 
 Contributors

@@ -26,9 +26,28 @@ class Pipe(SimpleHeatExchanger):
     r"""
     The Pipe is a subclass of a SimpleHeatExchanger.
 
-    There are two different types of pipes available: An at the surface and
-    a subsurface buried pipe. The implementation is based on
-    :cite:`gnielinski1975` (surface) and :cite:`wallenten1991` (subsurface).
+    Besides the heat transfer specifications of the SimpleHeatExchanger, e.g.
+    :code:`Q` or :code:`UA` with :code:`Tamb`, the heat loss of the pipe can
+    be calculated from its insulation and surroundings. There are two options
+    for that, a pipe at the surface and a buried pipe:
+
+    - Surface pipe, :code:`Q_ohc_group_surface`: forced convection to the
+      ambient air, based on :cite:`gnielinski1975`. Set
+      :code:`wind_velocity`.
+    - Buried pipe, :code:`Q_ohc_group_subsurface`: conduction through the
+      ground, based on :cite:`wallenten1991`. Set :code:`pipe_depth` and the
+      type of ground in :code:`environment_media`.
+
+    Both options also need :code:`Tamb`, :code:`insulation_thickness`,
+    :code:`insulation_tc`, :code:`pipe_thickness`, :code:`material` and
+    :code:`environment_media`, as well as the length :code:`L` and the
+    diameter :code:`D` (fixed or :code:`"var"`). Passing
+    :code:`wind_velocity` or :code:`pipe_depth` selects the option, passing
+    both overdetermines the problem. :code:`material` and
+    :code:`environment_media` have to be passed even where they are not used:
+    the surface option always calculates with air, and the buried option
+    counts the pipe wall as insulation, so the wall material makes no
+    difference there.
 
     .. image:: /api/_images/components/Pipe.svg
        :alt: flowsheet of the pipe
@@ -88,7 +107,8 @@ class Pipe(SimpleHeatExchanger):
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     environment_media : str
-        Description missing.
+        Ground around a buried pipe: gravel, stones, dry soil or moist soil, not
+        used for surface pipes.
 
     flow_speed : float, dict
         Flow speed at inlet of pipe. Quantity: :code:`speed`.
@@ -137,7 +157,8 @@ class Pipe(SimpleHeatExchanger):
         Treat this component in offdesign mode in a design calculation.
 
     material : str
-        Description missing.
+        Pipe wall material: Steel, Carbon Steel, Cast Iron, Stainless Steel, PVC
+        or Copper, not used for buried pipes.
 
     offdesign : list
         List containing offdesign parameters (stated as String).
@@ -261,11 +282,10 @@ class Pipe(SimpleHeatExchanger):
     -1780.74
 
     We can reuse many of the given parameters of the pipe. By unsetting the
-    pipe"s depth and setting the environment media and wind velocity instead
+    pipe's depth and setting the environment media and wind velocity instead
     the analogous method for surface pipes is applied. Observe, how the
     overall heat loss increases.
 
-    >>> pi.Q_ohc_group_subsurface.is_set = False
     >>> pi.set_attr(
     ...     pipe_depth=None, environment_media="air", wind_velocity=2.0
     ... )
@@ -319,12 +339,24 @@ class Pipe(SimpleHeatExchanger):
             min_val=1e-3, max_val=1e2, quantity="thermal_conductivity",
             description="thermal conductivity of insulation"
         )
-        parameters["material"]=ConfigParameter(val="Steel", dtype="str")
+        parameters["material"]=ConfigParameter(
+            val="Steel", dtype="str",
+            description=(
+                "pipe wall material: Steel, Carbon Steel, Cast Iron, "
+                "Stainless Steel, PVC or Copper, not used for buried pipes"
+            )
+        )
         parameters["pipe_thickness"]=ComponentParameter(
             min_val=0, max_val=1, quantity="length",
             description="wall thickness of pipe"
         )
-        parameters["environment_media"]=ConfigParameter(val="soil", dtype="str")
+        parameters["environment_media"]=ConfigParameter(
+            val="soil", dtype="str",
+            description=(
+                "ground around a buried pipe: gravel, stones, dry soil or "
+                "moist soil, not used for surface pipes"
+            )
+        )
         parameters["wind_velocity"]=ComponentParameter(
             min_val=1e-6, max_val=20, quantity="speed",
             description="velocity of wind at insulation surface"

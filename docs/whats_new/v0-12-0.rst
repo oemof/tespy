@@ -199,6 +199,14 @@ Bug Fixes
   at supercritical pressure, consistently for all fluid property wrappers
   (`PR #1102 <https://github.com/oemof/tespy/pull/1102>`__).
 
+Documentation
+#############
+- The :py:class:`~tespy.components.piping.pipe.Pipe` docs explain the two
+  options for the heat loss calculation from insulation and surroundings, a
+  pipe at the surface and a buried pipe, and which parameters each of them
+  needs. :code:`material` and :code:`environment_media` list their valid
+  values (`#797 <https://github.com/oemof/tespy/issues/797>`__).
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

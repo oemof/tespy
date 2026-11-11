@@ -20,7 +20,6 @@ from tespy.tools.data_containers import ParameterGroup
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.logger import logger
 
-
 # thermal conductivity in W/m/K
 PIPE_WALL_CONDUCTIVITY = {
     "Steel": 46.5, "Carbon Steel": 46, "Cast Iron": 48.8,
@@ -535,10 +534,10 @@ class Pipe(SimpleHeatExchanger):
         # external heat transfer resistance (to environment)
         gc = GROUND_CONDUCTIVITY.get(self.environment_media.val)
         if gc is None:
+            grounds = "', '".join(GROUND_CONDUCTIVITY)
             msg = (
                 f"The buried pipe {self.label} needs the ground as "
-                "environment_media, select from "
-                f"'{"', '".join(GROUND_CONDUCTIVITY)}'."
+                f"environment_media, select from '{grounds}'."
             )
             raise ValueError(msg)
         # conductivity of the pipe neglected according to the original publication

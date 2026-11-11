@@ -416,7 +416,9 @@ class TestSEGS:
         ean = ExergyAnalysis.from_tespy(
             self.nw, self.Tamb + 273.15, self.pamb * 1e5
         )
-        E_F = {"inputs": ["h_solar"], "outputs": []}
+        # exerpy carries the exergy of the solar input on the collector's own
+        # heat stream, the HeatConnection from the HeatSource has none
+        E_F = {"inputs": ["Parabolic trough"], "outputs": []}
         E_P = {"inputs": ["e25"], "outputs": []}
         E_L = {"inputs": ["66"], "outputs": ["64"]}
         ean.analyse(E_F=E_F, E_P=E_P, E_L=E_L)
@@ -428,3 +430,5 @@ class TestSEGS:
             f"power on the grid connection ({power_grid})."
         )
         assert power_exergy == power_grid, msg
+        assert ean.E_F > ean.E_P
+        assert ean.E_D > 0

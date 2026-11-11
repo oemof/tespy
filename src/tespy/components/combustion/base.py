@@ -20,7 +20,6 @@ from tespy.tools.fluid_properties import s_mix_pT
 from tespy.tools.fluid_properties.helpers import fluid_structure
 from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.global_vars import COMBUSTION_FLUIDS
-from tespy.tools.global_vars import ERR
 from tespy.tools.global_vars import FLUID_ALIASES
 from tespy.tools.helpers import TESPyComponentError
 from tespy.tools.helpers import fluidalias_in_list
@@ -822,75 +821,50 @@ class CombustionChamber(Component):
 
         Note
         ----
-        Manipulate enthalpies/pressure at inlet and outlet if not specified
-        by user to match physically feasible constraints, keep fluid
-        composition within feasible range and then propagates it towards the
-        outlet.
+        Keep the inlet mass flows at a feasible air ratio and set the flue
+        gas composition to the complete combustion of the current inlet
+        flows. Both only use the fuel's atomic structure, no assumptions on
+        the type of fuel are made.
         """
         # required to work with combustion chamber and engine
         inl, outl = self._get_combustion_connections()
+        outl = outl[0]
 
-        m = 0
         for i in inl:
             if i.m.val_SI < 0 and i.m.is_var:
                 i.m.set_reference_val_SI(0.01)
-            m += i.m.val_SI
 
-        ######################################################################
-        # check fluid composition
-        outl = outl[0]
-        for f in outl.fluid.is_var:
-            if f == self.o2:
-                if outl.fluid.val[f] > 0.25:
-                    outl.fluid._reference_container.val[f] = 0.2
-                if outl.fluid.val[f] < 0.001:
-                    outl.fluid._reference_container.val[f] = 0.05
+        if self.lamb.is_set:
+            self._set_inlet_flows_for_lambda(self.lamb.val_SI)
+        else:
+            # lamb.val_SI holds the value from before the last newton step,
+            # the air ratio has to be evaluated at the current flows
+            balances = [self._oxygen_balance_per_kg(i) for i in inl]
+            if None not in balances:
+                supply = sum(i.m.val_SI * b[0] for i, b in zip(inl, balances))
+                demand = sum(i.m.val_SI * b[1] for i, b in zip(inl, balances))
+                # rich mixtures stall the solver
+                if demand > 0 and supply < 2 * demand:
+                    self._set_inlet_flows_for_lambda(2)
 
-            elif f == self.co2:
-                if outl.fluid.val[f] > 0.15:
-                    outl.fluid._reference_container.val[f] = 0.1
+        m = sum(i.m.val_SI for i in inl)
+        if outl.m.is_var and m > 0:
+            outl.m.set_reference_val_SI(m)
 
-            elif f == self.h2o:
-                if outl.fluid.val[f] > 0.15:
-                    outl.fluid._reference_container.val[f] = 0.1
+        if outl.m.val_SI <= 0:
+            return
 
-            elif f in self.fuel_list:
-                if outl.fluid.val[f] > 0:
-                    outl.fluid._reference_container.val[f] = 0
-
-            else:
-                m_f = 0
-                for i in inl:
-                    m_f += i.fluid.val.get(f, 0) * i.m.val_SI
-
-                if abs(outl.fluid.val[f] - m_f / m) > 0.03:
-                    outl.fluid._reference_container.val[f] = m_f / m
+        # the stoichiometry residual is linear in the outlet mass fractions
+        residual = self.stoichiometry_func()
+        for fluid, res in zip(self.fluid_eqs_list, residual):
+            if fluid in outl.fluid.is_var:
+                outl.fluid._reference_container.val[fluid] = max(
+                    outl.fluid.val[fluid] + res / outl.m.val_SI, 0
+                )
 
         total_mass_fractions = sum(outl.fluid.val.values())
         for fluid in outl.fluid.is_var:
             outl.fluid._reference_container.val[fluid] /= total_mass_fractions
-
-        if outl.m.val_SI < 0 and outl.m.is_var:
-            outl.m.set_reference_val_SI(10)
-
-        if not outl.good_starting_values and outl.h.is_var:
-            if outl.calc_T() < 800:
-                h = h_mix_pT(
-                    outl.p.val_SI, 800, outl.fluid_data, outl.mixing_rule
-                )
-                outl.h.set_reference_val_SI(h)
-            elif outl.calc_T() > 1500:
-                h = h_mix_pT(
-                    outl.p.val_SI, 1500, outl.fluid_data, outl.mixing_rule
-                )
-                outl.h.set_reference_val_SI(h)
-
-        ######################################################################
-        # additional checks for performance improvement
-        if not self.lamb.is_set and self.lamb.val_SI < 2 - ERR:
-            # rich mixtures stall the solver: redistribute the inlet flows
-            # so that lambda is 2 for the actual fuel's oxygen demand
-            self._set_inlet_flows_for_lambda(2)
 
     def _oxygen_balance_per_kg(self, connection):
         r"""

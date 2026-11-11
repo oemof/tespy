@@ -298,6 +298,50 @@ class TestCombustion:
         for f in fuel:
             assert c3.fluid.val[f] == approx(0, abs=1e-9)
 
+    @mark.parametrize("fuel, pr", [
+        ({"H2": 1}, 18), ({"CH4": 1}, 10), ({"CH4": 0.5, "H2": 0.5}, 10),
+    ])
+    def test_gas_turbine_electrical_power_high_inlet_temperature(
+            self, fuel, pr):
+        """Electrical power and a turbine inlet temperature above 1500 K
+        given. The former outlet temperature clamp of the convergence check
+        and its fixed flue gas composition windows diverged."""
+        cp = Compressor("compressor")
+        cc = DiabaticCombustionChamber("combustion chamber")
+        tu = Turbine("turbine")
+        shaft = PowerBus("shaft", num_in=1, num_out=2)
+        generator = Generator("generator")
+        grid = PowerSink("grid")
+
+        c1 = Connection(self.air, "out1", cp, "in1", label="1")
+        c2 = Connection(cp, "out1", cc, "in1", label="2")
+        c3 = Connection(cc, "out1", tu, "in1", label="3")
+        c4 = Connection(tu, "out1", self.fg, "in1", label="4")
+        c5 = Connection(self.fuel, "out1", cc, "in2", label="5")
+        e1 = PowerConnection(tu, "power", shaft, "power_in1")
+        e2 = PowerConnection(shaft, "power_out1", cp, "power")
+        e3 = PowerConnection(shaft, "power_out2", generator, "power_in")
+        e4 = PowerConnection(generator, "power_out", grid, "power")
+        self.nw.add_conns(c1, c2, c3, c4, c5, e1, e2, e3, e4)
+
+        cp.set_attr(eta_s=0.88, pr=pr)
+        cc.set_attr(pr=0.97, eta=0.99)
+        tu.set_attr(eta_s=0.9)
+        generator.set_attr(eta=0.985)
+        c1.set_attr(
+            fluid={"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314},
+            p=1.013, T=15
+        )
+        c3.set_attr(T=1500)
+        c4.set_attr(p=1.013)
+        c5.set_attr(fluid=fuel, p=25, T=25)
+        e4.set_attr(E=100e6)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        assert e4.E.val_SI == approx(100e6)
+        assert cc.lamb.val_SI > 1
+
     def test_CombustionChamberHighTemperature(self):
         instance = CombustionChamber('combustion chamber')
         self.setup_CombustionChamber_network(instance)

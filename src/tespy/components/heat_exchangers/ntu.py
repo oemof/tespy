@@ -390,7 +390,7 @@ class NTUHeatExchanger(HeatExchanger):
         Equation: :py:meth:`eps_func <tespy.components.heat_exchangers.ntu.NTUHeatExchanger.eps_func>`.
 
     flow_arrangement : str
-        Flow arrangement for the effectiveness-NTU relation, mandatory, one of
+        Flow arrangement for the effectiveness-NTU relation, mandatory. Options:
         :code:`'counterflow'`, :code:`'parallelflow'`,
         :code:`'crossflow_both_unmixed'`, :code:`'crossflow_hot_mixed'`,
         :code:`'crossflow_cold_mixed'`, :code:`'crossflow_both_mixed'`,
@@ -580,12 +580,11 @@ class NTUHeatExchanger(HeatExchanger):
 
     def get_parameters(self):
         params = super().get_parameters()
-        arrangements = ", ".join(f":code:`'{a}'`" for a in FLOW_ARRANGEMENTS)
         params["flow_arrangement"] = ConfigParameter(
-            dtype="str",
+            dtype="str", options=list(FLOW_ARRANGEMENTS),
             description=(
                 "flow arrangement for the effectiveness-NTU relation, "
-                f"mandatory, one of {arrangements}"
+                "mandatory"
             )
         )
         params["num_shell_passes"] = ConfigParameter(
@@ -650,13 +649,6 @@ class NTUHeatExchanger(HeatExchanger):
                 f"The flow arrangement of {self.label} is not specified. The "
                 "effectiveness-NTU relation depends on it, you need to set it "
                 f"explicitly. Select from '{arrangements}'."
-            )
-            raise ValueError(msg)
-        if self.flow_arrangement.val not in FLOW_ARRANGEMENTS:
-            msg = (
-                f"The flow arrangement '{self.flow_arrangement.val}' of "
-                f"component {self.label} is not available. Available flow "
-                f"arrangements are: '{arrangements}'."
             )
             raise ValueError(msg)
         if (

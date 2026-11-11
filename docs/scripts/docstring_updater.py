@@ -286,11 +286,21 @@ def _parameters_section(instance, base_params=None, param_filter=None):
                 "Optional result - calculated on request only, e.g. by an "
                 "exergy evaluation."
             )
+        if isinstance(dc, ConfigParameter) and dc.options is not None:
+            meta_parts.append(
+                "Options: " + ", ".join(f":code:`{o!r}`" for o in dc.options) + "."
+            )
         if isinstance(dc, OptionalEquation):
             elements = getattr(dc, "elements", None) or []
             if elements:
                 meta_parts.append(
                     "Elements: " + ", ".join(f":code:`{e}`" for e in elements) + "."
+                )
+            optional = getattr(dc, "optional_elements", None) or []
+            if optional:
+                meta_parts.append(
+                    "Optional elements: "
+                    + ", ".join(f":code:`{e}`" for e in optional) + "."
                 )
 
         ref = _eq_reference(dc)

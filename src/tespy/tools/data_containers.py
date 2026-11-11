@@ -1012,8 +1012,24 @@ class ConfigParameter(DataContainer):
         :code:`"bool"`, :code:`"str"`, :code:`"dict"` or :code:`"list"`.
         Default: :code:`None`, any type is accepted.
 
+    options : list
+        Values the parameter can take, e.g. the materials of a pipe wall.
+        Default: :code:`None`, any value of :code:`dtype` is accepted.
+
     is_set : boolean
         Has the value been set? default: :code:`False`.
+
+    Example
+    -------
+    >>> from tespy.tools.data_containers import ConfigParameter
+    >>> material = ConfigParameter(dtype="str", options=["Steel", "PVC"])
+    >>> material.accept("PVC")
+    >>> material.val
+    'PVC'
+    >>> material.accept("Wood")
+    Traceback (most recent call last):
+    ...
+    ValueError: The value 'Wood' is not available, select from 'Steel', 'PVC'.
 
     description : str
         Description of the parameter for documentation and schema.
@@ -1025,8 +1041,15 @@ class ConfigParameter(DataContainer):
             "_val": np.nan,
             "is_set": False,
             "dtype": None,
+            "options": None,
             "description": None,
         }
+
+    def set_attr(self, **kwargs):
+        # the options have to be known before a value is checked against them
+        if "options" in kwargs:
+            super().set_attr(options=kwargs.pop("options"))
+        super().set_attr(**kwargs)
 
     def _serialize(self, units=None):
         return {"val": self.val, "is_set": self.is_set}
@@ -1052,6 +1075,12 @@ class ConfigParameter(DataContainer):
                     f"Expected a value of type {self.dtype}, got "
                     f"{type(value).__name__}."
                 )
+        if self.options is not None and not empty and value not in self.options:
+            available = "', '".join(str(option) for option in self.options)
+            raise ValueError(
+                f"The value '{value}' is not available, select from "
+                f"'{available}'."
+            )
         self._val = value
 
     val = property(get_val, set_val)
@@ -1124,7 +1153,10 @@ class ParameterGroup(OptionalEquation):
     equation.
 
     The group is active when all of its :code:`elements` are specified, e.g.
-    the pressure drop of a pipe from length, diameter and roughness.
+    the pressure drop of a pipe from length, diameter and roughness. The
+    equation can read further :code:`optional_elements`, which have a default
+    or an alternative and do not take part in the activation, e.g. the wall
+    material of a pipe or a wall conductivity overriding it.
 
     Parameters
     ----------
@@ -1136,9 +1168,17 @@ class ParameterGroup(OptionalEquation):
         Names of the parameters that belong to this group, default:
         :code:`[]`.
 
+    optional_elements : list
+        Names of the parameters the equation reads without requiring them,
+        default: :code:`[]`.
+
     description : str
         Description of the equation for documentation and schema.
     """
+
+    @staticmethod
+    def attr():
+        return {**OptionalEquation.attr(), "optional_elements": []}
 
     def accept(self, value):
         try:

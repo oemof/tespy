@@ -172,6 +172,38 @@ class TestPiping:
         )
         assert Q == round(instance.Q.val, 1), msg
 
+    def _surface_pipe(self, **kwargs):
+        instance = Pipe("pipe")
+        self.setup_piping_network(instance)
+        self.c1.set_attr(fluid={"H2O": 1}, m=10, p=10, T=220)
+        instance.set_attr(
+            pr=0.99, Tamb=20, L=1000, D=0.2, insulation_thickness=0.1,
+            insulation_tc=0.035, pipe_thickness=0.002,
+            environment_media="air", wind_velocity=2, **kwargs
+        )
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+        return instance
+
+    def test_Pipe_wall_material_defaults_to_steel(self):
+        """The wall material is an optional element, steel unless set."""
+        instance = self._surface_pipe()
+        assert instance.Q_ohc_group_surface.is_set
+        assert not instance.material.is_set
+        assert round(instance.Q.val, 1) == -62683.7
+
+    def test_Pipe_wall_conductivity_overrides_material(self):
+        steel = self._surface_pipe(wall_tc=46.5, material="PVC")
+        assert round(steel.Q.val, 1) == -62683.7
+        pvc = self._surface_pipe(material="PVC")
+        assert pvc.Q.val > steel.Q.val
+
+    def test_Pipe_wall_conductivity_is_settable(self):
+        instance = Pipe("pipe")
+        assert not instance.wall_tc.result_only
+        instance.set_attr(wall_tc=20)
+        assert instance.wall_tc.is_set
+
     def test_Pipe_flow_speed(self):
         """Test flow speed specification of pipe."""
         instance = Pipe('pipe')

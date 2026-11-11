@@ -106,6 +106,7 @@ def test_set_attr_errors():
     set_attr_TypeError(conn, local_offdesign=5)
     set_attr_TypeError(conn, printout=5)
     set_attr_TypeError(conn, state=5)
+    set_attr_ValueError(conn, state="x")
 
     # KeyErrors
     set_attr_AttributeError(CharacteristicEquation(), x=7)

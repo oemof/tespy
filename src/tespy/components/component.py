@@ -160,7 +160,9 @@ class Component:
         consumers = list(self.parameters.values())
         consumers += list(self.get_mandatory_constraints().values())
         for consumer in consumers:
-            for element in getattr(consumer, "elements", []):
+            elements = getattr(consumer, "elements", [])
+            optional = getattr(consumer, "optional_elements", [])
+            for element in elements + optional:
                 self.parameters[element]._consumed = True
 
     def set_attr(self, **kwargs):

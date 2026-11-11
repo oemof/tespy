@@ -61,6 +61,8 @@ def _serialize_parameter(name, dc_instance):
     # For grouped containers, list the member parameter names
     if isinstance(dc_instance, OptionalEquation):
         entry["elements"] = list(dc_instance.elements)
+    if isinstance(dc_instance, ParameterGroup):
+        entry["optional_elements"] = list(dc_instance.optional_elements)
     if isinstance(dc_instance, CharacteristicData):
         entry["char_type"] = [t.__name__ for t in dc_instance._char_types()]
         axes = dc_instance.axes
@@ -68,6 +70,10 @@ def _serialize_parameter(name, dc_instance):
         entry["quantities"] = dict(dc_instance.quantities)
     if isinstance(dc_instance, ConfigParameter):
         entry["dtype"] = dc_instance.dtype
+        entry["options"] = (
+            list(dc_instance.options) if dc_instance.options is not None
+            else None
+        )
     if isinstance(dc_instance, (ComponentParameter, ArrayParameter, OptionalResult)):
         entry["result_only"] = dc_instance.result_only
     if isinstance(dc_instance, ConnectionParameter):

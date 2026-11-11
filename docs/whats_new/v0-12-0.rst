@@ -184,6 +184,10 @@ Other Changes
   and :code:`Q_loss` of the solar collectors are calculated in every case,
   the value is :code:`nan` when the ambient temperature or the energy group
   is not specified. :code:`lmtd` and :code:`Q_loss` are result-only.
+- :py:class:`~tespy.tools.data_containers.ConfigParameter` optionally takes
+  :code:`options`. A value outside the available options raises an error when
+  it is set, and the available options appear in the documentation and the
+  component schema.
 
 Bug Fixes
 #########
@@ -206,6 +210,8 @@ Documentation
   pipe at the surface and a buried pipe, and which parameters each of them
   needs. :code:`material` and :code:`environment_media` list their valid
   values (`#797 <https://github.com/oemof/tespy/issues/797>`__).
+- Parameter groups take :code:`optional_elements`, parameters the equation
+  reads without requiring them for the activation.
 
 Contributors
 ############

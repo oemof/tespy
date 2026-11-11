@@ -479,7 +479,5 @@ class TestNTUHeatExchanger:
         self.c1.set_attr(fluid={"air": 1}, m=1, T=85, p=1)
         self.c2.set_attr(T=45)
         self.c3.set_attr(fluid={"water": 1}, m=3, T=25, p=3)
-        instance.set_attr(flow_arrangement="crossflow", pr1=1, pr2=1)
-
-        with pytest.raises(ValueError, match="flow arrangement"):
-            self.nw.solve("design", init_only=True)
+        with pytest.raises(ValueError, match="'crossflow' is not available"):
+            instance.set_attr(flow_arrangement="crossflow")

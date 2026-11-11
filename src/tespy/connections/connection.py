@@ -999,7 +999,10 @@ class Connection(ConnectionBase):
         self._check_connector_id(source, outlet_id, source.outlets())
         self._check_connector_id(target, inlet_id, target.inlets())
 
-        self.state = ConfigParameter(dtype="str")
+        self.state = ConfigParameter(
+            dtype="str", options=["l", "g"],
+            description="phase the fluid is kept in, liquid or gas"
+        )
         self.phase = ConfigParameter(dtype="str")
         self.mixing_rule = None
         self._fluid_data = None
@@ -1116,14 +1119,12 @@ class Connection(ConnectionBase):
                 raise KeyError(msg)
 
     def _set_state(self, value):
-        if value in ('l', 'g'):
-            self.state.set_attr(_val=value, is_set=True)
-        elif value is None:
-            self.state.set_attr(is_set=False)
-        else:
-            msg = 'Keyword argument "state" must either be "l" or "g" or be None.'
+        try:
+            self.state.accept(value)
+        except (TypeError, ValueError) as e:
+            msg = f"Bad value for state of connection {self.label}: {e}"
             logger.error(msg)
-            raise TypeError(msg)
+            raise type(e)(msg) from e
 
     def _fluid_specification(self, key, value):
 

@@ -21,14 +21,38 @@ from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
 from tespy.tools.logger import logger
 
 
+# thermal conductivity in W/m/K
+PIPE_WALL_CONDUCTIVITY = {
+    "Steel": 46.5, "Carbon Steel": 46, "Cast Iron": 48.8,
+    "Stainless Steel": 21, "PVC": 0.23, "Copper": 380
+}
+GROUND_CONDUCTIVITY = {
+    "gravel": 1.1, "stones": 1.95, "dry soil": 0.5, "moist soil": 2.2
+}
+
 @component_registry
 class Pipe(SimpleHeatExchanger):
     r"""
     The Pipe is a subclass of a SimpleHeatExchanger.
 
-    There are two different types of pipes available: An at the surface and
-    a subsurface buried pipe. The implementation is based on
-    :cite:`gnielinski1975` (surface) and :cite:`wallenten1991` (subsurface).
+    Besides the heat transfer specifications of the SimpleHeatExchanger to
+    calculate :code:`Q` from :code:`UA` and :code:`Tamb`, the heat loss of the
+    pipe can be calculated from information on its insulation and surroundings.
+    There are two options for that, a pipe at the surface and a buried pipe:
+
+    - Surface pipe, :code:`Q_ohc_group_surface`: forced convection to the
+      ambient air, based on :cite:`gnielinski1975`.
+    - Buried pipe, :code:`Q_ohc_group_subsurface`: conduction through the
+      subsurface, based on :cite:`wallenten1991`.
+
+    Both options also need :code:`Tamb`, :code:`insulation_thickness`,
+    :code:`insulation_tc`, :code:`pipe_thickness` and
+    :code:`environment_media`, as well as the length :code:`L` and the diameter
+    :code:`D` (fixed or :code:`"var"`). Passing :code:`wind_velocity` or
+    :code:`pipe_depth` selects the option, passing both overdetermines the
+    problem. The surface pipe takes the wall conductivity from the
+    :code:`material`, steel unless specified, or from :code:`wall_tc`, which
+    overrides the material. The buried pipe neglects the wall.
 
     .. image:: /api/_images/components/Pipe.svg
        :alt: flowsheet of the pipe
@@ -88,7 +112,9 @@ class Pipe(SimpleHeatExchanger):
         Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
 
     environment_media : str
-        Description missing.
+        Media around the pipe, air for surface pipes, the ground for buried
+        pipes. Options: :code:`'air'`, :code:`'gravel'`, :code:`'stones'`,
+        :code:`'dry soil'`, :code:`'moist soil'`.
 
     flow_speed : float, dict
         Flow speed at inlet of pipe. Quantity: :code:`speed`.
@@ -137,7 +163,9 @@ class Pipe(SimpleHeatExchanger):
         Treat this component in offdesign mode in a design calculation.
 
     material : str
-        Description missing.
+        Pipe wall material, not used for buried pipes. Options: :code:`'Steel'`,
+        :code:`'Carbon Steel'`, :code:`'Cast Iron'`, :code:`'Stainless Steel'`,
+        :code:`'PVC'`, :code:`'Copper'`.
 
     offdesign : list
         List containing offdesign parameters (stated as String).
@@ -162,15 +190,15 @@ class Pipe(SimpleHeatExchanger):
     Q_ohc_group_subsurface : ParameterGroup
         Equation for heat loss of buried pipes. Elements:
         :code:`insulation_thickness`, :code:`insulation_tc`, :code:`Tamb`,
-        :code:`material`, :code:`pipe_thickness`, :code:`environment_media`,
-        :code:`pipe_depth`.
+        :code:`pipe_thickness`, :code:`environment_media`, :code:`pipe_depth`.
         Equation: :py:meth:`ohc_subsurface_group_func <tespy.components.piping.pipe.Pipe.ohc_subsurface_group_func>`.
 
     Q_ohc_group_surface : ParameterGroup
         Equation for heat loss of surface pipes. Elements:
         :code:`insulation_thickness`, :code:`insulation_tc`, :code:`Tamb`,
-        :code:`material`, :code:`pipe_thickness`, :code:`environment_media`,
-        :code:`wind_velocity`.
+        :code:`pipe_thickness`, :code:`environment_media`,
+        :code:`wind_velocity`. Optional elements: :code:`material`,
+        :code:`wall_tc`.
         Equation: :py:meth:`ohc_surface_group_func <tespy.components.piping.pipe.Pipe.ohc_surface_group_func>`.
 
     Tamb : float, dict
@@ -193,6 +221,11 @@ class Pipe(SimpleHeatExchanger):
         Equation for heat transfer based on ambient temperature and heat
         transfer coefficient. Elements: :code:`UA`, :code:`Tamb`.
         Equation: :py:meth:`UA_group_func <tespy.components.heat_exchangers.simple.SimpleHeatExchanger.UA_group_func>`.
+
+    wall_tc : float, dict
+        Thermal conductivity of the pipe wall, overrides the value of the
+        material, not used for buried pipes. Quantity:
+        :code:`thermal_conductivity`.
 
     wind_velocity : float, dict
         Velocity of wind at insulation surface. Quantity: :code:`speed`.
@@ -261,11 +294,10 @@ class Pipe(SimpleHeatExchanger):
     -1780.74
 
     We can reuse many of the given parameters of the pipe. By unsetting the
-    pipe"s depth and setting the environment media and wind velocity instead
+    pipe's depth and setting the environment media and wind velocity instead
     the analogous method for surface pipes is applied. Observe, how the
     overall heat loss increases.
 
-    >>> pi.Q_ohc_group_subsurface.is_set = False
     >>> pi.set_attr(
     ...     pipe_depth=None, environment_media="air", wind_velocity=2.0
     ... )
@@ -293,9 +325,10 @@ class Pipe(SimpleHeatExchanger):
 
         parameters["Q_ohc_group_surface"]=ParameterGroup(
             elements=[
-                "insulation_thickness", "insulation_tc", "Tamb", "material",
+                "insulation_thickness", "insulation_tc", "Tamb",
                 "pipe_thickness", "environment_media", "wind_velocity"
             ],
+            optional_elements=["material", "wall_tc"],
             num_eq_sets=1,
             func=self.ohc_surface_group_func,
             dependents=self.ohc_surface_group_dependents,
@@ -303,8 +336,8 @@ class Pipe(SimpleHeatExchanger):
         )
         parameters["Q_ohc_group_subsurface"]=ParameterGroup(
             elements=[
-                "insulation_thickness", "insulation_tc", "Tamb", "material",
-                "pipe_thickness", "environment_media","pipe_depth"
+                "insulation_thickness", "insulation_tc", "Tamb",
+                "pipe_thickness", "environment_media", "pipe_depth"
             ],
             num_eq_sets=1,
             func=self.ohc_subsurface_group_func,
@@ -319,12 +352,28 @@ class Pipe(SimpleHeatExchanger):
             min_val=1e-3, max_val=1e2, quantity="thermal_conductivity",
             description="thermal conductivity of insulation"
         )
-        parameters["material"]=ConfigParameter(val="Steel", dtype="str")
+        parameters["material"]=ConfigParameter(
+            val="Steel", dtype="str", options=list(PIPE_WALL_CONDUCTIVITY),
+            description="pipe wall material, not used for buried pipes"
+        )
+        parameters["wall_tc"]=ComponentParameter(
+            min_val=1e-3, max_val=1e3, quantity="thermal_conductivity",
+            description=(
+                "thermal conductivity of the pipe wall, overrides the value "
+                "of the material, not used for buried pipes"
+            )
+        )
         parameters["pipe_thickness"]=ComponentParameter(
             min_val=0, max_val=1, quantity="length",
             description="wall thickness of pipe"
         )
-        parameters["environment_media"]=ConfigParameter(val="soil", dtype="str")
+        parameters["environment_media"]=ConfigParameter(
+            dtype="str", options=["air", *GROUND_CONDUCTIVITY],
+            description=(
+                "media around the pipe, air for surface pipes, the ground "
+                "for buried pipes"
+            )
+        )
         parameters["wind_velocity"]=ComponentParameter(
             min_val=1e-6, max_val=20, quantity="speed",
             description="velocity of wind at insulation surface"
@@ -396,15 +445,11 @@ class Pipe(SimpleHeatExchanger):
         """
 
         # pipe wall heat transfer resistance
-        pipe_tc ={
-            "Steel": 46.5, "Carbon Steel": 46, "Cast Iron": 48.8,
-            "Stainless Steel": 21, "PVC": 0.23, "Copper": 380
-        }
         if diameters[1] > diameters[0]:
-            if isinstance(self.material.val, str):
-                wall_conductivity = pipe_tc[self.material.val]
+            if self.wall_tc.is_set:
+                wall_conductivity = self.wall_tc.val_SI
             else:
-                wall_conductivity = self.material.val
+                wall_conductivity = PIPE_WALL_CONDUCTIVITY[self.material.val]
             R_sum.append(
                 diameters[1] / wall_conductivity
                 * math.log(diameters[1] / diameters[0]) / 2
@@ -483,19 +528,22 @@ class Pipe(SimpleHeatExchanger):
             + 2 * self.insulation_thickness.val_SI
         ]
 
-        """
-        inner heat transfer resistance neglected yet
-        R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
-        R_sum.append(R_int)
-        """
+        # inner heat transfer resistance neglected yet
+        # R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
+        # R_sum.append(R_int)
 
         # external heat transfer resistance (to environment)
-        ground_conductivity ={
-            "gravel": 1.1, "stones": 1.95, "dry soil": 0.5, "moist soil": 2.2
-        }
+        gc = GROUND_CONDUCTIVITY.get(self.environment_media.val)
+        if gc is None:
+            msg = (
+                f"The buried pipe {self.label} needs the ground as "
+                "environment_media, select from "
+                f"'{"', '".join(GROUND_CONDUCTIVITY)}'."
+            )
+            raise ValueError(msg)
         # conductivity of the pipe neglected according to the original publication
         Beta = (
-            ground_conductivity[self.environment_media.val]
+            gc
             / self.insulation_tc.val_SI * math.log(diameters[2] / diameters[0])
         )
         _h = (
@@ -505,9 +553,7 @@ class Pipe(SimpleHeatExchanger):
                 * (1 + Beta) / (1 - Beta)
             )
         )
-        R_soil = (
-            _h / (2 * math.pi * ground_conductivity[self.environment_media.val])
-        )
+        R_soil = _h / (2 * math.pi * gc)
         i = self.inl[0]
         o = self.outl[0]
 

@@ -51,6 +51,35 @@ class TestConfigParameter:
         assert not hasattr(dc.ConfigParameter(), "num_eq_sets")
 
 
+class TestConfigParameterOptions:
+
+    def test_value_outside_options_is_rejected(self):
+        data = dc.ConfigParameter(dtype="str", options=["a", "b"])
+        data.accept("b")
+        assert data.val == "b" and data.is_set
+        with pytest.raises(ValueError, match="select from 'a', 'b'"):
+            data.accept("c")
+        assert data.val == "b"
+
+    def test_default_is_checked_against_options(self):
+        assert dc.ConfigParameter(val="a", options=["a"]).val == "a"
+        with pytest.raises(ValueError):
+            dc.ConfigParameter(val="c", options=["a", "b"])
+
+    def test_unset_value_passes(self):
+        data = dc.ConfigParameter(dtype="str", options=["a"])
+        data.accept(None)
+        assert not data.is_set
+
+    def test_pipe_options(self):
+        from tespy.components import Pipe
+        pipe = Pipe("pipe")
+        assert "Copper" in pipe.material.options
+        assert pipe.environment_media.options[0] == "air"
+        with pytest.raises(ValueError, match="Wood"):
+            pipe.set_attr(material="Wood")
+
+
 class TestOptionalEquation:
 
     def test_switch_accepts_bool_only(self):

@@ -26,28 +26,22 @@ class Pipe(SimpleHeatExchanger):
     r"""
     The Pipe is a subclass of a SimpleHeatExchanger.
 
-    Besides the heat transfer specifications of the SimpleHeatExchanger, e.g.
-    :code:`Q` or :code:`UA` with :code:`Tamb`, the heat loss of the pipe can
-    be calculated from its insulation and surroundings. There are two options
-    for that, a pipe at the surface and a buried pipe:
+    Besides the heat transfer specifications of the SimpleHeatExchanger to
+    calculate :code:`Q` from :code:`UA` and :code:`Tamb`, the heat loss of the
+    pipe can be calculated from information on its insulation and surroundings.
+    There are two options for that, a pipe at the surface and a buried pipe:
 
     - Surface pipe, :code:`Q_ohc_group_surface`: forced convection to the
-      ambient air, based on :cite:`gnielinski1975`. Set
-      :code:`wind_velocity`.
+      ambient air, based on :cite:`gnielinski1975`.
     - Buried pipe, :code:`Q_ohc_group_subsurface`: conduction through the
-      ground, based on :cite:`wallenten1991`. Set :code:`pipe_depth` and the
-      type of ground in :code:`environment_media`.
+      subsurface, based on :cite:`wallenten1991`.
 
     Both options also need :code:`Tamb`, :code:`insulation_thickness`,
     :code:`insulation_tc`, :code:`pipe_thickness`, :code:`material` and
-    :code:`environment_media`, as well as the length :code:`L` and the
-    diameter :code:`D` (fixed or :code:`"var"`). Passing
-    :code:`wind_velocity` or :code:`pipe_depth` selects the option, passing
-    both overdetermines the problem. :code:`material` and
-    :code:`environment_media` have to be passed even where they are not used:
-    the surface option always calculates with air, and the buried option
-    counts the pipe wall as insulation, so the wall material makes no
-    difference there.
+    :code:`environment_media`, as well as the length :code:`L` and the diameter
+    :code:`D` (fixed or :code:`"var"`). Passing :code:`wind_velocity` or
+    :code:`pipe_depth` selects the option, passing both overdetermines the
+    problem.
 
     .. image:: /api/_images/components/Pipe.svg
        :alt: flowsheet of the pipe

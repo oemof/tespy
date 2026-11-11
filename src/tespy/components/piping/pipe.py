@@ -426,9 +426,14 @@ class Pipe(SimpleHeatExchanger):
             "Steel": 46.5, "Carbon Steel": 46, "Cast Iron": 48.8,
             "Stainless Steel": 21, "PVC": 0.23, "Copper": 380
         }
+        tc = pipe_tc.get(self.material.val)
+        if tc is None:
+            raise KeyError(
+                f"Provide any material from: {', '.join(pipe_tc.keys())}"
+            )
         if diameters[1] > diameters[0]:
             if isinstance(self.material.val, str):
-                wall_conductivity = pipe_tc[self.material.val]
+                wall_conductivity = tc
             else:
                 wall_conductivity = self.material.val
             R_sum.append(
@@ -509,19 +514,23 @@ class Pipe(SimpleHeatExchanger):
             + 2 * self.insulation_thickness.val_SI
         ]
 
-        """
-        inner heat transfer resistance neglected yet
-        R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
-        R_sum.append(R_int)
-        """
+        # inner heat transfer resistance neglected yet
+        # R_int = 1/alpha_i *Diameters[2]/ Diameters[0]
+        # R_sum.append(R_int)
 
         # external heat transfer resistance (to environment)
-        ground_conductivity ={
+        ground_conductivity = {
             "gravel": 1.1, "stones": 1.95, "dry soil": 0.5, "moist soil": 2.2
         }
+        gc = ground_conductivity.get(self.environment_media.val)
+        if gc is None:
+            raise KeyError(
+                "Provide any environment_media from: "
+                f"{', '.join(ground_conductivity.keys())}"
+            )
         # conductivity of the pipe neglected according to the original publication
         Beta = (
-            ground_conductivity[self.environment_media.val]
+            gc
             / self.insulation_tc.val_SI * math.log(diameters[2] / diameters[0])
         )
         _h = (
@@ -531,9 +540,7 @@ class Pipe(SimpleHeatExchanger):
                 * (1 + Beta) / (1 - Beta)
             )
         )
-        R_soil = (
-            _h / (2 * math.pi * ground_conductivity[self.environment_media.val])
-        )
+        R_soil = _h / (2 * math.pi * gc)
         i = self.inl[0]
         o = self.outl[0]
 

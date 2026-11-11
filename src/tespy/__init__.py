@@ -3,7 +3,7 @@ import importlib.resources
 import os
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = "0.12.0 - Carnot's Cleanup"
+__version__ = "0.12.0.post1 - Carnot's Cleanup"
 
 # tespy data and connections import
 from . import connections  # noqa: F401

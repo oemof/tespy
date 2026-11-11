@@ -217,3 +217,4 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - `@the8thbit <https://github.com/the8thbit>`__
+- `@lucas-santos-f <https://github.com/lucas-santos-f>`__

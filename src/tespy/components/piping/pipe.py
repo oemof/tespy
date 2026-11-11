@@ -535,10 +535,10 @@ class Pipe(SimpleHeatExchanger):
         # external heat transfer resistance (to environment)
         gc = GROUND_CONDUCTIVITY.get(self.environment_media.val)
         if gc is None:
+            grounds = "', '".join(GROUND_CONDUCTIVITY)
             msg = (
                 f"The buried pipe {self.label} needs the ground as "
-                "environment_media, select from "
-                f"'{"', '".join(GROUND_CONDUCTIVITY)}'."
+                f"environment_media, select from '{grounds}'."
             )
             raise ValueError(msg)
         # conductivity of the pipe neglected according to the original publication

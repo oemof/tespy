@@ -1528,6 +1528,12 @@ class Problem:
         enthalpy outside the range of its inlets) would otherwise drive the
         flow negative, with the bound the remaining rows still set the flow
         level.
+
+        The bounded least squares uses the BVLS method: the system is small
+        and dense, and the iterations of BVLS are bounded. The default TRF
+        method can loop forever on a nearly singular system, in which its
+        backtracking line search shrinks the step length to zero without
+        ever accepting a step.
         """
         weight = np.where(flow_only, 100.0, 1.0)
         lower = np.array([
@@ -1540,7 +1546,7 @@ class Problem:
         try:
             result = lsq_linear(
                 matrix * weight[:, None], rhs * weight, bounds=(lower, upper),
-                lsmr_tol="auto"
+                method="bvls"
             )
         except (ValueError, np.linalg.LinAlgError):
             return None

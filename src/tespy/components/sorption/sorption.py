@@ -38,8 +38,8 @@ class _SorptionBase(NodeBase):
         return {
             "Q": dc_cp(
                 func=self.heat_func,
-                deriv=self.heat_deriv,
-                num_eq=1,
+                dependents=self.heat_dependents,
+                num_eq_sets=1,
                 quantity="heat",
                 description="heat transferred into the component",
             )
@@ -106,17 +106,8 @@ class _SorptionBase(NodeBase):
     def heat_func(self):
         return self.Q.val_SI - self.calc_Q()
 
-    def heat_deriv(self, increment_filter, k, dependents=None):
-        for c in self.inl:
-            if c.m.is_var:
-                self.jacobian[k, c.m.J_col] = -c.h.val_SI
-            if c.h.is_var:
-                self.jacobian[k, c.h.J_col] = -c.m.val_SI
-        for c in self.outl:
-            if c.m.is_var:
-                self.jacobian[k, c.m.J_col] = c.h.val_SI
-            if c.h.is_var:
-                self.jacobian[k, c.h.J_col] = c.m.val_SI
+    def heat_dependents(self):
+        return [v for c in self.inl + self.outl for v in (c.m, c.h)]
 
     def calc_Q(self):
         return (
@@ -130,7 +121,7 @@ class _SorptionBase(NodeBase):
         self.constraints["fluid_balance_constraints"].num_eq = num_eq
 
     def calc_parameters(self):
-        self.Q.val = self.calc_Q()
+        self.Q.val_SI = self.calc_Q()
 
     def convergence_check(self):
         from tespy.tools.fluid_properties.functions import h_mix_pT

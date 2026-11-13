@@ -207,6 +207,7 @@ class FuelCell(Component):
                 max_val=0, num_eq_sets=1,
                 func=self.heat_func,
                 dependents=self.heat_dependents,
+                infer_composition=False,
                 quantity="heat",
                 description="heat output of the cooling port",
                 calc=self._calc_Q

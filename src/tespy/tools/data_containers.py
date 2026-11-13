@@ -100,13 +100,17 @@ def _equation_attrs():
 
     :code:`func`, :code:`deriv`, :code:`dependents` and
     :code:`structure_matrix` are declared by the component or connection,
-    :code:`num_eq_sets` is the number of equations per activation. The
+    :code:`num_eq_sets` is the number of equations per activation. With
+    :code:`infer_composition` set to :code:`False` the solver takes the
+    dependents as declared and does not infer a dependence on the mass
+    fractions of the connections whose pressure or enthalpy is listed. The
     underscored attributes are written by the solver preparation.
     """
     return {
         "func": None,
         "deriv": None,
         "dependents": None,
+        "infer_composition": True,
         "structure_matrix": None,
         "constant_deriv": False,
         "func_params": {},

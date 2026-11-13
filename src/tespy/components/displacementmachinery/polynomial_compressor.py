@@ -441,6 +441,7 @@ class PolynomialCompressor(DisplacementMachine):
             constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "infer_composition": False,
                 "description": "energy balance between for power connector and the power consumption of the compressor.",
                 "num_eq_sets": 1
             })
@@ -528,6 +529,7 @@ class PolynomialCompressor(DisplacementMachine):
                 elements=["P", "dissipation_ratio"],
                 func=self.energy_balance_group_func,
                 dependents=self.energy_balance_group_dependents,
+                infer_composition=False,
                 num_eq_sets=1,
                 description="energy balance equation for fixed power and dissipation ratio"
             )

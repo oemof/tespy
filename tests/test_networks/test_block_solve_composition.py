@@ -426,9 +426,12 @@ def test_inferred_composition_dependence():
         for eq_num in problem._inferred_incidence
     }
     # the property equations of the flue gas side read the composition,
-    # the water steam side and the pure mass and fluid balances do not
-    assert {"turbine", "superheater", "evaporator", "economizer"} <= inferred
-    assert {"feed pump", "steam turbine", "drum"}.isdisjoint(inferred)
+    # the water steam side, the pure mass and fluid balances and the
+    # energy balances in enthalpy do not
+    assert {"turbine", "evaporator", "3"} <= inferred
+    assert {
+        "feed pump", "steam turbine", "drum", "superheater", "economizer"
+    }.isdisjoint(inferred)
     for eq_num, columns in problem._inferred_incidence.items():
         assert set(columns) <= composition_columns
         assert set(columns).isdisjoint(problem._declared_incidence[eq_num])
@@ -534,3 +537,73 @@ def test_dependents_check_requires_loaded_variables():
     nw.solve("design")
     with raises(TESPyNetworkError):
         nw.get_dependents_check()
+
+
+class ExplicitCooler(LegacyCooler):
+    """The outlet temperature equation lists the mass fractions of its
+    outlet itself and switches the inference off."""
+
+    def get_parameters(self):
+        parameters = super().get_parameters()
+        parameters["T_out"].infer_composition = False
+        return parameters
+
+    def T_out_dependents(self):
+        outlet = self.outl[0]
+        return {
+            "scalars": [[outlet.p, outlet.h]],
+            "vectors": [{outlet.fluid: outlet.fluid.is_var}]
+        }
+
+
+class WronglyFlaggedCooler(LegacyCooler):
+    """The inference is switched off without listing the mass fractions."""
+
+    def get_parameters(self):
+        parameters = super().get_parameters()
+        parameters["T_out"].infer_composition = False
+        return parameters
+
+
+def _inferred_labels(nw):
+    return {
+        nw.problem._equation_lookup[eq_num]
+        for eq_num in nw.problem._inferred_incidence
+    }
+
+
+def test_core_energy_balances_not_inferred():
+    nw = merge_chain()
+    nw.solve("design", block_solve_composition=True)
+    inferred = _inferred_labels(nw)
+    assert ("merge 1", ("energy_balance_constraints", 0)) not in inferred
+    assert ("merge 2", ("energy_balance_constraints", 0)) not in inferred
+    assert ("compressor", ("eta_s", 0)) in inferred
+
+
+def test_custom_component_explicit_composition_dependents(caplog):
+    nw = merge_chain(cooler_class=ExplicitCooler)
+    with caplog.at_level("INFO", logger="TESPyLogger"):
+        nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    assert nw.get_conn("5").T.val == approx(80)
+    assert ("cooler", ("T_out", 0)) not in _inferred_labels(nw)
+    assert _fallback_messages(caplog) == []
+
+    nw.presolve("design")
+    assert nw.get_dependents_check()["missing"] == {}
+
+
+def test_custom_component_wrongly_flagged(caplog):
+    nw = merge_chain(cooler_class=WronglyFlaggedCooler)
+    with caplog.at_level("INFO", logger="TESPyLogger"):
+        nw.solve("design", block_solve_composition=True)
+    # the residual check after the block phase detects the wrong block
+    # order and the simultaneous solution recovers
+    nw.assert_convergence()
+    assert nw.get_conn("5").T.val == approx(80)
+    assert _fallback_messages(caplog) != []
+
+    nw.presolve("design")
+    missing = nw.get_dependents_check()["missing"]
+    assert ("cooler", ("T_out", 0)) in missing

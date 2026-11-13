@@ -408,6 +408,7 @@ class Pump(Turbomachine):
             constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "infer_composition": False,
                 "num_eq_sets": 1
             })
 

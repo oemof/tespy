@@ -1009,7 +1009,10 @@ class Problem:
 
         for obj in self._all_objects():
             for data in obj.equations.values():
-                if data.dependents is None or data.constant_deriv:
+                if (
+                        data.dependents is None or data.constant_deriv
+                        or not data.infer_composition
+                    ):
                     continue
 
                 dependents = data.dependents(**data.func_params)

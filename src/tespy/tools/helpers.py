@@ -66,7 +66,7 @@ class TESPyComponentError(Exception):
 
 class UserDefinedEquation:
 
-    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=None, comps:list=None, params:dict=None):
+    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=None, comps:list=None, params:dict=None, infer_composition: bool=True):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -94,6 +94,13 @@ class UserDefinedEquation:
         params : dict
             Dictionary containing keyword arguments required by the function
             and/or derivative.
+
+        infer_composition : bool
+            Infer the dependence on the variable mass fractions of every
+            connection whose pressure or enthalpy is part of the dependents,
+            default: :code:`True`. Set it to :code:`False` in case the
+            equation evaluates no fluid property, or in case its dependents
+            list the mass fractions it depends on themselves.
 
         Note
         ----
@@ -263,6 +270,7 @@ class UserDefinedEquation:
         self.conns = [] if conns is None else conns
         self.comps = [] if comps is None else comps
         self.params = {} if params is None else params
+        self.infer_composition = infer_composition
         self._is_set = True
 
     def _get_is_set(self):
@@ -309,7 +317,8 @@ class UserDefinedEquation:
                     dependents=self.dependents,
                     num_eq_sets=1,
                     func=self.func,
-                    deriv=self.deriv
+                    deriv=self.deriv,
+                    infer_composition=self.infer_composition
                 )
                 self._assign_dependents_and_eq_mapping(
                     value, self.equations[value], self.equations, eq_counter

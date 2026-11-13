@@ -31,6 +31,7 @@ from tespy.connections import HAConnection
 from tespy.networks import Network
 from tespy.tools.data_containers import ComponentParameter as dc_cp
 from tespy.tools.helpers import TESPyNetworkError
+from tespy.tools.helpers import UserDefinedEquation
 
 AIR = {"Ar": 0.0129, "N2": 0.7553, "CO2": 0.0004, "O2": 0.2314}
 FUEL = {"CO2": 0.04, "CH4": 0.96}
@@ -607,3 +608,46 @@ def test_custom_component_wrongly_flagged(caplog):
     nw.presolve("design")
     missing = nw.get_dependents_check()["missing"]
     assert ("cooler", ("T_out", 0)) in missing
+
+
+def _outlet_temperature_ude(infer_composition):
+    nw = merge_chain()
+    c5 = nw.get_conn("5")
+    c5.set_attr(T=None)
+
+    def func(ude):
+        return ude.conns[0].calc_T() - 80 - 273.15
+
+    if infer_composition:
+        def dependents(ude):
+            return [ude.conns[0].p, ude.conns[0].h]
+    else:
+        def dependents(ude):
+            c = ude.conns[0]
+            return {
+                "scalars": [[c.p, c.h]],
+                "vectors": [{c.fluid: c.fluid.is_var}]
+            }
+
+    ude = UserDefinedEquation(
+        "outlet temperature", func, dependents, conns=[c5],
+        infer_composition=infer_composition
+    )
+    nw.add_ude(ude)
+    return nw
+
+
+@mark.parametrize("infer_composition", [True, False])
+def test_user_defined_equation_composition(infer_composition, caplog):
+    nw = _outlet_temperature_ude(infer_composition)
+    with caplog.at_level("INFO", logger="TESPyLogger"):
+        nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    assert nw.get_conn("5").T.val == approx(80)
+    assert _fallback_messages(caplog) == []
+
+    inferred = ("outlet temperature", ("equation", 0)) in _inferred_labels(nw)
+    assert inferred == infer_composition
+
+    nw.presolve("design")
+    assert nw.get_dependents_check()["missing"] == {}

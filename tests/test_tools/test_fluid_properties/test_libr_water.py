@@ -218,10 +218,6 @@ def test_component_wrapper_carries_pair_data(pair):
     assert wrapper._T_max == pair.T_max
 
 
-@mark.xfail(
-    reason="SolutionConnection on the working pair, added in phase 2",
-    strict=True,
-)
 def test_solution_connection_uses_pair(pair):
     from tespy.components import Sink
     from tespy.components import Source
@@ -238,3 +234,16 @@ def test_solution_connection_uses_pair(pair):
     assert h_mix_pT(5e3, 340, c.fluid_data, c.mixing_rule) == approx(
         pair.h_pT(5e3, 340, 0.55)
     )
+
+
+@mark.parametrize("p", [1e2, 1e4, 1e6, 3e7])
+@mark.parametrize("w", [0.3, 0.7])
+def test_inversion_outside_validity_range(pair, p, w):
+    # solver iterations can leave the range of the formulation, the
+    # functions must stay real valued and invertible there
+    for T in [250, 300, 450, 600]:
+        h = pair.h_pT(p, T, w)
+        assert np.isfinite(h)
+        assert np.isfinite(pair.T_ph(p, h, w))
+    assert np.isfinite(pair.T_ph(p, -1e6, w))
+    assert np.isfinite(pair.T_ph(p, 5e6, w))

@@ -928,18 +928,37 @@ class Network:
             wrapper_kwargs = {}
             any_fluids = []
 
+            mixing_rules = [
+                c.mixing_rule for c in all_connections
+                if c.mixing_rule is not None
+            ]
+            mixing_rule = list(set(mixing_rules))
+            if len(mixing_rule) > 1:
+                msg = (
+                    "You have provided more than one mixing rule in the "
+                    "branches including the following connections: "
+                    f"{', '.join([c.label for c in all_connections])}"
+                )
+                raise hlp.TESPyNetworkError(msg)
+            elif len(mixing_rule) == 0:
+                mixing_rule = "ideal-cond"
+            else:
+                mixing_rule = mixing_rules[0]
+
+            # the mixing rule can complete the fluid information of a
+            # connection, e.g. the components of a working pair
+            for c in all_connections:
+                c.mixing_rule = mixing_rule
+
             all_components = [c for c in branch_data["components"]]
             for cp in all_components:
                 any_fluids += cp._add_missing_fluids(all_connections)
 
             any_fluids0 = []
-            mixing_rules = []
             for c in all_connections:
                 any_fluids_set += list(c.fluid.is_set)
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
-                if c.mixing_rule is not None:
-                    mixing_rules += [c.mixing_rule]
 
             for c in all_connections:
                 for f in set(any_fluids):
@@ -958,19 +977,6 @@ class Network:
                             raise ValueError("")
                         wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
 
-            mixing_rule = list(set(mixing_rules))
-            if len(mixing_rule) > 1:
-                msg = (
-                    "You have provided more than one mixing rule in the "
-                    "branches including the following connections: "
-                    f"{', '.join([c.label for c in all_connections])}"
-                )
-                raise hlp.TESPyNetworkError(msg)
-            elif len(mixing_rule) == 0:
-                mixing_rule = "ideal-cond"
-            else:
-                mixing_rule = mixing_rules[0]
-
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
 
@@ -986,7 +992,6 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             for c in all_connections:
-                c.mixing_rule = mixing_rule
                 c._potential_fluids = potential_fluids
                 if num_potential_fluids == 1:
                     f = list(potential_fluids)[0]

@@ -106,8 +106,14 @@ def _molar_mass(x):
     return x * M_LIBR + (1 - x) * M_H2O
 
 
+def _reduced_distance_to_critical(T):
+    # the correlations of saturated water end at the critical point, the
+    # clamp keeps the solver iterations beyond it real valued
+    return max(1 - T / T_C, 1e-12)
+
+
 def _ln_ps_h2o(T):
-    tau = 1 - T / T_C
+    tau = _reduced_distance_to_critical(T)
     return math.log(P_C) + T_C / T * sum(
         a * tau ** e for a, e in zip(_PS_H2O, _PS_H2O_EXPONENTS)
     )
@@ -118,11 +124,11 @@ def _ps_h2o(T):
 
 
 def _T_sat_h2o(p):
-    ln_p = math.log(p)
+    ln_p = math.log(min(p, P_C * (1 - 1e-9)))
     T = 1 / (1 / 373.124 - math.log(p / 101325) / 4900)
     T = min(max(T, 200), T_C - 1)
     for _ in range(50):
-        tau = 1 - T / T_C
+        tau = _reduced_distance_to_critical(T)
         f = sum(a * tau ** e for a, e in zip(_PS_H2O, _PS_H2O_EXPONENTS))
         df = sum(
             a * e * tau ** (e - 1)
@@ -131,7 +137,7 @@ def _T_sat_h2o(p):
         residual = math.log(P_C) + T_C / T * f - ln_p
         derivative = -T_C / T ** 2 * f - df / T
         step = residual / derivative
-        T -= step
+        T = min(T - step, T_C * (1 - 1e-12))
         if abs(step) < 1e-11 * T:
             return T
     msg = f"The water saturation temperature at p={p} Pa did not converge."
@@ -139,21 +145,21 @@ def _T_sat_h2o(p):
 
 
 def _rho_h2o(T):
-    theta = 1 - T / T_C
+    theta = _reduced_distance_to_critical(T)
     return RHO_C * (1 + sum(
         b * theta ** e for b, e in zip(_RHO_H2O, _RHO_H2O_EXPONENTS)
     ))
 
 
 def _h_h2o(T):
-    theta = 1 - T / T_C
+    theta = _reduced_distance_to_critical(T)
     return H_C * (1 + sum(
         a * theta ** e for a, e in zip(_H_H2O, _H_H2O_EXPONENTS)
     ))
 
 
 def _s_h2o(T):
-    theta = 1 - T / T_C
+    theta = _reduced_distance_to_critical(T)
     return S_C * (1 + sum(
         a * theta ** e for a, e in zip(_S_H2O, _S_H2O_EXPONENTS)
     ))
@@ -357,21 +363,35 @@ class LiBrWater(SolutionPair):
         return brentq(residual, T_max, T_upper, xtol=1e-12)
 
     def _invert_liquid(self, p, value, w, index, T_bubble, T0):
-        if T0 is None or not T_0 + 10 < T0 < T_bubble:
-            T = T_bubble - 10
+        def residual(T):
+            return self._liquid(p, T, w)[index] - value
+
+        d = 1e-3
+        T_lower = T_0 + 20
+        residual_lower = residual(T_lower)
+        if residual_lower >= 0:
+            # linear continuation below the range of the formulation
+            slope = (residual(T_lower + d) - residual_lower) / d
+            return T_lower - residual_lower / slope
+
+        lower, upper = T_lower, T_bubble
+        if T0 is None or not lower < T0 < upper:
+            T = upper - 10 if upper - 10 > lower else (lower + upper) / 2
         else:
             T = T0
-        d = 1e-3
-        for _ in range(50):
-            residual = self._liquid(p, T, w)[index] - value
-            derivative = (
-                self._liquid(p, T + d, w)[index]
-                - self._liquid(p, T - d, w)[index]
-            ) / (2 * d)
-            step = residual / derivative
-            T = max(T - step, T_0 + 10)
-            if abs(step) < 1e-10:
-                return T
+        for _ in range(100):
+            r = residual(T)
+            if r < 0:
+                lower = T
+            else:
+                upper = T
+            slope = (residual(T + d) - residual(T - d)) / (2 * d)
+            T_new = T - r / slope if slope > 0 else (lower + upper) / 2
+            if not lower <= T_new <= upper:
+                T_new = (lower + upper) / 2
+            if abs(T_new - T) < 1e-10:
+                return T_new
+            T = T_new
         msg = (
             f"The liquid LiBr-water temperature at p={p} Pa and w={w} did not "
             "converge."

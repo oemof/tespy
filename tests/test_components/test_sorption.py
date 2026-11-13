@@ -97,11 +97,6 @@ def test_absorber_temperature_specification():
     assert absorber.Q.val_SI < 0
 
 
-@mark.xfail(
-    reason="enthalpy specification on the solution outlet fails from default "
-    "starting values, fixed in phase 2",
-    strict=True,
-)
 def test_absorber_enthalpy_specification():
     _, _, _, _, reference = solve_absorber_temperature_specification()
 
@@ -150,9 +145,9 @@ def test_absorber_heat_specification_recovers_mass_flow():
     assert poor.m.val_SI == approx(m_poor * 1.5, rel=1e-6)
 
 
-def desorber_network():
+def desorber_network(vapor_state="inlet-equilibrium"):
     nw = _network()
-    desorber = Desorber("desorber")
+    desorber = Desorber("desorber", vapor_state=vapor_state)
     rich = SolutionConnection(
         Source("rich solution"), "out1", desorber, "in1", label="rich"
     )
@@ -168,7 +163,7 @@ def solve_desorber_temperature_specification():
     nw, desorber, rich, poor, vapor = desorber_network()
     rich.set_attr(xi=0.55, p=P_CD, m=10, T=315)
     poor.set_attr(T=360)
-    vapor.set_attr(fluid={"H2O": 1}, x=1)
+    vapor.set_attr(fluid={"H2O": 1})
     nw.solve("design")
     return nw, desorber, rich, poor, vapor
 
@@ -180,20 +175,54 @@ def test_desorber_temperature_specification():
     assert desorber.Q.val_SI == approx(Q, rel=1e-6)
     assert _xi(poor) > _xi(rich)
     assert desorber.Q.val_SI > 0
+    # the vapor leaves in equilibrium with the entering solution
+    assert vapor.T.val_SI == approx(rich.T_bubble.val_SI, abs=1e-6)
+    assert vapor.T.val_SI > PropsSI("T", "P", P_CD, "Q", 1, "water")
 
 
-@mark.xfail(
-    reason="enthalpy specification on the solution ports fails from default "
-    "starting values, fixed in phase 2",
-    strict=True,
-)
+def test_desorber_vapor_in_equilibrium_with_outlet():
+    nw, desorber, rich, poor, vapor = desorber_network("outlet-equilibrium")
+    rich.set_attr(xi=0.55, p=P_CD, m=10, T=315)
+    poor.set_attr(T=360)
+    vapor.set_attr(fluid={"H2O": 1})
+    nw.solve("design")
+    nw.assert_convergence()
+    assert vapor.T.val_SI == approx(360, abs=1e-6)
+
+
+def test_desorber_free_vapor_state():
+    nw, desorber, rich, poor, vapor = desorber_network("free")
+    rich.set_attr(xi=0.55, p=P_CD, m=10, T=315)
+    poor.set_attr(T=360)
+    vapor.set_attr(fluid={"H2O": 1}, x=1)
+    nw.solve("design")
+    nw.assert_convergence()
+    Q = _assert_sorption_balances(rich, poor, vapor)
+    assert desorber.Q.val_SI == approx(Q, rel=1e-6)
+    assert vapor.T.val_SI == approx(
+        PropsSI("T", "P", P_CD, "Q", 1, "water"), abs=1e-6
+    )
+
+
+def test_desorber_approach_to_equilibrium():
+    nw, desorber, rich, poor, vapor = desorber_network()
+    rich.set_attr(xi=0.55, p=P_CD, m=10, T=315)
+    poor.set_attr(T=360)
+    vapor.set_attr(fluid={"H2O": 1})
+    desorber.set_attr(td_eq=2)
+    nw.solve("design")
+    nw.assert_convergence()
+    assert poor.td_bubble.val_SI == approx(2, abs=1e-6)
+    assert desorber.td_eq.val_SI == approx(2, abs=1e-6)
+
+
 def test_desorber_enthalpy_specification():
     _, _, ref_rich, ref_poor, _ = solve_desorber_temperature_specification()
 
     nw, desorber, rich, poor, vapor = desorber_network()
     rich.set_attr(xi=0.55, p=P_CD, m=10, h=ref_rich.h.val_SI)
     poor.set_attr(h=ref_poor.h.val_SI)
-    vapor.set_attr(fluid={"H2O": 1}, x=1)
+    vapor.set_attr(fluid={"H2O": 1})
     nw.solve("design")
     nw.assert_convergence()
     assert poor.T.val_SI == approx(360, abs=1e-4)
@@ -292,7 +321,7 @@ def heated_desorber_network():
     desorber.set_attr(dp2=0)
     rich.set_attr(xi=0.55, p=P_CD, m=10, T=315)
     poor.set_attr(T=365)
-    vapor.set_attr(fluid={"H2O": 1}, x=1)
+    vapor.set_attr(fluid={"H2O": 1})
     heat_in.set_attr(fluid={"H2O": 1}, p=5e5, T=385)
     heat_out.set_attr(T=375)
     return nw, desorber, rich, poor, vapor, heat_in, heat_out
@@ -325,10 +354,6 @@ def test_heated_desorber_specification_changes():
     assert poor.T.val_SI == approx(365, abs=1e-4)
 
 
-@mark.xfail(
-    reason="bubble point results of solution connections, added in phase 2",
-    strict=True,
-)
 @mark.parametrize(
     "solve",
     [

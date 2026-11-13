@@ -14,14 +14,9 @@ from pytest import approx
 from pytest import fixture
 from pytest import importorskip
 from pytest import mark
+from pytest import raises
 
 importorskip("teqp")
-
-pytestmark = mark.xfail(
-    reason="NH3-water working pair, added in phase 4",
-    raises=(ImportError, KeyError),
-    strict=True,
-)
 
 # reference: CoolSolve Library CSL-0249 (nh3h2o_absorption_chiller.sol),
 # IAPWS G4-01 (Tillner-Roth and Friend 1998) as implemented in CoolSolve;
@@ -134,3 +129,31 @@ def test_flash_robustness(pair, p, w):
         assert pair.T_ps(p, s, w) == approx(T, abs=1e-5)
         q = pair.Q_ph(p, h, w)
         assert 0 <= q <= 1
+
+
+def test_mixing_rule_dispatch(pair):
+    from tespy.tools.fluid_properties import T_mix_ph
+    from tespy.tools.fluid_properties import h_mix_pT
+    from tespy.tools.fluid_properties.functions import T_dew_p
+    from tespy.tools.fluid_properties.wrappers import CoolPropWrapper
+
+    w = 0.4
+    data = {
+        "NH3": {"wrapper": CoolPropWrapper("NH3"), "mass_fraction": w},
+        "H2O": {"wrapper": CoolPropWrapper("H2O"), "mass_fraction": 1 - w},
+    }
+    p, T = 5e5, 360
+    h = h_mix_pT(p, T, data, "nh3-water")
+    assert h == approx(pair.h_pT(p, T, w))
+    assert T_mix_ph(p, h, data, "nh3-water") == approx(T, abs=1e-6)
+    assert T_dew_p(p, data, "nh3-water") == approx(pair.T_dew(p, w))
+
+
+def test_missing_teqp_names_the_package(monkeypatch):
+    import sys
+
+    from tespy.tools.fluid_properties.solutions.nh3_water import AmmoniaWater
+
+    monkeypatch.setitem(sys.modules, "teqp", None)
+    with raises(ImportError, match="teqp"):
+        AmmoniaWater().p_bubble(300, 0.5)

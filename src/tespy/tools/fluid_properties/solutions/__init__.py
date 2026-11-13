@@ -17,5 +17,7 @@ from .base import register_solution_pair  # noqa: F401
 from .base import solution_pair_names  # noqa: F401
 from .base import solution_pair_of_component  # noqa: F401
 from .libr_water import LiBrWater
+from .nh3_water import AmmoniaWater
 
 register_solution_pair(LiBrWater())
+register_solution_pair(AmmoniaWater())

@@ -10,6 +10,7 @@ tespy/tools/fluid_properties/solutions/libr_water.py
 SPDX-License-Identifier: MIT
 """
 import math
+from functools import lru_cache
 
 import CoolProp as CP
 from scipy.optimize import brentq
@@ -216,24 +217,14 @@ class _WaterVapor:
     def __init__(self):
         self.AS = CP.AbstractState("HEOS", "Water")
 
-    def _update(self, p, T):
+    def state(self, p, T):
+        """Return enthalpy, entropy and specific volume."""
         self.AS.specify_phase(CP.iphase_gas)
         try:
             self.AS.update(CP.PT_INPUTS, p, T)
         finally:
             self.AS.unspecify_phase()
-
-    def h(self, p, T):
-        self._update(p, T)
-        return self.AS.hmass()
-
-    def s(self, p, T):
-        self._update(p, T)
-        return self.AS.smass()
-
-    def v(self, p, T):
-        self._update(p, T)
-        return 1 / self.AS.rhomass()
+        return self.AS.hmass(), self.AS.smass(), 1 / self.AS.rhomass()
 
 
 class LiBrWater(SolutionPair):
@@ -314,13 +305,11 @@ class LiBrWater(SolutionPair):
 
     def _two_phase(self, p, T, w, w_liquid):
         Q = 1 - w / w_liquid
-        h, s, v = self._liquid(p, T, w_liquid)
-        return (
-            (1 - Q) * h + Q * self._vapor.h(p, T),
-            (1 - Q) * s + Q * self._vapor.s(p, T),
-            (1 - Q) * v + Q * self._vapor.v(p, T),
-        )
+        liquid = self._liquid(p, T, w_liquid)
+        vapor = self._vapor.state(p, T)
+        return tuple((1 - Q) * l + Q * v for l, v in zip(liquid, vapor))
 
+    @lru_cache(maxsize=1024)
     def _state_pT(self, p, T, w):
         if p >= self.p_bubble(T, w):
             return self._liquid(p, T, w)
@@ -339,11 +328,12 @@ class LiBrWater(SolutionPair):
     def v_pT(self, p, T, w):
         return self._state_pT(p, T, w)[2]
 
-    def _invert(self, p, value, w, index, T0=None):
+    @lru_cache(maxsize=1024)
+    def _invert(self, p, value, w, index):
         T_bubble = self.T_bubble(p, w)
         value_bubble = self._liquid(p, T_bubble, w)[index]
         if value <= value_bubble:
-            return self._invert_liquid(p, value, w, index, T_bubble, T0)
+            return self._invert_liquid(p, value, w, index, T_bubble)
 
         T_max = self.T_bubble(p, self.w_max)
         if value <= self._two_phase(p, T_max, w, self.w_max)[index]:
@@ -357,12 +347,16 @@ class LiBrWater(SolutionPair):
         def residual(T):
             return self._two_phase(p, T, w, self.w_max)[index] - value
 
-        T_upper = T_max + 10
-        while residual(T_upper) < 0:
-            T_upper += 100
-        return brentq(residual, T_max, T_upper, xtol=1e-12)
+        for T_upper in (T_max + 10, T_max + 100, 1000, 2000):
+            if residual(T_upper) >= 0:
+                return brentq(residual, T_max, T_upper, xtol=1e-12)
+        # linear continuation far beyond any meaningful state, reached only
+        # by solver trial points
+        d = 1e-3
+        slope = (residual(T_upper) - residual(T_upper - d)) / d
+        return T_upper - residual(T_upper) / slope
 
-    def _invert_liquid(self, p, value, w, index, T_bubble, T0):
+    def _invert_liquid(self, p, value, w, index, T_bubble):
         def residual(T):
             return self._liquid(p, T, w)[index] - value
 
@@ -375,10 +369,7 @@ class LiBrWater(SolutionPair):
             return T_lower - residual_lower / slope
 
         lower, upper = T_lower, T_bubble
-        if T0 is None or not lower < T0 < upper:
-            T = upper - 10 if upper - 10 > lower else (lower + upper) / 2
-        else:
-            T = T0
+        T = upper - 10 if upper - 10 > lower else (lower + upper) / 2
         for _ in range(100):
             r = residual(T)
             if r < 0:
@@ -399,10 +390,10 @@ class LiBrWater(SolutionPair):
         raise ValueError(msg)
 
     def T_ph(self, p, h, w, T0=None):
-        return self._invert(p, h, w, 0, T0)
+        return self._invert(p, h, w, 0)
 
     def T_ps(self, p, s, w, T0=None):
-        return self._invert(p, s, w, 1, T0)
+        return self._invert(p, s, w, 1)
 
     def _liquid_fraction_ph(self, p, h, w):
         T = self.T_ph(p, h, w)

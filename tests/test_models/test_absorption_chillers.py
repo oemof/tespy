@@ -126,6 +126,8 @@ def libr_water_chiller():
     r2.set_attr(x=0, T=T_CD)
     r4.set_attr(x=1, T=T_EV, m=1)
     s0.set_attr(T=T_ABS, xi0=0.58)
+    # the cycle closer does not close the variable composition
+    s1.set_attr(fluid_balance=True)
     s4.set_attr(T=T_GEN)
 
     nw.solve("design")
@@ -136,9 +138,6 @@ def libr_water_chiller():
     }
 
 
-@mark.xfail(
-    reason="closed LiBr-water cycle, added in phase 3", strict=True
-)
 def test_libr_water_chiller_against_sequential_solution():
     reference = libr_water_reference()
     nw, parts = libr_water_chiller()
@@ -252,6 +251,7 @@ def nh3_water_chiller():
     evaporator.set_attr(Q=1e4)
 
     c0.set_attr(T=308.15, p=p_low, xi0=0.42)
+    c1.set_attr(fluid_balance=True)
     c4.set_attr(T=393.15)
     c8.set_attr(xi=x_ref)
     c10.set_attr(x=0, T=313.15)

@@ -50,6 +50,13 @@ class SolutionConnection(Connection):
     parameters (and :code:`T_dew`, :code:`td_dew` for pairs with a volatile
     absorbent) can be specified.
 
+    .. note::
+
+        In a closed solution loop the :class:`.CycleCloser` does not close
+        the variable composition of its outlet: specify
+        :code:`fluid_balance=True` on the connection leaving the cycle
+        closer.
+
     Example
     -------
     >>> from tespy.components import Sink, Source
@@ -161,6 +168,7 @@ class SolutionConnection(Connection):
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
         self._mixing_rule = None
         self._pending_composition = {}
+        self._user_composition0 = False
         super().__init__(source, outlet_id, target, inlet_id, label, **kwargs)
 
     def _parameter_specification(self, key, value):
@@ -183,6 +191,7 @@ class SolutionConnection(Connection):
                     self.set_attr(fluid=self._composition(pair, value))
             elif value is not None:
                 self.set_attr(fluid0=self._composition(pair, value))
+                self._user_composition0 = True
         self._pending_composition = {}
         # the absorbent of a pair without volatile absorbent has no pure
         # fluid properties
@@ -200,6 +209,8 @@ class SolutionConnection(Connection):
 
     def _fluid_specification(self, key, value):
         super()._fluid_specification(key, value)
+        if key == "fluid0":
+            self._user_composition0 = True
         if key == "fluid":
             pair = self.pair
             if pair is not None and not pair.volatile_absorbent:
@@ -233,6 +244,8 @@ class SolutionConnection(Connection):
         return self.pair.key_fraction(self.fluid_data)
 
     def _guess_starting_values(self, units, covered):
+        if not self.good_starting_values and not self._user_composition0:
+            self._guess_equilibrium_composition()
         h_sources = super()._guess_starting_values(units, covered)
         if self.h.is_var and not self.good_starting_values:
             reference = self.h._reference_container
@@ -243,6 +256,29 @@ class SolutionConnection(Connection):
                     covered.add(reference)
                     h_sources.append(reference)
         return h_sources
+
+    def _guess_equilibrium_composition(self):
+        """Start the variable composition of a solution leaving a sorption
+        component at its bubble point at the guessed state."""
+        solution_outlet = getattr(self.source, "_solution_outlet", None)
+        if (
+                not self.fluid.is_var or solution_outlet is None
+                or solution_outlet() is not self
+            ):
+            return
+        T = self._temperature_hint()
+        if T is None:
+            return
+        pair = self.pair
+        try:
+            w = pair.w_bubble(self.p.val_SI, T)
+        except ValueError:
+            w = pair.w_max
+        composition = self._composition(pair, w)
+        for fluid in self.fluid.is_var:
+            for component, value in composition.items():
+                if fluid in FLUID_ALIASES.get_fluid(component):
+                    self.fluid.set_reference_val(fluid, value)
 
     def _h_guess(self):
         """Enthalpy of the subcooled solution at the connection pressure."""

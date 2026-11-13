@@ -215,7 +215,7 @@ class Merge(NodeBase):
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                'infer_composition': False,
+                "infer_composition": False,
                 'description': 'energy balance constraint'
             }),
             'pressure_constraints': MandatoryConstraint(**{

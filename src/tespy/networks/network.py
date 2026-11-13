@@ -2219,10 +2219,18 @@ class Network:
             raise hlp.TESPyNetworkError(msg)
         return check_dependents(self._problem)
 
-    def print_dependents_check(self):
+    def print_dependents_check(self, unused=False):
         """Print the comparison of the dependents of the equations with their
         observed dependence, see
         :py:meth:`~tespy.networks.network.Network.get_dependents_check`.
+
+        Parameters
+        ----------
+        unused : bool
+            Also list the equations with dependents that are not observed.
+            Such a dependent is not an error: its derivative can vanish at
+            the state of the check only. Defaults to :code:`False`, which
+            prints their number.
         """
         check = self.get_dependents_check()
         titles = {
@@ -2232,6 +2240,8 @@ class Network:
         }
         for key, title in titles.items():
             print(f"{title}: {len(check[key])} equations")
+            if key != "missing" and not unused:
+                continue
             for (label, name), variables in check[key].items():
                 print(
                     f"  {label}.{self._problem.format_eq_name(name)}: "

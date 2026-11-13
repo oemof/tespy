@@ -153,7 +153,7 @@ class DropletSeparator(NodeBase):
             'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
-                'infer_composition': False,
+                "infer_composition": False,
                 'num_eq_sets': 1,
                 'description': 'energy balance constraint'
             }),

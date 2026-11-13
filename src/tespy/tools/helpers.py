@@ -520,8 +520,9 @@ def solve(obj, increment_filter, composition_derivatives=False):
         eq_num = data._first_eq_index
         _solve_residual(obj, data, eq_num)
         _solve_jacobian(obj, data, increment_filter, eq_num)
-        if composition_derivatives:
-            _solve_inferred_jacobian(obj, data, increment_filter, eq_num)
+        inferred = data._inferred_vector_dependents
+        if composition_derivatives and inferred is not None:
+            _solve_vector_jacobian(obj, data, inferred, increment_filter, eq_num)
 
 
 def get_variable_value(data):
@@ -588,43 +589,25 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
                         result[eq_idx] if isinstance(result, np.ndarray) else result
                     )
 
-        all_vector_deps = {}
-        for eq_vec_deps in data._vector_dependents:
-            for var, dxs in eq_vec_deps.items():
-                all_vector_deps.setdefault(var, set()).update(dxs)
-        for var, dxs in all_vector_deps.items():
-            for dx in sorted(dxs):
-                result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
-                if result is None:
-                    continue
-                for eq_idx, eq_vec_deps in enumerate(data._vector_dependents):
-                    if var in eq_vec_deps and dx in eq_vec_deps[var]:
-                        obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
-                            result[eq_idx] if isinstance(result, np.ndarray) else result
-                        )
+        _solve_vector_jacobian(
+            obj, data, data._vector_dependents, increment_filter, eq_num
+        )
 
 
-def _solve_inferred_jacobian(obj, data, increment_filter, eq_num):
-    inferred = data._inferred_vector_dependents
-    if inferred is None:
-        return
-
-    all_entries = {}
-    for entries in inferred:
-        for var, dxs in entries.items():
-            all_entries.setdefault(var, set()).update(dxs)
-    for var, dxs in all_entries.items():
+def _solve_vector_jacobian(obj, data, vector_dependents, increment_filter, eq_num):
+    all_vector_deps = {}
+    for eq_vec_deps in vector_dependents:
+        for var, dxs in eq_vec_deps.items():
+            all_vector_deps.setdefault(var, set()).update(dxs)
+    for var, dxs in all_vector_deps.items():
         for dx in sorted(dxs):
-            result = _partial_derivative_vecvar(
-                var, data.func, dx, increment_filter, **data.func_params
-            )
+            result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
             if result is None:
                 continue
-            for eq_idx, entries in enumerate(inferred):
-                if dx in entries.get(var, ()):
+            for eq_idx, eq_vec_deps in enumerate(vector_dependents):
+                if var in eq_vec_deps and dx in eq_vec_deps[var]:
                     obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
-                        result[eq_idx] if isinstance(result, np.ndarray)
-                        else result
+                        result[eq_idx] if isinstance(result, np.ndarray) else result
                     )
 
 

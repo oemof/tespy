@@ -736,13 +736,15 @@ class BlockDriver:
 
     def _freeze(self, block):
         # the is_var guards of the convergence heuristics and of the
-        # derivative computation skip frozen variables automatically in all
+        # derivative computation skip frozen scalars automatically in all
         # subsequent blocks
         for col in block.variables:
             data = self.problem.variables_dict[col]
             if data["variable"] == "fluid":
                 # the mass fractions keep their variable status, the fluid
-                # balance and the normalization of the vector read it
+                # balance and the normalization of the vector read it. The
+                # problem masks their derivatives and restores their values
+                # after the convergence heuristics instead
                 self.problem._frozen_columns.add(col)
                 continue
             container = data["obj"]

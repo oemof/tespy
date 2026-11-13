@@ -330,7 +330,9 @@ prepare the problem and compare:
 every variable once, starting from the previous solution, and lists the
 equations whose residual changes with a variable that is neither declared nor
 inferred as dependent. These are wrong dependents, which can break the block
-order. It also lists inferred and declared dependents that are not observed.
+order. It also counts the equations with inferred and declared dependents
+that are not observed, :code:`nw.print_dependents_check(unused=True)` lists
+them. They are not errors: a derivative can vanish at the state of the check.
 The observation only holds for the state the check is evaluated at, e.g. the
 temperature of saturated humid air does not change with its composition, while
 the temperature of unsaturated humid air does.

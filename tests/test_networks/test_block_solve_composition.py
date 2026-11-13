@@ -11,6 +11,7 @@ tests/test_networks/test_block_solve_composition.py
 SPDX-License-Identifier: MIT
 """
 from pytest import approx
+from pytest import fixture
 from pytest import mark
 from pytest import raises
 
@@ -29,6 +30,7 @@ from tespy.components import Turbine
 from tespy.connections import Connection
 from tespy.connections import HAConnection
 from tespy.networks import Network
+from tespy.solver.problem import Problem
 from tespy.tools.data_containers import ComponentParameter as dc_cp
 from tespy.tools.helpers import TESPyNetworkError
 from tespy.tools.helpers import UserDefinedEquation
@@ -379,38 +381,104 @@ def test_structural_analysis_overdetermined_gas_turbine():
     assert [part["kind"] for part in analysis] == ["overdetermined"]
 
 
-def _fallback_messages(caplog):
-    return [
-        record.getMessage() for record in caplog.records
-        if "simultaneous" in record.getMessage()
-        or "did not converge" in record.getMessage()
-    ]
+@fixture
+def fallbacks(monkeypatch):
+    """Simultaneous solutions of the full system during the test, the
+    escalation of the block-wise solution."""
+    calls = []
+    solve_simultaneous = Problem._solve_simultaneous
+
+    def record(problem, *args, **kwargs):
+        calls.append(problem)
+        return solve_simultaneous(problem, *args, **kwargs)
+
+    monkeypatch.setattr(Problem, "_solve_simultaneous", record)
+    return calls
+
+
+def _assert_solved_block_wise(nw, fallbacks):
+    assert fallbacks == []
+    assert all(block.status == 0 for block in nw.problem.decompose().blocks)
 
 
 @mark.parametrize("build", MODELS.values(), ids=MODELS.keys())
-def test_block_solve_composition_matches_simultaneous_solve(build, caplog):
+def test_block_solve_composition_matches_simultaneous_solve(build, fallbacks):
     reference = build()
     reference.solve("design", block_solve=False)
     reference.assert_convergence()
+    fallbacks.clear()
 
     nw = build()
-    with caplog.at_level("INFO", logger="TESPyLogger"):
-        nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_composition=True)
     nw.assert_convergence()
     _assert_same_results(nw, reference)
-    assert _fallback_messages(caplog) == []
+    _assert_solved_block_wise(nw, fallbacks)
 
 
-def test_recirculation_block_solve_composition():
+def test_recirculation_block_solve_composition(fallbacks):
     nw = recirculation()
     nw.solve("design", block_solve_composition=True)
     nw.assert_convergence()
+    _assert_solved_block_wise(nw, fallbacks)
 
-    stack, recirculated = nw.get_conn("6"), nw.get_conn("7")
-    air, fuel = nw.get_conn("0"), nw.get_conn("8")
+    air, mixed, recirculated = (nw.get_conn(label) for label in "017")
+    stack, fuel = nw.get_conn("6"), nw.get_conn("8")
     assert stack.m.val_SI == approx(air.m.val_SI + fuel.m.val_SI)
-    for fluid, value in stack.fluid.val.items():
-        assert recirculated.fluid.val[fluid] == approx(value)
+    assert nw.get_conn("3").T.val == approx(1200)
+    assert nw.get_conn("5").T.val == approx(60)
+    # the recycle closes: the compressor inlet is the mixture of the fresh
+    # air with the flue gas, which differs from the air in its composition
+    assert recirculated.fluid.val["CO2"] > 10 * air.fluid.val["CO2"]
+    for fluid in mixed.fluid.val:
+        assert mixed.m.val_SI * mixed.fluid.val[fluid] == approx(
+            air.m.val_SI * air.fluid.val.get(fluid, 0)
+            + recirculated.m.val_SI * recirculated.fluid.val[fluid],
+            rel=1e-6, abs=1e-9
+        )
+
+
+def test_offdesign_block_solve_composition(tmp_path, fallbacks):
+    results = []
+    for kwargs in ({"block_solve_composition": True}, {"block_solve": False}):
+        nw = gas_turbine_hrsg()
+        nw.solve("design", **kwargs)
+        nw.assert_convergence()
+        path = f"{tmp_path}/design_{len(results)}.json"
+        nw.save(path)
+
+        for label in ("superheater", "evaporator", "economizer"):
+            nw.get_comp(label).set_attr(offdesign=["UA"])
+        nw.get_comp("evaporator").set_attr(design=["ttd_l"])
+        nw.get_conn("w3").set_attr(design=["td_bubble"])
+        nw.get_conn("w7").set_attr(design=["T"])
+        nw.get_conn("8").set_attr(m=0.9)
+        if not results:
+            fallbacks.clear()
+        nw.solve("offdesign", design_path=path, **kwargs)
+        nw.assert_convergence()
+        if not results:
+            _assert_solved_block_wise(nw, fallbacks)
+        results.append(nw)
+
+    nw, reference = results
+    _assert_same_results(nw, reference)
+    assert nw.get_conn("w7").T.val != approx(450)
+
+
+def test_pause_and_continue_block_solve_composition():
+    reference = gas_turbine()
+    reference.solve("design", block_solve=False)
+
+    nw = gas_turbine()
+    nw.solve(
+        "design", max_iter=2, pause_on_block_failure=True,
+        block_solve_composition=True
+    )
+    assert nw.status == 20
+    nw.solve_continue(max_iter=50)
+    nw.assert_convergence()
+    assert nw.problem._composition_derivatives
+    _assert_same_results(nw, reference)
 
 
 def test_inferred_composition_dependence():
@@ -582,35 +650,47 @@ def test_core_energy_balances_not_inferred():
     assert ("compressor", ("eta_s", 0)) in inferred
 
 
-def test_custom_component_explicit_composition_dependents(caplog):
+def test_custom_component_explicit_composition_dependents(fallbacks):
     nw = merge_chain(cooler_class=ExplicitCooler)
-    with caplog.at_level("INFO", logger="TESPyLogger"):
-        nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
     assert ("cooler", ("T_out", 0)) not in _inferred_labels(nw)
-    assert _fallback_messages(caplog) == []
+    _assert_solved_block_wise(nw, fallbacks)
 
     nw.presolve("design")
     assert nw.get_dependents_check()["missing"] == {}
 
 
-def test_custom_component_wrongly_flagged(caplog):
+def test_custom_component_wrongly_flagged(fallbacks):
     nw = merge_chain(cooler_class=WronglyFlaggedCooler)
-    with caplog.at_level("INFO", logger="TESPyLogger"):
-        nw.solve("design", block_solve_composition=True)
-    # the residual check after the block phase detects the wrong block
-    # order and the simultaneous solution recovers
+    nw.solve("design", block_solve_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
-    assert _fallback_messages(caplog) != []
+
+    blocks = nw.problem.decompose().blocks
+    wrong_order = bool(fallbacks)
 
     nw.presolve("design")
     missing = nw.get_dependents_check()["missing"]
     assert ("cooler", ("T_out", 0)) in missing
 
+    # nothing orders the equation relative to the composition it reads. If
+    # it is solved first, the residual check after the block phase detects
+    # the wrong block order and the simultaneous solution recovers
+    equation_block = next(
+        block.id for block in blocks
+        if ("cooler", ("T_out", 0)) in block.equation_labels
+    )
+    composition_block = next(
+        block.id for block in blocks
+        if set(missing[("cooler", ("T_out", 0))]) & set(block.variable_labels)
+    )
+    assert equation_block != composition_block
+    assert wrong_order == (equation_block < composition_block)
 
-def _outlet_temperature_ude(infer_composition):
+
+def _outlet_temperature_ude(infer_composition, deriv=None):
     nw = merge_chain()
     c5 = nw.get_conn("5")
     c5.set_attr(T=None)
@@ -630,7 +710,7 @@ def _outlet_temperature_ude(infer_composition):
             }
 
     ude = UserDefinedEquation(
-        "outlet temperature", func, dependents, conns=[c5],
+        "outlet temperature", func, dependents, deriv=deriv, conns=[c5],
         infer_composition=infer_composition
     )
     nw.add_ude(ude)
@@ -638,16 +718,34 @@ def _outlet_temperature_ude(infer_composition):
 
 
 @mark.parametrize("infer_composition", [True, False])
-def test_user_defined_equation_composition(infer_composition, caplog):
+def test_user_defined_equation_composition(infer_composition, fallbacks):
     nw = _outlet_temperature_ude(infer_composition)
-    with caplog.at_level("INFO", logger="TESPyLogger"):
-        nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
-    assert _fallback_messages(caplog) == []
+    _assert_solved_block_wise(nw, fallbacks)
 
     inferred = ("outlet temperature", ("equation", 0)) in _inferred_labels(nw)
     assert inferred == infer_composition
 
     nw.presolve("design")
     assert nw.get_dependents_check()["missing"] == {}
+
+
+def test_user_defined_equation_derivatives_with_inference(fallbacks):
+    calls = []
+
+    def deriv(increment_filter, k, dependents=None, ude=None):
+        calls.append(k)
+        c = ude.conns[0]
+        ude.partial_derivative(c.p)
+        ude.partial_derivative(c.h)
+
+    nw = _outlet_temperature_ude(True, deriv=deriv)
+    nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    assert calls
+    assert nw.get_conn("5").T.val == approx(80)
+    _assert_solved_block_wise(nw, fallbacks)
+
+    assert ("outlet temperature", ("equation", 0)) in _inferred_labels(nw)

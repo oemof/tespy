@@ -122,8 +122,7 @@ class Problem:
         if self._decomposition is None:
             # variable mass fractions of one fluid vector are coupled through
             # their normalization outside of the equation system, so they must
-            # stay within one block. Block-wise solving falls back to the
-            # simultaneous solution for variable compositions anyway
+            # stay within one block
             coupled = {}
             for j_col, data in self.variables_dict.items():
                 if data["variable"] == "fluid":
@@ -2559,6 +2558,12 @@ class Problem:
             self._apply_property_bounds(connections, moved)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
+
+        # the mass fractions of solved blocks keep their variable status,
+        # so the heuristics above do not skip them as they skip the scalars
+        for col in self._frozen_columns:
+            hlp.set_variable_value(self.variables_dict[col], values_before[col])
+
         # detect if any heuristic modifications were applied. Changes
         # below the solver's resolution do not count: e.g. the mass
         # fraction renormalization and the converged solution can disagree

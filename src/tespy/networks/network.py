@@ -30,6 +30,7 @@ from tespy.components.component import component_registry
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
+from tespy.solver.verification import check_dependents
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import characteristic_from_dict
@@ -2184,6 +2185,63 @@ class Network:
                 )
                 print(f"  Variables: {var_str}")
                 print(f"  Involved equations: {eq_str}")
+
+    def get_dependents_check(self) -> dict:
+        """Compare the dependents of the equations with their observed
+        dependence.
+
+        Every variable is perturbed once and the equations whose residual
+        changes are compared with the dependents the solver works with,
+        declared or inferred. The variable space must be loaded, e.g. after
+        :py:meth:`~tespy.networks.network.Network.presolve`, which starts
+        from the previous solution by default. The observation only holds
+        for that state: a dependence vanishing there is not seen.
+
+        Returns
+        -------
+        dict
+            :code:`"missing"`: equations depending on variables that are not
+            part of their dependents, the block order can be wrong.
+            :code:`"unused_inferred"`: equations with an inferred dependence
+            on the composition that is not observed. :code:`"unused_declared"`:
+            equations with declared dependents that are not observed. Each
+            maps the equation, as tuple of object label and equation name,
+            to the short variable labels. :code:`"not_probed"` lists the
+            variables whose perturbation raised an error in an equation
+            evaluation.
+        """
+        if self._problem is None or not (
+                self._presolve_pending or self._problem.paused):
+            msg = (
+                "The dependents can only be checked with the variable space "
+                "loaded. Call Network.presolve first."
+            )
+            raise hlp.TESPyNetworkError(msg)
+        return check_dependents(self._problem)
+
+    def print_dependents_check(self):
+        """Print the comparison of the dependents of the equations with their
+        observed dependence, see
+        :py:meth:`~tespy.networks.network.Network.get_dependents_check`.
+        """
+        check = self.get_dependents_check()
+        titles = {
+            "missing": "Missing dependents (observed, not declared or inferred)",
+            "unused_inferred": "Inferred composition dependence not observed",
+            "unused_declared": "Declared dependents not observed",
+        }
+        for key, title in titles.items():
+            print(f"{title}: {len(check[key])} equations")
+            for (label, name), variables in check[key].items():
+                print(
+                    f"  {label}.{self._problem.format_eq_name(name)}: "
+                    f"{', '.join(variables)}"
+                )
+        if check["not_probed"]:
+            print(
+                "Not probed, the equation evaluation failed: "
+                f"{', '.join(check['not_probed'])}"
+            )
 
     def get_block_jacobian(self, block) -> dict:
         """Get the linear system of a failed block at its state of failure.

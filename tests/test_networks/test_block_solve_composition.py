@@ -485,3 +485,52 @@ def test_custom_component_block_solve_composition():
         for eq_num in nw.problem._inferred_incidence
     ]
     assert ("cooler", ("T_out", 0)) in inferred
+
+
+class InletDeclaredCooler(LegacyCooler):
+    """Wrong declaration: the outlet temperature equation lists the inlet
+    state instead of the outlet state."""
+
+    def T_out_dependents(self):
+        return [self.inl[0].p, self.inl[0].h]
+
+
+@mark.parametrize(
+    "build",
+    list(MODELS.values()) + [recirculation],
+    ids=list(MODELS.keys()) + ["recirculation"]
+)
+def test_dependents_check_models(build):
+    nw = build()
+    nw.solve("design", block_solve_composition=True)
+    nw.presolve("design")
+    check = nw.get_dependents_check()
+    assert check["missing"] == {}
+    assert check["not_probed"] == []
+    nw.print_dependents_check()
+
+
+def test_dependents_check_detects_missing_dependents():
+    nw = merge_chain(cooler_class=LegacyCooler)
+    nw.solve("design", block_solve_composition=True)
+    reference = nw.get_conn("5").h.val_SI
+
+    nw = merge_chain(cooler_class=InletDeclaredCooler)
+    nw.get_conn("5").set_attr(h0=reference)
+    nw.presolve("design")
+    check = nw.get_dependents_check()
+    # inlet and outlet share the composition of their branch, so the inlet
+    # state brings in the mass fractions by inference, only the outlet
+    # enthalpy is missing
+    missing = check["missing"][("cooler", ("T_out", 0))]
+    assert len(missing) == 1
+    assert missing[0].startswith("h")
+
+
+def test_dependents_check_requires_loaded_variables():
+    nw = gas_turbine()
+    with raises(TESPyNetworkError):
+        nw.get_dependents_check()
+    nw.solve("design")
+    with raises(TESPyNetworkError):
+        nw.get_dependents_check()

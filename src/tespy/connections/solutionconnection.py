@@ -39,6 +39,9 @@ class SolutionConnection(Connection):
     - the fluid names, e.g. a fluid vector containing LiBr,
     - the other connections of the same fluid branch,
 
+    - the solution connections of the same sorption components, e.g. for the
+      vapor leaving a desorber,
+
     in this order, and falls back to :code:`"libr-water"` if none of them
     provides it.
 
@@ -129,11 +132,34 @@ class SolutionConnection(Connection):
     def _get_mixing_rule(self):
         if self._mixing_rule is not None:
             return self._mixing_rule
+        return self._pair_from_fluid_names()
+
+    def _pair_from_fluid_names(self):
         fluids = set(self.fluid.val) | self.fluid.is_set | set(self.fluid.val0)
         for fluid in fluids:
             pair = solution_pair_of_component(fluid)
             if pair is not None:
                 return pair.name
+        return None
+
+    def _pair_from_sorption_components(self, visited=None):
+        """Working pair named or inferred on another solution connection
+        attached to the same sorption components, e.g. the vapor leaving a
+        desorber forms a fluid branch of its own."""
+        if visited is None:
+            visited = {self}
+        for component in (self.source, self.target):
+            if getattr(component, "_solution_outlet", None) is None:
+                continue
+            for c in component.inl + component.outl:
+                if c in visited or not isinstance(c, SolutionConnection):
+                    continue
+                visited.add(c)
+                rule = c._mixing_rule if not c._fallback_pair else None
+                rule = rule or c._pair_from_fluid_names()
+                rule = rule or c._pair_from_sorption_components(visited)
+                if rule is not None:
+                    return rule
         return None
 
     def _set_mixing_rule(self, value):
@@ -145,7 +171,10 @@ class SolutionConnection(Connection):
                 value = self.mixing_rule
             elif value == "ideal-cond":
                 # no working pair specified anywhere in the fluid branch
-                value = "libr-water"
+                value = self._pair_from_sorption_components()
+                if value is None:
+                    value = "libr-water"
+                    self._fallback_pair = True
             else:
                 available = "', '".join(solution_pair_names())
                 msg = (
@@ -171,6 +200,7 @@ class SolutionConnection(Connection):
 
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
         self._mixing_rule = None
+        self._fallback_pair = False
         self._pending_composition = {}
         self._user_composition0 = False
         super().__init__(source, outlet_id, target, inlet_id, label, **kwargs)

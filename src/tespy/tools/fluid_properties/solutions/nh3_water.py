@@ -399,7 +399,19 @@ class AmmoniaWater(SolutionPair):
             ln_f_vapor = np.log(
                 model.get_fugacity_coefficients(T, rho_vapor) * y
             )
-        return bool(np.all(np.abs(ln_f_liquid - ln_f_vapor) < 1e-8))
+        if not np.all(np.abs(ln_f_liquid - ln_f_vapor) < 1e-8):
+            return False
+        # the Newton solvers can converge on a non-physical density root of
+        # the equation of state, each phase must be on its own root
+        try:
+            rho_liquid_root = self._density(T, p, x[0], "l")
+            rho_vapor_root = self._density(T, p, y[0], "g")
+        except ValueError:
+            return False
+        return (
+            abs(rho_liquid.sum() / rho_liquid_root - 1) < 1e-6
+            and abs(rho_vapor.sum() / rho_vapor_root - 1) < 1e-6
+        )
 
     def _raoult_temperature(self, kind, p, spec):
         """Bubble or dew point temperature of an ideal solution."""

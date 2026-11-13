@@ -134,3 +134,25 @@ def test_libr_water_pressure_from_temperature_and_vapor_mass_fraction():
     _solve(c)
     assert c.p.val_SI == approx(pair.p_bubble(330, 0.55 / 0.9), rel=1e-8)
     assert c.x.val_SI == approx(0.1, abs=1e-8)
+
+
+@needs_teqp
+def test_vapor_branch_takes_the_pair_of_the_sorption_component():
+    from tespy.components import Absorber
+
+    nw = Network(iterinfo=False)
+    absorber = Absorber("absorber")
+    weak = SolutionConnection(
+        Source("weak"), "out1", absorber, "in1", mixing_rule="nh3-water"
+    )
+    # the vapor forms a fluid branch of its own without pair information
+    vapor = SolutionConnection(Source("vapor"), "out1", absorber, "in2")
+    strong = SolutionConnection(absorber, "out1", Sink("strong"), "in1")
+    nw.add_conns(weak, vapor, strong)
+    vapor.set_attr(xi=0.9995, m=0.01, x=0.99, T=264.35)
+    weak.set_attr(xi=0.3067, T=330.15)
+    strong.set_attr(T=308.15)
+    nw.solve("design")
+    nw.assert_convergence()
+    assert vapor.mixing_rule == "nh3-water"
+    assert weak.T.val_SI == approx(330.15, abs=1e-6)

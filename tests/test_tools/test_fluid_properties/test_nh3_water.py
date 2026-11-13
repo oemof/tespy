@@ -180,3 +180,21 @@ def test_bracketing_fails_without_valid_points():
 
     with raises(ValueError, match="bracketed"):
         _increasing_root(always_failing, 0, 1, 1e-12)
+
+
+def test_flash_rejects_non_physical_density_root():
+    # a warm start from a nearby state made the Newton solver of the flash
+    # converge on a non-physical liquid density root with equal pressures
+    # and fugacities, giving twice the vapor mass fraction
+    from tespy.tools.fluid_properties.solutions.nh3_water import AmmoniaWater
+
+    pair = AmmoniaWater()
+    p, T, w = 290569.802084111, 330.15, 0.3067
+    pair._model
+    pair._guess["flash"] = (
+        38078.40911576629 * np.array([0.3072350106075421, 0.6927649893924579]),
+        108.42415835542208 * np.array([0.9530651327010761, 0.0469348672989239]),
+    )
+    h = pair.h_pT(p, T, w)
+    assert pair.Q_ph(p, h, w) == approx(0.009970, abs=1e-5)
+    assert pair.T_ph(p, h, w) == approx(T, abs=1e-6)

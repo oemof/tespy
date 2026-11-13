@@ -412,6 +412,15 @@ class LiBrWater(SolutionPair):
             return "l"
         return "tp"
 
+    def p_TQ(self, T, Q, w):
+        if not 0 <= Q < 1:
+            msg = (
+                "The vapor mass fraction of a LiBr-water solution must be "
+                f"within [0, 1), {Q} was given."
+            )
+            raise ValueError(msg)
+        return self.p_bubble(T, w / (1 - Q))
+
     def h_pQ(self, p, Q, w):
         if not 0 <= Q < 1:
             msg = (

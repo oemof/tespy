@@ -1088,6 +1088,7 @@ class MixingRuleRegistry:
         self._T_dew_p = {}
         self._p_bubble_T = {}
         self._p_dew_T = {}
+        self._p_TQ = {}
 
     def register(
         self, name, *, h_pT=None, s_pT=None, v_pT=None,
@@ -1095,6 +1096,7 @@ class MixingRuleRegistry:
         T_ph_inversion=True, T_ps_inversion=True,
         T_ph=None, T_ps=None, phase_ph=None, Q_ph=None, h_pQ=None,
         T_bubble_p=None, T_dew_p=None, p_bubble_T=None, p_dew_T=None,
+        p_TQ=None,
     ):
         """Register a mixing rule.
 
@@ -1135,6 +1137,9 @@ class MixingRuleRegistry:
         p_bubble_T, p_dew_T : callable, optional
             :code:`p(T, fluid_data, **kwargs) -> float`, bubble and dew
             point pressure of the mixture.
+        p_TQ : callable, optional
+            :code:`p(T, Q, fluid_data, **kwargs) -> float`, pressure at
+            temperature and vapor mass fraction.
         """
         if h_pT is not None:
             self._h_pT[name] = h_pT
@@ -1152,7 +1157,7 @@ class MixingRuleRegistry:
             "_T_ph_direct": T_ph, "_T_ps_direct": T_ps,
             "_phase_ph": phase_ph, "_Q_ph": Q_ph, "_h_pQ": h_pQ,
             "_T_bubble_p": T_bubble_p, "_T_dew_p": T_dew_p,
-            "_p_bubble_T": p_bubble_T, "_p_dew_T": p_dew_T,
+            "_p_bubble_T": p_bubble_T, "_p_dew_T": p_dew_T, "_p_TQ": p_TQ,
         }
         for registry, function in hooks.items():
             if function is not None:
@@ -1214,6 +1219,9 @@ class MixingRuleRegistry:
 
     def p_dew_T(self, name):
         return self._p_dew_T.get(name)
+
+    def p_TQ(self, name):
+        return self._p_TQ.get(name)
 
 
 MIXING_RULES = MixingRuleRegistry()

@@ -82,9 +82,10 @@ def _increasing_root(f, x0, step, xtol, lower_limit=-np.inf, upper_limit=np.inf)
     r"""Root of an increasing function :math:`f`, bracketed from :math:`x_0`
     in steps growing from :code:`step`.
 
-    An evaluation that fails above a value with a negative residual counts
-    as beyond the root, e.g. beyond the critical line of the mixture where no
-    phase equilibrium exists.
+    An evaluation that fails counts as beyond the root when it lies above a
+    value with a negative residual, e.g. beyond the critical line of the
+    mixture where no phase equilibrium exists: the search then refines the
+    step from the last valid point.
     """
     def evaluate(x):
         try:
@@ -92,46 +93,53 @@ def _increasing_root(f, x0, step, xtol, lower_limit=-np.inf, upper_limit=np.inf)
         except ValueError:
             return None
 
+    def fail():
+        raise ValueError("The root could not be bracketed.")
+
+    step = abs(step)
     x0 = min(max(x0, lower_limit), upper_limit)
     value = evaluate(x0)
-    step = abs(step)
-    if value is None or value > 0:
+    lower = upper = None
+    if value is not None and value > 0:
         upper = x0
+    elif value is not None:
         lower = x0
-        for _ in range(60):
-            lower = max(lower - step, lower_limit)
-            value = evaluate(lower)
-            if value is not None and value < 0:
-                break
-            if value is not None:
-                upper = lower
-            if lower == lower_limit:
-                raise ValueError("The root could not be bracketed.")
-            step *= 2
-        else:
-            raise ValueError("The root could not be bracketed.")
-    else:
-        lower = x0
-        upper = x0
-        for _ in range(60):
-            candidate = min(upper + step, upper_limit)
-            value = evaluate(candidate)
-            if value is None:
-                # beyond the existence of the equilibrium: refine towards
-                # the last valid point
-                step /= 2
-                if step < xtol:
-                    raise ValueError("The root could not be bracketed.")
-                continue
-            if value > 0:
-                upper = candidate
-                break
+
+    # search downwards for a negative residual
+    candidate = x0
+    downward_step = step
+    for _ in range(60):
+        if lower is not None:
+            break
+        if candidate == lower_limit:
+            fail()
+        candidate = max(candidate - downward_step, lower_limit)
+        value = evaluate(candidate)
+        if value is not None and value < 0:
             lower = candidate
-            if candidate == upper_limit:
-                raise ValueError("The root could not be bracketed.")
-            step *= 2
+        elif value is not None:
+            upper = candidate
+        downward_step *= 2
+    else:
+        fail()
+
+    # search upwards from the last negative residual
+    for _ in range(200):
+        if upper is not None:
+            break
+        if step < xtol or lower == upper_limit:
+            fail()
+        candidate = min(lower + step, upper_limit)
+        value = evaluate(candidate)
+        if value is None:
+            step /= 2
+        elif value > 0:
+            upper = candidate
         else:
-            raise ValueError("The root could not be bracketed.")
+            lower = candidate
+            step *= 2
+    else:
+        fail()
     return brentq(f, lower, upper, xtol=xtol, rtol=1e-14)
 
 

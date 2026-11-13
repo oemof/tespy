@@ -262,7 +262,10 @@ def nh3_water_chiller():
         )
 
     def shx_dependents(ude):
-        return [v for c in ude.conns for v in (c.p, c.h)]
+        return {
+            "scalars": [[v for c in ude.conns for v in (c.p, c.h)]],
+            "vectors": [{c.fluid: {"NH3"} & c.fluid.is_var for c in ude.conns}],
+        }
 
     nw.add_ude(
         UserDefinedEquation(

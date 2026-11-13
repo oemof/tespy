@@ -17,6 +17,10 @@ from tespy.tools.fluid_properties.solutions import solution_pair_names
 from tespy.tools.fluid_properties.solutions import solution_pair_of_component
 from tespy.tools.global_vars import FLUID_ALIASES
 
+# compositions closer to a pure component would turn a solution connection
+# into a pure fluid connection with the reference state of its fluid wrapper
+W_LIMIT = 1e-5
+
 from .connection import Connection
 from .connection import connection_registry
 
@@ -205,6 +209,8 @@ class SolutionConnection(Connection):
     @staticmethod
     def _composition(pair, w):
         other = pair.refrigerant if pair.key == pair.absorbent else pair.absorbent
+        if pair.volatile_absorbent:
+            w = min(max(w, W_LIMIT), 1 - W_LIMIT)
         return {pair.key: w, other: 1 - w}
 
     def _fluid_specification(self, key, value):
@@ -213,8 +219,42 @@ class SolutionConnection(Connection):
             self._user_composition0 = True
         if key == "fluid":
             pair = self.pair
-            if pair is not None and not pair.volatile_absorbent:
+            if pair is None:
+                return
+            if not pair.volatile_absorbent:
                 self.fluid.engine[pair.absorbent] = SolutionComponentWrapper
+            else:
+                self._limit_specified_composition(pair)
+
+    def _limit_specified_composition(self, pair):
+        """Keep both components of a pair with volatile absorbent in the
+        specified composition, so the properties come from the pair."""
+        key = FLUID_ALIASES.get_fluid(pair.key) & self.fluid.is_set
+        other_component = (
+            pair.refrigerant if pair.key == pair.absorbent else pair.absorbent
+        )
+        other = FLUID_ALIASES.get_fluid(other_component) & self.fluid.is_set
+        if key:
+            w = self.fluid.val[next(iter(key))]
+        elif other:
+            w = 1 - self.fluid.val[next(iter(other))]
+        else:
+            return
+        if W_LIMIT <= w <= 1 - W_LIMIT:
+            return
+        for fluid in key | other:
+            self.fluid.is_set.discard(fluid)
+            del self.fluid.val[fluid]
+        for fluid, fraction in self._composition(pair, w).items():
+            self.fluid.val[fluid] = fraction
+            self.fluid.is_set.add(fluid)
+            self.fluid.back_end.setdefault(fluid, None)
+        msg = (
+            f"The composition of the {self.__class__.__name__} {self.label} "
+            f"is limited to a mass fraction of {W_LIMIT} of the minor "
+            "component, so its properties are evaluated by the working pair."
+        )
+        logger.info(msg)
 
     def _key_component(self):
         pair = self.pair
@@ -304,6 +344,9 @@ class SolutionConnection(Connection):
             return None
 
     def _property_bounds(self, prop, nw):
+        if prop == "p" and single_fluid(self.fluid_data) is None:
+            # the saturation functions of the pairs need a positive pressure
+            return 1.0, None
         if prop == "h" and single_fluid(self.fluid_data) is None:
             pair = self.pair
             w = pair.key_fraction(self.fluid_data)
@@ -320,11 +363,15 @@ class SolutionConnection(Connection):
         if self.h.is_var and single_fluid(self.fluid_data) is None and self.it < 30:
             pair = self.pair
             w = pair.key_fraction(self.fluid_data)
-            if self.x.is_set:
-                self.h.set_reference_val_SI(pair.h_pQ(self.p.val_SI, self.x.val_SI, w))
-            elif self.td_bubble.is_set:
-                T = pair.T_bubble(self.p.val_SI, w) - self.td_bubble.val_SI
-                self.h.set_reference_val_SI(pair.h_pT(self.p.val_SI, T, w))
+            try:
+                if self.x.is_set:
+                    h = pair.h_pQ(self.p.val_SI, self.x.val_SI, w)
+                    self.h.set_reference_val_SI(h)
+                elif self.td_bubble.is_set:
+                    T = pair.T_bubble(self.p.val_SI, w) - self.td_bubble.val_SI
+                    self.h.set_reference_val_SI(pair.h_pT(self.p.val_SI, T, w))
+            except (ValueError, NotImplementedError):
+                pass
             return
         super()._adjust_to_property_limits(nw)
 

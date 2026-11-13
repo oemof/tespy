@@ -11,6 +11,8 @@ SPDX-License-Identifier: MIT
 """
 from functools import partial
 
+from scipy.optimize import brentq
+
 from tespy.tools.fluid_properties.mixtures import MIXING_RULES
 from tespy.tools.fluid_properties.wrappers.base import FluidPropertyWrapper
 from tespy.tools.fluid_properties.wrappers.base import wrapper_registry
@@ -89,6 +91,22 @@ class SolutionPair:
     def T_dew(self, p, w):
         raise NotImplementedError
 
+    def p_TQ(self, T, Q, w):
+        """Pressure of the state at temperature *T* with the vapor mass
+        fraction *Q*."""
+        if Q <= 0:
+            return self.p_bubble(T, w)
+        if Q >= 1:
+            return self.p_dew(T, w)
+
+        def residual(p):
+            return self.Q_ph(p, self.h_pT(p, T, w), w) - Q
+
+        return brentq(
+            residual, self.p_dew(T, w), self.p_bubble(T, w),
+            xtol=1e-8, rtol=1e-12
+        )
+
     def y_eq(self, p, w):
         """Key component mass fraction of the vapor in equilibrium with a
         liquid of composition *w* at its bubble point."""
@@ -142,14 +160,20 @@ class SolutionComponentWrapper(FluidPropertyWrapper):
 
     def __init__(self, fluid, back_end=None, **kwargs):
         super().__init__(fluid, back_end)
-        pair = solution_pair_of_component(fluid)
-        if pair is None:
+        for pair in _SOLUTION_PAIRS.values():
+            component = next((
+                c for c in pair.components
+                if fluid in FLUID_ALIASES.get_fluid(c)
+            ), None)
+            if component is not None and not pair.volatile_absorbent:
+                break
+        else:
             msg = (
-                f"The fluid {fluid} is not a component of a registered "
-                "working pair."
+                f"The fluid {fluid} is not the absorbent of a registered "
+                "working pair without volatile absorbent."
             )
             raise ValueError(msg)
-        self._molar_mass = pair.molar_mass[pair.key]
+        self._molar_mass = pair.molar_mass[component]
         self._T_min = pair.T_min
         self._T_max = pair.T_max
         self._p_min = 0
@@ -204,6 +228,10 @@ def _p_dew_T(pair, T, fluid_data, **kwargs):
     return pair.p_dew(T, pair.key_fraction(fluid_data))
 
 
+def _p_TQ(pair, T, Q, fluid_data, **kwargs):
+    return pair.p_TQ(T, Q, pair.key_fraction(fluid_data))
+
+
 def register_solution_pair(pair):
     r"""
     Register a working pair and make it available as mixing rule.
@@ -229,6 +257,7 @@ def register_solution_pair(pair):
         T_dew_p=partial(_T_dew_p, pair),
         p_bubble_T=partial(_p_bubble_T, pair),
         p_dew_T=partial(_p_dew_T, pair),
+        p_TQ=partial(_p_TQ, pair),
     )
 
 
@@ -260,9 +289,29 @@ def solution_pair_names():
     return list(_SOLUTION_PAIRS)
 
 
+def solution_pairs_of_component(fluid):
+    r"""
+    Return the working pairs whose key component is *fluid*.
+
+    Parameters
+    ----------
+    fluid : str
+        Fluid name.
+
+    Returns
+    -------
+    list
+        Registered :code:`SolutionPair` instances.
+    """
+    return [
+        pair for pair in _SOLUTION_PAIRS.values()
+        if fluid in FLUID_ALIASES.get_fluid(pair.key)
+    ]
+
+
 def solution_pair_of_component(fluid):
     r"""
-    Return the working pair whose key component is *fluid*, if any.
+    Return the working pair whose key component is *fluid*, if it is unique.
 
     Parameters
     ----------
@@ -272,8 +321,10 @@ def solution_pair_of_component(fluid):
     Returns
     -------
     SolutionPair, None
+        The pair, :code:`None` if no or more than one registered pair has
+        *fluid* as key component.
     """
-    for pair in _SOLUTION_PAIRS.values():
-        if fluid in FLUID_ALIASES.get_fluid(pair.key):
-            return pair
+    pairs = solution_pairs_of_component(fluid)
+    if len(pairs) == 1:
+        return pairs[0]
     return None

@@ -66,26 +66,22 @@ from tespy.tools.fluid_properties.solutions import register_solution_pair
 from tespy.tools.fluid_properties.solutions.libr_water import LiBrWater
 
 
-class ShiftedLiBrWater(LiBrWater):
-    """LiBr-water with a boiling point elevation 1 K higher than Patek and
-    Klomfar, as an example of a user defined working pair."""
+class LimitedLiBrWater(LiBrWater):
+    """LiBr-water after Patek and Klomfar with the equilibrium composition
+    limited to 70 % LiBr, e.g. to keep away from crystallization."""
 
-    name = "libr-water-shifted"
-
-    def T_bubble(self, p, w):
-        return super().T_bubble(p, w) + 1
-
-    def p_bubble(self, T, w):
-        return super().p_bubble(T - 1, w)
-
-    def w_bubble(self, p, T):
-        return super().w_bubble(p, T - 1)
+    name = "libr-water-limited"
+    w_max = 0.70
 
 
-register_solution_pair(ShiftedLiBrWater())
+register_solution_pair(LimitedLiBrWater())
 
-pair = ShiftedLiBrWater()
-p = PropsSI("P", "T", 278.15, "Q", 0, "water")
-print(f"bubble point of 55 % LiBr at 5 degC water saturation pressure: "
-      f"{pair.T_bubble(p, 0.55) - 273.15:.2f} degC")
+pair = LimitedLiBrWater()
+p = PropsSI("P", "T", 318.15, "Q", 0, "water")
+print(f"equilibrium LiBr mass fraction at 45 degC water saturation pressure "
+      f"and 100 degC: {pair.w_bubble(p, 373.15):.3f}")
+try:
+    pair.w_bubble(p, 403.15)
+except ValueError as e:
+    print(e)
 # %%[sec_6]

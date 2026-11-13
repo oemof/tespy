@@ -113,7 +113,10 @@ It implements the state functions in terms of pressure, temperature or
 enthalpy and the mass fraction of the key component and is registered with
 :py:func:`register_solution_pair <tespy.tools.fluid_properties.solutions.base.register_solution_pair>`,
 which makes it available as mixing rule of the same name. The example derives
-a pair from LiBr-water with a modified boiling point elevation.
+a pair from LiBr-water that limits the equilibrium composition to 70 % LiBr.
+A custom pair with the same key component as a built-in pair, LiBr here, must
+be named with :code:`mixing_rule` on a solution connection of each circuit, it
+cannot be inferred from the fluid names.
 
 .. literalinclude:: /../tutorial/advanced/absorption_chiller.py
     :language: python

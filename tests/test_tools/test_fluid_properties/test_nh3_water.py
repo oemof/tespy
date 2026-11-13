@@ -157,3 +157,26 @@ def test_missing_teqp_names_the_package(monkeypatch):
     monkeypatch.setitem(sys.modules, "teqp", None)
     with raises(ImportError, match="teqp"):
         AmmoniaWater().p_bubble(300, 0.5)
+
+
+def _root_with_failures_above(x):
+    if x > 2.5:
+        raise ValueError
+    return x - 2
+
+
+@mark.parametrize("x0", [0, 2.7, 10])
+def test_bracketing_refines_towards_failing_region(x0):
+    from tespy.tools.fluid_properties.solutions.nh3_water import _increasing_root
+
+    assert _increasing_root(_root_with_failures_above, x0, 1, 1e-12) == approx(2)
+
+
+def test_bracketing_fails_without_valid_points():
+    from tespy.tools.fluid_properties.solutions.nh3_water import _increasing_root
+
+    def always_failing(x):
+        raise ValueError
+
+    with raises(ValueError, match="bracketed"):
+        _increasing_root(always_failing, 0, 1, 1e-12)

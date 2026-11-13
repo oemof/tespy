@@ -13,9 +13,11 @@ SPDX-License-Identifier: MIT
 from tespy.components.component import component_registry
 from tespy.components.sorption.base import SorptionBase
 from tespy.components.sorption.base import TwoSidedSorptionBase
+from tespy.tools import logger
 from tespy.tools.data_containers import ConfigParameter
 from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.helpers import TESPyComponentError
 
 _VAPOR_STATES = ["inlet-equilibrium", "outlet-equilibrium", "free"]
 
@@ -159,10 +161,17 @@ class _DesorberMixin:
         super()._update_num_eq()
         vapor = self._vapor_outlet()
         equilibrium = self.vapor_state.val != "free"
-        variable_composition = (
-            equilibrium and self.pair.volatile_absorbent
-            and bool(vapor.fluid.is_var)
-        )
+        variable_composition = equilibrium and self.pair.volatile_absorbent
+        if variable_composition and not vapor.fluid.is_var:
+            msg = (
+                f"The vapor composition at {vapor.label} leaving the "
+                f"desorber {self.label} is the equilibrium composition of "
+                f"its vapor_state '{self.vapor_state.val}'. Remove the "
+                "composition specification of the vapor or set the "
+                "vapor_state to 'free'."
+            )
+            logger.error(msg)
+            raise TESPyComponentError(msg)
         self.constraints["vapor_state_constraints"].num_eq = int(equilibrium)
         self.constraints["vapor_composition_constraints"].num_eq = int(
             variable_composition

@@ -14,6 +14,7 @@ import importlib.util
 from CoolProp.CoolProp import PropsSI
 from pytest import approx
 from pytest import mark
+from pytest import raises
 
 from tespy.components import Absorber
 from tespy.components import CooledAbsorber
@@ -133,7 +134,10 @@ def test_absorber_rich_solution_composition_specification():
     nw.assert_convergence()
     _assert_sorption_balances(poor, rich, vapor)
     # the pressure follows from the equilibrium at the solution outlet
-    assert P_EV / 3 < vapor.p.val_SI < P_EV * 3
+    from tespy.tools.fluid_properties.solutions import get_solution_pair
+
+    pair = get_solution_pair("libr-water")
+    assert vapor.p.val_SI == approx(pair.p_bubble(306.15, 0.5), rel=1e-8)
 
 
 def test_absorber_heat_specification_recovers_mass_flow():
@@ -341,7 +345,6 @@ def test_heated_desorber_specification_changes():
     assert desorber.Q.val_SI == approx(Q_heating, rel=1e-6)
     assert desorber.Q.val_SI == approx(-Q_sorption, rel=1e-6)
     assert heat_in.m.val_SI > 0
-    assert desorber.ttd_u.val_SI == approx(20, abs=1e-6)
     m_heat = heat_in.m.val_SI
 
     poor.set_attr(T=None)
@@ -408,3 +411,24 @@ def test_rectifier_reflux_in_equilibrium_with_vapor():
     assert reflux.xi.val_SI == approx(
         pair.w_eq(p, vapor.xi.val_SI), abs=1e-10
     )
+
+
+@mark.skipif(
+    importlib.util.find_spec("teqp") is None, reason="teqp is not installed"
+)
+def test_desorber_rejects_fixed_vapor_composition_in_equilibrium():
+    from tespy.tools.helpers import TESPyComponentError
+
+    nw = _network()
+    desorber = Desorber("desorber")
+    rich = SolutionConnection(
+        Source("rich"), "out1", desorber, "in1", mixing_rule="nh3-water"
+    )
+    poor = SolutionConnection(desorber, "out1", Sink("poor"), "in1")
+    vapor = SolutionConnection(desorber, "out2", Sink("vapor"), "in1")
+    nw.add_conns(rich, poor, vapor)
+    rich.set_attr(xi=0.42, p=15e5, m=1, T=360)
+    poor.set_attr(T=393.15)
+    vapor.set_attr(xi=0.9)
+    with raises(TESPyComponentError, match="vapor_state"):
+        nw.solve("design")

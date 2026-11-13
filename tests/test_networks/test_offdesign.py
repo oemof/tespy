@@ -74,13 +74,13 @@ def _build_network_and_designs():
 
     # design case 1: m = 1 kg/s
     nw.solve("design")
-    design1 = nw.save(as_dict=True)
+    design1 = nw.save()
 
     # design case 2: m = 0.8 kg/s
     c1.set_attr(m=0.8)
     c1.set_attr(T_dew=52)
     nw.solve("design")
-    design2 = nw.save(as_dict=True)
+    design2 = nw.save()
 
     return dict(
         nw=nw,
@@ -125,7 +125,7 @@ def _build_isolated_design():
     )
 
     nw.solve("design")
-    design = nw.save(as_dict=True)
+    design = nw.save()
 
     return dict(design=design)
 
@@ -166,7 +166,7 @@ def _build_isolated_design_with_different_labels():
     )
 
     nw.solve("design")
-    design = nw.save(as_dict=True)
+    design = nw.save()
 
     return dict(design=design)
 
@@ -212,7 +212,7 @@ def _build_isolated_design_ambiguous_labels():
     hx2.set_attr(dp1=2, dp2=10, td_pinch=5, design=["td_pinch"], offdesign=["UA_char"])
 
     nw.solve("design")
-    return dict(design=nw.save(as_dict=True))
+    return dict(design=nw.save())
 
 
 def test_isolated_design_ambiguous_labels():
@@ -580,13 +580,13 @@ def _build_power_network_and_designs():
     # design case 1: eta=0.95, E=100 kW
     e1.set_attr(E=100)
     nw.solve("design")
-    design1 = nw.save(as_dict=True)
+    design1 = nw.save()
 
     # design case 2: eta=0.90, E=80 kW
     inverter.set_attr(eta=0.90)
     e1.set_attr(E=80)
     nw.solve("design")
-    design2 = nw.save(as_dict=True)
+    design2 = nw.save()
 
     return dict(
         nw=nw,
@@ -729,11 +729,11 @@ class TestNetworkIndividualOffdesign:
         )
         self.sc1.set_attr(
             pr=0.95, lkf_lin=3.33, lkf_quad=0.011, A=1252, E=700,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
         )
         self.sc2.set_attr(
             pr=0.95, lkf_lin=3.5, lkf_quad=0.011, A=700, E=800,
-            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta']
+            Tamb=20, eta_opt=0.92, design=['pr'], offdesign=['zeta_d4']
         )
 
         fl = {'H2O': 1}
@@ -763,7 +763,7 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        design1 = self.nw.save(as_dict=True)
+        design1 = self.nw.save()
         v1_design = self.sc1_v1.v.val_SI
         zeta_sc1_design = self.sc1.zeta_d4.val
 
@@ -771,7 +771,7 @@ class TestNetworkIndividualOffdesign:
         self.sc1_v1.set_attr(m=0.001, T=None)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        design2 = self.nw.save(as_dict=True)
+        design2 = self.nw.save()
         v2_design = self.sc2_v2.v.val_SI
         zeta_sc2_design = self.sc2.zeta_d4.val
 
@@ -830,7 +830,7 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        design1 = self.nw.save(as_dict=True)
+        design1 = self.nw.save()
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')
@@ -872,7 +872,7 @@ class TestNetworkIndividualOffdesign:
         self.sc2_v2.set_attr(m=0)
         self.nw.solve('design')
         self.nw.assert_convergence()
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
 
         self.sc1_v1.set_attr(design=['T'], offdesign=['v'], state='l')
         self.sc2_v2.set_attr(design=['T'], offdesign=['v'], state='l')

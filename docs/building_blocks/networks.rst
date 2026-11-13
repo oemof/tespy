@@ -19,7 +19,7 @@ variables of your TESPy network are a subset of the following:
 * the mass fractions of the fluids of every :code:`Connection` instance as well
   as
 * energy flow (power or heat) for :code:`PowerConnection` instances and
-* component variables (e.g. compressor rpm) if declared a variable.
+* component variables (e.g. compressor frequency) if declared a variable.
 
 The solver will simplify the variable space in a presolving step and then solve
 for the remaining variables. In the following, you will find information on the
@@ -257,10 +257,10 @@ available keywords:
 - :code:`mode` is the calculation mode (:code:`'design'`-calculation or
   :code:`'offdesign'`-calculation).
 - :code:`init_path` is the path to a saved network state (json file path or
-  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) to use for
+  a :code:`dict` returned by :code:`nw.save()`) to use for
   initialisation.
 - :code:`design_path` is the path to a saved network state (json file path or
-  a :code:`dict` returned by :code:`nw.save(as_dict=True)`) which holds the
+  a :code:`dict` returned by :code:`nw.save()`) which holds the
   information of your plant's design point.
 - :code:`max_iter` is the maximum amount of iterations performed by the
   solver.

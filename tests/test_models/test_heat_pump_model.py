@@ -284,7 +284,7 @@ class TestHeatPump:
         available in detail, thus perfect matching is not possible!
         """
         self.nw.solve('design')
-        design_state = self.nw.save(as_dict=True)
+        design_state = self.nw.save()
         self.nw.print_results()
         self.nw.assert_convergence()
 

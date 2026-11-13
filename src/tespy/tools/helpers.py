@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 """
 
 import os
+from collections import deque
 from collections.abc import Iterable
 from collections.abc import Mapping
 from copy import deepcopy
@@ -19,7 +20,7 @@ import pandas as pd
 
 from tespy import __datapath__
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter as dc_cp
 from tespy.tools.data_containers import ScalarVariable as dc_scavar
 from tespy.tools.data_containers import VectorVariable as dc_vecvar
 from tespy.tools.global_vars import ERR
@@ -342,6 +343,7 @@ class UserDefinedEquation:
                     vector_dependents = [{} for _ in range(data.num_eq)]
 
         eq_dict[value]._scalar_dependents = scalar_dependents
+        eq_dict[value]._sorted_scalar_dependents = None
         eq_dict[value]._vector_dependents = vector_dependents
         eq_dict[value]._first_eq_index = eq_counter
 
@@ -461,6 +463,37 @@ class UserDefinedVariable:
         return self.variable._reference_container
 
 
+def _topological_sort(calc_items):
+    """Return keys of calc_items in topological order based on calc_deps.
+
+    Raises ValueError if a dependency cycle is detected.
+    """
+    successors = {k: [] for k in calc_items}
+    in_degree = {k: 0 for k in calc_items}
+    for k, dc in calc_items.items():
+        for dep in dc.calc_deps:
+            if dep in calc_items:
+                successors[dep].append(k)
+                in_degree[k] += 1
+
+    queue = deque(k for k in calc_items if in_degree[k] == 0)
+    ordered = []
+    while queue:
+        k = queue.popleft()
+        ordered.append(k)
+        for succ in successors[k]:
+            in_degree[succ] -= 1
+            if in_degree[succ] == 0:
+                queue.append(succ)
+
+    if len(ordered) != len(calc_items):
+        cycle = set(calc_items) - set(ordered)
+        raise ValueError(f"Cycle detected in calc_deps: {cycle}")
+    return ordered
+
+
+
+
 def solve(obj, increment_filter):
     """
     Solve equations and calculate partial derivatives of a component.
@@ -522,11 +555,14 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
         )
     else:
         # deterministic evaluation order: the set iterates in the per
-        # process id order, which must not leak into the numerics
-        all_scalar_deps = sorted(
-            set().union(*data._scalar_dependents),
-            key=lambda dep: dep.J_col if dep.is_var else -1
-        )
+        # process id order, which must not leak into the numerics. The
+        # dependents do not change within a solve, the order is kept
+        all_scalar_deps = data._sorted_scalar_dependents
+        if all_scalar_deps is None:
+            all_scalar_deps = data._sorted_scalar_dependents = sorted(
+                set().union(*data._scalar_dependents),
+                key=lambda dep: dep.J_col if dep.is_var else -1
+            )
         for dependent in all_scalar_deps:
             result = _partial_derivative(dependent, data.func, increment_filter, **data.func_params)
             if result is None:

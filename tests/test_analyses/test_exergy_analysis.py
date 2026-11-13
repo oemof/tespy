@@ -400,10 +400,10 @@ class TestCompressedAirOut:
         assert round(ean.E_D, 4) == 0, msg
 
         msg = (
-            f"Exergy loss must be equal to {round(c.Ex_physical, 4)} "
+            f"Exergy loss must be equal to {round(c.E_PH.val_SI, 4)} "
             f"for this test but is {round(ean.E_L, 4)}."
         )
-        assert round(ean.E_L, 4) == round(c.Ex_physical, 4), msg
+        assert round(ean.E_L, 4) == round(c.E_PH.val_SI, 4), msg
 
 
 class TestCompression:

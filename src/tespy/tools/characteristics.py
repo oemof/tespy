@@ -15,11 +15,62 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
+from typing import NamedTuple
 
 import numpy as np
 
 from tespy import __datapath__
 from tespy.tools import logger
+from tespy.tools.global_vars import LIMIT_RTOL
+
+
+class DomainViolation(NamedTuple):
+    """An input of a characteristic outside the range of its data.
+
+    :code:`axis` names the input axis, :code:`value` is the input, :code:`bound`
+    the violated bound of the data, :code:`side` is :code:`"above"` or
+    :code:`"below"`, all in the units of the data.
+    """
+    axis: str
+    value: float
+    bound: float
+    side: str
+
+    def message(self, name, label, unit=None):
+        """Describe the violation of characteristic :code:`name` at component
+        :code:`label`."""
+        unit = f" {unit}" if unit else ""
+        bound_type = "maximum" if self.side == "above" else "minimum"
+        return (
+            f"Operating point outside the range of characteristic {name}: "
+            f"{self.axis} = {self.value:.6g}{unit} {self.side} {bound_type} "
+            f"value ({self.bound:.6g}{unit}) at component {label}."
+        )
+
+
+def _axis_violation(axis, value, lower, upper, rtol):
+    """Violation of the interval of an axis, :code:`None` inside it. A value
+    beyond a bound by less than :code:`rtol` relative to its magnitude counts
+    as inside."""
+    tolerance = rtol * max(abs(value), 1.0)
+    if value > upper + tolerance:
+        return DomainViolation(axis, float(value), float(upper), "above")
+    if value < lower - tolerance:
+        return DomainViolation(axis, float(value), float(lower), "below")
+    return None
+
+
+def _log_domain_violations(violations, name, label):
+    for violation in violations:
+        logger.warning(violation.message(name, label))
+
+
+def _magnitude_and_unit(values):
+    """Magnitude and unit string of a pint quantity array, plain arrays
+    carry no unit."""
+    if hasattr(values, "magnitude") and hasattr(values, "units"):
+        return np.asarray(values.magnitude), str(values.units)
+    return values, None
 
 
 class CharLine:
@@ -28,17 +79,25 @@ class CharLine:
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the x-values of the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         The corresponding y-values for the lookup table. Number of x and y
-        values must be identical.
+        values must be identical. A quantity array carries the unit of the
+        axis.
 
     extrapolate : boolean
         If :code:`True` linear extrapolation is performed when the x value is
         out of the defined value range.
+
+    x_unit : str
+        Unit of the x-values, e.g. :code:`"m3/h"`, default: :code:`None`.
+
+    y_unit : str
+        Unit of the y-values, e.g. :code:`"bar"`, default: :code:`None`.
 
     Note
     ----
@@ -51,12 +110,18 @@ class CharLine:
     :code:`x = [0, 1], y = [1, 1]`.
     """
 
-    def __init__(
-            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False):
+    num_inputs = 1
+    axes = ("x", "y")
 
-        self.x = x
-        self.y = y
+    def __init__(
+            self, x=np.array([0, 1]), y=np.ones((2)), extrapolate=False,
+            x_unit=None, y_unit=None):
+
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
 
         if isinstance(self.x, list):
             self.x = np.asarray(self.x)
@@ -128,27 +193,39 @@ class CharLine:
         yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
         return float(self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1]))
 
-    def get_domain_errors(self, x, c):
+    def domain_violations(self, x, rtol=LIMIT_RTOL):
         r"""
-        Prompt error messages, if x value is out of bounds.
+        Check the input against the range of the x-values.
 
         Parameters
         ----------
         x : float
             Input value for linear interpolation.
+
+        rtol : float
+            Relative tolerance of the check.
+
+        Returns
+        -------
+        list
+            :py:class:`DomainViolation` entries, empty inside the range.
         """
-        if x > self.x[-1]:
-            msg = (
-                "Operating point above characteristic line range: X="
-                f"{round(x, 3)} with maximum of {self.x[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif x < self.x[0]:
-            msg = (
-                "Operating point below characteristic line range: X="
-                f"{round(x, 3)} with minimum of {self.x[0]} at component {c}."
-            )
-            logger.warning(msg)
+        violation = _axis_violation("x", x, self.x[0], self.x[-1], rtol)
+        return [] if violation is None else [violation]
+
+    def get_domain_errors(self, x, c):
+        r"""
+        Log a warning, if the x value is out of bounds.
+
+        Parameters
+        ----------
+        x : float
+            Input value for linear interpolation.
+
+        c : str
+            Label of the component the characteristic is applied on.
+        """
+        _log_domain_violations(self.domain_violations(x), "CharLine", c)
 
     def get_attr(self, key):
         r"""
@@ -171,11 +248,18 @@ class CharLine:
             logger.error(msg)
             raise KeyError(msg)
 
+    def input_bounds(self, index=0):
+        """Lower and upper bound of the x-values."""
+        return float(self.x[0]), float(self.x[-1])
+
     def _serialize(self):
-        export = {}
+        export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -203,14 +287,18 @@ class CharMap:
 
     Parameters
     ----------
-    x : ndarray
+    x : ndarray, pint.Quantity
         An array for the first dimension input of the map.
 
-    y : ndarray
+    y : ndarray, pint.Quantity
         A two-dimensional array of the second dimension input of the map.
 
-    z : ndarray
+    z : ndarray, pint.Quantity
         A two-dimensional array of the output of the map.
+
+    x_unit, y_unit, z_unit : str
+        Units of the x-, y- and z-values, default: :code:`None`. Quantity
+        arrays carry their units.
 
     Note
     ----
@@ -219,13 +307,20 @@ class CharMap:
     calculated as functions from x and y.
     """
 
-    def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
-                 z=np.ones((2, 2)), extrapolate=False):
+    num_inputs = 2
+    axes = ("x", "y", "z")
 
-        self.x = x
-        self.y = y
-        self.z = z
+    def __init__(self, x=np.array([0, 1]), y=np.ones((2, 2)),
+                 z=np.ones((2, 2)), extrapolate=False, x_unit=None,
+                 y_unit=None, z_unit=None):
+
+        self.x, carried_x_unit = _magnitude_and_unit(x)
+        self.y, carried_y_unit = _magnitude_and_unit(y)
+        self.z, carried_z_unit = _magnitude_and_unit(z)
         self.extrapolate = extrapolate
+        self.x_unit = x_unit or carried_x_unit
+        self.y_unit = y_unit or carried_y_unit
+        self.z_unit = z_unit or carried_z_unit
 
         if isinstance(self.x, list):
             self.x = np.array(self.x)
@@ -373,9 +468,51 @@ class CharMap:
         """
         return float(self.evaluate_y(y, *self.evaluate_x(x)))
 
+    def _y_row_at(self, x):
+        """Second dimension input array at x, the boundary row outside the
+        range of the x-values."""
+        xpos = np.searchsorted(self.x, x)
+        if xpos == len(self.x):
+            return self.y[-1]
+        if xpos == 0:
+            return self.y[0]
+        yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
+        return self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
+
+    def domain_violations(self, x, y, rtol=LIMIT_RTOL):
+        r"""
+        Check the inputs against the range of the map.
+
+        The first dimension is checked against the x-values, the second
+        against the y-values interpolated at x; outside the x-values the
+        y-values of the nearest boundary row apply.
+
+        Parameters
+        ----------
+        x : float
+            Input for first dimension of CharMap.
+
+        y : float
+            Input for second dimension of CharMap.
+
+        rtol : float
+            Relative tolerance of the check.
+
+        Returns
+        -------
+        list
+            :py:class:`DomainViolation` entries, empty inside the range.
+        """
+        yarr = self._y_row_at(x)
+        violations = [
+            _axis_violation("x", x, self.x[0], self.x[-1], rtol),
+            _axis_violation("y", y, yarr[0], yarr[-1], rtol),
+        ]
+        return [v for v in violations if v is not None]
+
     def get_domain_errors_x(self, x, c):
         r"""
-        Prompt error message, if operation is out bounds in first dimension.
+        Log a warning, if operation is out bounds in first dimension.
 
         Parameters
         ----------
@@ -391,30 +528,13 @@ class CharMap:
             Second dimension input array of CharMap calculated from first
             dimension input.
         """
-        xpos = np.searchsorted(self.x, x)
-        if xpos == len(self.x) and x != self.x[-1]:
-            yarr = self.y[xpos - 1]
-            msg = (
-                f"Operating point above CharMap range: X={round(x, 3)} with "
-                "maximum of {self.x[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif xpos == 0 and x != self.x[0]:
-            yarr = self.y[0]
-            msg = (
-                f"Operating point below CharMap range: X={round(x, 3)} with "
-                f"minimum of {self.x[0]} at component {c}."
-            )
-            logger.warning(msg)
-        else:
-            yfrac = (x - self.x[xpos - 1]) / (self.x[xpos] - self.x[xpos - 1])
-            yarr = self.y[xpos - 1] + yfrac * (self.y[xpos] - self.y[xpos - 1])
-
-        return yarr
+        violation = _axis_violation("x", x, self.x[0], self.x[-1], LIMIT_RTOL)
+        _log_domain_violations([] if violation is None else [violation], "CharMap", c)
+        return self._y_row_at(x)
 
     def get_domain_errors_y(self, y, yarr, c):
         r"""
-        Prompt error message, if operation is out bounds in second dimension.
+        Log a warning, if operation is out bounds in second dimension.
 
         Parameters
         ----------
@@ -428,23 +548,12 @@ class CharMap:
         c : str
             Label of the component, the CharMap is applied on.
         """
-        ypos = np.searchsorted(yarr, y)
-        if ypos == len(yarr) and y != yarr[-1]:
-            msg = (
-                f"Operating point above compressor map range: Y={round(y, 3)} "
-                f"with maximum of {yarr[-1]} at component {c}."
-            )
-            logger.warning(msg)
-        elif ypos == 0 and y != yarr[0]:
-            msg = (
-                f"Operating point below compressor map range: Y={round(y, 3)} "
-                f"with minimum of {yarr[0]} at component {c}."
-            )
-            logger.warning(msg)
+        violation = _axis_violation("y", y, yarr[0], yarr[-1], LIMIT_RTOL)
+        _log_domain_violations([] if violation is None else [violation], "CharMap", c)
 
     def get_domain_errors(self, x, y, c):
         r"""
-        Check the CharMap for bound violations.
+        Log warnings for bound violations of the CharMap.
 
         Parameters
         ----------
@@ -453,9 +562,11 @@ class CharMap:
 
         y : float
             Input for second dimension of CharMap.
+
+        c : str
+            Label of the component, the CharMap is applied on.
         """
-        yarr = self.get_domain_errors_x(x, c)
-        self.get_domain_errors_y(y, yarr, c)
+        _log_domain_violations(self.domain_violations(x, y), "CharMap", c)
 
     def get_attr(self, key):
         r"""
@@ -478,12 +589,22 @@ class CharMap:
             logger.error(msg)
             raise KeyError(msg)
 
+    def input_bounds(self, index=0):
+        """Lower and upper bound of the data on the first (x) or second (y)
+        input axis."""
+        if index == 0:
+            return float(self.x[0]), float(self.x[-1])
+        return float(self.y.min()), float(self.y.max())
+
     def _serialize(self):
-        export = {}
+        export = {"type": type(self).__name__}
         export["x"] = self.x.tolist()
         export["y"] = self.y.tolist()
         export["z"] = self.z.tolist()
         export["extrapolate"] = self.extrapolate
+        for key in ("x_unit", "y_unit", "z_unit"):
+            if getattr(self, key) is not None:
+                export[key] = getattr(self, key)
         return export
 
     def plot(self, path, title, xlabel, ylabel):
@@ -504,6 +625,199 @@ class CharMap:
         # export
         fig.savefig(path, bbox_inches='tight')
         plt.close(fig)
+
+
+class Polynomial:
+    r"""
+    Class for polynomial characteristics in one or more inputs.
+
+    Parameters
+    ----------
+    coefficients : list
+        Coefficients of the polynomial terms.
+
+    exponents : list
+        One tuple of exponents per coefficient, one exponent per input.
+
+    Note
+    ----
+    The polynomial is evaluated as
+
+    .. math::
+
+        f\left(x_1, \ldots, x_n\right) = \sum_i c_i \prod_j x_j^{e_{ij}}
+
+    A polynomial has no bounded domain, the domain check never warns. For the
+    10-coefficient form of EN 12900 see :py:class:`EN12900Polynomial`.
+
+    Example
+    -------
+    >>> from tespy.tools.characteristics import Polynomial
+    >>> linear = Polynomial([1, 0.5], exponents=[(0,), (1,)])
+    >>> linear.num_inputs
+    1
+    >>> linear.evaluate(4)
+    3.0
+    """
+
+    def __init__(self, coefficients, exponents):
+        self.coefficients = np.asarray(coefficients, dtype=float)
+        self.exponents = np.asarray(exponents, dtype=float)
+        if self.exponents.ndim != 2:
+            self.exponents = self.exponents.reshape(len(self.exponents), -1)
+        if len(self.exponents) != len(self.coefficients):
+            msg = (
+                "Please provide one tuple of exponents per coefficient. "
+                f"Number of coefficients is {len(self.coefficients)}, number "
+                f"of exponent tuples is {len(self.exponents)}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+
+    axes = None
+
+    @property
+    def num_inputs(self):
+        return self.exponents.shape[1]
+
+    def __array__(self, dtype=None, copy=None):
+        return np.array(self.coefficients, dtype=dtype)
+
+    def evaluate(self, *inputs):
+        r"""
+        Return the polynomial evaluation at the inputs.
+
+        Parameters
+        ----------
+        *inputs : float
+            One value per input of the polynomial.
+
+        Returns
+        -------
+        y : float
+            Evaluation of the polynomial.
+        """
+        if len(inputs) != self.num_inputs:
+            msg = (
+                f"{type(self).__name__} takes {self.num_inputs} input(s), "
+                f"{len(inputs)} were provided."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        x = np.asarray(inputs, dtype=float)
+        terms = np.prod(np.power(x, self.exponents), axis=1)
+        return float(np.dot(self.coefficients, terms))
+
+    def domain_violations(self, *inputs, rtol=LIMIT_RTOL):
+        """A polynomial has no range of its data, nothing is ever violated."""
+        return []
+
+    def get_domain_errors(self, *args):
+        return
+
+    def input_bounds(self, index=0):
+        return None
+
+    def _serialize(self):
+        return {
+            "type": type(self).__name__,
+            "coefficients": self.coefficients.tolist(),
+            "exponents": self.exponents.astype(int).tolist()
+        }
+
+
+class EN12900Polynomial(Polynomial):
+    r"""
+    Class for the 10-coefficient polynomial of EN 12900 in two inputs.
+
+    Parameters
+    ----------
+    coefficients : list
+        The ten coefficients :math:`c_0` to :math:`c_9`, a :code:`pint`
+        quantity array carries the unit of the value.
+
+    value_unit : str
+        Unit of the polynomial value, e.g. :code:`"kW"`, default:
+        :code:`None`. The inputs are °C as defined by the standard.
+
+    Note
+    ----
+    With the evaporation temperature :math:`t_\text{e}` and the condensation
+    temperature :math:`t_\text{c}` as inputs the polynomial reads
+
+    .. math::
+
+        f = c_0 + c_1 t_\text{e} + c_2 t_\text{c} + c_3 t_\text{e}^2
+        + c_4 t_\text{e} t_\text{c} + c_5 t_\text{c}^2 + c_6 t_\text{e}^3
+        + c_7 t_\text{e}^2 t_\text{c} + c_8 t_\text{e} t_\text{c}^2
+        + c_9 t_\text{c}^3
+
+    Example
+    -------
+    >>> from tespy.tools.characteristics import EN12900Polynomial
+    >>> poly = EN12900Polynomial([1, 2, 3, 0, 0, 0, 0, 0, 0, 0])
+    >>> poly.num_inputs
+    2
+    >>> poly.evaluate(1, 1)
+    6.0
+    """
+
+    exponents_EN12900 = [
+        (0, 0), (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (3, 0), (2, 1),
+        (1, 2), (0, 3)
+    ]
+    num_inputs = 2
+    axes = ("T_evap", "T_cond", "value")
+    # the standard defines the polynomial over temperatures in °C
+    T_evap_unit = "degC"
+    T_cond_unit = "degC"
+
+    def __init__(self, coefficients, exponents=None, value_unit=None):
+        coefficients, carried_unit = _magnitude_and_unit(coefficients)
+        self.value_unit = value_unit or carried_unit
+        if exponents is not None and list(map(tuple, exponents)) != self.exponents_EN12900:
+            msg = "The exponents of the EN 12900 polynomial are fixed."
+            logger.error(msg)
+            raise ValueError(msg)
+        if len(coefficients) != len(self.exponents_EN12900):
+            msg = (
+                "The EN 12900 polynomial has "
+                f"{len(self.exponents_EN12900)} coefficients, "
+                f"{len(coefficients)} were provided."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
+        super().__init__(coefficients, self.exponents_EN12900)
+
+    def _serialize(self):
+        export = {
+            "type": type(self).__name__,
+            "coefficients": self.coefficients.tolist()
+        }
+        if self.value_unit is not None:
+            export["value_unit"] = self.value_unit
+        return export
+
+
+CHARACTERISTIC_TYPES = {
+    "CharLine": CharLine, "CharMap": CharMap, "Polynomial": Polynomial,
+    "EN12900Polynomial": EN12900Polynomial
+}
+
+
+def characteristic_from_dict(data):
+    """Reconstruct a characteristic from its serialized form. Files written
+    before the type was recorded are told apart by their keys."""
+    data = dict(data)
+    type_name = data.pop("type", None)
+    if type_name is None:
+        if "coefficients" in data:
+            type_name = "EN12900Polynomial"
+        elif "z" in data:
+            type_name = "CharMap"
+        else:
+            type_name = "CharLine"
+    return CHARACTERISTIC_TYPES[type_name](**data)
 
 
 def load_default_char(component, parameter, function_name, char_type):

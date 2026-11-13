@@ -12,6 +12,46 @@ SPDX-License-Identifier: MIT
 """
 
 
+class cache_generation:
+    """Counter of the solves, the property memo of the wrappers is
+    invalidated when it changes."""
+    value = 0
+
+
+def next_cache_generation():
+    cache_generation.value += 1
+
+
+# the memo of property states is a cache without influence on results: it
+# lives for one solve (up to 8000 states per solve for typical models, 40000
+# for a 100 section heat exchanger model), max_states bounds the memory at
+# about 600 bytes per state, the oldest states are evicted first
+property_memo = {"enabled": True, "max_states": 20000}
+
+
+def set_property_memo(enabled=None, max_states=None):
+    """Configure the memo of fluid property states.
+
+    Parameters
+    ----------
+    enabled : bool, optional
+        Switch the memo on or off, default :code:`True`.
+    max_states : int, optional
+        Number of states kept per fluid, default :code:`20000`.
+    """
+    if enabled is not None:
+        property_memo["enabled"] = bool(enabled)
+    if max_states is not None:
+        if int(max_states) < 10:
+            msg = "The property memo must keep at least 10 states."
+            raise ValueError(msg)
+        property_memo["max_states"] = int(max_states)
+
+
+def get_property_memo():
+    return dict(property_memo)
+
+
 def wrapper_registry(type):
     wrapper_registry.items[type.__name__] = type
     return type

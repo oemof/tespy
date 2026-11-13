@@ -1,0 +1,220 @@
+v0.12.0 - Carnot's Cleanup (November, 10, 2026)
++++++++++++++++++++++++++++++++++++++++++++++++
+
+API Changes
+###########
+- The data containers of components and connections have been restructured with
+  clearly separated responsibilities: every container stores one kind of value
+  and either carries an equation or not. The former names stay available with
+  a :code:`FutureWarning` until version 0.13
+  (`PR #1097 <https://github.com/oemof/tespy/pull/1097>`__).
+  :code:`FluidComposition`, :code:`ScalarVariable` and :code:`VectorVariable`
+  keep their names.
+
+  .. list-table::
+      :header-rows: 1
+      :widths: 30 30 40
+
+      * - Former container
+        - New container
+        - Role
+      * - :code:`FluidProperties`
+        - :py:class:`~tespy.tools.data_containers.ConnectionParameter`
+        - scalar connection parameter, may be a variable or carry an equation
+      * - :code:`ComponentProperties`
+        - :py:class:`~tespy.tools.data_containers.ComponentParameter`
+        - scalar component parameter, may be a variable or carry an equation
+      * - :code:`ComponentArrayProperties`
+        - :py:class:`~tespy.tools.data_containers.ArrayParameter`
+        - array valued component parameter, may carry an equation or be a
+          result
+      * - :code:`SimpleDataContainer`
+        - :py:class:`~tespy.tools.data_containers.ConfigParameter`
+        - typed configuration value without unit and equation
+      * - :code:`SimpleDataContainer` with equation,
+          :code:`GroupedComponentCharacteristics`
+        - :py:class:`~tespy.tools.data_containers.OptionalEquation`
+        - equation switched on by the user, e.g. :code:`cone`,
+          :code:`fluid_balance`, :code:`UA_char`
+      * - :code:`GroupedComponentProperties`
+        - :py:class:`~tespy.tools.data_containers.ParameterGroup`
+        - equation activated when all element parameters are specified
+      * - :code:`ComponentCharacteristics`,
+          :code:`ComponentCharacteristicMaps` without equation
+        - :py:class:`~tespy.tools.data_containers.CharacteristicData`
+        - characteristic read by another equation
+      * - :code:`ComponentCharacteristics`,
+          :code:`ComponentCharacteristicMaps` with equation
+        - :py:class:`~tespy.tools.data_containers.CharacteristicEquation`
+        - characteristic with its own equation
+      * - :code:`ComponentMandatoryConstraints`
+        - :py:class:`~tespy.tools.data_containers.MandatoryConstraint`
+        - always active equation of a component
+      * - :code:`ReferencedFluidProperties`
+        - :py:class:`~tespy.tools.data_containers.ReferenceEquation`
+        - reference of a connection parameter to another connection
+
+  Characteristic containers declare the accepted representation in
+  :code:`char_type`, :code:`CharLine` unless declared otherwise, e.g.
+  :code:`CharMap` for the maps and :code:`EN12900Polynomial` for the
+  compressor polynomials. Providing a characteristic to a data container marks
+  it as specified, e.g. for the activation of a parameter group, providing one
+  to an equation container does not activate the equation.
+
+- Characteristic functions carry a physical quantity per axis. Components
+  evaluate them through the container with SI inputs and receive SI outputs,
+  the conversion to the units of the data is handled by the container.
+  Dimensioned axes follow the default units of the network like any other
+  specification. Before, these data were SI data regardless of the network's
+  units. This changes the interpretation of user data for the pump's
+  :code:`flow_char` (volumetric flow, pressure difference),
+  :code:`eta_flow_map` and :code:`head_flow_map` (frequency, volumetric
+  flow, head) and the valve's :code:`dp_char` (mass flow, pressure
+  difference). Relative characteristics, e.g. :code:`eta_s_char`, are
+  dimensionless and unaffected. A warning is raised where the interpretation
+  changed, i.e. for dimensioned data without declared units in a network
+  whose defaults are not SI. Check your data or declare their units on the data,
+  :code:`CharLine(x, y, x_unit="m3/s", y_unit="Pa")`, or pass :code:`pint`
+  quantity arrays :code:`CharLine(x=Q_(x, "m3/s"), y=Q_(y, "Pa"))`. The
+  :code:`EN12900Polynomial` carries the °C of its axes :code:`T_evap` and
+  :code:`T_cond` and takes the unit of its value as :code:`value_unit`, the
+  default characteristics shipped with tespy are SI data.
+- Equations of custom components should call :code:`self.my_char.evaluate(x)`
+  instead of :code:`self.my_char.char_func.evaluate(x)`.
+- The new :py:class:`~tespy.tools.characteristics.Polynomial` and
+  :py:class:`~tespy.tools.characteristics.EN12900Polynomial` are characteristic
+  representations next to :code:`CharLine` and :code:`CharMap`. The
+  :py:class:`~tespy.components.displacementmachinery.polynomial_compressor.PolynomialCompressor`
+  takes its efficiency polynomials :code:`eta_s_poly` and :code:`eta_vol_poly`
+  as :code:`EN12900Polynomial` objects, which are evaluated in °C as defined by
+  the standard whatever the network's temperature unit is. Passing the
+  coefficients as list is deprecated.
+- The :code:`reference_state` dictionary of the :code:`PolynomialCompressor` is
+  deprecated. You only need to provide :code:`swept_volume`. The functions
+  generating the efficiency polynomials from manufacturer data take the
+  reference state as the keyword arguments :code:`T_sh`, :code:`T_sc`,
+  :code:`frequency` and :code:`swept_volume`. With the keyword :code:`units`
+  the functions read all plain numbers, the table and the reference state, in
+  the given unit system, e.g. the one of the network the polynomials are used
+  in.
+- A parameter accepts a specification when a declared consumer reads it: an
+  equation of its own, a parameter group, optional equation or mandatory
+  constraint listing it in its :code:`elements`, the variable role or the state
+  of a connection. A parameter without consumer is result-only and refuses user
+  values with a :code:`TypeError` instead of silently ignoring them.
+- References of connection parameters to the same parameter of another
+  connection are attached to the parameter: :code:`c.m.reference` holds the
+  :py:class:`~tespy.tools.data_containers.ReferenceEquation`. The former
+  sibling parameters :code:`m_ref`, :code:`p_ref`, :code:`h_ref`,
+  :code:`T_ref` and :code:`v_ref` are gone from the parameter tables, the
+  attributes stay available with a :code:`FutureWarning`.
+- The physical exergy of a connection is available in the result parameters
+  :code:`e_T`, :code:`e_M`, :code:`e_PH`, :code:`E_T`, :code:`E_M` and
+  :code:`E_PH` with units. They use the new container
+  :py:class:`~tespy.tools.data_containers.OptionalResult` for results that
+  are calculated on request only.
+- The format version of exported networks, saved states and specification
+  files is 2. Files of earlier versions hold parameter names that do not exist
+  anymore and are refused with a message. Load and save them again with tespy
+  0.11.4, which writes the current names, to migrate them.
+
+Deprecations
+############
+
+- The parameter :code:`as_dict` of :code:`Network.save` has no effect and will
+  be removed in version 0.13, the state is returned as dict when no file path
+  is given.
+- :code:`calc_sections` of the heat exchangers will be removed in version 0.13,
+  the section attributes are populated after every solve.
+- The former container class names, the :code:`_ref` attributes of connections,
+  the :code:`reference_state` dictionary and coefficient lists of the
+  :code:`PolynomialCompressor`, the alias :code:`UA_cecchinato_hc` and the
+  exergy attributes :code:`ex_therm`, :code:`ex_mech`, :code:`ex_physical`,
+  :code:`Ex_therm`, :code:`Ex_mech` and :code:`Ex_physical` of connections
+  are deprecated and will be removed in version 0.13.
+
+Removed Deprecations
+####################
+
+The behaviours announced for removal in version 0.12 are gone:
+
+- :code:`Network.set_attr` and :code:`Network.get_attr`. Set :code:`iterinfo`,
+  the value ranges and the units through the respective attributes.
+- :code:`Network.get_conn`, :code:`get_comp`, :code:`get_ude` and
+  :code:`get_subsystem` raise a :code:`KeyError` for an unknown label instead
+  of returning :code:`None`.
+- Solver state attributes on the network, e.g. :code:`Network.residual`, use
+  :code:`Network.problem.residual`.
+- The :code:`rpm` parameter of the :code:`PolynomialCompressor`, use
+  :code:`frequency` with the unit :code:`1/min` for rounds per minute.
+- The :code:`PowerConnection` ports of the :code:`SimpleHeatExchanger` and its
+  subclasses, use a :code:`HeatConnection`.
+- :code:`refrigerant_index`, :code:`re_exp_r` and :code:`re_exp_sf` of the
+  sectioned heat exchangers. :code:`UA_cecchinato` reads :code:`re_exp_hot`,
+  :code:`re_exp_cold`, :code:`alpha_ratio` and :code:`area_ratio` in the cold
+  to hot side convention, :code:`UA_cecchinato_hc` is a deprecated alias.
+- The :code:`td_log` parameter and :code:`calculate_td_log` method of the heat
+  exchangers, use :code:`lmtd` and :code:`calculate_lmtd`.
+- The renamed parameters :code:`zeta`, :code:`zeta1`, :code:`zeta2`,
+  :code:`kA`, :code:`kA_char`, :code:`kA_char1`, :code:`kA_char2`,
+  :code:`kA_group` and :code:`kA_char_group` and their aliases. Use the
+  :code:`_d4` and :code:`UA` names.
+- Setting the :code:`pressure` unit no longer sets the
+  :code:`pressure_difference` unit.
+- Nested dictionaries for :code:`OptimizationProblem`, use flat parameter
+  names.
+
+Other Changes
+#############
+
+- All characteristics in use are checked against the range of their data after
+  convergence. Outside the range the status of the calculation is 1, unless the
+  characteristic extrapolates
+  (`PR #1107 <https://github.com/oemof/tespy/pull/1107>`__).
+- Components can declare the role of their ports in
+  :py:meth:`~tespy.components.component.Component.port_descriptions`, e.g. the
+  hot and cold side of a heat exchanger or the fuel, air and cooling water
+  ports of the combustion engine.
+- The unit system knows the quantity :code:`volume` with default unit
+  :code:`m3`.
+- The energy flow :code:`E` of power and heat connections can be referenced
+  now, e.g. :code:`e2.set_attr(E=Ref(e1, 0.5, 0))`.
+- :code:`UA`, :code:`kA` and :code:`lmtd` of the
+  :py:class:`~tespy.components.heat_exchangers.simple.SimpleHeatExchanger`
+  and :code:`Q_loss` of the solar collectors are calculated in every case, the
+  value is :code:`nan` when the ambient temperature or the energy group is not
+  specified. :code:`lmtd` and :code:`Q_loss` are result-only.
+- :py:class:`~tespy.tools.data_containers.ConfigParameter` optionally takes
+  :code:`options`. A value outside the available options raises an error when
+  it is set, and the available options appear in the documentation and the
+  component schema.
+
+Bug Fixes
+#########
+- The dew and bubble temperature specifications :code:`T_dew` and
+  :code:`T_bubble` of connections were silently ignored where the pressure is
+  fixed otherwise, e.g. through the pressure equality of a component. This is
+  an overdetermination error now. With a variable fluid composition the
+  saturation properties are not available: specifying :code:`T_dew`,
+  :code:`T_bubble`, :code:`x`, :code:`td_dew` or :code:`td_bubble` there raises
+  an error instead ignoring the specification.
+- The vapour quality of pure fluids is 0 for liquid and 1 for vapour at
+  subcritical pressure, also above the critical temperature, and :code:`nan` at
+  supercritical pressure, consistently for all fluid property wrappers
+  (`PR #1102 <https://github.com/oemof/tespy/pull/1102>`__).
+
+Documentation
+#############
+- The :py:class:`~tespy.components.piping.pipe.Pipe` docs explain the two
+  options for the heat loss calculation from insulation and surroundings, a
+  pipe at the surface and a buried pipe, and which parameters each of them
+  needs. :code:`material` and :code:`environment_media` list their valid
+  values (`#797 <https://github.com/oemof/tespy/issues/797>`__).
+- Parameter groups take :code:`optional_elements`, parameters the equation
+  reads without requiring them for the activation.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- `@the8thbit <https://github.com/the8thbit>`__
+- `@lucas-santos-f <https://github.com/lucas-santos-f>`__

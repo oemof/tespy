@@ -14,8 +14,8 @@ import numpy as np
 
 from tespy.components.component import component_registry
 from tespy.components.nodes.base import NodeBase
-from tespy.tools.data_containers import ComponentMandatoryConstraints as dc_cmc
-from tespy.tools.data_containers import SimpleDataContainer as dc_simple
+from tespy.tools.data_containers import ConfigParameter
+from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties import s_mix_pT
 
 
@@ -167,7 +167,7 @@ class Merge(NodeBase):
 
     @staticmethod
     def get_parameters():
-        return {'num_in': dc_simple(dtype="int", description="number of inlets")}
+        return {'num_in': ConfigParameter(dtype="int", description="number of inlets")}
 
     @classmethod
     def port_schema(cls):
@@ -199,25 +199,25 @@ class Merge(NodeBase):
 
     def get_mandatory_constraints(self):
         return {
-            'mass_flow_constraints': dc_cmc(**{
+            'mass_flow_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.mass_flow_func,
                 'dependents': self.mass_flow_dependents,
                 'description': 'mass balance constraint'
             }),
-            'fluid_constraints': dc_cmc(**{
+            'fluid_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.fluid_func,
                 'dependents': self.fluid_dependents,
                 'description': 'fluid mass fraction balance constraints'
             }),
-            'energy_balance_constraints': dc_cmc(**{
+            'energy_balance_constraints': MandatoryConstraint(**{
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
                 'description': 'energy balance constraint'
             }),
-            'pressure_constraints': dc_cmc(**{
+            'pressure_constraints': MandatoryConstraint(**{
                 'structure_matrix': self.pressure_structure_matrix,
                 'num_eq_sets': self.num_i + self.num_o - 1,
                 'description': 'pressure equality constraints'

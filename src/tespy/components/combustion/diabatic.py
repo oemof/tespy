@@ -16,7 +16,7 @@ import numpy as np
 from tespy.components import CombustionChamber
 from tespy.components.component import component_registry
 from tespy.tools import logger
-from tespy.tools.data_containers import ComponentProperties as dc_cp
+from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.fluid_properties import h_mix_pT
 
 
@@ -39,7 +39,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     -----
 
     - Fluid inlets: in1, in2
-    - Fluid outlets: out1
+    - Fluid outlets: out1 (flue gas)
 
     Mandatory Equations
     -------------------
@@ -99,7 +99,8 @@ class DiabaticCombustionChamber(CombustionChamber):
         Include this component in the network's results printout.
 
     Qloss : float, dict
-        Heat dissipation. Quantity: :code:`heat`.
+        Heat dissipation. Quantity: :code:`heat`. Result only - calculated after
+        each solve.
 
     ti : float, dict
         Thermal input of fuel: lower heating value multiplied with mass flow.
@@ -214,7 +215,7 @@ class DiabaticCombustionChamber(CombustionChamber):
     def get_parameters(self):
         params = super().get_parameters()
         params.update({
-            'pr': dc_cp(
+            'pr': ComponentParameter(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.pr_structure_matrix,
@@ -223,7 +224,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 description="outlet 0 to inlet 0 pressure ratio",
                 calc=self._calc_pr
             ),
-            'dp': dc_cp(
+            'dp': ComponentParameter(
                 min_val=0,
                 num_eq_sets=1,
                 structure_matrix=self.dp_structure_matrix,
@@ -232,7 +233,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 description="inlet 0 to outlet 0 absolute pressure change",
                 calc=self._calc_dp
             ),
-            'eta': dc_cp(
+            'eta': ComponentParameter(
                 max_val=1, min_val=0,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
@@ -241,8 +242,8 @@ class DiabaticCombustionChamber(CombustionChamber):
                 description="heat dissipation ratio relative to thermal input",
                 calc=self._calc_eta, calc_deps=['ti']
             ),
-            'Qloss': dc_cp(
-                max_val=0, is_result=True, quantity="heat",
+            'Qloss': ComponentParameter(
+                max_val=0, quantity="heat",
                 limit_scale="ti",
                 description="heat dissipation",
                 calc=self._calc_Qloss, calc_deps=['ti', 'eta']

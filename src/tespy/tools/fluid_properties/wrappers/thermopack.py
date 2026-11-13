@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
 """
 from math import isfinite
 
+import numpy as np
+
 from .base import FluidPropertyWrapper
 from .base import wrapper_registry
 
@@ -386,6 +388,8 @@ class ThermopackWrapper(FluidPropertyWrapper):
         return (1 - Q) * self.p_bubble(T) + Q * self.p_dew(T)
 
     def Q_ph(self, p, h):
+        if p >= self._p_crit:
+            return np.nan
         flash = self._update_ph(p, h)
         if flash.phase == self.AS.TWOPH:
             # betaV is the molar vapor fraction
@@ -404,7 +408,7 @@ class ThermopackWrapper(FluidPropertyWrapper):
         elif flash.phase == self.AS.VAPPH:
             return 1
         else:
-            return -1
+            return np.nan
 
     def phase_ph(self, p, h):
         flash = self._update_ph(p, h)

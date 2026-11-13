@@ -189,7 +189,7 @@ generated from the following sources:
 
 To initialise a calculation from a saved state, provide it via the
 :code:`init_path` argument with either a file path to a json file or a
-:code:`dict` returned by :code:`nw.save(as_dict=True)`. TESPy searches
+:code:`dict` returned by :code:`nw.save()`. TESPy searches
 through the connection entries by label and takes over the starting values
 for the system variables where a label matches.
 

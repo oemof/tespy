@@ -40,6 +40,7 @@ class _SorptionBase(NodeBase):
                 func=self.heat_func,
                 deriv=self.heat_deriv,
                 num_eq=1,
+                quantity="heat",
                 description="heat transferred into the component",
             )
         }

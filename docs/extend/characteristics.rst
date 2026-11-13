@@ -63,6 +63,15 @@ calculated, again using linear interpolation.
     :py:class:`tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func`
     in the API documentation.
 
+Range of the characteristic data
+--------------------------------
+
+After a calculation converged, every characteristic in use is checked if the
+inputs are within the original limits of the data. An operating point outside
+the range of the data lads to the status of the simulation being set to 1, if
+:code:`extrapolate` was set to :code:`False`. If it was set to :code:`True` the
+warning is logged, but the status of the simulation will be 0.
+
 .. _import_custom_characteristics_label:
 
 Import your own characteristics

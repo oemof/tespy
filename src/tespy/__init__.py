@@ -3,7 +3,7 @@ import importlib.resources
 import os
 
 __datapath__ = os.path.join(importlib.resources.files("tespy"), "data")
-__version__ = "0.11.3 - Rankine's Renaissance"
+__version__ = "0.12.0.post1 - Carnot's Cleanup"
 
 # tespy data and connections import
 from . import connections  # noqa: F401
@@ -27,4 +27,6 @@ from .tools import fluid_properties  # noqa: F401
 from .tools import global_vars  # noqa: F401
 from .tools import helpers  # noqa: F401
 from .tools import logger  # noqa: F401
+from .tools.fluid_properties.wrappers.base import get_property_memo  # noqa: F401
+from .tools.fluid_properties.wrappers.base import set_property_memo  # noqa: F401
 from .tools.global_vars import set_display_mode  # noqa: F401

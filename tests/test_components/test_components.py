@@ -53,10 +53,18 @@ def properties_of(instance):
     ]
 
 
+DEPRECATED_PARAMETERS = {
+    "PolynomialCompressor": {"reference_state"},
+    "PolynomialCompressorWithCooling": {"reference_state"},
+}
+
+
 def all_properties_of(instance):
+    deprecated = DEPRECATED_PARAMETERS.get(type(instance).__name__, set())
     return [
         prop
-        for prop, container in instance.get_parameters().items()
+        for prop in instance.get_parameters()
+        if prop not in deprecated
     ]
 
 

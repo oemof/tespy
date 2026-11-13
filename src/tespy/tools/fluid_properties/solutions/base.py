@@ -94,6 +94,11 @@ class SolutionPair:
         liquid of composition *w* at its bubble point."""
         raise NotImplementedError
 
+    def w_eq(self, p, y):
+        """Key component mass fraction of the liquid in equilibrium with a
+        vapor of composition *y* at its dew point."""
+        raise NotImplementedError
+
     def h_pT(self, p, T, w):
         raise NotImplementedError
 

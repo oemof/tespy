@@ -257,24 +257,37 @@ class SolutionConnection(Connection):
                     h_sources.append(reference)
         return h_sources
 
-    def _guess_equilibrium_composition(self):
-        """Start the variable composition of a solution leaving a sorption
-        component at its bubble point at the guessed state."""
-        solution_outlet = getattr(self.source, "_solution_outlet", None)
-        if (
-                not self.fluid.is_var or solution_outlet is None
-                or solution_outlet() is not self
-            ):
-            return
+    def _equilibrium_composition_guess(self):
+        """Key component mass fraction of a solution leaving a sorption
+        component at its bubble point at the guessed state, also through a
+        cycle closer, or None."""
+        source = self.source
+        if source.__class__.__name__ == "CycleCloser":
+            inlet = source.inl[0]
+            if isinstance(inlet, SolutionConnection):
+                return inlet._equilibrium_composition_guess()
+            return None
+        solution_outlet = getattr(source, "_solution_outlet", None)
+        if solution_outlet is None or solution_outlet() is not self:
+            return None
         T = self._temperature_hint()
         if T is None:
-            return
+            return None
         pair = self.pair
         try:
-            w = pair.w_bubble(self.p.val_SI, T)
+            return pair.w_bubble(self.p.val_SI, T)
         except ValueError:
-            w = pair.w_max
-        composition = self._composition(pair, w)
+            return None
+
+    def _guess_equilibrium_composition(self):
+        """Start the variable composition at the equilibrium composition of
+        the sorption component the solution leaves."""
+        if not self.fluid.is_var:
+            return
+        w = self._equilibrium_composition_guess()
+        if w is None:
+            return
+        composition = self._composition(self.pair, w)
         for fluid in self.fluid.is_var:
             for component, value in composition.items():
                 if fluid in FLUID_ALIASES.get_fluid(component):

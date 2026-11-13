@@ -9,6 +9,8 @@ tests/test_components/test_sorption.py
 
 SPDX-License-Identifier: MIT
 """
+import importlib.util
+
 from CoolProp.CoolProp import PropsSI
 from pytest import approx
 from pytest import mark
@@ -17,6 +19,7 @@ from tespy.components import Absorber
 from tespy.components import CooledAbsorber
 from tespy.components import Desorber
 from tespy.components import HeatedDesorber
+from tespy.components import Rectifier
 from tespy.components import Sink
 from tespy.components import Source
 from tespy.connections import Connection
@@ -366,3 +369,42 @@ def test_solution_outlet_at_bubble_point(solve):
     outlet = component.outl[0]
     assert outlet.td_bubble.val_SI == approx(0, abs=1e-6)
     assert outlet.T_bubble.val_SI == approx(outlet.T.val_SI, abs=1e-6)
+
+
+@mark.skipif(
+    importlib.util.find_spec("teqp") is None, reason="teqp is not installed"
+)
+def test_rectifier_reflux_in_equilibrium_with_vapor():
+    from tespy.tools.fluid_properties.solutions import get_solution_pair
+
+    pair = get_solution_pair("nh3-water")
+    p = 1.554537370181e6
+    nw = _network()
+    rectifier = Rectifier("rectifier")
+    vapor = SolutionConnection(
+        Source("generator vapor"), "out1", rectifier, "in1", label="vapor",
+        mixing_rule="nh3-water"
+    )
+    refrigerant = SolutionConnection(
+        rectifier, "out1", Sink("refrigerant"), "in1", label="refrigerant"
+    )
+    reflux = SolutionConnection(
+        rectifier, "out2", Sink("reflux"), "in1", label="reflux"
+    )
+    nw.add_conns(vapor, refrigerant, reflux)
+    # saturated vapor of CSL-0249, state 7
+    vapor.set_attr(xi=0.9034029548463, p=p, m=9.570939525832e-03, x=1)
+    refrigerant.set_attr(xi=0.9995)
+    reflux.set_attr(p=p)
+    nw.solve("design")
+    nw.assert_convergence()
+
+    assert refrigerant.m.val_SI == approx(8.243292228944e-03, rel=1e-6)
+    assert reflux.m.val_SI == approx(1.327647296888e-03, rel=1e-6)
+    assert reflux.xi.val_SI == approx(3.067414564222e-01, abs=1e-7)
+    assert reflux.T.val_SI == approx(393.15, abs=1e-5)
+    assert refrigerant.T.val_SI == approx(4.612317847674e+01 + 273.15, abs=1e-5)
+    assert rectifier.Q.val_SI == approx(-4.258665747408e+03, rel=1e-6)
+    assert reflux.xi.val_SI == approx(
+        pair.w_eq(p, vapor.xi.val_SI), abs=1e-10
+    )

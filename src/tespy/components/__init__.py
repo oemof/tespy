@@ -42,6 +42,7 @@ from .sorption.absorber import Absorber  # noqa: F401
 from .sorption.absorber import CooledAbsorber  # noqa: F401
 from .sorption.desorber import Desorber  # noqa: F401
 from .sorption.desorber import HeatedDesorber  # noqa: F401
+from .sorption.rectifier import Rectifier  # noqa: F401
 from .subsystem import Subsystem  # noqa: F401
 from .turbomachinery.compressor import Compressor  # noqa: F401
 from .turbomachinery.pump import Pump  # noqa: F401

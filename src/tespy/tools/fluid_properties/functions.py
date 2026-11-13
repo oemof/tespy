@@ -680,7 +680,8 @@ def p_sat_TQ(T, Q, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; for mixtures the bubble (:code:`Q=0`) and
+        dew point (:code:`Q=1`) pressures of the mixing rule are used.
 
     Returns
     -------
@@ -692,6 +693,11 @@ def p_sat_TQ(T, Q, fluid_data, mixing_rule=None):
     ValueError
         If :code:`fluid_data` contains more than one fluid.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        if Q == 0 and MIXING_RULES.p_bubble_T(mixing_rule) is not None:
+            return MIXING_RULES.p_bubble_T(mixing_rule)(T, fluid_data)
+        if Q == 1 and MIXING_RULES.p_dew_T(mixing_rule) is not None:
+            return MIXING_RULES.p_dew_T(mixing_rule)(T, fluid_data)
     return _single_fluid_wrapper(fluid_data).p_sat_TQ(T, Q)
 
 

@@ -13,7 +13,6 @@ import importlib.util
 
 from CoolProp.CoolProp import PropsSI
 from pytest import approx
-from pytest import fixture
 from pytest import mark
 
 from tespy.components import Absorber
@@ -125,7 +124,7 @@ def libr_water_chiller():
     r1.set_attr(fluid={"H2O": 1})
     r2.set_attr(x=0, T=T_CD)
     r4.set_attr(x=1, T=T_EV, m=1)
-    s0.set_attr(T=T_ABS, xi0=0.58)
+    s0.set_attr(T=T_ABS)
     # the cycle closer does not close the variable composition
     s1.set_attr(fluid_balance=True)
     s4.set_attr(T=T_GEN)
@@ -191,7 +190,6 @@ CSL_0249 = {
 }
 
 
-@fixture
 def nh3_water_chiller():
     from tespy.components import Merge
     from tespy.components import Rectifier
@@ -250,7 +248,7 @@ def nh3_water_chiller():
     pump.set_attr(eta_s=0.6)
     evaporator.set_attr(Q=1e4)
 
-    c0.set_attr(T=308.15, p=p_low, xi0=0.42)
+    c0.set_attr(T=308.15, p=p_low)
     c1.set_attr(fluid_balance=True)
     c4.set_attr(T=393.15)
     c8.set_attr(xi=x_ref)
@@ -280,21 +278,17 @@ def nh3_water_chiller():
     return nw, {
         "absorber": absorber, "pump": pump, "shx": shx,
         "generator": generator, "rectifier": rectifier,
-        "condenser": condenser, "evaporator": evaporator,
+        "condenser": condenser, "evaporator": evaporator, "rhx": rhx,
         "c1": c1, "c3": c3, "c4": c4, "c6": c6, "c7": c7, "c8": c8,
-        "c9": c9, "c14": c14,
+        "c9": c9, "c10": c10, "c14": c14,
     }
 
 
 @mark.skipif(
     importlib.util.find_spec("teqp") is None, reason="teqp is not installed"
 )
-@mark.xfail(
-    reason="closed NH3-water cycle with rectifier, added in phase 5",
-    strict=True,
-)
-def test_nh3_water_chiller_against_coolsolve(nh3_water_chiller):
-    nw, parts = nh3_water_chiller
+def test_nh3_water_chiller_against_coolsolve():
+    nw, parts = nh3_water_chiller()
     nw.assert_convergence()
     ref = CSL_0249
 
@@ -328,3 +322,11 @@ def test_nh3_water_chiller_against_coolsolve(nh3_water_chiller):
     assert COP == approx(ref["COP"], rel=1e-3)
     f_circ = parts["c1"].m.val_SI / parts["c8"].m.val_SI
     assert f_circ == approx(ref["f_circ"], rel=1e-3)
+
+    # the refrigerant heat exchanger of the reference is infeasible: the
+    # effectiveness of 0.7 refers to the liquid side with the larger heat
+    # capacity rate, the cold vapor leaves at 54.8 degC above the 40 degC of
+    # the entering liquid; TESPy reproduces the state and flags it
+    assert parts["c14"].T.val_SI > parts["c10"].T.val_SI
+    assert parts["rhx"].eff_cold.val_SI > 1
+    assert nw.status == 1

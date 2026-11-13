@@ -441,6 +441,9 @@ class AmmoniaWater(SolutionPair):
     def y_eq(self, p, w):
         return _mass_fraction(self._bubble_point(p, _clip(_mole_fraction(w)))[1])
 
+    def w_eq(self, p, y):
+        return _mass_fraction(self._dew_point(p, _clip(_mole_fraction(y)))[1])
+
     @lru_cache(maxsize=1024)
     def w_bubble(self, p, T):
         def residual(x):

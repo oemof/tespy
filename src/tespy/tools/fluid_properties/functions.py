@@ -19,8 +19,6 @@ from .helpers import get_number_of_fluids
 from .helpers import get_pure_fluid
 from .helpers import inverse_temperature_mixture
 from .mixtures import MIXING_RULES
-from .mixtures import T_mix_ph_libr_water
-from .mixtures import phase_mix_ph_libr_water
 from .mixtures import w_mix_ph_humidair
 from .mixtures import w_mix_ps_humidair
 
@@ -263,8 +261,8 @@ def T_mix_ph(p, h, fluid_data, mixing_rule=None, T0=None):
         if mixing_rule == "humidair":
             w = w_mix_ph_humidair(p, h, fluid_data)
             return HAPropsSI("T", "P", p, "H", h, "W", w)
-        elif mixing_rule == "libr_water":
-            return T_mix_ph_libr_water(p, h, fluid_data, T0)
+        elif MIXING_RULES.T_ph_direct(mixing_rule) is not None:
+            return MIXING_RULES.T_ph_direct(mixing_rule)(p, h, fluid_data, T0=T0)
         else:
             kwargs = {
                 "p": p, "target_value": h, "fluid_data": fluid_data, "T0": T0,
@@ -431,8 +429,9 @@ def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
     Calculate specific enthalpy from pressure and vapour quality.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -444,7 +443,7 @@ def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -454,8 +453,13 @@ def h_mix_pQ(p, Q, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.h_pQ(mixing_rule)
+        if hook is not None:
+            return hook(p, Q, fluid_data)
     return _single_fluid_wrapper(fluid_data).h_pQ(p, Q)
 
 
@@ -475,7 +479,7 @@ def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -490,8 +494,8 @@ def dh_mix_dpQ(p, Q, fluid_data, mixing_rule=None):
         \approx \frac{h(p+d,\,Q) - h(p-d,\,Q)}{2\,d}, \quad d = 0.1 \text{ Pa}
     """
     d = 0.1
-    upper = h_mix_pQ(p + d, Q, fluid_data)
-    lower = h_mix_pQ(p - d, Q, fluid_data)
+    upper = h_mix_pQ(p + d, Q, fluid_data, mixing_rule)
+    lower = h_mix_pQ(p - d, Q, fluid_data, mixing_rule)
     return (upper - lower) / (2 * d)
 
 
@@ -533,8 +537,9 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
     Calculate vapour quality from pressure and specific enthalpy.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -546,7 +551,7 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -558,8 +563,13 @@ def Q_mix_ph(p, h, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.Q_ph(mixing_rule)
+        if hook is not None:
+            return hook(p, h, fluid_data)
     return _single_fluid_wrapper(fluid_data).Q_ph(p, h)
 
 
@@ -608,8 +618,8 @@ def phase_mix_ph(p, h, fluid_data, mixing_rule=None):
         :code:`mixing_rule` is not recognised.
     """
     if get_number_of_fluids(fluid_data) != 1:
-        if mixing_rule == "libr_water":
-            return phase_mix_ph_libr_water(p, h, fluid_data)
+        if MIXING_RULES.phase_ph(mixing_rule) is not None:
+            return MIXING_RULES.phase_ph(mixing_rule)(p, h, fluid_data)
         if mixing_rule not in _MIXING_RULE_PHASE:
             known_rules = ", ".join(_MIXING_RULE_PHASE)
             raise ValueError(
@@ -721,8 +731,9 @@ def T_dew_p(p, fluid_data, mixing_rule=None):
     Calculate dew point temperature from pressure.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -732,7 +743,7 @@ def T_dew_p(p, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -742,8 +753,13 @@ def T_dew_p(p, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.T_dew_p(mixing_rule)
+        if hook is not None:
+            return hook(p, fluid_data)
     return _single_fluid_wrapper(fluid_data).T_dew(p)
 
 
@@ -752,8 +768,9 @@ def p_dew_T(T, fluid_data, mixing_rule=None):
     Calculate dew point pressure from temperature.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -763,7 +780,7 @@ def p_dew_T(T, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -773,8 +790,13 @@ def p_dew_T(T, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.p_dew_T(mixing_rule)
+        if hook is not None:
+            return hook(T, fluid_data)
     return _single_fluid_wrapper(fluid_data).p_dew(T)
 
 
@@ -783,8 +805,9 @@ def T_bubble_p(p, fluid_data, mixing_rule=None):
     Calculate bubble point temperature from pressure.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -794,7 +817,7 @@ def T_bubble_p(p, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -804,8 +827,13 @@ def T_bubble_p(p, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.T_bubble_p(mixing_rule)
+        if hook is not None:
+            return hook(p, fluid_data)
     return _single_fluid_wrapper(fluid_data).T_bubble(p)
 
 
@@ -814,8 +842,9 @@ def p_bubble_T(T, fluid_data, mixing_rule=None):
     Calculate bubble point pressure from temperature.
 
     Valid for single-component :code:`fluid_data`, including mixture-backend
-    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`.
-    Raises :code:`ValueError` for multi-component :code:`fluid_data`.
+    wrappers handled entirely inside the :class:`.FluidPropertyWrapper`, and
+    for mixtures whose mixing rule provides the function, e.g. the working
+    pairs of :mod:`.solutions`.
 
     Parameters
     ----------
@@ -825,7 +854,7 @@ def p_bubble_T(T, fluid_data, mixing_rule=None):
         Fluid property data:
         :code:`{fluid: {"mass_fraction": float, "wrapper": FluidPropertyWrapper}}`.
     mixing_rule : str, optional
-        Ignored.
+        Mixing rule identifier; ignored for single-component fluid data.
 
     Returns
     -------
@@ -835,8 +864,13 @@ def p_bubble_T(T, fluid_data, mixing_rule=None):
     Raises
     ------
     ValueError
-        If :code:`fluid_data` contains more than one fluid.
+        If :code:`fluid_data` contains more than one fluid and the mixing
+        rule does not provide the function.
     """
+    if get_number_of_fluids(fluid_data) != 1:
+        hook = MIXING_RULES.p_bubble_T(mixing_rule)
+        if hook is not None:
+            return hook(T, fluid_data)
     return _single_fluid_wrapper(fluid_data).p_bubble(T)
 
 
@@ -975,6 +1009,8 @@ def T_mix_ps(p, s, fluid_data, mixing_rule=None, T0=None):
         if mixing_rule == "humidair":
             w = w_mix_ps_humidair(p, s, fluid_data)
             return HAPropsSI("T", "P", p, "S", s, "W", w)
+        elif MIXING_RULES.T_ps_direct(mixing_rule) is not None:
+            return MIXING_RULES.T_ps_direct(mixing_rule)(p, s, fluid_data, T0=T0)
         else:
             kwargs = {
                 "p": p, "target_value": s, "fluid_data": fluid_data, "T0": T0,

@@ -19,7 +19,7 @@ importorskip("teqp")
 
 pytestmark = mark.xfail(
     reason="NH3-water working pair, added in phase 4",
-    raises=ImportError,
+    raises=(ImportError, KeyError),
     strict=True,
 )
 

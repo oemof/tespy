@@ -1,6 +1,20 @@
 v0.12.1 - Under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- Absorption cycles: the :code:`SolutionConnection` carries the streams of a
+  working pair, the components :code:`Absorber`, :code:`CooledAbsorber`,
+  :code:`Desorber`, :code:`HeatedDesorber` and :code:`Rectifier` model the
+  sorption processes. The working pairs LiBr-water (Pátek and Klomfar 2006)
+  and NH3-water (IAPWS G4-01 on the kernel of the optional dependency teqp)
+  are available, users can register their own pairs. See
+  :ref:`tutorial_absorption_cycles_label` (:issue:`1016`).
+- Mixing rules can provide functions for the temperature from enthalpy and
+  entropy, the phase, the vapor mass fraction and the bubble and dew points
+  of a mixture. The specifications :code:`x`, :code:`td_bubble` and
+  :code:`td_dew` then work on mixtures as well.
+
 Bug Fixes
 #########
 - :code:`Network.solve` could hang forever without any output in the flow

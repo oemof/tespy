@@ -16,8 +16,10 @@ from pytest import raises
 
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
+from tespy.components import HeatExchanger
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
+from tespy.components import Pump
 from tespy.components import SimpleHeatExchanger
 from tespy.components import Sink
 from tespy.components import Source
@@ -69,6 +71,51 @@ def gas_turbine():
     c3.set_attr(T=1200)
     c5.set_attr(p=1, T=150)
     c6.set_attr(m=1, p=16, T=20, fluid=FUEL)
+    return nw
+
+
+def gas_turbine_hrsg():
+    """Gas turbine with a heat recovery steam generator: the flue gas side
+    has a variable composition, the water steam side a fixed one."""
+    nw = _network()
+    air = Source("air source")
+    fuel = Source("fuel source")
+    cp = Compressor("compressor")
+    cc = DiabaticCombustionChamber("combustion chamber")
+    tu = Turbine("turbine")
+    hrsg = HeatExchanger("hrsg")
+    stack = Sink("stack")
+    feed = Source("feed water")
+    pump = Pump("feed pump")
+    st = Turbine("steam turbine")
+    exhaust = Sink("steam exhaust")
+
+    c1 = Connection(air, "out1", cp, "in1", label="1")
+    c2 = Connection(cp, "out1", cc, "in1", label="2")
+    c3 = Connection(cc, "out1", tu, "in1", label="3")
+    c4 = Connection(tu, "out1", hrsg, "in1", label="4")
+    c5 = Connection(hrsg, "out1", stack, "in1", label="5")
+    c6 = Connection(fuel, "out1", cc, "in2", label="6")
+    w1 = Connection(feed, "out1", pump, "in1", label="w1")
+    w2 = Connection(pump, "out1", hrsg, "in2", label="w2")
+    w3 = Connection(hrsg, "out2", st, "in1", label="w3")
+    w4 = Connection(st, "out1", exhaust, "in1", label="w4")
+    nw.add_conns(c1, c2, c3, c4, c5, c6, w1, w2, w3, w4)
+
+    cp.set_attr(eta_s=0.85, pr=15)
+    cc.set_attr(pr=0.97, eta=0.98)
+    tu.set_attr(eta_s=0.9)
+    hrsg.set_attr(pr1=0.98, pr2=0.95)
+    pump.set_attr(eta_s=0.75)
+    st.set_attr(eta_s=0.85)
+    c1.set_attr(p=1, T=20, fluid=AIR)
+    c3.set_attr(T=1200)
+    c5.set_attr(p=1, T=150)
+    c6.set_attr(m=1, p=16, T=20, fluid=FUEL)
+    w1.set_attr(p=0.1, x=0, fluid={"water": 1})
+    w2.set_attr(p=40)
+    w3.set_attr(T=450)
+    w4.set_attr(p=0.1)
     return nw
 
 
@@ -232,6 +279,7 @@ class LegacyCooler(SimpleHeatExchanger):
 
 MODELS = {
     "gas_turbine": gas_turbine,
+    "gas_turbine_hrsg": gas_turbine_hrsg,
     "gas_turbine_oxygen": gas_turbine_oxygen,
     "merge_chain": merge_chain,
     "humid_air_condensing": humid_air_condensing,

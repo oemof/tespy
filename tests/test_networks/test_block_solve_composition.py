@@ -16,6 +16,7 @@ from pytest import raises
 
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
+from tespy.components import Drum
 from tespy.components import HeatExchanger
 from tespy.components import Merge
 from tespy.components import MovingBoundaryHeatExchanger
@@ -75,47 +76,63 @@ def gas_turbine():
 
 
 def gas_turbine_hrsg():
-    """Gas turbine with a heat recovery steam generator: the flue gas side
-    has a variable composition, the water steam side a fixed one."""
+    """Gas turbine with a heat recovery steam generator of economizer, drum
+    with evaporator circulation and superheater: the flue gas side has a
+    variable composition, the water steam side a fixed one."""
     nw = _network()
     air = Source("air source")
     fuel = Source("fuel source")
     cp = Compressor("compressor")
     cc = DiabaticCombustionChamber("combustion chamber")
     tu = Turbine("turbine")
-    hrsg = HeatExchanger("hrsg")
+    sh = HeatExchanger("superheater")
+    ev = HeatExchanger("evaporator")
+    eco = HeatExchanger("economizer")
     stack = Sink("stack")
     feed = Source("feed water")
     pump = Pump("feed pump")
+    drum = Drum("drum")
     st = Turbine("steam turbine")
     exhaust = Sink("steam exhaust")
 
     c1 = Connection(air, "out1", cp, "in1", label="1")
     c2 = Connection(cp, "out1", cc, "in1", label="2")
     c3 = Connection(cc, "out1", tu, "in1", label="3")
-    c4 = Connection(tu, "out1", hrsg, "in1", label="4")
-    c5 = Connection(hrsg, "out1", stack, "in1", label="5")
-    c6 = Connection(fuel, "out1", cc, "in2", label="6")
+    c4 = Connection(tu, "out1", sh, "in1", label="4")
+    c5 = Connection(sh, "out1", ev, "in1", label="5")
+    c6 = Connection(ev, "out1", eco, "in1", label="6")
+    c7 = Connection(eco, "out1", stack, "in1", label="7")
+    c8 = Connection(fuel, "out1", cc, "in2", label="8")
+    nw.add_conns(c1, c2, c3, c4, c5, c6, c7, c8)
+
     w1 = Connection(feed, "out1", pump, "in1", label="w1")
-    w2 = Connection(pump, "out1", hrsg, "in2", label="w2")
-    w3 = Connection(hrsg, "out2", st, "in1", label="w3")
-    w4 = Connection(st, "out1", exhaust, "in1", label="w4")
-    nw.add_conns(c1, c2, c3, c4, c5, c6, w1, w2, w3, w4)
+    w2 = Connection(pump, "out1", eco, "in2", label="w2")
+    w3 = Connection(eco, "out2", drum, "in1", label="w3")
+    w4 = Connection(drum, "out1", ev, "in2", label="w4")
+    w5 = Connection(ev, "out2", drum, "in2", label="w5")
+    w6 = Connection(drum, "out2", sh, "in2", label="w6")
+    w7 = Connection(sh, "out2", st, "in1", label="w7")
+    w8 = Connection(st, "out1", exhaust, "in1", label="w8")
+    nw.add_conns(w1, w2, w3, w4, w5, w6, w7, w8)
 
     cp.set_attr(eta_s=0.85, pr=15)
     cc.set_attr(pr=0.97, eta=0.98)
     tu.set_attr(eta_s=0.9)
-    hrsg.set_attr(pr1=0.98, pr2=0.95)
+    sh.set_attr(pr1=0.99, pr2=0.97)
+    ev.set_attr(pr1=0.99, ttd_l=10)
+    eco.set_attr(pr1=0.99, pr2=0.98)
     pump.set_attr(eta_s=0.75)
     st.set_attr(eta_s=0.85)
     c1.set_attr(p=1, T=20, fluid=AIR)
     c3.set_attr(T=1200)
-    c5.set_attr(p=1, T=150)
-    c6.set_attr(m=1, p=16, T=20, fluid=FUEL)
+    c7.set_attr(p=1)
+    c8.set_attr(m=1, p=16, T=20, fluid=FUEL)
     w1.set_attr(p=0.1, x=0, fluid={"water": 1})
-    w2.set_attr(p=40)
-    w3.set_attr(T=450)
-    w4.set_attr(p=0.1)
+    w2.set_attr(p=45)
+    w3.set_attr(td_bubble=5)
+    w5.set_attr(x=0.5)
+    w7.set_attr(T=450)
+    w8.set_attr(p=0.1)
     return nw
 
 
@@ -410,8 +427,8 @@ def test_inferred_composition_dependence():
     }
     # the property equations of the flue gas side read the composition,
     # the water steam side and the pure mass and fluid balances do not
-    assert {"turbine", "hrsg"} <= inferred
-    assert {"feed pump", "steam turbine"}.isdisjoint(inferred)
+    assert {"turbine", "superheater", "evaporator", "economizer"} <= inferred
+    assert {"feed pump", "steam turbine", "drum"}.isdisjoint(inferred)
     for eq_num, columns in problem._inferred_incidence.items():
         assert set(columns) <= composition_columns
         assert set(columns).isdisjoint(problem._declared_incidence[eq_num])
@@ -424,7 +441,7 @@ def test_inferred_composition_dependence():
         ) or problem._equation_lookup[eq_num][0] == "combustion chamber"
 
     # the water steam side does not depend on the composition, only the
-    # water mass flow from the energy balance of the hrsg follows it
+    # flows determined by the energy balances of the hrsg follow it
     blocks = problem.decompose().blocks
     composition_blocks = [
         block for block in blocks
@@ -433,10 +450,10 @@ def test_inferred_composition_dependence():
     assert len(composition_blocks) == 1
     for block in blocks:
         labels = {label for label, _ in block.equation_labels}
-        if labels & {"feed pump", "steam turbine", "hrsg"}:
+        if labels & {"feed pump", "steam turbine", "drum"}:
             assert composition_columns.isdisjoint(block.variables)
-        if "hrsg" in labels:
-            assert block.id > composition_blocks[0].id
+        if labels & {"superheater", "evaporator", "economizer"}:
+            assert block.id >= composition_blocks[0].id
 
 
 def test_no_inference_without_variable_composition():

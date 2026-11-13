@@ -1765,7 +1765,7 @@ class Problem:
 
         variable_composition = self._variable_composition()
         self._composition_derivatives = (
-            variable_composition and block_solve_composition
+            variable_composition and block_solve and block_solve_composition
         )
         self._frozen_columns = set()
         if block_solve and variable_composition and not block_solve_composition:

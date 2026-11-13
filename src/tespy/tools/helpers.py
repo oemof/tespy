@@ -494,7 +494,7 @@ def _topological_sort(calc_items):
 
 
 
-def solve(obj, increment_filter):
+def solve(obj, increment_filter, composition_derivatives=False):
     """
     Solve equations and calculate partial derivatives of a component.
 
@@ -502,11 +502,17 @@ def solve(obj, increment_filter):
     ----------
     increment_filter : ndarray
         Matrix for filtering non-changing variables.
+
+    composition_derivatives : bool
+        Calculate the derivatives to the mass fractions the dependence was
+        inferred for in addition to the declared ones.
     """
     for label, data in obj.equations.items():
         eq_num = data._first_eq_index
         _solve_residual(obj, data, eq_num)
         _solve_jacobian(obj, data, increment_filter, eq_num)
+        if composition_derivatives:
+            _solve_inferred_jacobian(obj, data, increment_filter, eq_num)
 
 
 def get_variable_value(data):
@@ -587,6 +593,30 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
                         obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
                             result[eq_idx] if isinstance(result, np.ndarray) else result
                         )
+
+
+def _solve_inferred_jacobian(obj, data, increment_filter, eq_num):
+    inferred = data._inferred_vector_dependents
+    if inferred is None:
+        return
+
+    all_entries = {}
+    for entries in inferred:
+        for var, dxs in entries.items():
+            all_entries.setdefault(var, set()).update(dxs)
+    for var, dxs in all_entries.items():
+        for dx in sorted(dxs):
+            result = _partial_derivative_vecvar(
+                var, data.func, dx, increment_filter, **data.func_params
+            )
+            if result is None:
+                continue
+            for eq_idx, entries in enumerate(inferred):
+                if dx in entries.get(var, ()):
+                    obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
+                        result[eq_idx] if isinstance(result, np.ndarray)
+                        else result
+                    )
 
 
 def _is_variable(var, increment_filter=None):

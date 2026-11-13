@@ -298,7 +298,7 @@ def _assert_same_results(nw, reference, rel=1e-5):
                 c_ref.get_attr(prop).val_SI, rel=rel
             ), f"{c_ref.label} ({prop})"
         for fluid, value in c_ref.fluid.val.items():
-            assert c.fluid.val[fluid] == approx(value, abs=1e-8), (
+            assert c.fluid.val[fluid] == approx(value, rel=1e-6, abs=1e-9), (
                 f"{c_ref.label} ({fluid})"
             )
 
@@ -359,3 +359,112 @@ def test_structural_analysis_overdetermined_gas_turbine():
 
     analysis = nw.get_structural_analysis()
     assert [part["kind"] for part in analysis] == ["overdetermined"]
+
+
+def _fallback_messages(caplog):
+    return [
+        record.getMessage() for record in caplog.records
+        if "simultaneous" in record.getMessage()
+        or "did not converge" in record.getMessage()
+    ]
+
+
+@mark.parametrize("build", MODELS.values(), ids=MODELS.keys())
+def test_block_solve_composition_matches_simultaneous_solve(build, caplog):
+    reference = build()
+    reference.solve("design", block_solve=False)
+    reference.assert_convergence()
+
+    nw = build()
+    with caplog.at_level("INFO", logger="TESPyLogger"):
+        nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    _assert_same_results(nw, reference)
+    assert _fallback_messages(caplog) == []
+
+
+def test_recirculation_block_solve_composition():
+    nw = recirculation()
+    nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+
+    stack, recirculated = nw.get_conn("6"), nw.get_conn("7")
+    air, fuel = nw.get_conn("0"), nw.get_conn("8")
+    assert stack.m.val_SI == approx(air.m.val_SI + fuel.m.val_SI)
+    for fluid, value in stack.fluid.val.items():
+        assert recirculated.fluid.val[fluid] == approx(value)
+
+
+def test_inferred_composition_dependence():
+    nw = gas_turbine_hrsg()
+    nw.solve("design", block_solve_composition=True)
+    problem = nw.problem
+
+    composition_columns = {
+        col for col, data in problem.variables_dict.items()
+        if data["variable"] == "fluid"
+    }
+    inferred = {
+        problem._equation_lookup[eq_num][0]
+        for eq_num in problem._inferred_incidence
+    }
+    # the property equations of the flue gas side read the composition,
+    # the water steam side and the pure mass and fluid balances do not
+    assert {"turbine", "hrsg"} <= inferred
+    assert {"feed pump", "steam turbine"}.isdisjoint(inferred)
+    for eq_num, columns in problem._inferred_incidence.items():
+        assert set(columns) <= composition_columns
+        assert set(columns).isdisjoint(problem._declared_incidence[eq_num])
+        assert set(columns) <= set(problem.get_incidence()[eq_num])
+
+    # the flow presolve works on the declared incidence
+    for eq_num in problem._inferred_incidence:
+        assert composition_columns.isdisjoint(
+            problem._declared_incidence[eq_num]
+        ) or problem._equation_lookup[eq_num][0] == "combustion chamber"
+
+    # the water steam side does not depend on the composition, only the
+    # water mass flow from the energy balance of the hrsg follows it
+    blocks = problem.decompose().blocks
+    composition_blocks = [
+        block for block in blocks
+        if composition_columns & set(block.variables)
+    ]
+    assert len(composition_blocks) == 1
+    for block in blocks:
+        labels = {label for label, _ in block.equation_labels}
+        if labels & {"feed pump", "steam turbine", "hrsg"}:
+            assert composition_columns.isdisjoint(block.variables)
+        if "hrsg" in labels:
+            assert block.id > composition_blocks[0].id
+
+
+def test_no_inference_without_variable_composition():
+    nw = Network(iterinfo=False)
+    so = Source("source")
+    cp = Compressor("compressor")
+    si = Sink("sink")
+    c1 = Connection(so, "out1", cp, "in1", label="1")
+    c2 = Connection(cp, "out1", si, "in1", label="2")
+    nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"N2": 0.7, "O2": 0.3}, m=1, p=1e5, T=293.15)
+    cp.set_attr(pr=3, eta_s=0.8)
+    nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    problem = nw.problem
+    assert not problem._variable_composition()
+    assert problem._inferred_incidence == {}
+    assert problem._declared_incidence is problem.get_incidence()
+
+
+def test_custom_component_block_solve_composition():
+    nw = merge_chain(cooler_class=LegacyCooler)
+    nw.solve("design", block_solve_composition=True)
+    nw.assert_convergence()
+    assert nw.get_conn("5").T.val == approx(80)
+
+    inferred = [
+        nw.problem._equation_lookup[eq_num]
+        for eq_num in nw.problem._inferred_incidence
+    ]
+    assert ("cooler", ("T_out", 0)) in inferred

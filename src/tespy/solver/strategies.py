@@ -739,7 +739,13 @@ class BlockDriver:
         # derivative computation skip frozen variables automatically in all
         # subsequent blocks
         for col in block.variables:
-            container = self.problem.variables_dict[col]["obj"]
+            data = self.problem.variables_dict[col]
+            if data["variable"] == "fluid":
+                # the mass fractions keep their variable status, the fluid
+                # balance and the normalization of the vector read it
+                self.problem._frozen_columns.add(col)
+                continue
+            container = data["obj"]
             container.is_var = False
             self._frozen.append(container)
 
@@ -747,6 +753,7 @@ class BlockDriver:
         for container in self._frozen:
             container.is_var = True
         self._frozen = []
+        self.problem._frozen_columns = set()
 
     def _restart(self, snapshot, iterinfo, print_results):
         problem = self.problem

@@ -115,6 +115,7 @@ def _equation_attrs():
         "_first_eq_index": None,
         "_scalar_dependents": None,
         "_vector_dependents": None,
+        "_inferred_vector_dependents": None,
     }
 
 

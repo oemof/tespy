@@ -169,7 +169,12 @@ class SorptionBase(NodeBase):
         )
 
     def key_balance_dependents(self):
-        conns = self._sorption_inlets() + self._sorption_outlets()
+        # a stream without the key component, e.g. water vapor of a
+        # non-volatile absorbent, does not enter the balance
+        conns = [
+            c for c in self._sorption_inlets() + self._sorption_outlets()
+            if self._key_alias(c) is not None
+        ]
         vectors = {}
         for c in conns:
             vectors.update(self._key_dependents(c))

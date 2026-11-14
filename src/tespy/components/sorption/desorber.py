@@ -91,17 +91,6 @@ class _DesorberMixin:
             return self._solution_outlet()
         return self._solution_inlet()
 
-    def _equilibrium_dependents(self):
-        solution = self._equilibrium_solution()
-        vapor = self._vapor_outlet()
-        vectors = {}
-        vectors.update(self._key_dependents(solution))
-        vectors.update(self._key_dependents(vapor))
-        return {
-            "scalars": [[vapor.p, vapor.h, solution.p]],
-            "vectors": [vectors],
-        }
-
     def vapor_state_func(self):
         r"""
         Equation for the vapor outlet in equilibrium with the solution.
@@ -123,7 +112,12 @@ class _DesorberMixin:
         )
 
     def vapor_state_dependents(self):
-        return self._equilibrium_dependents()
+        vapor = self._vapor_outlet()
+        if self.pair.volatile_absorbent:
+            vectors = self._key_dependents(vapor)
+        else:
+            vectors = self._key_dependents(self._equilibrium_solution())
+        return {"scalars": [[vapor.p, vapor.h]], "vectors": [vectors]}
 
     def vapor_composition_func(self):
         r"""
@@ -141,7 +135,11 @@ class _DesorberMixin:
         )
 
     def vapor_composition_dependents(self):
-        return self._equilibrium_dependents()
+        vapor = self._vapor_outlet()
+        vectors = {}
+        vectors.update(self._key_dependents(self._equilibrium_solution()))
+        vectors.update(self._key_dependents(vapor))
+        return {"scalars": [[vapor.p]], "vectors": [vectors]}
 
     def vapor_fluid_balance_func(self):
         r"""

@@ -101,6 +101,19 @@ def test_absorber_temperature_specification():
     assert absorber.Q.val_SI < 0
 
 
+def test_absorber_block_solve_with_fluid_composition():
+    # the solution outlet converges onto the bubble line up to round-off
+    nw, absorber, poor, vapor, rich = absorber_network()
+    poor.set_attr(xi=0.62, T=320)
+    vapor.set_attr(fluid={"H2O": 1}, p=P_EV, m=1, x=1)
+    rich.set_attr(T=306.15)
+    nw.solve("design", block_solve_fluid_composition=True)
+    nw.assert_convergence()
+    reference = solve_absorber_temperature_specification()[4]
+    assert _xi(rich) == approx(_xi(reference), rel=1e-8)
+    assert rich.m.val_SI == approx(reference.m.val_SI, rel=1e-8)
+
+
 def test_absorber_enthalpy_specification():
     _, _, _, _, reference = solve_absorber_temperature_specification()
 

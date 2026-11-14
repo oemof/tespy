@@ -129,6 +129,28 @@ def test_enthalpy_continuous_at_bubble_point(pair, T, w):
 
 
 @mark.parametrize("T, w", STATES)
+@mark.parametrize("ulps", [0, 1, 2, 4])
+def test_temperature_inversion_on_the_bubble_line(pair, T, w, ulps):
+    # a converged bubble point state lies on the bubble line up to round-off,
+    # the inversion must not reject the bracket of the two-phase branch
+    # because of the sign of that round-off
+    p = pair.p_bubble(T, w)
+    w = np.float64(w)
+    T_bubble = pair.T_bubble(p, w)
+    h = pair.h_pT(p, T_bubble, w)
+    for _ in range(ulps):
+        h = np.nextafter(h, np.inf)
+    assert pair.T_ph(p, float(h), w) == approx(T_bubble, abs=1e-6)
+
+
+def test_temperature_inversion_on_the_bubble_line_regression(pair):
+    # state of an absorber outlet from the block-wise solution that failed
+    p, h = 872.575113905957, 77637.90171047612
+    w = np.float64(0.5422440779230688)
+    assert pair.T_ph(p, h, w) == approx(306.15, abs=1e-6)
+
+
+@mark.parametrize("T, w", STATES)
 def test_compressed_liquid_pump_work(pair, T, w):
     # incompressible liquid: isentropic compression changes h by v dp
     p = pair.p_bubble(T, w)

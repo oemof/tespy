@@ -341,6 +341,11 @@ class LiBrWater(SolutionPair):
                 T = self.T_bubble(p, w_liquid)
                 return self._two_phase(p, T, w, w_liquid)[index] - value
 
+            # on the bubble line the residual at w is round-off with either
+            # sign, brentq evaluates it as python float
+            w = float(w)
+            if residual(w) >= 0:
+                return T_bubble
             w_liquid = brentq(residual, w, self.w_max, xtol=1e-14)
             return self.T_bubble(p, w_liquid)
 

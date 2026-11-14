@@ -14,6 +14,7 @@ import importlib.util
 from CoolProp.CoolProp import PropsSI
 from pytest import approx
 from pytest import mark
+from pytest import param
 
 from tespy.components import Absorber
 from tespy.components import CycleCloser
@@ -87,7 +88,7 @@ def libr_water_reference():
     }
 
 
-def libr_water_chiller():
+def libr_water_chiller(**solve_kwargs):
     nw = Network()
     nw.iterinfo = False
 
@@ -129,7 +130,7 @@ def libr_water_chiller():
     s1.set_attr(fluid_balance=True)
     s4.set_attr(T=T_GEN)
 
-    nw.solve("design")
+    nw.solve("design", **solve_kwargs)
     return nw, {
         "generator": generator, "condenser": condenser,
         "evaporator": evaporator, "absorber": absorber, "pump": pump,
@@ -190,7 +191,7 @@ CSL_0249 = {
 }
 
 
-def nh3_water_chiller():
+def nh3_water_chiller(**solve_kwargs):
     from tespy.components import Merge
     from tespy.components import Rectifier
     from tespy.tools import UserDefinedEquation
@@ -277,7 +278,7 @@ def nh3_water_chiller():
             dependents=shx_dependents, conns=[c10, c13, c11]
         ),
     )
-    nw.solve("design")
+    nw.solve("design", **solve_kwargs)
     return nw, {
         "absorber": absorber, "pump": pump, "shx": shx,
         "generator": generator, "rectifier": rectifier,
@@ -333,3 +334,33 @@ def test_nh3_water_chiller_against_coolsolve():
     assert parts["c14"].T.val_SI > parts["c10"].T.val_SI
     assert parts["rhx"].eff_cold.val_SI > 1
     assert nw.status == 1
+
+
+@mark.parametrize("builder", [
+    libr_water_chiller,
+    param(nh3_water_chiller, marks=mark.skipif(
+        importlib.util.find_spec("teqp") is None,
+        reason="teqp is not installed"
+    )),
+])
+def test_chiller_block_decomposition(builder):
+    nw, _ = builder(block_solve=False)
+    reference = {
+        c.label: (c.m.val_SI, c.p.val_SI, c.h.val_SI)
+        for c in nw.conns["object"]
+    }
+    assert nw.get_structural_analysis() == []
+
+    # the declared dependents of the sorption equations are exact
+    nw.presolve("design")
+    check = nw.get_dependents_check()
+    assert check["missing"] == {}
+    assert check["unused_declared"] == {}
+    assert check["not_probed"] == []
+
+    nw, _ = builder(block_solve_fluid_composition=True)
+    assert nw.status in (0, 1)
+    for c in nw.conns["object"]:
+        assert (c.m.val_SI, c.p.val_SI, c.h.val_SI) == approx(
+            reference[c.label], rel=1e-6
+        )

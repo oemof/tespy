@@ -125,13 +125,13 @@ class Rectifier(SorptionBase):
             "reflux_composition_constraints": MandatoryConstraint(
                 num_eq_sets=1,
                 func=self.reflux_composition_func,
-                dependents=self.reflux_dependents,
+                dependents=self.reflux_composition_dependents,
                 description="reflux in equilibrium with the entering vapor",
             ),
             "reflux_state_constraints": MandatoryConstraint(
                 num_eq_sets=1,
                 func=self.reflux_state_func,
-                dependents=self.reflux_dependents,
+                dependents=self.reflux_state_dependents,
                 description="reflux at its bubble point",
             ),
             "fluid_balance_constraints": MandatoryConstraint(
@@ -196,15 +196,18 @@ class Rectifier(SorptionBase):
         c = self._reflux()
         return c.h.val_SI - self.pair.h_pQ(c.p.val_SI, 0, self._key_fraction(c))
 
-    def reflux_dependents(self):
+    def reflux_composition_dependents(self):
         vapor = self.inl[0]
-        reflux = self._reflux()
         vectors = {}
         vectors.update(self._key_dependents(vapor))
-        vectors.update(self._key_dependents(reflux))
+        vectors.update(self._key_dependents(self._reflux()))
+        return {"scalars": [[vapor.p]], "vectors": [vectors]}
+
+    def reflux_state_dependents(self):
+        reflux = self._reflux()
         return {
-            "scalars": [[vapor.p, reflux.p, reflux.h]],
-            "vectors": [vectors],
+            "scalars": [[reflux.p, reflux.h]],
+            "vectors": [self._key_dependents(reflux)],
         }
 
     def reflux_fluid_balance_func(self):

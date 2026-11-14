@@ -1,10 +1,10 @@
 # -*- coding: utf-8
 
-"""Module for the verification of the dependents declarations.
+"""Module for checking the incidence against the observed dependence.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
-available from its original location tespy/solver/verification.py
+available from its original location tespy/solver/incidence_check.py
 
 SPDX-License-Identifier: MIT
 """

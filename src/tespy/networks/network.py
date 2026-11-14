@@ -30,7 +30,7 @@ from tespy.components.component import component_registry
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
-from tespy.solver.verification import check_dependents
+from tespy.solver.incidence_check import check_dependents
 from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.characteristics import characteristic_from_dict

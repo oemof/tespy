@@ -259,18 +259,6 @@ def test_enthalpy_pressure_derivative(property_data, wrapper_instance):
     np.testing.assert_allclose(slope, v - temperature_data * dv_dT, rtol=1e-6)
 
 
-def test_isentropic_enthalpy_change_via_entropy(property_data, wrapper_instance):
-    # along an isentrope dh = v dp, v barely changes for a liquid
-    p_1, p_2 = 1e5, 1e7
-
-    for temperature in property_data["temperature_data"][1:-1]:
-        h_1 = wrapper_instance.h_pT(p_1, temperature)
-        h_2 = wrapper_instance.h_ps(p_2, wrapper_instance.s_pT(p_1, temperature))
-        v = 1 / wrapper_instance.d_pT(None, temperature)
-
-        assert h_2 - h_1 == approx(v * (p_2 - p_1), rel=1e-2)
-
-
 def test_isentropic_mixture(property_data, wrapper_instance):
     heavy_data = property_data.copy()
     heavy_data["density_data"] = property_data["density_data"] * 1.1

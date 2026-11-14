@@ -31,9 +31,20 @@ Bug Fixes
   least squares of :code:`scipy.optimize.lsq_linear` with its default TRF
   method never returned, because its backtracking line search shrank the step
   length to zero without accepting a step. The flow presolve now uses the BVLS
-  method, which has a bounded number of iterations.
+  method, which has a bounded number of iterations
+  (`PR #1126 <https://github.com/oemof/tespy/pull/1126>`__).
+- Enthalpy and entropy of the :code:`IncompressibleFluidWrapper` are now
+  thermodynamically consistent: the entropy had a wrong pressure term and the
+  enthalpy none. Results change at pressures other than the reference
+  pressure (default 1 bar), e.g. entropy, exergy and isentropic states
+  (`PR #1129 <https://github.com/oemof/tespy/pull/1129>`__).
+- A :code:`Pump` with the :code:`IncompressibleFluidWrapper` failed with a
+  :code:`NotImplementedError`, because it requested saturation states of a
+  fluid without saturation
+  (`PR #1129 <https://github.com/oemof/tespy/pull/1129>`__).
 
 Contributors
 ############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Jonas Freißmann (`@jfreissmann <https://github.com/jfreissmann>`__)
 - Francesco Witte

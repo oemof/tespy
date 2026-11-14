@@ -422,6 +422,7 @@ class PolynomialCompressorWithCooling(PolynomialCompressor):
         constraints["cooling_energy_balance_constraints"] = MandatoryConstraint(
             func=self.cooling_energy_balance_func,
             dependents=self.cooling_energy_balance_dependents,
+            infer_composition=False,
             num_eq_sets=1,
             elements=["eta_recovery"],
             description="energy balance for the cooling ports"

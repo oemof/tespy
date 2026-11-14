@@ -14,6 +14,30 @@ New Features
   entropy, the phase, the vapor mass fraction and the bubble and dew points
   of a mixture. The specifications :code:`x`, :code:`td_bubble` and
   :code:`td_dew` then work on mixtures as well.
+- The block decomposition and the structural analysis cover networks with
+  variable fluid composition. Every equation listing the pressure or the
+  enthalpy of a connection is assumed to depend on the variable mass fractions
+  of that connection as well, so the dependence of fluid property equations on
+  the composition no longer has to be declared. Block-wise solving of such
+  networks is available with
+  :code:`nw.solve(mode, block_solve_fluid_composition=True)`, the default
+  remains the simultaneous solution for now (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- Equations that list pressure or enthalpy without evaluating a fluid property
+  can switch the inference off with :code:`infer_composition=False`, both in
+  the parameter and constraint definitions of components and in the
+  :code:`UserDefinedEquation`. The energy balances and heat and power
+  equations of the core components written in mass flow and enthalpy do so
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- :py:meth:`~tespy.networks.network.Network.get_dependents_check` and
+  :py:meth:`~tespy.networks.network.Network.print_dependents_check` compare
+  the dependents of the equations with their observed dependence by
+  perturbing every variable once. Use it to check the dependents of custom
+  components and user defined equations
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- :code:`nw.solve(mode, skip_fallbacks=True)` ends the block-wise solution
+  process without convergence instead of escalating to the simultaneous
+  solution, for calculations where a failure is acceptable and the runtime
+  matters (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
 
 Bug Fixes
 #########
@@ -22,8 +46,19 @@ Bug Fixes
   least squares of :code:`scipy.optimize.lsq_linear` with its default TRF
   method never returned, because its backtracking line search shrank the step
   length to zero without accepting a step. The flow presolve now uses the BVLS
-  method, which has a bounded number of iterations.
+  method, which has a bounded number of iterations
+  (`PR #1126 <https://github.com/oemof/tespy/pull/1126>`__).
+- Enthalpy and entropy of the :code:`IncompressibleFluidWrapper` are now
+  thermodynamically consistent: the entropy had a wrong pressure term and the
+  enthalpy none. Results change at pressures other than the reference
+  pressure (default 1 bar), e.g. entropy, exergy and isentropic states
+  (`PR #1129 <https://github.com/oemof/tespy/pull/1129>`__).
+- A :code:`Pump` with the :code:`IncompressibleFluidWrapper` failed with a
+  :code:`NotImplementedError`, because it requested saturation states of a
+  fluid without saturation
+  (`PR #1129 <https://github.com/oemof/tespy/pull/1129>`__).
 
 Contributors
 ############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Jonas Freißmann (`@jfreissmann <https://github.com/jfreissmann>`__)

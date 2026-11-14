@@ -103,6 +103,7 @@ class Turbomachine(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                infer_composition=False,
                 quantity="power",
                 description="power input/output of the component",
                 calc=self._calc_P

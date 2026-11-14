@@ -408,6 +408,7 @@ class Pump(Turbomachine):
             constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "infer_composition": False,
                 "num_eq_sets": 1
             })
 
@@ -828,12 +829,16 @@ class Pump(Turbomachine):
         if o.h.is_var:
             fluid = single_fluid(i.fluid_data)
             if fluid is not None:
-                if i.p.val_SI < i.fluid_data[fluid]["wrapper"]._p_crit:
-                    if i.fluid_data[fluid]["wrapper"].back_end != "INCOMP":
-                        h_max = h_mix_pQ(i.p.val_SI, 0, i.fluid_data)
+                wrapper = i.fluid_data[fluid]["wrapper"]
+                # fluids without critical point have no saturation states
+                if (
+                        wrapper._T_crit is not None
+                        and i.p.val_SI < wrapper._p_crit
+                ):
+                    h_max = h_mix_pQ(i.p.val_SI, 0, i.fluid_data)
 
-                        if o.h.val_SI > h_max:
-                            o.h.set_reference_val_SI(h_max - 20e3)
+                    if o.h.val_SI > h_max:
+                        o.h.set_reference_val_SI(h_max - 20e3)
 
         if i.h.is_var and o.h.val_SI < i.h.val_SI:
             i.h.set_reference_val_SI(o.h.val_SI - 10e3)
@@ -881,7 +886,7 @@ class Pump(Turbomachine):
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 10e5
@@ -913,7 +918,7 @@ class Pump(Turbomachine):
         fluid = single_fluid(c.fluid_data)
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5

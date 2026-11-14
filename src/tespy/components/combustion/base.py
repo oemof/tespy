@@ -240,6 +240,7 @@ class CombustionChamber(Component):
                 "func": self.energy_balance_func,
                 "dependents": self.energy_balance_dependents,
                 "num_eq_sets": 1,
+                "infer_composition": False,
                 "description": "constraint for energy balance"
             })
         }
@@ -686,9 +687,9 @@ class CombustionChamber(Component):
         inl, outl = self._get_combustion_connections()
         return {
             "scalars": [var for c in inl + outl for var in [c.m, c.h]],
-            "vectors": [{
-                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
-            }]
+            # the reference enthalpies depend on all mass fractions, not
+            # only on the fuel through the heat input
+            "vectors": [{c.fluid: c.fluid.is_var for c in inl + outl}]
         }
 
     def lambda_func(self):

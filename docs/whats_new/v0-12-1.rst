@@ -14,6 +14,9 @@ Bug Fixes
   enthalpy none. Results change at pressures other than the reference
   pressure (default 1 bar), e.g. entropy, exergy and isentropic states
   (`Issue #1127 <https://github.com/oemof/tespy/issues/1127>`__).
+- A :code:`Pump` with the :code:`IncompressibleFluidWrapper` failed with a
+  :code:`NotImplementedError`, because it requested saturation states of a
+  fluid without saturation.
 
 Contributors
 ############

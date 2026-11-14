@@ -881,8 +881,8 @@ class HeatExchanger(Component):
             if fluid is None:
                 raise
             p = c.p.val_SI
-            p_crit = c.fluid.wrapper[fluid]._p_crit
-            if p_crit is None or p >= p_crit:
+            wrapper = c.fluid.wrapper[fluid]
+            if wrapper._T_crit is None or p >= wrapper._p_crit:
                 raise
             if abs(T - T_sat_p(p, c.fluid_data)) > 1e-2:
                 raise
@@ -1135,7 +1135,7 @@ class HeatExchanger(Component):
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5
@@ -1166,7 +1166,7 @@ class HeatExchanger(Component):
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5

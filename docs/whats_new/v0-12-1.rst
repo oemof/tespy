@@ -9,8 +9,8 @@ New Features
   of that connection as well, so the dependence of fluid property equations on
   the composition no longer has to be declared. Block-wise solving of such
   networks is available with
-  :code:`nw.solve(mode, block_solve_composition=True)`, the default remains the
-  simultaneous solution for now (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+  :code:`nw.solve(mode, block_solve_fluid_composition=True)`, the default
+  remains the simultaneous solution for now (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
 - Equations that list pressure or enthalpy without evaluating a fluid property
   can switch the inference off with :code:`infer_composition=False`, both in
   the parameter and constraint definitions of components and in the

@@ -2429,7 +2429,7 @@ class Network:
               oscillation_damping=False, block_solve=True,
               pause_on_block_failure=False, line_search="stagnation",
               increment_filter=INCREMENT_FILTER_RTOL,
-              block_solve_composition=False):
+              block_solve_fluid_composition=False):
         r"""
         Solve the network.
 
@@ -2532,7 +2532,7 @@ class Network:
             1e-3), default :code:`1e-6`. :code:`None` recomputes all
             derivatives in every iteration.
 
-        block_solve_composition : boolean
+        block_solve_fluid_composition : boolean
             Apply the block-wise solution also in case the fluid composition
             is part of the variable space, default: :code:`False`. The
             dependence of the fluid property equations on the composition is
@@ -2561,7 +2561,7 @@ class Network:
             oscillation_damping=oscillation_damping, block_solve=block_solve,
             pause_on_block_failure=pause_on_block_failure,
             line_search=line_search, increment_filter=increment_filter,
-            block_solve_composition=block_solve_composition
+            block_solve_fluid_composition=block_solve_fluid_composition
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2659,7 +2659,7 @@ class Network:
                        block_solve=True, pause_on_block_failure=None,
                        line_search="stagnation",
                        increment_filter=INCREMENT_FILTER_RTOL,
-                       block_solve_composition=False):
+                       block_solve_fluid_composition=False):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2713,7 +2713,7 @@ class Network:
                 block_solve=block_solve,
                 pause_on_block_failure=pause_on_block_failure,
                 line_search=line_search, increment_filter=increment_filter,
-                block_solve_composition=block_solve_composition
+                block_solve_fluid_composition=block_solve_fluid_composition
             )
         except ValueError as e:
             self.status = 99

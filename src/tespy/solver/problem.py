@@ -1732,7 +1732,7 @@ class Problem:
                    block_solve=False, pause_on_block_failure=None,
                    line_search="stagnation",
                    increment_filter=INCREMENT_FILTER_RTOL,
-                   block_solve_composition=False):
+                   block_solve_fluid_composition=False):
         r"""Loop of the newton algorithm."""
         if line_search not in ("off", "stagnation", "always"):
             msg = (
@@ -1767,15 +1767,19 @@ class Problem:
 
         variable_composition = self._variable_composition()
         self._composition_derivatives = (
-            variable_composition and block_solve and block_solve_composition
+            variable_composition and block_solve
+            and block_solve_fluid_composition
         )
         self._frozen_columns = set()
-        if block_solve and variable_composition and not block_solve_composition:
+        if (
+                block_solve and variable_composition
+                and not block_solve_fluid_composition
+            ):
             msg = (
                 "The fluid composition is part of the variable space, "
                 "solving the full system simultaneously. Block-wise solving "
                 "with variable composition is available with "
-                "block_solve_composition=True."
+                "block_solve_fluid_composition=True."
             )
             logger.info(msg)
             block_solve = False

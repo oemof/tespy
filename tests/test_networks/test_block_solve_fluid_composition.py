@@ -6,7 +6,7 @@ networks with variable fluid composition.
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
 available from its original location
-tests/test_networks/test_block_solve_composition.py
+tests/test_networks/test_block_solve_fluid_composition.py
 
 SPDX-License-Identifier: MIT
 """
@@ -402,22 +402,22 @@ def _assert_solved_block_wise(nw, fallbacks):
 
 
 @mark.parametrize("build", MODELS.values(), ids=MODELS.keys())
-def test_block_solve_composition_matches_simultaneous_solve(build, fallbacks):
+def test_block_solve_fluid_composition_matches_simultaneous_solve(build, fallbacks):
     reference = build()
     reference.solve("design", block_solve=False)
     reference.assert_convergence()
     fallbacks.clear()
 
     nw = build()
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     _assert_same_results(nw, reference)
     _assert_solved_block_wise(nw, fallbacks)
 
 
-def test_recirculation_block_solve_composition(fallbacks):
+def test_recirculation_block_solve_fluid_composition(fallbacks):
     nw = recirculation()
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     _assert_solved_block_wise(nw, fallbacks)
 
@@ -437,9 +437,9 @@ def test_recirculation_block_solve_composition(fallbacks):
         )
 
 
-def test_offdesign_block_solve_composition(tmp_path, fallbacks):
+def test_offdesign_block_solve_fluid_composition(tmp_path, fallbacks):
     results = []
-    for kwargs in ({"block_solve_composition": True}, {"block_solve": False}):
+    for kwargs in ({"block_solve_fluid_composition": True}, {"block_solve": False}):
         nw = gas_turbine_hrsg()
         nw.solve("design", **kwargs)
         nw.assert_convergence()
@@ -465,14 +465,14 @@ def test_offdesign_block_solve_composition(tmp_path, fallbacks):
     assert nw.get_conn("w7").T.val != approx(450)
 
 
-def test_pause_and_continue_block_solve_composition():
+def test_pause_and_continue_block_solve_fluid_composition():
     reference = gas_turbine()
     reference.solve("design", block_solve=False)
 
     nw = gas_turbine()
     nw.solve(
         "design", max_iter=2, pause_on_block_failure=True,
-        block_solve_composition=True
+        block_solve_fluid_composition=True
     )
     assert nw.status == 20
     nw.solve_continue(max_iter=50)
@@ -483,7 +483,7 @@ def test_pause_and_continue_block_solve_composition():
 
 def test_inferred_composition_dependence():
     nw = gas_turbine_hrsg()
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     problem = nw.problem
 
     composition_columns = {
@@ -538,7 +538,7 @@ def test_no_inference_without_variable_composition():
     nw.add_conns(c1, c2)
     c1.set_attr(fluid={"N2": 0.7, "O2": 0.3}, m=1, p=1e5, T=293.15)
     cp.set_attr(pr=3, eta_s=0.8)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     problem = nw.problem
     assert not problem._variable_composition()
@@ -546,9 +546,9 @@ def test_no_inference_without_variable_composition():
     assert problem._declared_incidence is problem.get_incidence()
 
 
-def test_custom_component_block_solve_composition():
+def test_custom_component_block_solve_fluid_composition():
     nw = merge_chain(cooler_class=LegacyCooler)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
 
@@ -574,7 +574,7 @@ class InletDeclaredCooler(LegacyCooler):
 )
 def test_dependents_check_models(build):
     nw = build()
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.presolve("design")
     check = nw.get_dependents_check()
     assert check["missing"] == {}
@@ -584,7 +584,7 @@ def test_dependents_check_models(build):
 
 def test_dependents_check_detects_missing_dependents():
     nw = merge_chain(cooler_class=LegacyCooler)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     reference = nw.get_conn("5").h.val_SI
 
     nw = merge_chain(cooler_class=InletDeclaredCooler)
@@ -643,7 +643,7 @@ def _inferred_labels(nw):
 
 def test_core_energy_balances_not_inferred():
     nw = merge_chain()
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     inferred = _inferred_labels(nw)
     assert ("merge 1", ("energy_balance_constraints", 0)) not in inferred
     assert ("merge 2", ("energy_balance_constraints", 0)) not in inferred
@@ -652,7 +652,7 @@ def test_core_energy_balances_not_inferred():
 
 def test_custom_component_explicit_composition_dependents(fallbacks):
     nw = merge_chain(cooler_class=ExplicitCooler)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
     assert ("cooler", ("T_out", 0)) not in _inferred_labels(nw)
@@ -664,7 +664,7 @@ def test_custom_component_explicit_composition_dependents(fallbacks):
 
 def test_custom_component_wrongly_flagged(fallbacks):
     nw = merge_chain(cooler_class=WronglyFlaggedCooler)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
 
@@ -720,7 +720,7 @@ def _outlet_temperature_ude(infer_composition, deriv=None):
 @mark.parametrize("infer_composition", [True, False])
 def test_user_defined_equation_composition(infer_composition, fallbacks):
     nw = _outlet_temperature_ude(infer_composition)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     assert nw.get_conn("5").T.val == approx(80)
     _assert_solved_block_wise(nw, fallbacks)
@@ -742,7 +742,7 @@ def test_user_defined_equation_derivatives_with_inference(fallbacks):
         ude.partial_derivative(c.h)
 
     nw = _outlet_temperature_ude(True, deriv=deriv)
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.assert_convergence()
     assert calls
     assert nw.get_conn("5").T.val == approx(80)

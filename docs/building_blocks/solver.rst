@@ -299,7 +299,7 @@ simultaneously. The block-wise solution is available as an option:
 
 .. code-block:: python
 
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
 
 With this option the derivatives to the inferred mass fractions enter the
 jacobian and the composition is solved in the blocks it belongs to. Every
@@ -322,7 +322,7 @@ prepare the problem and compare:
 
 .. code-block:: python
 
-    nw.solve("design", block_solve_composition=True)
+    nw.solve("design", block_solve_fluid_composition=True)
     nw.presolve("design")
     nw.print_dependents_check()
 

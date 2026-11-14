@@ -14,6 +14,7 @@ from tespy.components.nodes.base import NodeBase
 from tespy.tools.data_containers import ComponentParameter
 from tespy.tools.data_containers import MandatoryConstraint
 from tespy.tools.fluid_properties.solutions import get_solution_pair
+from tespy.tools.fluid_properties.solutions import warn_sorption_experimental
 from tespy.tools.global_vars import FLUID_ALIASES
 
 
@@ -46,6 +47,10 @@ class SorptionBase(NodeBase):
     :code:`_sorption_outlets`, :code:`_solution_inlet` and
     :code:`_solution_outlet`.
     """
+
+    def __init__(self, label, **kwargs):
+        warn_sorption_experimental()
+        super().__init__(label, **kwargs)
 
     def get_parameters(self):
         return {

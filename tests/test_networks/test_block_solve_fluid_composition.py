@@ -10,10 +10,13 @@ tests/test_networks/test_block_solve_fluid_composition.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
+
 from pytest import approx
 from pytest import fixture
 from pytest import mark
 from pytest import raises
+from pytest import warns
 
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
@@ -513,6 +516,42 @@ def test_inferred_composition_dependence():
             assert composition_columns.isdisjoint(block.variables)
         if labels & {"superheater", "evaporator", "economizer"}:
             assert block.id >= composition_blocks[0].id
+
+
+def test_default_announces_block_solve_fluid_composition():
+    nw = gas_turbine()
+    with warns(FutureWarning, match="block_solve_fluid_composition"):
+        nw.solve("design")
+    nw.assert_convergence()
+
+
+@mark.parametrize("kwargs", [
+    {"block_solve_fluid_composition": False},
+    {"block_solve_fluid_composition": True},
+    {"block_solve": False},
+])
+def test_no_future_warning_with_explicit_choice(kwargs):
+    nw = gas_turbine()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        nw.solve("design", **kwargs)
+    nw.assert_convergence()
+
+
+def test_no_future_warning_without_variable_composition():
+    nw = Network(iterinfo=False)
+    so = Source("source")
+    cp = Compressor("compressor")
+    si = Sink("sink")
+    c1 = Connection(so, "out1", cp, "in1", label="1")
+    c2 = Connection(cp, "out1", si, "in1", label="2")
+    nw.add_conns(c1, c2)
+    c1.set_attr(fluid={"N2": 0.7, "O2": 0.3}, m=1, p=1e5, T=293.15)
+    cp.set_attr(pr=3, eta_s=0.8)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        nw.solve("design")
+    nw.assert_convergence()
 
 
 def test_no_inference_without_variable_composition():

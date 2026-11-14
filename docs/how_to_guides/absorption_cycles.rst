@@ -18,6 +18,13 @@ and the sorption processes with the components
 - :py:class:`Rectifier <tespy.components.sorption.rectifier.Rectifier>` for
   working pairs with a volatile absorbent.
 
+.. warning::
+
+    The absorption cycle modeling is experimental and not thoroughly tested
+    yet, results and the API may change. A :code:`UserWarning` reminds of
+    this once per session. Feedback is very welcome, please open an issue on
+    `GitHub <https://github.com/oemof/tespy/issues>`__.
+
 Working pairs
 -------------
 

@@ -10,11 +10,13 @@ tests/test_components/test_sorption.py
 SPDX-License-Identifier: MIT
 """
 import importlib.util
+import warnings
 
 from CoolProp.CoolProp import PropsSI
 from pytest import approx
 from pytest import mark
 from pytest import raises
+from pytest import warns
 
 from tespy.components import Absorber
 from tespy.components import CooledAbsorber
@@ -64,6 +66,24 @@ def _assert_sorption_balances(solution_in, solution_out, vapor):
     assert max(p) == approx(min(p), rel=1e-10)
     assert sum(solution_out.fluid.val.values()) == approx(1, abs=1e-10)
     return _sorption_heat(inlets, outlets)
+
+
+@mark.parametrize("create", [
+    lambda: Absorber("absorber"),
+    lambda: Rectifier("rectifier"),
+    lambda: SolutionConnection(
+        Source("source"), "out1", Sink("sink"), "in1", label="c"
+    ),
+])
+def test_experimental_warning_once_per_session(monkeypatch, create):
+    from tespy.tools.fluid_properties.solutions import base
+
+    monkeypatch.setattr(base, "_EXPERIMENTAL_WARNED", False)
+    with warns(UserWarning, match="experimental"):
+        create()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        create()
 
 
 def absorber_network():

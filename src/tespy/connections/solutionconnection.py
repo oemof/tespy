@@ -15,6 +15,7 @@ from tespy.tools.fluid_properties.solutions import SolutionComponentWrapper
 from tespy.tools.fluid_properties.solutions import get_solution_pair
 from tespy.tools.fluid_properties.solutions import solution_pair_names
 from tespy.tools.fluid_properties.solutions import solution_pair_of_component
+from tespy.tools.fluid_properties.solutions import warn_sorption_experimental
 from tespy.tools.global_vars import FLUID_ALIASES
 
 # compositions closer to a pure component would turn a solution connection
@@ -199,6 +200,7 @@ class SolutionConnection(Connection):
     mixing_rule = property(_get_mixing_rule, _set_mixing_rule)
 
     def __init__(self, source, outlet_id, target, inlet_id, label=None, **kwargs):
+        warn_sorption_experimental()
         self._mixing_rule = None
         self._fallback_pair = False
         self._pending_composition = {}

@@ -9,7 +9,9 @@ New Features
   sorption processes. The working pairs LiBr-water (Pátek and Klomfar 2006)
   and NH3-water (IAPWS G4-01 on the kernel of the optional dependency teqp)
   are available, users can register their own pairs. See
-  :ref:`tutorial_absorption_cycles_label` (:issue:`1016`).
+  :ref:`tutorial_absorption_cycles_label` (:issue:`1016`). The feature is
+  experimental and not thoroughly tested yet, a :code:`UserWarning` is raised
+  once per session. Feedback is very welcome.
 - Mixing rules can provide functions for the temperature from enthalpy and
   entropy, the phase, the vapor mass fraction and the bubble and dew points
   of a mixture. The specifications :code:`x`, :code:`td_bubble` and
@@ -38,6 +40,15 @@ New Features
   process without convergence instead of escalating to the simultaneous
   solution, for calculations where a failure is acceptable and the runtime
   matters (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+
+Deprecations
+############
+- The block-wise solution becomes the default for networks with variable fluid
+  composition in version 0.13, :code:`block_solve_fluid_composition` will
+  default to :code:`True`. A :code:`FutureWarning` is raised for these
+  networks if the option is not passed, pass :code:`False` to keep the
+  simultaneous solution
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
 
 Bug Fixes
 #########

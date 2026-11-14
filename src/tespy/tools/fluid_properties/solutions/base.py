@@ -9,6 +9,7 @@ tespy/tools/fluid_properties/solutions/base.py
 
 SPDX-License-Identifier: MIT
 """
+import warnings
 from functools import partial
 
 from scipy.optimize import brentq
@@ -19,6 +20,22 @@ from tespy.tools.fluid_properties.wrappers.base import wrapper_registry
 from tespy.tools.global_vars import FLUID_ALIASES
 
 _SOLUTION_PAIRS = {}
+_EXPERIMENTAL_WARNED = False
+
+
+def warn_sorption_experimental(stacklevel=3):
+    r"""Warn once per session that the sorption modeling is experimental."""
+    global _EXPERIMENTAL_WARNED
+    if _EXPERIMENTAL_WARNED:
+        return
+    _EXPERIMENTAL_WARNED = True
+    msg = (
+        "The absorption cycle modeling (SolutionConnection, the sorption "
+        "components and the working pairs) is experimental and not "
+        "thoroughly tested yet. Results and the API may change. Feedback is "
+        "very welcome: https://github.com/oemof/tespy/issues"
+    )
+    warnings.warn(msg, UserWarning, stacklevel=stacklevel)
 
 
 class SolutionPair:

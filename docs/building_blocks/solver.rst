@@ -278,12 +278,86 @@ simultaneous polish runs in case couplings outside of the declared incidence
 left a remaining residual. The block phase can therefore never degrade
 robustness compared to solving everything at once.
 
-.. note::
+These fallbacks cost time when a calculation cannot converge anyway. If a
+failed calculation is acceptable and its runtime matters, for example in an
+optimization evaluating many design points, they can be switched off with
+:code:`nw.solve(mode, skip_fallbacks=True)`. The solution process then ends
+without convergence (:code:`status` 2) at the first block that fails or in case
+the verification of the full residual vector fails.
 
-    Currently, networks with variable fluid composition are always solved
-    simultaneously; block-wise solving for them is planned for a future
-    release. The simultaneous solution can also be enforced with
-    :code:`nw.solve(mode, block_solve=False)`.
+The simultaneous solution can be enforced with
+:code:`nw.solve(mode, block_solve=False)`.
+
+.. _solver_variable_composition_label:
+
+Variable fluid composition
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Every fluid property is a function of pressure, enthalpy and composition. In
+case mass fractions are part of the variable space, e.g. downstream of a
+combustion chamber or a merge of different fluids, an equation evaluating a
+fluid property on a connection also depends on the connection's mass fractions.
+TESPy infers this dependence: an equation listing the pressure or the enthalpy
+of a connection in its dependents is assumed to depend on all variable mass
+fractions of that connection as well. The block decomposition and the
+structural analysis always use this complete incidence.
+
+By default, networks with variable fluid composition are still solved
+simultaneously. The block-wise solution is available as an option:
+
+.. code-block:: python
+
+    nw.solve("design", block_solve_fluid_composition=True)
+
+With this option the derivatives to the inferred mass fractions enter the
+Jacobian and the composition is solved in the blocks it belongs to. Every
+subsequent block treats it as a constant, e.g. the water steam cycle of a heat
+recovery steam generator only depends on the flue gas composition through the
+heat exchangers. Should the inference miss a dependence, e.g. of a custom
+equation, the verification of the full residual vector after the block phase
+detects it and the simultaneous solution takes over.
+
+The inference is conservative: equations that list pressure or enthalpy without
+evaluating a fluid property, like energy balances written in mass flow and
+enthalpy, get a dependence on the composition they do not have. This costs
+derivatives, not correctness. Such equations switch the inference off with
+:code:`infer_composition=False` in their definition, see the sections on
+:ref:`custom components <custom_components_label>` and
+:ref:`user defined equations <ude_label>`.
+
+To check the dependents of the equations against their actual behavior, solve
+the network, prepare the problem again and compare:
+
+.. code-block:: python
+
+    nw.solve("design")
+    nw.presolve("design")
+    nw.print_dependents_check()
+
+The three steps have different purposes:
+
+- :code:`solve` brings the network to a converged state. The check is most
+  meaningful there, at rough starting values a dependence can be hidden or a
+  fluid property evaluation can fail. The step is optional, without it the
+  check runs at the starting values. The solver settings do not influence the
+  check.
+- :code:`presolve` loads the variables of the solver again, starting from the
+  previous solution. They are only available between the presolve and the end
+  of a solution process, so the check raises an error directly after
+  :code:`solve`.
+- :code:`print_dependents_check` runs the check and prints its result,
+  :py:meth:`~tespy.networks.network.Network.get_dependents_check` returns it as
+  a dictionary.
+
+:py:meth:`~tespy.networks.network.Network.print_dependents_check` perturbs
+every variable once, starting from the previous solution, and lists the
+equations whose residual changes with a variable that is neither declared nor
+inferred as dependent. These are wrong dependents, which can break the block
+order. It also counts the equations with inferred and declared dependents that
+are not observed, :code:`nw.print_dependents_check(unused=True)` lists them.
+They are not errors: a derivative can vanish at the state of the check. The
+observation only holds for the state the check is evaluated at, e.g. the
+temperature of saturated humid air does not change with its composition, while
+the temperature of unsaturated humid air does.
 
 Newton-Raphson method
 ^^^^^^^^^^^^^^^^^^^^^

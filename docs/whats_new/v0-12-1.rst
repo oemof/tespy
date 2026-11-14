@@ -1,6 +1,33 @@
 v0.12.1 - Under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- The block decomposition and the structural analysis cover networks with
+  variable fluid composition. Every equation listing the pressure or the
+  enthalpy of a connection is assumed to depend on the variable mass fractions
+  of that connection as well, so the dependence of fluid property equations on
+  the composition no longer has to be declared. Block-wise solving of such
+  networks is available with
+  :code:`nw.solve(mode, block_solve_fluid_composition=True)`, the default
+  remains the simultaneous solution for now (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- Equations that list pressure or enthalpy without evaluating a fluid property
+  can switch the inference off with :code:`infer_composition=False`, both in
+  the parameter and constraint definitions of components and in the
+  :code:`UserDefinedEquation`. The energy balances and heat and power
+  equations of the core components written in mass flow and enthalpy do so
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- :py:meth:`~tespy.networks.network.Network.get_dependents_check` and
+  :py:meth:`~tespy.networks.network.Network.print_dependents_check` compare
+  the dependents of the equations with their observed dependence by
+  perturbing every variable once. Use it to check the dependents of custom
+  components and user defined equations
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- :code:`nw.solve(mode, skip_fallbacks=True)` ends the block-wise solution
+  process without convergence instead of escalating to the simultaneous
+  solution, for calculations where a failure is acceptable and the runtime
+  matters (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+
 Bug Fixes
 #########
 - :code:`Network.solve` could hang forever without any output in the flow

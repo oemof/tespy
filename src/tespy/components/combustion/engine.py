@@ -300,6 +300,7 @@ class CombustionEngine(CombustionChamber):
                 max_val=-1,
                 num_eq_sets=1,
                 dependents=self.Q1_dependents,
+                infer_composition=False,
                 func=self.Q1_func,
                 quantity="heat",
                 description="heating port 1 heat production",
@@ -309,6 +310,7 @@ class CombustionEngine(CombustionChamber):
                 max_val=-1,
                 num_eq_sets=1,
                 dependents=self.Q2_dependents,
+                infer_composition=False,
                 func=self.Q2_func,
                 quantity="heat",
                 description="heating port 2 heat production",
@@ -607,14 +609,13 @@ class CombustionEngine(CombustionChamber):
             if o.h.is_var:
                 self.jacobian[k, o.h.J_col] = -o.m.val_SI
 
-        # fluid composition
-        for c in inl:
-            for fl in (self.fuel_list & c.fluid.is_var):
-                self.jacobian[k, c.fluid.J_col[fl]] = c.m.val_SI * self.fuels[fl]['LHV']
-
-        c = outl[0]
-        for fl in (self.fuel_list & c.fluid.is_var):
-            self.jacobian[k, c.fluid.J_col[fl]] = -c.m.val_SI * self.fuels[fl]['LHV']
+        # the reference enthalpies of the combustion streams depend on all of
+        # their mass fractions, not only on the fuel through the heat input
+        for c in inl + outl:
+            for fl in sorted(c.fluid.is_var):
+                self._partial_derivative_fluid(
+                    c.fluid, k, f, fl, increment_filter
+                )
 
         # power and heat loss
         if self.P.is_var:
@@ -630,9 +631,7 @@ class CombustionEngine(CombustionChamber):
             ] + [
                 var for c in self.inl[:2] + self.outl[:2] for var in [c.m, c.h]
             ] + [self.P, self.Qloss],
-            "vectors": [{
-                c.fluid: self.fuel_list & c.fluid.is_var for c in inl + outl
-            }]
+            "vectors": [{c.fluid: c.fluid.is_var for c in inl + outl}]
         }
 
     def Q1_func(self):

@@ -66,7 +66,7 @@ class TESPyComponentError(Exception):
 
 class UserDefinedEquation:
 
-    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=None, comps:list=None, params:dict=None):
+    def __init__(self, label: str, func: callable, dependents:callable, deriv: callable=None, conns: list=None, comps:list=None, params:dict=None, infer_composition: bool=True):
         r"""
         A UserDefinedEquation allows use of generic user specified equations.
 
@@ -94,6 +94,13 @@ class UserDefinedEquation:
         params : dict
             Dictionary containing keyword arguments required by the function
             and/or derivative.
+
+        infer_composition : bool
+            Infer the dependence on the variable mass fractions of every
+            connection whose pressure or enthalpy is part of the dependents,
+            default: :code:`True`. Set it to :code:`False` in case the
+            equation evaluates no fluid property, or in case its dependents
+            list the mass fractions it depends on themselves.
 
         Note
         ----
@@ -263,6 +270,7 @@ class UserDefinedEquation:
         self.conns = [] if conns is None else conns
         self.comps = [] if comps is None else comps
         self.params = {} if params is None else params
+        self.infer_composition = infer_composition
         self._is_set = True
 
     def _get_is_set(self):
@@ -309,7 +317,8 @@ class UserDefinedEquation:
                     dependents=self.dependents,
                     num_eq_sets=1,
                     func=self.func,
-                    deriv=self.deriv
+                    deriv=self.deriv,
+                    infer_composition=self.infer_composition
                 )
                 self._assign_dependents_and_eq_mapping(
                     value, self.equations[value], self.equations, eq_counter
@@ -494,7 +503,7 @@ def _topological_sort(calc_items):
 
 
 
-def solve(obj, increment_filter):
+def solve(obj, increment_filter, composition_derivatives=False):
     """
     Solve equations and calculate partial derivatives of a component.
 
@@ -502,11 +511,18 @@ def solve(obj, increment_filter):
     ----------
     increment_filter : ndarray
         Matrix for filtering non-changing variables.
+
+    composition_derivatives : bool
+        Calculate the derivatives to the mass fractions the dependence was
+        inferred for in addition to the declared ones.
     """
     for label, data in obj.equations.items():
         eq_num = data._first_eq_index
         _solve_residual(obj, data, eq_num)
         _solve_jacobian(obj, data, increment_filter, eq_num)
+        inferred = data._inferred_vector_dependents
+        if composition_derivatives and inferred is not None:
+            _solve_vector_jacobian(obj, data, inferred, increment_filter, eq_num)
 
 
 def get_variable_value(data):
@@ -573,20 +589,26 @@ def _solve_jacobian(obj, data, increment_filter, eq_num):
                         result[eq_idx] if isinstance(result, np.ndarray) else result
                     )
 
-        all_vector_deps = {}
-        for eq_vec_deps in data._vector_dependents:
-            for var, dxs in eq_vec_deps.items():
-                all_vector_deps.setdefault(var, set()).update(dxs)
-        for var, dxs in all_vector_deps.items():
-            for dx in sorted(dxs):
-                result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
-                if result is None:
-                    continue
-                for eq_idx, eq_vec_deps in enumerate(data._vector_dependents):
-                    if var in eq_vec_deps and dx in eq_vec_deps[var]:
-                        obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
-                            result[eq_idx] if isinstance(result, np.ndarray) else result
-                        )
+        _solve_vector_jacobian(
+            obj, data, data._vector_dependents, increment_filter, eq_num
+        )
+
+
+def _solve_vector_jacobian(obj, data, vector_dependents, increment_filter, eq_num):
+    all_vector_deps = {}
+    for eq_vec_deps in vector_dependents:
+        for var, dxs in eq_vec_deps.items():
+            all_vector_deps.setdefault(var, set()).update(dxs)
+    for var, dxs in all_vector_deps.items():
+        for dx in sorted(dxs):
+            result = _partial_derivative_vecvar(var, data.func, dx, increment_filter, **data.func_params)
+            if result is None:
+                continue
+            for eq_idx, eq_vec_deps in enumerate(vector_dependents):
+                if var in eq_vec_deps and dx in eq_vec_deps[var]:
+                    obj.jacobian[eq_num + eq_idx, var.J_col[dx]] = (
+                        result[eq_idx] if isinstance(result, np.ndarray) else result
+                    )
 
 
 def _is_variable(var, increment_filter=None):

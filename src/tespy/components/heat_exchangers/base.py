@@ -338,6 +338,7 @@ class HeatExchanger(Component):
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
                 dependents=self.energy_balance_hot_dependents,
+                infer_composition=False,
                 quantity="heat",
                 description="heat transfer from hot side",
                 calc=self._calc_Q
@@ -481,6 +482,7 @@ class HeatExchanger(Component):
             'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                "infer_composition": False,
                 'num_eq_sets': 1,
                 "description": "hot side to cold side heat transfer equation"
             })

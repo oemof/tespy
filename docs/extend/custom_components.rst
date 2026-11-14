@@ -169,6 +169,10 @@ Here we have the following keywords:
 - :code:`func`: Method to be applied (returns residual value of equation)
 - :code:`dependents`: Method to return the variables :code:`func` depends on
 - :code:`num_eq_sets`: Number of equations
+- :code:`infer_composition`: Whether the solver infers the dependence on the
+  fluid composition (default :code:`True`), see the section on
+  :ref:`the dependents <custom_components_composition_label>`. The energy
+  balance above evaluates no fluid property and switches it off.
 
 .. note::
 
@@ -372,6 +376,35 @@ subdictionary is created, which is a mapping of the fluid mixture container
 
 .. literalinclude:: /../src/tespy/components/combustion/base.py
     :pyobject: CombustionChamber.energy_balance_dependents
+
+.. _custom_components_composition_label:
+
+You do not have to list the mass fractions an equation depends on through a
+fluid property call. In case the composition is variable, the solver infers
+that every equation listing the pressure or the enthalpy of a connection
+depends on all variable mass fractions of that connection as well. This keeps
+the block-wise solution correct for any equation evaluating fluid properties,
+see the section on
+:ref:`variable fluid composition <solver_variable_composition_label>`.
+
+An equation that lists pressure or enthalpy without evaluating a fluid
+property, e.g. an energy balance in mass flow and enthalpy, does not depend on
+the composition. You can tell the solver by passing
+:code:`infer_composition=False` to the parameter or constraint, which saves
+the derivatives to the mass fractions. With the inference switched off, the
+solver takes the dependents exactly as declared. An equation that does
+evaluate fluid properties then has to list its mass fractions in the
+:code:`vectors` of its dependents, otherwise the block order can be wrong.
+
+.. caution::
+
+    Only switch the inference off in case you know from the form of the
+    equation, which mass fractions it depends on. A check at a single state can
+    miss a dependence, e.g. the temperature of saturated humid air does not
+    depend on its composition, while the temperature of unsaturated humid air
+    does. You can compare the dependents with the observed behavior of your
+    equations with
+    :py:meth:`~tespy.networks.network.Network.print_dependents_check`.
 
 Define the derivatives
 ^^^^^^^^^^^^^^^^^^^^^^

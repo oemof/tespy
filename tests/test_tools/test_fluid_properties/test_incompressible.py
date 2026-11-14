@@ -16,6 +16,7 @@ from pytest import mark
 
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties import isentropic
+from tespy.tools.fluid_properties import s_mix_ph
 from tespy.tools.fluid_properties import v_mix_pT
 from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
 
@@ -77,8 +78,8 @@ def test_enthalpy_forwards_backwards(property_data, wrapper_instance):
     temperature_check = []
 
     for temperature in temperature_data:
-        h = wrapper_instance.h_pT(None, temperature)
-        temperature_check.append(wrapper_instance.T_ph(None, h))
+        h = wrapper_instance.h_pT(1e5, temperature)
+        temperature_check.append(wrapper_instance.T_ph(1e5, h))
 
     np.testing.assert_allclose(temperature_check, temperature_data)
 
@@ -97,7 +98,7 @@ def test_enthalpy_forwards_backwards_constant_heat_capacity():
     )
     temperature_data = np.array([273.15, 373.15, 573.15, 673.15])
     temperature_check = [
-        wrapper.T_ph(None, wrapper.h_pT(None, temperature))
+        wrapper.T_ph(1e5, wrapper.h_pT(1e5, temperature))
         for temperature in temperature_data
     ]
 
@@ -130,7 +131,7 @@ def test_entropy_enthalpy_roundtrip(property_data, wrapper_instance):
 def test_isentropic(property_data, wrapper_instance):
     temperature_data = property_data["temperature_data"]
 
-    enthalpy_inflow = wrapper_instance.h_pT(None, temperature_data)
+    enthalpy_inflow = wrapper_instance.h_pT(1e5, temperature_data)
     enthalpy_outflow = wrapper_instance.isentropic(1e5, enthalpy_inflow, 2e5)
     rho = wrapper_instance.d_pT(None, temperature_data)
 
@@ -159,8 +160,8 @@ def test_heat_capacity(property_data, wrapper_instance):
         (h_u - h_l) / (2 * d)
         for h_l, h_u in
         zip(
-            wrapper_instance.h_pT(None, temperature_data - d),
-            wrapper_instance.h_pT(None, temperature_data + d)
+            wrapper_instance.h_pT(1e5, temperature_data - d),
+            wrapper_instance.h_pT(1e5, temperature_data + d)
         )
     ]
     np.testing.assert_allclose(capacity, capacity_data, rtol=1e-3)
@@ -201,16 +202,14 @@ def test_entropy_forwards_backwards_off_reference_pressure(
 
 
 @mark.parametrize("pressure", [1e6, 1e7])
-def test_entropy_enthalpy_roundtrip_off_reference_pressure(
+def test_enthalpy_forwards_backwards_off_reference_pressure(
         property_data, wrapper_instance, pressure
 ):
     temperature_data = property_data["temperature_data"]
-    temperature_check = []
-
-    for temperature in temperature_data:
-        s = wrapper_instance.s_pT(pressure, temperature)
-        h = wrapper_instance.h_ps(pressure, s)
-        temperature_check.append(wrapper_instance.T_ph(pressure, h))
+    temperature_check = [
+        wrapper_instance.T_ph(pressure, wrapper_instance.h_pT(pressure, T))
+        for T in temperature_data
+    ]
 
     np.testing.assert_allclose(temperature_check, temperature_data)
 
@@ -235,6 +234,39 @@ def test_entropy_pressure_derivative(property_data, wrapper_instance):
     np.testing.assert_allclose(slope, drho_dT / rho ** 2, rtol=1e-6)
 
 
+def test_enthalpy_pressure_derivative(property_data, wrapper_instance):
+    # (dh/dp)_T = v - T * (dv/dT)_p from dh = T ds + v dp and the Maxwell
+    # relation
+    temperature_data = property_data["temperature_data"][1:-1]
+    p_1, p_2 = 1e5, 1e6
+    d = 1e-3
+
+    slope = (
+        wrapper_instance.h_pT(p_2, temperature_data)
+        - wrapper_instance.h_pT(p_1, temperature_data)
+    ) / (p_2 - p_1)
+
+    v = 1 / wrapper_instance.d_pT(None, temperature_data)
+    dv_dT = (
+        1 / wrapper_instance.d_pT(None, temperature_data + d)
+        - 1 / wrapper_instance.d_pT(None, temperature_data - d)
+    ) / (2 * d)
+
+    np.testing.assert_allclose(slope, v - temperature_data * dv_dT, rtol=1e-6)
+
+
+def test_isentropic_enthalpy_change_via_entropy(property_data, wrapper_instance):
+    # along an isentrope dh = v dp, v barely changes for a liquid
+    p_1, p_2 = 1e5, 1e7
+
+    for temperature in property_data["temperature_data"][1:-1]:
+        h_1 = wrapper_instance.h_pT(p_1, temperature)
+        h_2 = wrapper_instance.h_ps(p_2, wrapper_instance.s_pT(p_1, temperature))
+        v = 1 / wrapper_instance.d_pT(None, temperature)
+
+        assert h_2 - h_1 == approx(v * (p_2 - p_1), rel=1e-2)
+
+
 def test_isentropic_mixture(property_data, wrapper_instance):
     heavy_data = property_data.copy()
     heavy_data["density_data"] = property_data["density_data"] * 1.1
@@ -243,11 +275,15 @@ def test_isentropic_mixture(property_data, wrapper_instance):
         "fluid name": {"wrapper": wrapper_instance, "mass_fraction": 0.4},
         "heavy fluid": {"wrapper": heavy_wrapper, "mass_fraction": 0.6},
     }
-    p_1, p_2 = 1e5, 1e6
+    p_1, p_2 = 1e5, 1e7
 
     for temperature in property_data["temperature_data"][1:-1]:
         h_1 = h_mix_pT(p_1, temperature, fluid_data, "incompressible")
         h_2 = isentropic(p_1, h_1, p_2, fluid_data, "incompressible")
         v = v_mix_pT(p_1, temperature, fluid_data, "incompressible")
 
-        assert h_2 - h_1 == approx(v * (p_2 - p_1), rel=1e-6)
+        s_1 = s_mix_ph(p_1, h_1, fluid_data, "incompressible")
+        s_2 = s_mix_ph(p_2, h_2, fluid_data, "incompressible")
+
+        assert s_2 == approx(s_1, abs=1e-6)
+        assert h_2 - h_1 == approx(v * (p_2 - p_1), rel=1e-2)

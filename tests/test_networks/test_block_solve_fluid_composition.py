@@ -335,17 +335,17 @@ def test_block_solve_matches_simultaneous_solve(build):
     _assert_same_results(nw, reference)
 
 
-@mark.xfail(
-    reason=(
-        "the composition derivatives of the fluid property equations are "
-        "missing in the jacobian, the recycle does not converge"
-    ),
-    strict=True
-)
 def test_recirculation_simultaneous_solve():
+    reference = recirculation()
+    reference.solve("design", block_solve_fluid_composition=True)
+
+    # the complete composition derivatives of the combustion energy balance
+    # let the recycle converge, slowly without the ones of the other fluid
+    # property equations
     nw = recirculation()
     nw.solve("design", block_solve=False)
     nw.assert_convergence()
+    _assert_same_results(nw, reference)
 
 
 def test_custom_component_without_composition_dependents():
@@ -648,6 +648,26 @@ def test_core_energy_balances_not_inferred():
     assert ("merge 1", ("energy_balance_constraints", 0)) not in inferred
     assert ("merge 2", ("energy_balance_constraints", 0)) not in inferred
     assert ("compressor", ("eta_s", 0)) in inferred
+
+
+def test_combustion_energy_balance_declares_composition():
+    nw = gas_turbine()
+    nw.solve("design")
+    problem = nw.problem
+    assert ("combustion chamber", ("eta", 0)) not in _inferred_labels(nw)
+
+    eq_num = next(
+        eq_num for eq_num, label in problem._equation_lookup.items()
+        if label == ("combustion chamber", ("eta", 0))
+    )
+    composition_columns = {
+        col for col, data in problem.variables_dict.items()
+        if data["variable"] == "fluid"
+    }
+    assert composition_columns
+    assert composition_columns <= set(problem._declared_incidence[eq_num])
+    for col in composition_columns:
+        assert problem.jacobian[eq_num, col] != 0
 
 
 def test_custom_component_explicit_composition_dependents(fallbacks):

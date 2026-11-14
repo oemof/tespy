@@ -388,11 +388,8 @@ class CombustionEngine(CombustionChamber):
 
     def get_mandatory_constraints(self):
         constraints = super().get_mandatory_constraints()
-        # overwrite the combustion chamber base derivative, the dependents
-        # list the mass fractions of the combustion streams themselves, the
-        # cooling streams do not depend on their composition
+        # overwrite the combustion chamber base derivative
         constraints["energy_balance_constraints"].deriv = self.energy_balance_deriv
-        constraints["energy_balance_constraints"].infer_composition = False
         constraints.update({
             'power_constraints': MandatoryConstraint(**{
                 'func': self.tiP_char_func,

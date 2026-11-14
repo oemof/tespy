@@ -28,8 +28,11 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None
     Calculate specific enthalpy at isentropic outlet conditions.
 
     For a pure fluid delegates directly to the fluid wrapper. For mixtures
-    the isentropic enthalpy is obtained by computing the inlet entropy, then
-    inverting :func:`T_mix_ps` at the outlet pressure, and finally evaluating
+    with the :code:`"incompressible"` mixing rule the enthalpy change is the
+    specific volume at the inlet times the pressure change, analogous to
+    the incompressible fluid wrapper. For all other mixtures the isentropic
+    enthalpy is obtained by computing the inlet entropy, then inverting
+    :func:`T_mix_ps` at the outlet pressure, and finally evaluating
     :func:`h_mix_pT`.
 
     Parameters
@@ -57,7 +60,14 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None
 
     Notes
     -----
-    For mixtures:
+    For incompressible mixtures:
+
+    .. math::
+
+        h_2^\text{is} = h_1 + v\!\left(p_1,\; T(p_1, h_1)\right)
+        \cdot \left(p_2 - p_1\right)
+
+    For all other mixtures:
 
     .. math::
 
@@ -66,6 +76,10 @@ def isentropic(p_1, h_1, p_2, fluid_data, mixing_rule=None, T0=None, T0_out=None
     if get_number_of_fluids(fluid_data) == 1:
         pure_fluid = get_pure_fluid(fluid_data)
         return pure_fluid["wrapper"].isentropic(p_1, h_1, p_2)
+    elif mixing_rule == "incompressible":
+        T_1 = T_mix_ph(p_1, h_1, fluid_data, mixing_rule, T0=T0)
+        v_1 = v_mix_pT(p_1, T_1, fluid_data, mixing_rule)
+        return h_1 + v_1 * (p_2 - p_1)
     else:
         s_1 = s_mix_ph(p_1, h_1, fluid_data, mixing_rule, T0=T0)
         T_2 = T_mix_ps(p_2, s_1, fluid_data, mixing_rule, T0=T0_out)

@@ -399,11 +399,11 @@ evaluate fluid properties then has to list its mass fractions in the
 .. caution::
 
     Only switch the inference off in case you know from the form of the
-    equation, which mass fractions it depends on. A check at a single state
-    can miss a dependence, e.g. the temperature of saturated humid air does
-    not depend on its composition, while the temperature of unsaturated humid
-    air does. You can compare the dependents with the observed behavior of
-    your equations with
+    equation, which mass fractions it depends on. A check at a single state can
+    miss a dependence, e.g. the temperature of saturated humid air does not
+    depend on its composition, while the temperature of unsaturated humid air
+    does. You can compare the dependents with the observed behavior of your
+    equations with
     :py:meth:`~tespy.networks.network.Network.print_dependents_check`.
 
 Define the derivatives

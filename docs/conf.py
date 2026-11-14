@@ -36,6 +36,11 @@ def _create_connection_instances() -> dict:
             instance = cls_ref(PowerSource("source"), "power", PowerSink("sink"), "power")
         elif cls_name == "HAConnection":
             instance = cls_ref(Source("source"), "out1", Sink("sink"), "in1")
+        elif cls_name == "SolutionConnection":
+            instance = cls_ref(
+                Source("source"), "out1", Sink("sink"), "in1",
+                mixing_rule="libr-water"
+            )
         else:
             # do not add to the dict of not any of both classes
             continue

@@ -23,6 +23,7 @@ from tespy.connections import Connection
 from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.connections import Ref
+from tespy.connections import SolutionConnection
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.connections.humidairconnection import HAConnection
@@ -45,7 +46,7 @@ def test_all_classes_in_registry(obj):
 
 
 def make_connection(cls):
-    if cls == Connection or cls == HAConnection:
+    if cls == Connection or cls == HAConnection or cls == SolutionConnection:
         return cls(Source(""), "out1", Sink(""), "in1")
     elif cls == PowerConnection:
         return cls(PowerSource(""), "power", PowerSink(""), "power")

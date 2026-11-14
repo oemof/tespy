@@ -92,6 +92,13 @@ different applications see the :ref:`model library <model_library_label>`.
         .. image:: /_static/images/thumbnails/how_to_guides/humid_air_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card::  Model absorption chillers
+        :link: tutorial_absorption_cycles_label
+        :link-type: ref
+
+        LiBr-water and NH3-water working pairs, absorber, desorber and
+        rectifier.
+
     .. grid-item-card::  Frequently Asked Questions
         :link: faq_label
         :link-type: ref
@@ -114,4 +121,5 @@ different applications see the :ref:`model library <model_library_label>`.
     how_to_guides/zeotropic_heat_pump
     how_to_guides/powerconnections
     how_to_guides/humid_air
+    how_to_guides/absorption_cycles
     how_to_guides/faq

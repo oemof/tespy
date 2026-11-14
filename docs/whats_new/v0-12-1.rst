@@ -9,6 +9,25 @@ Bug Fixes
   method never returned, because its backtracking line search shrank the step
   length to zero without accepting a step. The flow presolve now uses the BVLS
   method, which has a bounded number of iterations.
+- The entropy of the :code:`IncompressibleFluidWrapper` had a wrong pressure
+  term (density times pressure difference). It now follows the Maxwell
+  relation :math:`\left(\partial s / \partial p\right)_T = \left(\partial \rho
+  / \partial T\right)_p / \rho^2`. Entropy and exergy results of fluids
+  using this wrapper change at pressures other than the reference pressure
+  (default 1 bar), and the inversion of temperature from entropy no longer
+  fails across different pressures (`Issue #1127
+  <https://github.com/oemof/tespy/issues/1127>`__).
+- The isentropic enthalpy of mixtures with the :code:`"incompressible"`
+  mixing rule is now the inlet specific volume times the pressure change,
+  in the same way as for a single incompressible fluid. Before, it was
+  calculated via entropy, which is inconsistent for fluids with temperature
+  dependent enthalpy only.
+
+Other Changes
+#############
+- The test data of the :code:`IncompressibleFluidWrapper` now use the
+  ISTpure Standard Heat Transfer Oil datasheet. The previous heat capacity
+  data were off by a factor of 1000.
 
 Contributors
 ############

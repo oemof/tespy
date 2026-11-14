@@ -11,7 +11,6 @@ tespy/tools/fluid_properties/wrappers/incompressible.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
-from scipy.optimize import brentq
 
 from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
 from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
@@ -301,20 +300,20 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         )
 
     def isentropic(self, p_1, h_1, p_2):
-        # assumption that temperature barely changes
-        T = self.T_ph(p_1, h_1)
-        return h_1 + (p_2 - p_1) / self.d_pT(p_1, T)
-
-    def _inverse_s_pT(self, T, p, s):
-        return s - self.s_pT(p, T)
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
     def T_ps(self, p, s):
-        return brentq(
-            self._inverse_s_pT,
-            self._T_min,
-            self._T_max,
-            args=(p, s)
-        )
+        # Newton iteration in ln(T), since (ds/dln(T))_p = cp, starting from
+        # constant heat capacity at reference state; like T_ph it extrapolates
+        # beyond the temperature range of the data
+        cp_ref = self._cp_pT(self._p_ref, self._T_ref)
+        T = self._T_ref * np.exp(s / cp_ref)
+        for _ in range(20):
+            residual = self.s_pT(p, T) - s
+            if np.all(np.abs(residual) < 1e-9):
+                break
+            T = T * np.exp(-residual / self._cp_pT(p, T))
+        return T
 
     def conductivity_ph(self, p, h):
         return self.conductivity_pT(p, self.T_ph(p, h))

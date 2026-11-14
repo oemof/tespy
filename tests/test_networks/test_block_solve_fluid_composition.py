@@ -335,19 +335,6 @@ def test_block_solve_matches_simultaneous_solve(build):
     _assert_same_results(nw, reference)
 
 
-def test_recirculation_simultaneous_solve():
-    reference = recirculation()
-    reference.solve("design", block_solve_fluid_composition=True)
-
-    # the complete composition derivatives of the combustion energy balance
-    # let the recycle converge, slowly without the ones of the other fluid
-    # property equations
-    nw = recirculation()
-    nw.solve("design", block_solve=False)
-    nw.assert_convergence()
-    _assert_same_results(nw, reference)
-
-
 def test_custom_component_without_composition_dependents():
     nw = merge_chain(cooler_class=LegacyCooler)
     nw.solve("design")

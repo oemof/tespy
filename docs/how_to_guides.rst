@@ -52,6 +52,16 @@ different applications see the :ref:`model library <model_library_label>`.
         .. image:: /_static/images/tutorials/orc/flowsheet_darkmode.svg
             :class: only-dark
 
+    .. grid-item-card:: Choose a compressor model
+        :link: tutorial_compressor_models_label
+        :link-type: ref
+
+        .. image:: /api/_images/components/Compressor.svg
+            :class: only-light
+
+        .. image:: /api/_images/components/Compressor_darkmode.svg
+            :class: only-dark
+
     .. grid-item-card:: Choose a heat exchanger model
         :link: tutorial_heat_exchanger_label
         :link-type: ref
@@ -110,6 +120,7 @@ different applications see the :ref:`model library <model_library_label>`.
     how_to_guides/starting_values
     how_to_guides/debugging
     how_to_guides/advanced_debugging
+    how_to_guides/compressor_models
     how_to_guides/heat_exchangers
     how_to_guides/zeotropic_heat_pump
     how_to_guides/powerconnections

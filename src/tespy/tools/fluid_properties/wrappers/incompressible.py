@@ -179,11 +179,7 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         viscosity_data = self.viscosity_data
         conductivity_data = self.conductivity_data
 
-        d = 0.001
-        heat_capacity_eval = (
-            self.h_pT(None, temperature_data + d)
-            - self.h_pT(None, temperature_data - d)
-        ) / (2 * d)
+        heat_capacity_eval = self._cp_pT(self._p_ref, temperature_data)
 
         density_eval = self.d_pT(None, temperature_data)
         viscosity_eval = self.viscosity_pT(None, temperature_data)
@@ -217,7 +213,19 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return fig, ax
 
     def T_ph(self, p, h):
-        # Inverse function of h_pT, using the quadratic formula in its
+        # Newton iteration starting from the exact inverse at reference
+        # pressure, the pressure term is small compared to the temperature
+        # dependent part of the enthalpy
+        T = self._T_h(h)
+        for _ in range(10):
+            residual = self.h_pT(p, T) - h
+            if np.all(np.abs(residual) < 1e-6):
+                break
+            T = T - residual / self._cp_pT(p, T)
+        return T
+
+    def _T_h(self, h):
+        # Inverse function of _h_pT, using the quadratic formula in its
         # numerically stable conjugate form: the standard form divides by
         # the polynomial slope A, which suffers catastrophic cancellation
         # for (near-)constant heat capacity data with A close to zero
@@ -233,13 +241,26 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         )
 
     def h_pT(self, p, T):
-        return self._h_pT(p, T) - self._h_ref
+        # (dh/dp)_T = v - T * (dv/dT)_p, which is
+        # (2 * A * T + B) / rho ** 2 for rho = A * T + B
+        return (
+            self._h_pT(p, T) - self._h_ref
+            + (2 * self._density["A"] * T + self._density["B"])
+            / self.d_pT(p, T) ** 2 * (p - self._p_ref)
+        )
 
     def _h_pT(self, p, T):
         # h = integral cp(T) dT
         return (
             0.5 * self._heat_capacity["A"] * T ** 2
             + self._heat_capacity["B"] * T
+        )
+
+    def _cp_pT(self, p, T):
+        return (
+            self._heat_capacity["A"] * T + self._heat_capacity["B"]
+            - 2 * self._density["A"] ** 2 * T / self.d_pT(p, T) ** 3
+            * (p - self._p_ref)
         )
 
     def h_ps(self, p, s):

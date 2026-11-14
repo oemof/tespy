@@ -1732,7 +1732,8 @@ class Problem:
                    block_solve=False, pause_on_block_failure=None,
                    line_search="stagnation",
                    increment_filter=INCREMENT_FILTER_RTOL,
-                   block_solve_fluid_composition=False):
+                   block_solve_fluid_composition=False,
+                   skip_fallbacks=None):
         r"""Loop of the newton algorithm."""
         if line_search not in ("off", "stagnation", "always"):
             msg = (
@@ -1760,6 +1761,8 @@ class Problem:
             driver = self._paused_driver
             if pause_on_block_failure is not None:
                 driver.pause_on_block_failure = pause_on_block_failure
+            if skip_fallbacks is not None:
+                driver.skip_fallbacks = skip_fallbacks
             self.start_time = time()
             driver.resume(iterinfo, print_results)
             self.end_time = time()
@@ -1789,6 +1792,12 @@ class Problem:
                 "simultaneous solution, the option has no effect."
             )
             logger.info(msg)
+        if skip_fallbacks and not block_solve:
+            msg = (
+                "The simultaneous solution has no fallbacks to skip, the "
+                "option has no effect."
+            )
+            logger.info(msg)
 
         n = self.variable_counter
         self._incidence_matrix_dense = np.zeros((n, n))
@@ -1808,7 +1817,8 @@ class Problem:
 
         if block_solve:
             BlockDriver(
-                self, pause_on_block_failure=bool(pause_on_block_failure)
+                self, pause_on_block_failure=bool(pause_on_block_failure),
+                skip_fallbacks=bool(skip_fallbacks)
             ).solve(iterinfo, print_results)
         else:
             self._solve_simultaneous(iterinfo, print_results)

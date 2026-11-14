@@ -697,6 +697,21 @@ def test_custom_component_wrongly_flagged(fallbacks):
     assert wrong_order == (equation_block < composition_block)
 
 
+def test_skip_fallbacks_at_failed_verification(fallbacks):
+    reference = merge_chain(cooler_class=WronglyFlaggedCooler)
+    reference.solve("design", block_solve_fluid_composition=True)
+    reference.assert_convergence()
+    # the model only is a case for the option, if the residual check fails
+    assert fallbacks
+    fallbacks.clear()
+
+    nw = merge_chain(cooler_class=WronglyFlaggedCooler)
+    nw.solve("design", block_solve_fluid_composition=True, skip_fallbacks=True)
+    assert nw.status == 2
+    assert fallbacks == []
+    assert all(block.status == 0 for block in nw.problem.decompose().blocks)
+
+
 def _outlet_temperature_ude(infer_composition, deriv=None):
     nw = merge_chain()
     c5 = nw.get_conn("5")

@@ -278,6 +278,13 @@ simultaneous polish runs in case couplings outside of the declared incidence
 left a remaining residual. The block phase can therefore never degrade
 robustness compared to solving everything at once.
 
+These fallbacks cost time when a calculation cannot converge anyway. If a
+failed calculation is acceptable and its runtime matters, for example in an
+optimization evaluating many design points, they can be switched off with
+:code:`nw.solve(mode, skip_fallbacks=True)`. The solution process then ends
+without convergence (:code:`status` 2) at the first block that fails or in case
+the verification of the full residual vector fails.
+
 The simultaneous solution can be enforced with
 :code:`nw.solve(mode, block_solve=False)`.
 
@@ -338,17 +345,17 @@ The three steps have different purposes:
   of a solution process, so the check raises an error directly after
   :code:`solve`.
 - :code:`print_dependents_check` runs the check and prints its result,
-  :py:meth:`~tespy.networks.network.Network.get_dependents_check` returns it
-  as a dictionary.
+  :py:meth:`~tespy.networks.network.Network.get_dependents_check` returns it as
+  a dictionary.
 
 :py:meth:`~tespy.networks.network.Network.print_dependents_check` perturbs
 every variable once, starting from the previous solution, and lists the
 equations whose residual changes with a variable that is neither declared nor
 inferred as dependent. These are wrong dependents, which can break the block
-order. It also counts the equations with inferred and declared dependents
-that are not observed, :code:`nw.print_dependents_check(unused=True)` lists
-them. They are not errors: a derivative can vanish at the state of the check.
-The observation only holds for the state the check is evaluated at, e.g. the
+order. It also counts the equations with inferred and declared dependents that
+are not observed, :code:`nw.print_dependents_check(unused=True)` lists them.
+They are not errors: a derivative can vanish at the state of the check. The
+observation only holds for the state the check is evaluated at, e.g. the
 temperature of saturated humid air does not change with its composition, while
 the temperature of unsaturated humid air does.
 

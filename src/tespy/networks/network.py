@@ -2429,7 +2429,7 @@ class Network:
               oscillation_damping=False, block_solve=True,
               pause_on_block_failure=False, line_search="stagnation",
               increment_filter=INCREMENT_FILTER_RTOL,
-              block_solve_fluid_composition=False):
+              block_solve_fluid_composition=False, skip_fallbacks=False):
         r"""
         Solve the network.
 
@@ -2541,6 +2541,17 @@ class Network:
             variable fluid composition is solved simultaneously. Only has an
             effect with :code:`block_solve=True`.
 
+        skip_fallbacks : boolean
+            End the block-wise solution process without convergence
+            (:code:`status` is 2) instead of escalating to the simultaneous
+            solution, default: :code:`False`. This skips the simultaneous
+            solution of the remaining blocks after a failed block, the
+            restart with the full system and the simultaneous solution in
+            case the verification of the full residual vector fails. Use it
+            if a failed calculation is acceptable and its runtime matters,
+            e.g. in an optimization. Only has an effect with
+            :code:`block_solve=True`.
+
         Note
         ----
         For more information on the solution process have a look at the online
@@ -2561,7 +2572,8 @@ class Network:
             oscillation_damping=oscillation_damping, block_solve=block_solve,
             pause_on_block_failure=pause_on_block_failure,
             line_search=line_search, increment_filter=increment_filter,
-            block_solve_fluid_composition=block_solve_fluid_composition
+            block_solve_fluid_composition=block_solve_fluid_composition,
+            skip_fallbacks=skip_fallbacks
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2659,7 +2671,8 @@ class Network:
                        block_solve=True, pause_on_block_failure=None,
                        line_search="stagnation",
                        increment_filter=INCREMENT_FILTER_RTOL,
-                       block_solve_fluid_composition=False):
+                       block_solve_fluid_composition=False,
+                       skip_fallbacks=None):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2674,7 +2687,8 @@ class Network:
         continues from there. :code:`pause_on_block_failure` defaults to
         keeping the value of the initiating solve call, passing
         :code:`False` explicitly hands a still failing block over to the
-        standard escalation stages instead.
+        standard escalation stages instead. :code:`skip_fallbacks` keeps the
+        value of the initiating solve call by default as well.
         """
         if self._problem is None or not (
                 self._presolve_pending or self._problem.paused):
@@ -2713,7 +2727,8 @@ class Network:
                 block_solve=block_solve,
                 pause_on_block_failure=pause_on_block_failure,
                 line_search=line_search, increment_filter=increment_filter,
-                block_solve_fluid_composition=block_solve_fluid_composition
+                block_solve_fluid_composition=block_solve_fluid_composition,
+                skip_fallbacks=skip_fallbacks
             )
         except ValueError as e:
             self.status = 99

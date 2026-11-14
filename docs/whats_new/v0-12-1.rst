@@ -23,6 +23,10 @@ New Features
   perturbing every variable once. Use it to check the dependents of custom
   components and user defined equations
   (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+- :code:`nw.solve(mode, skip_fallbacks=True)` ends the block-wise solution
+  process without convergence instead of escalating to the simultaneous
+  solution, for calculations where a failure is acceptable and the runtime
+  matters (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
 
 Bug Fixes
 #########
@@ -47,4 +51,3 @@ Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Jonas Freißmann (`@jfreissmann <https://github.com/jfreissmann>`__)
-- Francesco Witte

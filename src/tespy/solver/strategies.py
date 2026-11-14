@@ -527,11 +527,17 @@ class BlockDriver:
     process instead of escalating: the solved blocks stay frozen, the
     failed block's variables can be inspected and modified and
     :code:`resume` retries the block and continues from there.
+
+    With :code:`skip_fallbacks` the solution process ends without
+    convergence instead of escalating, both at a failed block and at a
+    remaining residual of the verification.
     """
 
-    def __init__(self, problem, pause_on_block_failure=False):
+    def __init__(self, problem, pause_on_block_failure=False,
+                 skip_fallbacks=False):
         self.problem = problem
         self.pause_on_block_failure = pause_on_block_failure
+        self.skip_fallbacks = skip_fallbacks
         self._frozen = []
         self._decomposition = None
         self._snapshot = None
@@ -589,6 +595,16 @@ class BlockDriver:
                 if self.pause_on_block_failure:
                     self._pause(block, position)
                     return
+                if self.skip_fallbacks:
+                    msg = (
+                        f"Block {block.id} did not converge, the solution "
+                        "of the remaining blocks is skipped.\n"
+                        f"  Cause: {block.failure_cause}"
+                    )
+                    logger.warning(msg)
+                    self._unfreeze()
+                    problem.status = 2
+                    return
                 # the preceding blocks stay solved: their equations do not
                 # depend on any variable of the failed or later blocks. The
                 # failed block's variables were restored by the strategy, so
@@ -627,6 +643,9 @@ class BlockDriver:
 
         if not self._verified():
             self._unfreeze()
+            if self.skip_fallbacks:
+                problem.status = 2
+                return
             problem._solve_simultaneous(iterinfo, print_results)
             return
 
@@ -781,9 +800,15 @@ class BlockDriver:
         if residual_norm > SCALED_RESIDUAL_TOLERANCE:
             msg = (
                 "Block-wise solving finished with a remaining global "
-                f"residual of {residual_norm:.2e}, continuing with the "
-                "simultaneous solution of the full system."
+                f"residual of {residual_norm:.2e}"
             )
+            if self.skip_fallbacks:
+                msg += ", the simultaneous solution is skipped."
+            else:
+                msg += (
+                    ", continuing with the simultaneous solution of the "
+                    "full system."
+                )
             logger.info(msg)
             return False
 

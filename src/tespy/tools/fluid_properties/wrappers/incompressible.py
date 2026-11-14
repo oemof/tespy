@@ -247,11 +247,12 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return self.s_pT(p, self.T_ph(p, h))
 
     def s_pT(self, p, T):
-        # s0 = 0
+        # s0 = 0, pressure term from Maxwell relation
+        # (ds/dp)_T = -(dv/dT)_p = (drho/dT)_p / rho ** 2
         return (
             self._heat_capacity["B"] * np.log(T / self._T_ref)
             + self._heat_capacity["A"] * (T - self._T_ref)
-            - self.d_pT(p, T) * (p - self._p_ref)
+            + self._density["A"] / self.d_pT(p, T) ** 2 * (p - self._p_ref)
         )
 
     def isentropic(self, p_1, h_1, p_2):

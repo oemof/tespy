@@ -35,7 +35,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     density_data : np.ndarray
         Array of corresponding density values in SI units (kg/m3)
     heat_capacity_data : np.ndarray
-        Array of corresponding heat capacity values in SI units (J/kg)
+        Array of corresponding heat capacity values in SI units
+        (J/kgK)
     viscosity_data : np.ndarray
         Array of corresponding **dynamic** viscosity values in SI units (Pas)
     conductivity_data : np.ndarray
@@ -57,7 +58,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         density_data : np.ndarray
             Array of corresponding density values in SI units (kg/m3)
         heat_capacity_data : np.ndarray
-            Array of corresponding heat capacity values in SI units (J/kg)
+            Array of corresponding heat capacity values in SI units
+            (J/kgK)
         viscosity_data : np.ndarray
             Array of corresponding **dynamic** viscosity values in SI units
             (Pas)

@@ -150,6 +150,11 @@ data:
 - viscosity through an exponential polynomial equation
   :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
 
+Enthalpy and entropy are derived from heat capacity and density consistent
+with the Gibbs relation :math:`dh = T \cdot ds + v \cdot dp`, i.e. both
+include a small pressure dependent term from the temperature dependence of
+the density.
+
 We can make use of the engine as shown in the example below. First, we set up
 a very simple system, just a flow of fluid through a heat exchanger.
 
@@ -197,7 +202,7 @@ spacing of temperature for all measurements.
     >>> fluid_kwargs = {
     ...     "temperature_data": np.array([273.15, 373.15]),  # K
     ...     "density_data": np.array([1000, 1100]),  # kg/m3
-    ...     "heat_capacity_data": np.array([4000, 4100]) * 1e3,  # J/kg
+    ...     "heat_capacity_data": np.array([4000, 4100]),  # J/kgK
     ...     "viscosity_data": np.array([0.05, 0.00025]),  # Pa*s
     ...     "conductivity_data": np.array([0.15, 0.13])  # W/m/K
     ... }

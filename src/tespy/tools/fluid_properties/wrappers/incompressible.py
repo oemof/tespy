@@ -42,6 +42,28 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     conductivity_data : np.ndarray
         Array of corresponding thermal conductivity values in SI units
         (W/mK)
+    T_ref : float, optional
+        Reference temperature in K, at which enthalpy and entropy are zero
+        at reference pressure, by default the lowest temperature of the data
+    p_ref : float, optional
+        Reference pressure in Pa, by default 1e5
+
+    Notes
+    -----
+    Heat capacity and density are linear functions of temperature,
+    :math:`c_p^0(T) = a \cdot T + b` and :math:`\rho(T) = c \cdot T + d`.
+    Enthalpy and entropy follow from the Gibbs relation
+    :math:`dh = T \cdot ds + v \cdot dp` with the temperature dependent
+    specific volume :math:`v(T) = 1 / \rho(T)`:
+
+    .. math::
+
+        h(p, T) = \int_{T_\text{ref}}^{T} c_p^0 \, dT
+        + \left(v - T \cdot \frac{dv}{dT}\right)
+        \cdot \left(p - p_\text{ref}\right)
+
+        s(p, T) = \int_{T_\text{ref}}^{T} \frac{c_p^0}{T} \, dT
+        - \frac{dv}{dT} \cdot \left(p - p_\text{ref}\right)
     """
 
     def __init__(self, fluid, back_end=None, **kwargs):

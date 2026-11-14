@@ -128,16 +128,20 @@ def test_entropy_enthalpy_roundtrip(property_data, wrapper_instance):
     np.testing.assert_allclose(temperature_check, temperature_data)
 
 
-def test_isentropic(property_data, wrapper_instance):
-    temperature_data = property_data["temperature_data"]
+@mark.parametrize("pressure", [2e5, 1e7])
+def test_isentropic(property_data, wrapper_instance, pressure):
+    # includes outlet states above the highest temperature of the data
+    p_1 = 1e5
 
-    enthalpy_inflow = wrapper_instance.h_pT(1e5, temperature_data)
-    enthalpy_outflow = wrapper_instance.isentropic(1e5, enthalpy_inflow, 2e5)
-    rho = wrapper_instance.d_pT(None, temperature_data)
+    for temperature in property_data["temperature_data"]:
+        h_1 = wrapper_instance.h_pT(p_1, temperature)
+        h_2 = wrapper_instance.isentropic(p_1, h_1, pressure)
+        v = 1 / wrapper_instance.d_pT(None, temperature)
 
-    np.testing.assert_allclose(
-        enthalpy_outflow - enthalpy_inflow, 1e5 / rho
-    )
+        assert wrapper_instance.s_ph(pressure, h_2) == approx(
+            wrapper_instance.s_ph(p_1, h_1), abs=1e-6
+        )
+        assert h_2 - h_1 == approx(v * (pressure - p_1), rel=1e-2)
 
 
 def test_density(property_data, wrapper_instance):

@@ -11,7 +11,9 @@ New Features
   are available, users can register their own pairs. See
   :ref:`tutorial_absorption_cycles_label` (:issue:`1016`). The feature is
   experimental and not thoroughly tested yet, a :code:`UserWarning` is raised
-  once per session. Feedback is very welcome.
+  once per session. Feedback is very welcome. The example models are in the
+  `tespy-sorption-models <https://github.com/fwitte/tespy-sorption-models>`__
+  repository.
 - Mixing rules can provide functions for the temperature from enthalpy and
   entropy, the phase, the vapor mass fraction and the bubble and dew points
   of a mixture. The specifications :code:`x`, :code:`td_bubble` and

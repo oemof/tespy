@@ -1,8 +1,15 @@
 .. _tutorial_absorption_cycles_label:
 
-#########################
-Model absorption chillers
-#########################
+########################################
+Model absorption chillers (experimental)
+########################################
+
+.. warning::
+
+    The absorption cycle modeling is experimental and not thoroughly tested
+    yet, results and the API may change. A :code:`UserWarning` reminds of
+    this once per session. Feedback is very welcome, please open an issue on
+    `GitHub <https://github.com/oemof/tespy/issues>`__.
 
 Absorption chillers and heat pumps replace the compressor of a vapor
 compression cycle by a solution circuit: the refrigerant vapor is absorbed in
@@ -18,12 +25,43 @@ and the sorption processes with the components
 - :py:class:`Rectifier <tespy.components.sorption.rectifier.Rectifier>` for
   working pairs with a volatile absorbent.
 
-.. warning::
+Examples
+--------
 
-    The absorption cycle modeling is experimental and not thoroughly tested
-    yet, results and the API may change. A :code:`UserWarning` reminds of
-    this once per session. Feedback is very welcome, please open an issue on
-    `GitHub <https://github.com/oemof/tespy/issues>`__.
+The example models live in the
+`tespy-sorption-models <https://github.com/fwitte/tespy-sorption-models>`__
+repository, together with instructions to install and run them:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 35 65
+
+    * - Example
+      - Content
+    * - `libr_water_absorber.py <https://github.com/fwitte/tespy-sorption-models/blob/main/libr_water_absorber.py>`__
+      - :code:`Absorber`: outlet enthalpy, mass flow, temperature and
+        composition specifications, approach to equilibrium :code:`td_eq`
+    * - `libr_water_absorber_cooled.py <https://github.com/fwitte/tespy-sorption-models/blob/main/libr_water_absorber_cooled.py>`__
+      - :code:`CooledAbsorber` with cooling water
+    * - `libr_water_desorber.py <https://github.com/fwitte/tespy-sorption-models/blob/main/libr_water_desorber.py>`__
+      - :code:`Desorber`: the :code:`vapor_state` options and outlet
+        specifications
+    * - `libr_water_desorber_heated.py <https://github.com/fwitte/tespy-sorption-models/blob/main/libr_water_desorber_heated.py>`__
+      - :code:`HeatedDesorber` with heating water
+    * - `libr_water_chiller.py <https://github.com/fwitte/tespy-sorption-models/blob/main/libr_water_chiller.py>`__
+      - Closed single-effect LiBr-water chiller with solution heat exchanger
+    * - `nh3_water_absorber.py <https://github.com/fwitte/tespy-sorption-models/blob/main/nh3_water_absorber.py>`__
+      - :code:`Absorber` with NH3-water
+    * - `nh3_water_generator_rectifier.py <https://github.com/fwitte/tespy-sorption-models/blob/main/nh3_water_generator_rectifier.py>`__
+      - :code:`Desorber` and :code:`Rectifier`: purification of the generator
+        vapor
+    * - `nh3_water_chiller.py <https://github.com/fwitte/tespy-sorption-models/blob/main/nh3_water_chiller.py>`__
+      - Closed NH3-water chiller with rectifier, solution and refrigerant heat
+        exchanger (CoolSolve Library CSL-0249)
+    * - `custom_working_pair.py <https://github.com/fwitte/tespy-sorption-models/blob/main/custom_working_pair.py>`__
+      - Custom working pair derived from LiBr-water
+    * - `working_pair_properties.py <https://github.com/fwitte/tespy-sorption-models/blob/main/working_pair_properties.py>`__
+      - Duehring chart of LiBr-water and bubble and dew lines of NH3-water
 
 Working pairs
 -------------
@@ -52,64 +90,28 @@ bubble point temperature :code:`T_bubble` and the subcooling
 :code:`td_bubble`. :code:`x` and :code:`td_bubble` can be specified like on a
 pure fluid connection.
 
-Single-effect LiBr-water chiller
---------------------------------
+Modeling notes
+--------------
 
-The cycle consists of the generator (desorber), condenser, evaporator,
-absorber, solution pump, solution heat exchanger and the two valves. The
-solution circuit is closed by a :code:`CycleCloser`.
-
-.. literalinclude:: /../tutorial/advanced/absorption_chiller.py
-    :language: python
-    :start-after: [sec_1]
-    :end-before: [sec_2]
-
-The working pair is named on the connection leaving the absorber, all other
-solution connections take it over.
-
-.. literalinclude:: /../tutorial/advanced/absorption_chiller.py
-    :language: python
-    :start-after: [sec_2]
-    :end-before: [sec_3]
-
-The temperatures of the absorber and generator outlets, of the condenser and
-of the evaporator define the pressures and the equilibrium compositions; the
-cooling capacity defines the mass flows. The cycle closer does not close the
-variable composition of the solution, therefore :code:`fluid_balance=True` is
-specified on the connection leaving it.
-
-.. literalinclude:: /../tutorial/advanced/absorption_chiller.py
-    :language: python
-    :start-after: [sec_3]
-    :end-before: [sec_4]
-
-The vapor leaving the generator is in equilibrium with the entering solution
-by default (:code:`vapor_state="inlet-equilibrium"`), as in a counter-current
-generator. :code:`"outlet-equilibrium"` assumes equilibrium with the leaving
-solution, :code:`"free"` leaves the vapor state to a specification on the
-vapor connection. An approach to the bubble point of the solution leaving
-the absorber or desorber can be specified with :code:`td_eq`.
-
-.. literalinclude:: /../tutorial/advanced/absorption_chiller.py
-    :language: python
-    :start-after: [sec_4]
-    :end-before: [sec_5]
-
-NH3-water chiller with rectifier
---------------------------------
-
-With NH3-water the vapor leaving the generator contains water. A
-:code:`Rectifier` purifies it by partial condensation: the purified vapor
-leaves at its dew point at the composition specified on its outlet, the reflux
-is the liquid in equilibrium with the entering vapor. The reflux is merged
-with the solution entering the generator, e.g. with a :code:`Merge`; the
-rectifier does not impose its pressure on the reflux, the merge does. All
-streams of the cycle are solution connections, the condenser outlet is
-specified with :code:`x=0` and the evaporator outlet with the vapor mass
-fraction reached in evaporation, since the refrigerant evaporates with a
-temperature glide. The test
-:code:`tests/test_models/test_absorption_chillers.py` holds the complete
-model of the cycle of the CoolSolve Library (CSL-0249).
+- The solution leaving an absorber or desorber is at its bubble point, an
+  approach to the bubble point can be specified with :code:`td_eq`.
+- The vapor leaving a desorber is in equilibrium with the entering solution
+  by default (:code:`vapor_state="inlet-equilibrium"`), as in a
+  counter-current generator. :code:`"outlet-equilibrium"` assumes equilibrium
+  with the leaving solution, :code:`"free"` leaves the vapor state to a
+  specification on the vapor connection.
+- A :code:`CycleCloser` does not close the variable composition of a solution
+  circuit, specify :code:`fluid_balance=True` on the connection leaving it.
+- With NH3-water the vapor leaving the generator contains water. A
+  :code:`Rectifier` purifies it by partial condensation: the purified vapor
+  leaves at its dew point at the composition specified on its outlet, the
+  reflux is the liquid in equilibrium with the entering vapor. The rectifier
+  does not impose its pressure on the reflux, merge the reflux with the
+  solution entering the generator, e.g. with a :code:`Merge`, or specify its
+  pressure.
+- NH3-water refrigerant evaporates with a temperature glide, specify the
+  evaporator outlet with the vapor mass fraction :code:`x` reached in
+  evaporation.
 
 Custom working pairs
 --------------------
@@ -119,13 +121,9 @@ A working pair is a subclass of
 It implements the state functions in terms of pressure, temperature or
 enthalpy and the mass fraction of the key component and is registered with
 :py:func:`register_solution_pair <tespy.tools.fluid_properties.solutions.base.register_solution_pair>`,
-which makes it available as mixing rule of the same name. The example derives
-a pair from LiBr-water that limits the equilibrium composition to 70 % LiBr.
-A custom pair with the same key component as a built-in pair, LiBr here, must
-be named with :code:`mixing_rule` on a solution connection of each circuit, it
-cannot be inferred from the fluid names.
-
-.. literalinclude:: /../tutorial/advanced/absorption_chiller.py
-    :language: python
-    :start-after: [sec_5]
-    :end-before: [sec_6]
+which makes it available as mixing rule of the same name. A custom pair with
+the same key component as a built-in pair must be named with
+:code:`mixing_rule` on a solution connection of each circuit, it cannot be
+inferred from the fluid names. See the
+`custom_working_pair.py <https://github.com/fwitte/tespy-sorption-models/blob/main/custom_working_pair.py>`__
+example.

@@ -92,12 +92,12 @@ different applications see the :ref:`model library <model_library_label>`.
         .. image:: /_static/images/thumbnails/how_to_guides/humid_air_darkmode.svg
             :class: only-dark
 
-    .. grid-item-card::  Model absorption chillers
+    .. grid-item-card::  Model absorption chillers (experimental)
         :link: tutorial_absorption_cycles_label
         :link-type: ref
 
         LiBr-water and NH3-water working pairs, absorber, desorber and
-        rectifier.
+        rectifier. Experimental, examples in a separate repository.
 
     .. grid-item-card::  Frequently Asked Questions
         :link: faq_label

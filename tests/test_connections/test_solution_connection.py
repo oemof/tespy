@@ -32,7 +32,7 @@ needs_teqp = mark.skipif(
 
 @fixture(autouse=True)
 def builtin_pairs_only(monkeypatch):
-    # user code, e.g. the tutorials, may have registered further pairs with
+    # other tests or user code may have registered further pairs with
     # the same key component, which disables the inference from fluid names
     pairs = {
         name: pair for name, pair in base._SOLUTION_PAIRS.items()

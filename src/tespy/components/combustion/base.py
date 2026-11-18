@@ -571,7 +571,7 @@ class CombustionChamber(Component):
             elif fluid in self.fuel_list:
                 if self.lamb.val_SI < 1:
                     n_fuel_exc = (
-                        -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
+                        (1- self.lamb.val_SI) * n_oxy_stoich[fluid]
                         / (
                             self.fuels[fluid]["H"] / 4 + self.fuels[fluid]["C"]
                             - self.fuels[fluid]["O"] / 2
@@ -653,7 +653,7 @@ class CombustionChamber(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        #TODO substract energy for NO formation
+        
         inl, outl = self._get_combustion_connections()
         T_ref = 298.15
         p_ref = 1e5

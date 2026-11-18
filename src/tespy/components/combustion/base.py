@@ -534,8 +534,8 @@ class CombustionChamber(Component):
             self.lamb.val_SI = n_oxygen / n_oxygen_stoich
 
         if self.lamb.val_SI < 1:
-            n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
-            n_c_exc = n_oxygen_stoich - n_oxygen
+            n_h_exc = n_h * (1 - self.lamb.val_SI)
+            n_c_exc = n_c * (1 - self.lamb.val_SI)
         else:
             n_h_exc = 0
             n_c_exc = 0

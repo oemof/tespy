@@ -47,7 +47,7 @@ Bug Fixes
   fluid without saturation
   (`PR #1129 <https://github.com/oemof/tespy/pull/1129>`__).
 - Updated the calculation of excess hydrogen and carbon under sub-stoichiometric combustion
-  in the `CombustionChamber`. That fixes #1131, because the oxygen deficit 
+  in the `CombustionChamber`. That fixes `#1131 <https://github.com/oemof/tespy/issues/1131>`__, because the oxygen deficit 
   could result in excess elemental quantities greater than those available in the fuel 
   and lead to inconsistent CO2 and H2O production 
   (`PR #1133 <https://github.com/oemof/tespy/pull/1133>`__).

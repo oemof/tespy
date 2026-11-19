@@ -23,7 +23,7 @@ from tespy.tools.helpers import TESPyNetworkError
 # connection classes with the boundary component name and port prefix used to
 # rewire them in Subsystem.from_network
 _BOUNDARY_REWIRING = [
-    (["Connection", "HAConnection"], "", ""),
+    (["Connection", "HAConnection", "SolutionConnection"], "", ""),
     (["HeatConnection"], "Heat", "heat_"),
     (["PowerConnection"], "Power", "power_"),
 ]

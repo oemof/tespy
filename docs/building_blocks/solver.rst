@@ -316,6 +316,14 @@ heat exchangers. Should the inference miss a dependence, e.g. of a custom
 equation, the verification of the full residual vector after the block phase
 detects it and the simultaneous solution takes over.
 
+.. note::
+
+    From version 0.13 on the block-wise solution becomes the default for
+    networks with variable fluid composition as well. Until then a
+    :code:`FutureWarning` is raised if the option is not passed. Pass
+    :code:`block_solve_fluid_composition=False` to keep the simultaneous
+    solution.
+
 The inference is conservative: equations that list pressure or enthalpy without
 evaluating a fluid property, like energy balances written in mass flow and
 enthalpy, get a dependence on the composition they do not have. This costs

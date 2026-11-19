@@ -3,6 +3,20 @@ v0.12.1 - Under development
 
 New Features
 ############
+- Sorption processes (absorption chillers and heat pumps) can be modeled in
+  principle, but the feature is still experimental and not thoroughly tested.
+  Results and the API may change, and a :code:`UserWarning` is raised once
+  per session. Feedback is very welcome. The :code:`SolutionConnection` and
+  the components :code:`Absorber`, :code:`CooledAbsorber`, :code:`Desorber`,
+  :code:`HeatedDesorber` and :code:`Rectifier` support the working pairs
+  LiBr-water and NH3-water and custom pairs can be registered. See
+  :ref:`tutorial_absorption_cycles_label` and the
+  `tespy-sorption-models <https://github.com/fwitte/tespy-sorption-models>`__
+  repository (:issue:`1016`).
+- Mixing rules can provide functions for the temperature from enthalpy and
+  entropy, the phase, the vapor mass fraction and the bubble and dew points
+  of a mixture. The specifications :code:`x`, :code:`td_bubble` and
+  :code:`td_dew` then work on mixtures as well.
 - The block decomposition and the structural analysis cover networks with
   variable fluid composition. Every equation listing the pressure or the
   enthalpy of a connection is assumed to depend on the variable mass fractions
@@ -28,6 +42,15 @@ New Features
   process without convergence instead of escalating to the simultaneous
   solution, for calculations where a failure is acceptable and the runtime
   matters (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
+
+Deprecations
+############
+- The block-wise solution becomes the default for networks with variable fluid
+  composition in version 0.13, :code:`block_solve_fluid_composition` will
+  default to :code:`True`. A :code:`FutureWarning` is raised for these
+  networks if the option is not passed, pass :code:`False` to keep the
+  simultaneous solution
+  (`#1075 <https://github.com/oemof/tespy/issues/1075>`__).
 
 Bug Fixes
 #########

@@ -1360,11 +1360,11 @@ class Connection(ConnectionBase):
             if not self.p.is_var:
                 p = self.p.val_SI
                 if self.td_bubble.is_set:
-                    return T_bubble_p(p, self.fluid_data) - self.td_bubble.val_SI
+                    return T_bubble_p(p, self.fluid_data, self.mixing_rule) - self.td_bubble.val_SI
                 if self.td_dew.is_set:
-                    return T_dew_p(p, self.fluid_data) + self.td_dew.val_SI
+                    return T_dew_p(p, self.fluid_data, self.mixing_rule) + self.td_dew.val_SI
                 if self.x.is_set:
-                    return T_dew_p(p, self.fluid_data)
+                    return T_dew_p(p, self.fluid_data, self.mixing_rule)
         except (ValueError, KeyError, IndexError, NotImplementedError):
             return None
         return None
@@ -1378,7 +1378,7 @@ class Connection(ConnectionBase):
         if wrapper._T_crit is None or T >= wrapper._T_crit:
             return None
         try:
-            return p_dew_T(T, self.fluid_data)
+            return p_dew_T(T, self.fluid_data, self.mixing_rule)
         except (ValueError, KeyError, IndexError, NotImplementedError):
             return None
 
@@ -1469,7 +1469,7 @@ class Connection(ConnectionBase):
                         covered.add(reference)
                 else:
                     try:
-                        T_sat = T_dew_p(self.p.val_SI, self.fluid_data)
+                        T_sat = T_dew_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
                     except (ValueError, KeyError, IndexError, NotImplementedError):
                         T_sat = None
                     if T_sat is not None:
@@ -1541,7 +1541,7 @@ class Connection(ConnectionBase):
             p = self.p.val_SI
             if p >= wrapper._p_crit:
                 return True
-            return abs(T - T_dew_p(p, self.fluid_data)) > 5
+            return abs(T - T_dew_p(p, self.fluid_data, self.mixing_rule)) > 5
         except (ValueError, KeyError, IndexError, NotImplementedError):
             return False
 
@@ -1773,7 +1773,7 @@ class Connection(ConnectionBase):
 
         p = self.p.val_SI
         try:
-            h_edge = fp.h_mix_pQ(p, 1 if side == "gas" else 0, self.fluid_data)
+            h_edge = fp.h_mix_pQ(p, 1 if side == "gas" else 0, self.fluid_data, self.mixing_rule)
         except (ValueError, KeyError, IndexError, NotImplementedError):
             return False
 
@@ -1807,9 +1807,9 @@ class Connection(ConnectionBase):
         p = self.p.val_SI
         try:
             if self.td_dew.is_set and self.td_dew.val_SI != 0:
-                T = T_dew_p(p, self.fluid_data) + self.td_dew.val_SI
+                T = T_dew_p(p, self.fluid_data, self.mixing_rule) + self.td_dew.val_SI
             elif self.td_bubble.is_set and self.td_bubble.val_SI != 0:
-                T = T_bubble_p(p, self.fluid_data) - self.td_bubble.val_SI
+                T = T_bubble_p(p, self.fluid_data, self.mixing_rule) - self.td_bubble.val_SI
             else:
                 return None
             return fp.h_mix_pT(p, T, self.fluid_data, self.mixing_rule)
@@ -1873,7 +1873,7 @@ class Connection(ConnectionBase):
         elif self.p.is_var:
             if self.T_dew.is_set:
                 self._pressure_from_saturation = True
-                self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_dew_T(self.T_dew.val_SI, self.fluid_data, self.mixing_rule))
                 self.p._potential_var = False
                 if "T_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["T_dew"]
@@ -1885,7 +1885,7 @@ class Connection(ConnectionBase):
 
             elif self.T_bubble.is_set:
                 self._pressure_from_saturation = True
-                self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_bubble_T(self.T_bubble.val_SI, self.fluid_data, self.mixing_rule))
                 self.p._potential_var = False
                 if "T_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["T_bubble"]
@@ -1922,13 +1922,13 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.td_bubble.is_set:
-                T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data)
+                T_bubble = T_bubble_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
                 # fix for pure fluids: T cannot be too close to saturation
                 if abs(self.td_bubble.val_SI) <= 1e-3:
                     # at saturation we can use h_mix_pQ
-                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data, self.mixing_rule))
                 else:
-                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_bubble - self.td_bubble.val_SI, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_bubble - self.td_bubble.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "td_bubble" in self._equation_set_lookup.values():
                     presolved_equations += ["td_bubble"]
@@ -1939,13 +1939,13 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.td_dew.is_set:
-                T_dew = T_dew_p(self.p.val_SI, self.fluid_data)
+                T_dew = T_dew_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
                 # fix for pure fluids: T cannot be too close to saturation
                 if abs(self.td_dew.val_SI) <= 1e-3:
                     # at saturation we can use h_mix_pQ
-                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data, self.mixing_rule))
                 else:
-                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_dew + self.td_dew.val_SI, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, T_dew + self.td_dew.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "td_dew" in self._equation_set_lookup.values():
                     presolved_equations += ["td_dew"]
@@ -1956,7 +1956,7 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.x.is_set:
-                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
+                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "x" in self._equation_set_lookup.values():
                     presolved_equations += ["x"]
@@ -1968,9 +1968,9 @@ class Connection(ConnectionBase):
 
         elif self.h.is_var and self.p.is_var:
             if self.T.is_set and self.x.is_set:
-                self.p.set_reference_val_SI(p_sat_TQ(self.T.val_SI, self.x.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_sat_TQ(self.T.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule))
                 self.p._potential_var = False
-                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data))
+                self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
@@ -1986,12 +1986,12 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.T.is_set and self.td_bubble.is_set:
-                self.p.set_reference_val_SI(p_bubble_T(self.T.val_SI + self.td_bubble.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_bubble_T(self.T.val_SI + self.td_bubble.val_SI, self.fluid_data, self.mixing_rule))
                 self.p._potential_var = False
                 if round(self.td_bubble.val_SI, 6) == 0:
-                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 0, self.fluid_data, self.mixing_rule))
                 else:
-                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
@@ -2007,12 +2007,12 @@ class Connection(ConnectionBase):
                 logger.debug(msg)
 
             elif self.T.is_set and self.td_dew.is_set:
-                self.p.set_reference_val_SI(p_dew_T(self.T.val_SI - self.td_dew.val_SI, self.fluid_data))
+                self.p.set_reference_val_SI(p_dew_T(self.T.val_SI - self.td_dew.val_SI, self.fluid_data, self.mixing_rule))
                 self.p._potential_var = False
                 if round(self.td_dew.val_SI, 6) == 0:
-                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pQ(self.p.val_SI, 1, self.fluid_data, self.mixing_rule))
                 else:
-                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data))
+                    self.h.set_reference_val_SI(h_mix_pT(self.p.val_SI, self.T.val_SI, self.fluid_data, self.mixing_rule))
                 self.h._potential_var = False
                 if "T" in self._equation_set_lookup.values():
                     presolved_equations += ["T"]
@@ -2357,7 +2357,9 @@ class Connection(ConnectionBase):
 
     def calc_x(self):
         try:
-            return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+            return Q_mix_ph(
+                self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule
+            )
         except NotImplementedError:
             return np.nan
 
@@ -2376,12 +2378,16 @@ class Connection(ConnectionBase):
         # saturated steam fraction
         return (
             self.h.val_SI
-            - h_mix_pQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+            - h_mix_pQ(
+                self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule
+            )
         )
 
     def x_deriv(self, increment_filter, k, **kwargs):
         if self.p.is_var:
-            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(self.p.val_SI, self.x.val_SI, self.fluid_data)
+            self.jacobian[k, self.p.J_col] = -dh_mix_dpQ(
+                self.p.val_SI, self.x.val_SI, self.fluid_data, self.mixing_rule
+            )
         if self.h.is_var:
             self.jacobian[k, self.h.J_col] = 1
 
@@ -2396,25 +2402,29 @@ class Connection(ConnectionBase):
 
     def calc_T_dew(self):
         try:
-            return T_dew_p(self.p.val_SI, self.fluid_data)
+            return T_dew_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
         except NotImplementedError:
             return np.nan
 
     def calc_T_bubble(self):
         try:
-            return T_bubble_p(self.p.val_SI, self.fluid_data)
+            return T_bubble_p(self.p.val_SI, self.fluid_data, self.mixing_rule)
         except NotImplementedError:
             return np.nan
 
     def calc_td_dew(self):
         try:
-            return self.calc_T() - T_dew_p(self.p.val_SI, self.fluid_data)
+            return self.calc_T() - T_dew_p(
+                self.p.val_SI, self.fluid_data, self.mixing_rule
+            )
         except NotImplementedError:
             return np.nan
 
     def calc_td_bubble(self):
         try:
-            return T_bubble_p(self.p.val_SI, self.fluid_data) - self.calc_T()
+            return T_bubble_p(
+                self.p.val_SI, self.fluid_data, self.mixing_rule
+            ) - self.calc_T()
         except NotImplementedError:
             return np.nan
 
@@ -2485,7 +2495,7 @@ class Connection(ConnectionBase):
         return self.calc_vol(T0=self.T.val_SI, postprocess=True)
 
     def calc_Q(self):
-        return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data)
+        return Q_mix_ph(self.p.val_SI, self.h.val_SI, self.fluid_data, self.mixing_rule)
 
     def calc_phase(self):
         try:

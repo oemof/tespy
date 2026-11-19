@@ -929,18 +929,37 @@ class Network:
             wrapper_kwargs = {}
             any_fluids = []
 
+            mixing_rules = [
+                c.mixing_rule for c in all_connections
+                if c.mixing_rule is not None
+            ]
+            mixing_rule = list(set(mixing_rules))
+            if len(mixing_rule) > 1:
+                msg = (
+                    "You have provided more than one mixing rule in the "
+                    "branches including the following connections: "
+                    f"{', '.join([c.label for c in all_connections])}"
+                )
+                raise hlp.TESPyNetworkError(msg)
+            elif len(mixing_rule) == 0:
+                mixing_rule = "ideal-cond"
+            else:
+                mixing_rule = mixing_rules[0]
+
+            # the mixing rule can complete the fluid information of a
+            # connection, e.g. the components of a working pair
+            for c in all_connections:
+                c.mixing_rule = mixing_rule
+
             all_components = [c for c in branch_data["components"]]
             for cp in all_components:
                 any_fluids += cp._add_missing_fluids(all_connections)
 
             any_fluids0 = []
-            mixing_rules = []
             for c in all_connections:
                 any_fluids_set += list(c.fluid.is_set)
                 any_fluids += list(c.fluid.val.keys())
                 any_fluids0 += list(c.fluid.val0.keys())
-                if c.mixing_rule is not None:
-                    mixing_rules += [c.mixing_rule]
 
             for c in all_connections:
                 for f in set(any_fluids):
@@ -959,19 +978,6 @@ class Network:
                             raise ValueError("")
                         wrapper_kwargs[f] = c.fluid.wrapper_kwargs[f]
 
-            mixing_rule = list(set(mixing_rules))
-            if len(mixing_rule) > 1:
-                msg = (
-                    "You have provided more than one mixing rule in the "
-                    "branches including the following connections: "
-                    f"{', '.join([c.label for c in all_connections])}"
-                )
-                raise hlp.TESPyNetworkError(msg)
-            elif len(mixing_rule) == 0:
-                mixing_rule = "ideal-cond"
-            else:
-                mixing_rule = mixing_rules[0]
-
             if not any_fluids_set:
                 msg = "You are missing fluid specifications."
 
@@ -987,7 +993,6 @@ class Network:
                 raise hlp.TESPyNetworkError(msg)
 
             for c in all_connections:
-                c.mixing_rule = mixing_rule
                 c._potential_fluids = potential_fluids
                 if num_potential_fluids == 1:
                     f = list(potential_fluids)[0]
@@ -2429,7 +2434,7 @@ class Network:
               oscillation_damping=False, block_solve=True,
               pause_on_block_failure=False, line_search="stagnation",
               increment_filter=INCREMENT_FILTER_RTOL,
-              block_solve_fluid_composition=False, skip_fallbacks=False):
+              block_solve_fluid_composition=None, skip_fallbacks=False):
         r"""
         Solve the network.
 
@@ -2534,12 +2539,13 @@ class Network:
 
         block_solve_fluid_composition : boolean
             Apply the block-wise solution also in case the fluid composition
-            is part of the variable space, default: :code:`False`. The
-            dependence of the fluid property equations on the composition is
-            inferred from their pressure and enthalpy dependents and the
-            respective derivatives enter the jacobian. Without this option a
-            variable fluid composition is solved simultaneously. Only has an
-            effect with :code:`block_solve=True`.
+            is part of the variable space, default: :code:`None`, which
+            currently means :code:`False` and becomes :code:`True` in
+            version 0.13. The dependence of the fluid property equations on
+            the composition is inferred from their pressure and enthalpy
+            dependents and the respective derivatives enter the jacobian.
+            Without this option a variable fluid composition is solved
+            simultaneously. Only has an effect with :code:`block_solve=True`.
 
         skip_fallbacks : boolean
             End the block-wise solution process without convergence
@@ -2573,7 +2579,7 @@ class Network:
             pause_on_block_failure=pause_on_block_failure,
             line_search=line_search, increment_filter=increment_filter,
             block_solve_fluid_composition=block_solve_fluid_composition,
-            skip_fallbacks=skip_fallbacks
+            skip_fallbacks=skip_fallbacks, _stacklevel=3
         )
 
     def presolve(self, mode, init_path=None, design_path=None,
@@ -2671,8 +2677,8 @@ class Network:
                        block_solve=True, pause_on_block_failure=None,
                        line_search="stagnation",
                        increment_filter=INCREMENT_FILTER_RTOL,
-                       block_solve_fluid_composition=False,
-                       skip_fallbacks=None):
+                       block_solve_fluid_composition=None,
+                       skip_fallbacks=None, _stacklevel=2):
         r"""
         Run the solver on the previously prepared problem.
 
@@ -2714,6 +2720,21 @@ class Network:
             logger.warning(msg)
             use_cuda = False
 
+        if (
+                block_solve and block_solve_fluid_composition is None
+                and not self._problem.paused
+                and self._problem._variable_composition()
+            ):
+            msg = (
+                "The fluid composition is part of the variable space and is "
+                "solved simultaneously. From version 0.13 on the block-wise "
+                "solution applies to these networks as well, i.e. "
+                "block_solve_fluid_composition defaults to True. Pass "
+                "block_solve_fluid_composition=True to use it now or False "
+                "to keep the simultaneous solution and silence this warning."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=_stacklevel)
+
         msg = 'Starting solver.'
         logger.info(msg)
 
@@ -2727,7 +2748,9 @@ class Network:
                 block_solve=block_solve,
                 pause_on_block_failure=pause_on_block_failure,
                 line_search=line_search, increment_filter=increment_filter,
-                block_solve_fluid_composition=block_solve_fluid_composition,
+                block_solve_fluid_composition=bool(
+                    block_solve_fluid_composition
+                ),
                 skip_fallbacks=skip_fallbacks
             )
         except ValueError as e:

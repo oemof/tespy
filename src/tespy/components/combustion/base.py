@@ -272,11 +272,6 @@ class CombustionChamber(Component):
         super()._preprocess(num_nw_vars)
         self.setup_reaction_parameters()
 
-        # impose better starting values if None are available
-        if self.outl[0].fluid.val0 == {}:
-            for f in self.fuel_list:
-                self.outl[0].fluid.val0[f] = 0
-
     def _get_combustion_connections(self):
         return (self.inl[:2], [self.outl[0]])
 
@@ -534,8 +529,8 @@ class CombustionChamber(Component):
             self.lamb.val_SI = n_oxygen / n_oxygen_stoich
 
         if self.lamb.val_SI < 1:
-            n_h_exc = (n_oxygen_stoich - n_oxygen) * 4
-            n_c_exc = n_oxygen_stoich - n_oxygen
+            n_h_exc = n_h * (1 - self.lamb.val_SI)
+            n_c_exc = n_c * (1 - self.lamb.val_SI)
         else:
             n_h_exc = 0
             n_c_exc = 0
@@ -571,7 +566,7 @@ class CombustionChamber(Component):
             elif fluid in self.fuel_list:
                 if self.lamb.val_SI < 1:
                     n_fuel_exc = (
-                        -(n_oxygen / n_oxygen_stoich - 1) * n_oxy_stoich[fluid]
+                        (1- self.lamb.val_SI) * n_oxy_stoich[fluid]
                         / (
                             self.fuels[fluid]["H"] / 4 + self.fuels[fluid]["C"]
                             - self.fuels[fluid]["O"] / 2
@@ -653,7 +648,7 @@ class CombustionChamber(Component):
         - Reference temperature: 298.15 K.
         - Reference pressure: 1 bar.
         """
-        #TODO substract energy for NO formation
+        
         inl, outl = self._get_combustion_connections()
         T_ref = 298.15
         p_ref = 1e5
@@ -948,6 +943,16 @@ class CombustionChamber(Component):
         # a single inlet carrying the premixed reactants leaves nothing
         # to relate
         return []
+
+    def _initial_composition(self, outlet):
+        # fuel in the flue gas leads towards solutions with a rich mixture,
+        # e.g. if the flue gas is recycled to the inlet
+        _, outl = self._get_combustion_connections()
+        if outlet not in outl:
+            return None
+        return {
+            f: 0 if f in self.fuel_list else 1 for f in outlet.fluid.val
+        }
 
     def _initial_affine_edges(self):
         # the reaction enthalpy dominates the outlet enthalpy, only the

@@ -593,6 +593,7 @@ class Problem:
         are ignored, and a branch of constant composition consisting of
         a single connection is not detected as constant.
         """
+        generic_starts = []
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
 
@@ -702,6 +703,9 @@ class Problem:
                     if f in fluid0:
                         reference_container.val[f] = fluid0[f]
 
+            if reference_container.is_var and not fluid0:
+                generic_starts.append((reference_container, all_connections))
+
             for fluid in reference_container.is_var:
                 reference_container._J_col[fluid] = self.variable_counter
                 self.variables_dict[self.variable_counter] = {
@@ -711,6 +715,40 @@ class Problem:
                     "_represents": linear_dependents["variables"]
                 }
                 self.variable_counter += 1
+
+        self._propagate_starting_compositions(generic_starts)
+
+    def _propagate_starting_compositions(self, generic_starts):
+        """Replace the even split of the variable mass fractions by the
+        composition the source component of a branch suggests.
+
+        A suggestion can build on the starting composition of another
+        branch, e.g. in a recycle, so the branches are revisited until the
+        suggestions settle.
+        """
+        for _ in range(len(generic_starts) + 1):
+            changed = False
+            for container, connections in generic_starts:
+                for c in connections:
+                    guess = c.source._initial_composition(c)
+                    if guess is None:
+                        continue
+                    guess = {f: max(guess.get(f, 0), 0) for f in container.is_var}
+                    total = sum(guess.values())
+                    if total <= 0:
+                        continue
+                    share = 1 - sum(
+                        value for f, value in container.val.items()
+                        if f not in container.is_var
+                    )
+                    for f, value in guess.items():
+                        value *= share / total
+                        if abs(container.val[f] - value) > 1e-6:
+                            changed = True
+                        container.val[f] = value
+                    break
+            if not changed:
+                break
 
     def _presolve_linear_dependents(self):
         """Impose user specifications on their affine groups.

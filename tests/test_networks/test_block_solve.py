@@ -20,6 +20,7 @@ from tespy.components import Source
 from tespy.components import Splitter
 from tespy.connections import Connection
 from tespy.networks import Network
+from tespy.solver.problem import Problem
 from tespy.tools.helpers import TESPyNetworkError
 
 
@@ -202,6 +203,47 @@ def test_pause_then_escalate():
     # standard escalation stages
     nw.solve_continue(max_iter=2, pause_on_block_failure=False)
     assert nw.status != 20
+    assert not nw.problem.paused
+
+
+def test_skip_fallbacks_at_failed_block(monkeypatch):
+    calls = []
+    solve_simultaneous = Problem._solve_simultaneous
+
+    def record(problem, *args, **kwargs):
+        calls.append(problem)
+        return solve_simultaneous(problem, *args, **kwargs)
+
+    monkeypatch.setattr(Problem, "_solve_simultaneous", record)
+
+    nw = _compressor_heater_network()
+    nw.solve("design", max_iter=2, skip_fallbacks=True)
+    assert nw.status == 2
+    assert not nw.converged
+    assert calls == []
+    # the blocks after the failed one are not attempted, neither on their
+    # own nor as part of a coupled remainder
+    status = [block.status for block in nw.problem.decompose().blocks]
+    failed = next(i for i, value in enumerate(status) if value != 0)
+    assert all(value is None for value in status[failed + 1:])
+    assert len(status) > failed + 1
+
+    nw = _compressor_heater_network()
+    nw.solve("design", skip_fallbacks=True)
+    nw.assert_convergence()
+    assert calls == []
+
+
+def test_skip_fallbacks_kept_on_continue():
+    nw = _compressor_heater_network()
+    nw.solve(
+        "design", max_iter=2, pause_on_block_failure=True,
+        skip_fallbacks=True
+    )
+    assert nw.status == 20
+
+    nw.solve_continue(max_iter=2, pause_on_block_failure=False)
+    assert nw.status == 2
     assert not nw.problem.paused
 
 

@@ -215,6 +215,7 @@ class Merge(NodeBase):
                 'num_eq_sets': 1,
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                "infer_composition": False,
                 'description': 'energy balance constraint'
             }),
             'pressure_constraints': MandatoryConstraint(**{
@@ -234,6 +235,13 @@ class Merge(NodeBase):
     @staticmethod
     def outlets():
         return ['out1']
+
+    def _initial_composition(self, outlet):
+        # the mass flows are not available yet, the inlets weigh equally
+        return {
+            f: sum(i.fluid.val.get(f, 0) for i in self.inl) / self.num_i
+            for f in outlet.fluid.val
+        }
 
     def fluid_func(self):
         r"""

@@ -238,6 +238,7 @@ class DiabaticCombustionChamber(CombustionChamber):
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
                 num_eq_sets=1,
+                infer_composition=False,
                 quantity="efficiency",
                 description="heat dissipation ratio relative to thermal input",
                 calc=self._calc_eta, calc_deps=['ti']

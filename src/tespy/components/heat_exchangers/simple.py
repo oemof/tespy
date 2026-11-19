@@ -241,6 +241,7 @@ class SimpleHeatExchanger(Component):
             constraints["energy_connector_balance"] = MandatoryConstraint(**{
                 "func": self.energy_connector_balance_func,
                 "dependents": self.energy_connector_dependents,
+                "infer_composition": False,
                 "num_eq_sets": 1
             })
 
@@ -273,6 +274,7 @@ class SimpleHeatExchanger(Component):
                 num_eq_sets=1,
                 func=self.energy_balance_func,
                 dependents=self.energy_balance_dependents,
+                infer_composition=False,
                 quantity="heat",
                 description="heat transfer",
                 calc=self._calc_Q

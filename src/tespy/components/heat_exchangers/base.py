@@ -338,6 +338,7 @@ class HeatExchanger(Component):
                 max_val=0, num_eq_sets=1,
                 func=self.energy_balance_hot_func,
                 dependents=self.energy_balance_hot_dependents,
+                infer_composition=False,
                 quantity="heat",
                 description="heat transfer from hot side",
                 calc=self._calc_Q
@@ -481,6 +482,7 @@ class HeatExchanger(Component):
             'energy_balance_constraints': MandatoryConstraint(**{
                 'func': self.energy_balance_func,
                 'dependents': self.energy_balance_dependents,
+                "infer_composition": False,
                 'num_eq_sets': 1,
                 "description": "hot side to cold side heat transfer equation"
             })
@@ -881,8 +883,8 @@ class HeatExchanger(Component):
             if fluid is None:
                 raise
             p = c.p.val_SI
-            p_crit = c.fluid.wrapper[fluid]._p_crit
-            if p_crit is None or p >= p_crit:
+            wrapper = c.fluid.wrapper[fluid]
+            if wrapper._T_crit is None or p >= wrapper._p_crit:
                 raise
             if abs(T - T_sat_p(p, c.fluid_data)) > 1e-2:
                 raise
@@ -1135,7 +1137,7 @@ class HeatExchanger(Component):
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5
@@ -1166,7 +1168,7 @@ class HeatExchanger(Component):
         """
         if key == 'p':
             fluid = single_fluid(c.fluid_data)
-            if fluid is not None:
+            if fluid is not None and c.fluid.wrapper[fluid]._T_crit is not None:
                 return c.fluid.wrapper[fluid]._p_crit / 2
             else:
                 return 1e5

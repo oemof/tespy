@@ -11,7 +11,6 @@ tespy/tools/fluid_properties/wrappers/incompressible.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
-from scipy.optimize import brentq
 
 from tespy.tools.fluid_properties.helpers import fit_incompressible_linear
 from tespy.tools.fluid_properties.helpers import fit_incompressible_viscosity
@@ -35,12 +34,35 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
     density_data : np.ndarray
         Array of corresponding density values in SI units (kg/m3)
     heat_capacity_data : np.ndarray
-        Array of corresponding heat capacity values in SI units (J/kg)
+        Array of corresponding heat capacity values in SI units
+        (J/kgK)
     viscosity_data : np.ndarray
         Array of corresponding **dynamic** viscosity values in SI units (Pas)
     conductivity_data : np.ndarray
         Array of corresponding thermal conductivity values in SI units
         (W/mK)
+    T_ref : float, optional
+        Reference temperature in K, at which enthalpy and entropy are zero
+        at reference pressure, by default the lowest temperature of the data
+    p_ref : float, optional
+        Reference pressure in Pa, by default 1e5
+
+    Notes
+    -----
+    Heat capacity and density are linear functions of temperature,
+    :math:`c_p^0(T) = a \cdot T + b` and :math:`\rho(T) = c \cdot T + d`.
+    Enthalpy and entropy follow from the Gibbs relation
+    :math:`dh = T \cdot ds + v \cdot dp` with the temperature dependent
+    specific volume :math:`v(T) = 1 / \rho(T)`:
+
+    .. math::
+
+        h(p, T) = \int_{T_\text{ref}}^{T} c_p^0 \, dT
+        + \left(v - T \cdot \frac{dv}{dT}\right)
+        \cdot \left(p - p_\text{ref}\right)
+
+        s(p, T) = \int_{T_\text{ref}}^{T} \frac{c_p^0}{T} \, dT
+        - \frac{dv}{dT} \cdot \left(p - p_\text{ref}\right)
     """
 
     def __init__(self, fluid, back_end=None, **kwargs):
@@ -57,7 +79,8 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         density_data : np.ndarray
             Array of corresponding density values in SI units (kg/m3)
         heat_capacity_data : np.ndarray
-            Array of corresponding heat capacity values in SI units (J/kg)
+            Array of corresponding heat capacity values in SI units
+            (J/kgK)
         viscosity_data : np.ndarray
             Array of corresponding **dynamic** viscosity values in SI units
             (Pas)
@@ -177,11 +200,7 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         viscosity_data = self.viscosity_data
         conductivity_data = self.conductivity_data
 
-        d = 0.001
-        heat_capacity_eval = (
-            self.h_pT(None, temperature_data + d)
-            - self.h_pT(None, temperature_data - d)
-        ) / (2 * d)
+        heat_capacity_eval = self._cp_pT(self._p_ref, temperature_data)
 
         density_eval = self.d_pT(None, temperature_data)
         viscosity_eval = self.viscosity_pT(None, temperature_data)
@@ -215,7 +234,19 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return fig, ax
 
     def T_ph(self, p, h):
-        # Inverse function of h_pT, using the quadratic formula in its
+        # Newton iteration starting from the exact inverse at reference
+        # pressure, the pressure term is small compared to the temperature
+        # dependent part of the enthalpy
+        T = self._T_h(h)
+        for _ in range(10):
+            residual = self.h_pT(p, T) - h
+            if np.all(np.abs(residual) < 1e-6):
+                break
+            T = T - residual / self._cp_pT(p, T)
+        return T
+
+    def _T_h(self, h):
+        # Inverse function of _h_pT, using the quadratic formula in its
         # numerically stable conjugate form: the standard form divides by
         # the polynomial slope A, which suffers catastrophic cancellation
         # for (near-)constant heat capacity data with A close to zero
@@ -231,13 +262,26 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         )
 
     def h_pT(self, p, T):
-        return self._h_pT(p, T) - self._h_ref
+        # (dh/dp)_T = v - T * (dv/dT)_p, which is
+        # (2 * A * T + B) / rho ** 2 for rho = A * T + B
+        return (
+            self._h_pT(p, T) - self._h_ref
+            + (2 * self._density["A"] * T + self._density["B"])
+            / self.d_pT(p, T) ** 2 * (p - self._p_ref)
+        )
 
     def _h_pT(self, p, T):
         # h = integral cp(T) dT
         return (
             0.5 * self._heat_capacity["A"] * T ** 2
             + self._heat_capacity["B"] * T
+        )
+
+    def _cp_pT(self, p, T):
+        return (
+            self._heat_capacity["A"] * T + self._heat_capacity["B"]
+            - 2 * self._density["A"] ** 2 * T / self.d_pT(p, T) ** 3
+            * (p - self._p_ref)
         )
 
     def h_ps(self, p, s):
@@ -247,28 +291,29 @@ class IncompressibleFluidWrapper(FluidPropertyWrapper):
         return self.s_pT(p, self.T_ph(p, h))
 
     def s_pT(self, p, T):
-        # s0 = 0
+        # s0 = 0, pressure term from Maxwell relation
+        # (ds/dp)_T = -(dv/dT)_p = (drho/dT)_p / rho ** 2
         return (
             self._heat_capacity["B"] * np.log(T / self._T_ref)
             + self._heat_capacity["A"] * (T - self._T_ref)
-            - self.d_pT(p, T) * (p - self._p_ref)
+            + self._density["A"] / self.d_pT(p, T) ** 2 * (p - self._p_ref)
         )
 
     def isentropic(self, p_1, h_1, p_2):
-        # assumption that temperature barely changes
-        T = self.T_ph(p_1, h_1)
-        return h_1 + (p_2 - p_1) / self.d_pT(p_1, T)
-
-    def _inverse_s_pT(self, T, p, s):
-        return s - self.s_pT(p, T)
+        return self.h_ps(p_2, self.s_ph(p_1, h_1))
 
     def T_ps(self, p, s):
-        return brentq(
-            self._inverse_s_pT,
-            self._T_min,
-            self._T_max,
-            args=(p, s)
-        )
+        # Newton iteration in ln(T), since (ds/dln(T))_p = cp, starting from
+        # constant heat capacity at reference state; like T_ph it extrapolates
+        # beyond the temperature range of the data
+        cp_ref = self._cp_pT(self._p_ref, self._T_ref)
+        T = self._T_ref * np.exp(s / cp_ref)
+        for _ in range(20):
+            residual = self.s_pT(p, T) - s
+            if np.all(np.abs(residual) < 1e-9):
+                break
+            T = T * np.exp(-residual / self._cp_pT(p, T))
+        return T
 
     def conductivity_ph(self, p, h):
         return self.conductivity_pT(p, self.T_ph(p, h))

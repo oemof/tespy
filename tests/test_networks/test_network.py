@@ -573,8 +573,10 @@ class TestNetworkPreprocessing:
         c1, c2 = self.nwk.get_conn(["1", "2"])
         c1.set_attr(fluid={"water": 0, "R134a": 1})
         self.nwk.solve("design", init_only=True)
-        assert c2.fluid.val["R134a"] == 0.5
-        assert c2.fluid.val["water"] == 0.5
+        # the merge passes the composition of its inlets on as starting
+        # value instead of the even split
+        assert c2.fluid.val["R134a"] > 0.5
+        assert c2.fluid.val["R134a"] + c2.fluid.val["water"] == approx(1)
 
     def test_recirculation_structure_two_fluids_with_starting(self):
         self._create_recirculation()

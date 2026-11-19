@@ -150,6 +150,9 @@ data:
 - viscosity through an exponential polynomial equation
   :math:`\eta\left(T\right) = e ^ {\frac{A}{T ^ 3} + \frac{B}{T ^ 2} + \frac{C}{T} + D}`
 
+Enthalpy and entropy are derived from heat capacity and density consistent
+with the Gibbs relation :math:`dh = T \cdot ds + v \cdot dp`.
+
 We can make use of the engine as shown in the example below. First, we set up
 a very simple system, just a flow of fluid through a heat exchanger.
 
@@ -184,22 +187,29 @@ Next, we have to prepare our data to be utilized by TESPy. The information
 required needs to be passed in SI units and must be gridded with the same
 spacing of temperature for all measurements.
 
-.. attention
-
-    Please note, that this example is purely for showing how to utilize this
-    implementation. In the example only 2 datapoints are available. This works
-    well for density and heat capacity as linear fitting functions are applied.
-    For viscosity this is somewhat sketchy, since you would need at least 4
-    datapoints to fit a function of polynomial 3!
+The example uses an excerpt of the data of a heat transfer oil from the
+ISTpure Data Sheet - Standard Heat Transfer Oil, page 3,
+https://de.scribd.com/document/553659821/ISTpure-Data-Sheet-Standard-Heat-Transfer-Oil.
+Note that fitting the viscosity requires at least 4 datapoints.
 
 .. code-block:: python
 
     >>> fluid_kwargs = {
-    ...     "temperature_data": np.array([273.15, 373.15]),  # K
-    ...     "density_data": np.array([1000, 1100]),  # kg/m3
-    ...     "heat_capacity_data": np.array([4000, 4100]) * 1e3,  # J/kg
-    ...     "viscosity_data": np.array([0.05, 0.00025]),  # Pa*s
-    ...     "conductivity_data": np.array([0.15, 0.13])  # W/m/K
+    ...     "temperature_data": np.array(
+    ...         [0, 50, 100, 150, 200, 250, 300]
+    ...     ) + 273.15,  # K
+    ...     "density_data": np.array(
+    ...         [890, 857, 823, 789, 756, 722, 689]
+    ...     ),  # kg/m3
+    ...     "heat_capacity_data": np.array(
+    ...         [1894, 2076, 2259, 2442, 2625, 2807, 2990]
+    ...     ),  # J/kgK
+    ...     "viscosity_data": np.array(
+    ...         [160, 11.0, 3.40, 1.70, 1.00, 0.64, 0.45]
+    ...     ) * 1e-3,  # Pa*s
+    ...     "conductivity_data": np.array(
+    ...         [0.1361, 0.1325, 0.1287, 0.1248, 0.1208, 0.1165, 0.1123]
+    ...     )  # W/m/K
     ... }
 
 .. attention::

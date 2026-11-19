@@ -79,7 +79,11 @@ class Problem:
         self._equation_lookup = {}
         self._equation_obj_lookup = {}
         self._incidence_matrix = {}
+        self._declared_incidence = {}
+        self._inferred_incidence = {}
         self._incidence_matrix_dense = None
+        self._composition_derivatives = False
+        self._frozen_columns = set()
 
         self.status = 99
         self.iter = 0
@@ -118,8 +122,7 @@ class Problem:
         if self._decomposition is None:
             # variable mass fractions of one fluid vector are coupled through
             # their normalization outside of the equation system, so they must
-            # stay within one block. Block-wise solving falls back to the
-            # simultaneous solution for variable compositions anyway
+            # stay within one block
             coupled = {}
             for j_col, data in self.variables_dict.items():
                 if data["variable"] == "fluid":
@@ -590,6 +593,7 @@ class Problem:
         are ignored, and a branch of constant composition consisting of
         a single connection is not detected as constant.
         """
+        generic_starts = []
         for linear_dependents in self._variable_dependencies:
             reference = linear_dependents["reference"]
 
@@ -699,6 +703,9 @@ class Problem:
                     if f in fluid0:
                         reference_container.val[f] = fluid0[f]
 
+            if reference_container.is_var and not fluid0:
+                generic_starts.append((reference_container, all_connections))
+
             for fluid in reference_container.is_var:
                 reference_container._J_col[fluid] = self.variable_counter
                 self.variables_dict[self.variable_counter] = {
@@ -708,6 +715,40 @@ class Problem:
                     "_represents": linear_dependents["variables"]
                 }
                 self.variable_counter += 1
+
+        self._propagate_starting_compositions(generic_starts)
+
+    def _propagate_starting_compositions(self, generic_starts):
+        """Replace the even split of the variable mass fractions by the
+        composition the source component of a branch suggests.
+
+        A suggestion can build on the starting composition of another
+        branch, e.g. in a recycle, so the branches are revisited until the
+        suggestions settle.
+        """
+        for _ in range(len(generic_starts) + 1):
+            changed = False
+            for container, connections in generic_starts:
+                for c in connections:
+                    guess = c.source._initial_composition(c)
+                    if guess is None:
+                        continue
+                    guess = {f: max(guess.get(f, 0), 0) for f in container.is_var}
+                    total = sum(guess.values())
+                    if total <= 0:
+                        continue
+                    share = 1 - sum(
+                        value for f, value in container.val.items()
+                        if f not in container.is_var
+                    )
+                    for f, value in guess.items():
+                        value *= share / total
+                        if abs(container.val[f] - value) > 1e-6:
+                            changed = True
+                        container.val[f] = value
+                    break
+            if not changed:
+                break
 
     def _presolve_linear_dependents(self):
         """Impose user specifications on their affine groups.
@@ -902,6 +943,8 @@ class Problem:
         self.num_ude_eq = _eq_counter - eq_counter
         eq_counter = _eq_counter
 
+        self._infer_composition_dependents()
+
         self.structure_graph.attach_solver_incidence(
             self._incidence_matrix, self.variables_dict
         )
@@ -961,6 +1004,111 @@ class Problem:
                     self._incidence_matrix[eq_num] = dependents
 
         return eq_counter
+
+    def _infer_composition_dependents(self):
+        """Complete the incidence by the composition dependence of the fluid
+        property equations.
+
+        Every fluid property is a function of pressure, enthalpy and
+        composition, but the dependents of most equations only declare
+        pressure and enthalpy. An equation listing the pressure or the
+        enthalpy of a connection is therefore assumed to depend on all
+        variable mass fractions of that connection as well. The assumption
+        errs on the safe side: a dependence assumed but not real merges
+        blocks and costs derivatives, a real dependence not assumed breaks
+        the block order.
+
+        The declared dependents are evaluated as written, not filtered for
+        variables: a presolved pressure is not a dependent anymore, while
+        the property call on its connection still reads the composition.
+        The declared incidence is kept, the flow presolve works on it.
+        """
+        self._declared_incidence = self._incidence_matrix
+        self._inferred_incidence = {}
+        for obj in self._all_objects():
+            for data in obj.equations.values():
+                data._inferred_vector_dependents = None
+
+        if not self._variable_composition():
+            return
+
+        self._declared_incidence = {
+            row: list(cols) for row, cols in self._incidence_matrix.items()
+        }
+        owners = {}
+        for conn in self.network.conns["object"]:
+            if not hasattr(conn, "fluid") or len(conn.fluid.is_var) == 0:
+                continue
+            for prop in ("p", "h"):
+                owners[id(conn.get_attr(prop))] = (
+                    conn.fluid._reference_container
+                )
+
+        for obj in self._all_objects():
+            for data in obj.equations.values():
+                if (
+                        data.dependents is None or data.constant_deriv
+                        or not data.infer_composition
+                    ):
+                    continue
+
+                dependents = data.dependents(**data.func_params)
+                if isinstance(dependents, dict):
+                    dependents = dependents["scalars"]
+                if len(dependents) == 0:
+                    continue
+                if not isinstance(dependents[0], list):
+                    dependents = [dependents]
+
+                inferred = [{} for _ in range(data.num_eq)]
+                for i, variables in enumerate(dependents[:data.num_eq]):
+                    declared = data._vector_dependents[i]
+                    for variable in variables:
+                        container = owners.get(id(variable))
+                        if container is None:
+                            continue
+                        missing = (
+                            container.is_var
+                            - declared.get(container, set())
+                            - inferred[i].get(container, set())
+                        )
+                        if missing:
+                            inferred[i].setdefault(
+                                container, set()
+                            ).update(missing)
+
+                if not any(inferred):
+                    continue
+
+                data._inferred_vector_dependents = inferred
+                for i, entries in enumerate(inferred):
+                    if not entries:
+                        continue
+                    eq_num = data._first_eq_index + i
+                    columns = [
+                        container.J_col[fluid]
+                        for container, fluids in entries.items()
+                        for fluid in sorted(fluids)
+                    ]
+                    self._incidence_matrix[eq_num] = (
+                        self._incidence_matrix.get(eq_num, []) + columns
+                    )
+                    self._inferred_incidence[eq_num] = columns
+
+        if self._inferred_incidence:
+            equations = ", ".join(
+                f"{label}.{self.format_eq_name(name)}"
+                for label, name in (
+                    self._equation_lookup[eq_num]
+                    for eq_num in sorted(self._inferred_incidence)
+                )
+            )
+            msg = (
+                "The dependence on the fluid composition is inferred from "
+                "the pressure and enthalpy dependents for "
+                f"{len(self._inferred_incidence)} equations: {equations}."
+            )
+            logger.debug(msg)
 
     def _assign_variable_space(self, reference, represents):
         """Register a variable reference container in the solver space.
@@ -1300,7 +1448,7 @@ class Problem:
             if data["variable"] == "fluid":
                 fluid_columns.update(data["obj"].J_col.values())
         rows = [
-            row for row, cols in self._incidence_matrix.items()
+            row for row, cols in self._declared_incidence.items()
             if not column_set.isdisjoint(cols)
             and fluid_columns.isdisjoint(cols)
         ]
@@ -1358,7 +1506,7 @@ class Problem:
         specification with known enthalpies. With pressures and enthalpies
         frozen such an equation carries no error of the guessed property
         field, it is exact information on the flows."""
-        cols = self._incidence_matrix.get(row, [])
+        cols = self._declared_incidence.get(row, [])
         return len(cols) > 0 and all(
             self.variables_dict[col]["variable"] in ("m", "E") for col in cols
         )
@@ -1418,7 +1566,7 @@ class Problem:
             # Kelvin) makes the flow of the other streams towards zero. This
             # row is dropped and the flows keep their propagated level
             incident = np.array([
-                [col in self._incidence_matrix[row] for col in columns]
+                [col in self._declared_incidence[row] for col in columns]
                 for row in rows
             ], dtype=bool).reshape(len(rows), len(columns))
             incident_m = incident & mass_flow_cols
@@ -1528,6 +1676,12 @@ class Problem:
         enthalpy outside the range of its inlets) would otherwise drive the
         flow negative, with the bound the remaining rows still set the flow
         level.
+
+        The bounded least squares uses the BVLS method: the system is small
+        and dense, and the iterations of BVLS are bounded. The default TRF
+        method can loop forever on a nearly singular system, in which its
+        backtracking line search shrinks the step length to zero without
+        ever accepting a step.
         """
         weight = np.where(flow_only, 100.0, 1.0)
         lower = np.array([
@@ -1540,7 +1694,7 @@ class Problem:
         try:
             result = lsq_linear(
                 matrix * weight[:, None], rhs * weight, bounds=(lower, upper),
-                lsmr_tol="auto"
+                method="bvls"
             )
         except (ValueError, np.linalg.LinAlgError):
             return None
@@ -1615,7 +1769,9 @@ class Problem:
                    oscillation_damping, iterinfo, print_results=True,
                    block_solve=False, pause_on_block_failure=None,
                    line_search="stagnation",
-                   increment_filter=INCREMENT_FILTER_RTOL):
+                   increment_filter=INCREMENT_FILTER_RTOL,
+                   block_solve_fluid_composition=False,
+                   skip_fallbacks=None):
         r"""Loop of the newton algorithm."""
         if line_search not in ("off", "stagnation", "always"):
             msg = (
@@ -1643,18 +1799,28 @@ class Problem:
             driver = self._paused_driver
             if pause_on_block_failure is not None:
                 driver.pause_on_block_failure = pause_on_block_failure
+            if skip_fallbacks is not None:
+                driver.skip_fallbacks = skip_fallbacks
             self.start_time = time()
             driver.resume(iterinfo, print_results)
             self.end_time = time()
             return
 
-        if block_solve and self._variable_composition():
+        variable_composition = self._variable_composition()
+        self._composition_derivatives = (
+            variable_composition and block_solve
+            and block_solve_fluid_composition
+        )
+        self._frozen_columns = set()
+        if (
+                block_solve and variable_composition
+                and not block_solve_fluid_composition
+            ):
             msg = (
-                "The fluid composition is part of the variable space. The "
-                "dependency declarations of the fluid property equations do "
-                "not cover the composition, so a block ordering is not "
-                "reliable in this case: solving the full system "
-                "simultaneously instead."
+                "The fluid composition is part of the variable space, "
+                "solving the full system simultaneously. Block-wise solving "
+                "with variable composition is available with "
+                "block_solve_fluid_composition=True."
             )
             logger.info(msg)
             block_solve = False
@@ -1664,10 +1830,16 @@ class Problem:
                 "simultaneous solution, the option has no effect."
             )
             logger.info(msg)
+        if skip_fallbacks and not block_solve:
+            msg = (
+                "The simultaneous solution has no fallbacks to skip, the "
+                "option has no effect."
+            )
+            logger.info(msg)
 
         n = self.variable_counter
         self._incidence_matrix_dense = np.zeros((n, n))
-        for row, cols in self._incidence_matrix.items():
+        for row, cols in self._jacobian_incidence().items():
             self._incidence_matrix_dense[row, cols] = 1
 
         # parameter definitions
@@ -1683,7 +1855,8 @@ class Problem:
 
         if block_solve:
             BlockDriver(
-                self, pause_on_block_failure=bool(pause_on_block_failure)
+                self, pause_on_block_failure=bool(pause_on_block_failure),
+                skip_fallbacks=bool(skip_fallbacks)
             ).solve(iterinfo, print_results)
         else:
             self._solve_simultaneous(iterinfo, print_results)
@@ -1707,6 +1880,13 @@ class Problem:
         return any(
             data["variable"] == "fluid" for data in self.variables_dict.values()
         )
+
+    def _jacobian_incidence(self):
+        # the inferred composition dependence enters the structure always,
+        # but the jacobian only when its derivatives are computed
+        if self._composition_derivatives:
+            return self._incidence_matrix
+        return self._declared_incidence
 
     def _full_block(self):
         """The full equation system in the shape of a decomposition block."""
@@ -1922,7 +2102,7 @@ class Problem:
             ]
             columns = set(variables)
         for row in zero_rows:
-            for col in self._incidence_matrix.get(row, []):
+            for col in self._jacobian_incidence().get(row, []):
                 if columns is not None and col not in columns:
                     continue
                 if self.jacobian[row, col] == 0.0:
@@ -2430,6 +2610,12 @@ class Problem:
             self._apply_property_bounds(connections, moved)
             for c in connections:
                 c._adjust_to_property_limits(self.network)
+
+        # the mass fractions of solved blocks keep their variable status,
+        # so the heuristics above do not skip them as they skip the scalars
+        for col in self._frozen_columns:
+            hlp.set_variable_value(self.variables_dict[col], values_before[col])
+
         # detect if any heuristic modifications were applied. Changes
         # below the solver's resolution do not count: e.g. the mass
         # fraction renormalization and the converged solution can disagree
@@ -2563,16 +2749,21 @@ class Problem:
         of a variable that moved by less than the relative tolerance are
         kept only while the whole iterate contracts: the jacobian column of
         a converged variable still changes through the mixed partials when
-        other variables move by large steps.
+        other variables move by large steps. The mass fractions of solved
+        blocks are constants for the subsequent blocks and never recomputed.
         """
         increment = np.absolute(self.increment)
         if self.increment_filter_rtol is None:
-            return increment < ERR ** 2
-        relative = increment / self.variable_weights
-        converged = relative < self.increment_filter_rtol
-        if relative.max() > INCREMENT_FILTER_CONTRACTION:
-            return increment == 0
-        return converged
+            mask = increment < ERR ** 2
+        else:
+            relative = increment / self.variable_weights
+            if relative.max() > INCREMENT_FILTER_CONTRACTION:
+                mask = increment == 0
+            else:
+                mask = relative < self.increment_filter_rtol
+        if self._frozen_columns:
+            mask[list(self._frozen_columns)] = True
+        return mask
 
     def _solve_equations(self, objects=None, residual_only=False):
         r"""
@@ -2590,7 +2781,10 @@ class Problem:
             return
 
         for obj in to_solve:
-            hlp.solve(obj, self.increment_filter)
+            hlp.solve(
+                obj, self.increment_filter,
+                composition_derivatives=self._composition_derivatives
+            )
             if len(obj.jacobian) > 0:
                 rows = list(obj.residual.keys())
                 data = list(obj.residual.values())
@@ -2762,7 +2956,7 @@ class Problem:
 
         expected = np.zeros(data.jacobian.shape, dtype=bool)
         for i, eq in enumerate(data.equations):
-            declared = set(self._incidence_matrix.get(eq, []))
+            declared = set(self._jacobian_incidence().get(eq, []))
             for j, col in enumerate(data.variables):
                 expected[i, j] = col in declared
 

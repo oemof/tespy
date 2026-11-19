@@ -118,6 +118,14 @@ class TestCombustion:
         msg = f'Value of oxygen in flue gas must be 0.0, is {o2}.'
         assert 0.0 == o2, msg
 
+        instance.set_attr(lamb=0.75)
+        self.nw.solve('design')
+
+        self.nw.assert_convergence()
+        exc_CO2 = round(self.c3.fluid.val['CO2'], 4) 
+        msg = f'Value of fuel in flue gas must be 0.1503, is {exc_CO2}.'
+        assert exc_CO2== 0.1503, msg 
+
     def test_CombustionChamberCarbonMonoxide(self):
         instance = CombustionChamber('combustion chamber')
         self.setup_CombustionChamber_network(instance)

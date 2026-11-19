@@ -18,6 +18,7 @@ import math
 from dataclasses import dataclass
 from dataclasses import field
 
+import numpy as np
 import pytest
 from CoolProp.CoolProp import get_global_param_string
 
@@ -61,6 +62,17 @@ def _pyromat(fluid, back_end):
     return PyromatWrapper(fluid, back_end)
 
 
+def _incompressible():
+    from tespy.tools.fluid_properties.wrappers import IncompressibleFluidWrapper
+    return IncompressibleFluidWrapper(
+        "oil",
+        temperature_data=np.array([273.15, 373.15, 473.15]),
+        density_data=np.array([890, 823, 756]),
+        heat_capacity_data=np.array([1894, 2259, 2625]),
+        viscosity_data=np.array([0.16, 0.0034, 0.001]),
+    )
+
+
 @dataclass
 class Case:
     """A wrapper under test with valid states and capability flags."""
@@ -70,6 +82,7 @@ class Case:
     T_sat: float  # temperature on the saturation curve (K)
     two_phase: bool = True
     mixture: bool = False
+    reference: bool = True  # CoolProp HEOS fluid for cross-check exists
     rtol: float = 1e-6
     marks: tuple = ()
 
@@ -109,6 +122,10 @@ WRAPPER_CASES = {
         factory=lambda: _pyromat("air", "ig"),
         p=1e5, T=500, T_sat=None, two_phase=False, rtol=1e-4,
         marks=(skipif_no_pyromat,),
+    ),
+    "incompressible": Case(
+        factory=_incompressible,
+        p=1e6, T=350, T_sat=None, two_phase=False, reference=False,
     ),
     "thermopack-pr-co2": Case(
         factory=lambda: _thermopack("CO2", "PR"),
@@ -301,8 +318,11 @@ class TestReferenceCrossCheck:
     @pytest.fixture(autouse=True)
     def _reference(self, case):
         c, w = case
-        if c.mixture or w.__class__ is CoolPropWrapper and w.back_end == "HEOS":
-            pytest.skip("Case is its own reference or has no pure fluid.")
+        if (
+                c.mixture or not c.reference
+                or w.__class__ is CoolPropWrapper and w.back_end == "HEOS"
+        ):
+            pytest.skip("Case is its own reference or has no reference fluid.")
         names = {"H2O": "Water", "CO2": "CO2", "C3": "Propane", "air": "Air"}
         self.ref = CoolPropWrapper(names[w.fluid])
 

@@ -158,6 +158,14 @@ And a couple of optional arguments:
   accessing order in the equation and derivative calculation.
 - :code:`params` (optional) which is a dictionary holding additional data
   required in the equation, dependents specification or derivative calculation.
+- :code:`infer_composition` (optional) which switches the inference of the
+  dependence on the fluid composition off with :code:`False`. In case the
+  composition is variable, the solver assumes every equation listing the
+  pressure or enthalpy of a connection to depend on all variable mass fractions
+  of that connection as well. Switch it off in case your equation evaluates no
+  fluid property, or in case its dependents list the mass fractions it depends
+  on themselves, see the section on
+  :ref:`custom components <custom_components_composition_label>`.
 
 .. code-block:: python
 

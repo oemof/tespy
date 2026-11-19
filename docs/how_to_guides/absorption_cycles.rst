@@ -73,7 +73,11 @@ mixing rule of the solution connections. Two pairs are available:
   with the reference state of IAPWS-95.
 - :code:`"nh3-water"`: NH3-water after the IAPWS guideline G4-01
   :cite:`TillnerRoth1998`, evaluated with the compiled Helmholtz energy kernel
-  of teqp :cite:`Bell2022`.
+  of `teqp <https://github.com/usnistgov/teqp>`__ :cite:`Bell2022`. The pair
+  is validated against the implementation of the guideline in
+  `CoolSolve <https://github.com/CoolProp/CoolSolve>`__ with the model CSL-0249
+  of the
+  `CoolSolve Library <https://github.com/IntSusEnergySystems/CoolSolve_Library>`__.
 
 The convenience parameter :code:`xi` of a solution connection is the mass
 fraction LiBr for LiBr-water and NH3 for NH3-water. A solution connection

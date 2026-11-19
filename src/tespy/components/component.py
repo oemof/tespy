@@ -986,6 +986,18 @@ class Component:
         """
         return []
 
+    def _initial_composition(self, outlet):
+        r"""
+        Approximate composition of a variable fluid composition at an outlet.
+
+        Returns
+        -------
+        dict
+            Mass fractions as generic starting values, :code:`None` if the
+            component has no information on the composition.
+        """
+        return None
+
     def _flow_presolve_ignored_rows(self):
         r"""
         Equations to leave out of the flow presolve of the starting values.

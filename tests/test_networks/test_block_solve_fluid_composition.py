@@ -468,6 +468,18 @@ def test_pause_and_continue_block_solve_fluid_composition():
     _assert_same_results(nw, reference)
 
 
+def test_starting_composition_of_recycle():
+    nw = recirculation()
+    nw.presolve("design")
+    # the fuel is a potential fluid of the compressor inlet through the
+    # recycle, a start with fuel there leads to the solution with a rich
+    # mixture
+    fluid = nw.get_conn("1").fluid
+    assert fluid.val["CH4"] == 0
+    assert fluid.val["N2"] > fluid.val["O2"] > fluid.val["CO2"] > 0
+    assert sum(fluid.val.values()) == approx(1)
+
+
 def test_inferred_composition_dependence():
     nw = gas_turbine_hrsg()
     nw.solve("design", block_solve_fluid_composition=True)

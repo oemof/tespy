@@ -272,11 +272,6 @@ class CombustionChamber(Component):
         super()._preprocess(num_nw_vars)
         self.setup_reaction_parameters()
 
-        # impose better starting values if None are available
-        if self.outl[0].fluid.val0 == {}:
-            for f in self.fuel_list:
-                self.outl[0].fluid.val0[f] = 0
-
     def _get_combustion_connections(self):
         return (self.inl[:2], [self.outl[0]])
 
@@ -948,6 +943,16 @@ class CombustionChamber(Component):
         # a single inlet carrying the premixed reactants leaves nothing
         # to relate
         return []
+
+    def _initial_composition(self, outlet):
+        # fuel in the flue gas leads towards solutions with a rich mixture,
+        # e.g. if the flue gas is recycled to the inlet
+        _, outl = self._get_combustion_connections()
+        if outlet not in outl:
+            return None
+        return {
+            f: 0 if f in self.fuel_list else 1 for f in outlet.fluid.val
+        }
 
     def _initial_affine_edges(self):
         # the reaction enthalpy dominates the outlet enthalpy, only the

@@ -236,6 +236,13 @@ class Merge(NodeBase):
     def outlets():
         return ['out1']
 
+    def _initial_composition(self, outlet):
+        # the mass flows are not available yet, the inlets weigh equally
+        return {
+            f: sum(i.fluid.val.get(f, 0) for i in self.inl) / self.num_i
+            for f in outlet.fluid.val
+        }
+
     def fluid_func(self):
         r"""
         Calculate the vector of residual values for fluid balance equations.

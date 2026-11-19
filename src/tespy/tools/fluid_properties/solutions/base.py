@@ -24,7 +24,7 @@ _EXPERIMENTAL_WARNED = False
 
 
 def warn_sorption_experimental(stacklevel=3):
-    r"""Warn once per session that the sorption modeling is experimental."""
+    r"""Warns once per session that the sorption modeling is experimental."""
     global _EXPERIMENTAL_WARNED
     if _EXPERIMENTAL_WARNED:
         return

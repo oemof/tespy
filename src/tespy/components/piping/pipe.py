@@ -467,7 +467,7 @@ class Pipe(SimpleHeatExchanger):
             / self.air.viscosity_pT(101300, self.Tamb.val_SI)
             * self.air.d_pT(101300, self.Tamb.val_SI)
         )
-        Pr = self.air.AS.Prandtl()
+        Pr = self.air.Prandtl(101300, self.Tamb.val_SI)
         Nu_lam = 0.664 * Re ** 0.5 *Pr ** (1 / 3)
         Nu_turb = (
             0.037 * Re ** 0.8 * Pr
@@ -477,7 +477,7 @@ class Pipe(SimpleHeatExchanger):
         alpha_ext = (
             Nu_ext
             / (math.pi / 2 * (diameters[1] + self.insulation_thickness.val_SI *2))
-            * self.air.AS.conductivity()
+            * self.air.conductivity_pT(101300, self.Tamb.val_SI)
         ) #W/m²/K
         R_sum.append(1 / alpha_ext)
 

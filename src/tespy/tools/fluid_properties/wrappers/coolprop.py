@@ -299,3 +299,6 @@ class CoolPropWrapper(FluidPropertyWrapper):
 
     def s_pT(self, p, T):
         return self._get(CP.PT_INPUTS, p, T, "smass")
+
+    def Prandtl(self, p, T):
+        return self._get(CP.PT_INPUTS, p, T, "Prandtl")

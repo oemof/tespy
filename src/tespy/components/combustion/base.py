@@ -336,15 +336,14 @@ class CombustionChamber(Component):
                     self.fuels[f][el] = structure[el]
                 else:
                     self.fuels[f][el] = 0
-            if f not in COMBUSTION_FLUIDS.fluids.keys():
-                self.fuels[f]["LHV"] = self.calc_lhv(f)
-                continue
+            registered = COMBUSTION_FLUIDS.fluids
+            key = f
+            if f not in registered:
+                key = list(fluidalias_in_list(f, registered.keys()))[0]
 
-            if COMBUSTION_FLUIDS.fluids[f]["LHV"] is None:
+            self.fuels[f]["LHV"] = registered[key]["LHV"]
+            if self.fuels[f]["LHV"] is None:
                 self.fuels[f]["LHV"] = self.calc_lhv(f)
-                continue
-
-            self.fuels[f]["LHV"] = COMBUSTION_FLUIDS.fluids[f]["LHV"]
 
     def calc_lhv(self, f):
         r"""

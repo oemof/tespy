@@ -10,6 +10,7 @@ tests/test_components/test_combustion.py
 SPDX-License-Identifier: MIT
 """
 from pytest import approx
+from pytest import fixture
 from pytest import mark
 from pytest import raises
 
@@ -28,7 +29,16 @@ from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools import CharLine
+from tespy.tools.global_vars import COMBUSTION_FLUIDS
 from tespy.tools.helpers import TESPyNetworkError
+
+
+@fixture
+def register_fuel():
+    """Register fuels for one test and restore the global registry after."""
+    registered = dict(COMBUSTION_FLUIDS.fluids)
+    yield COMBUSTION_FLUIDS.add_fluid
+    COMBUSTION_FLUIDS.fluids = registered
 
 
 class TestCombustion:
@@ -158,6 +168,58 @@ class TestCombustion:
         self.nw.solve('design')
         self.nw.assert_convergence()
         assert self.c3.T.val == approx(1500)
+
+    @mark.parametrize("registered,used", [
+        ("n-Hexane", "n-Hexane"),
+        ("n-Hexane", "nHexane"),
+        ("nHexane", "n-Hexane"),
+        ("nHexane", "nHexane"),
+    ])
+    def test_CombustionChamber_registered_fuel_aliases(
+            self, register_fuel, registered, used
+        ):
+        """A registered fuel burns under any of its names."""
+        register_fuel(registered, hf=-167.1)
+        instance = CombustionChamber("combustion chamber")
+        self.setup_CombustionChamber_network(instance)
+
+        air = {"N2": 0.7556, "O2": 0.2315, "Ar": 0.0129}
+        self.c1.set_attr(fluid=air, p=1, T=30)
+        self.c2.set_attr(fluid={"CH4": 0.5, used: 0.5}, T=30, m=1)
+        instance.set_attr(lamb=3)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert instance.fuel_list == {"CH4", used}
+        assert self.c3.fluid.val[used] == approx(0, abs=1e-9)
+        # n-hexane at 25 degC, gaseous fuel and gaseous water
+        assert instance.fuels[used]["LHV"] == approx(45.1e6, rel=5e-3)
+
+    @mark.parametrize("registered,used", [
+        ("n-Hexane", "n-Hexane"),
+        ("n-Hexane", "nHexane"),
+        ("nHexane", "n-Hexane"),
+        ("methane", "CH4"),
+    ])
+    def test_CombustionChamber_registered_LHV_aliases(
+            self, register_fuel, registered, used
+        ):
+        """A registered lower heating value applies to any name of the fuel."""
+        register_fuel(registered, hf=-100, LHV=40e6)
+        instance = CombustionChamber("combustion chamber")
+        self.setup_CombustionChamber_network(instance)
+
+        air = {"N2": 0.7556, "O2": 0.2315, "Ar": 0.0129}
+        self.c1.set_attr(fluid=air, p=1, T=30)
+        self.c2.set_attr(fluid={used: 1}, T=30, m=1)
+        instance.set_attr(lamb=3)
+
+        self.nw.solve("design")
+        self.nw.assert_convergence()
+
+        assert instance.fuels[used]["LHV"] == 40e6
+        assert instance.ti.val_SI == approx(40e6)
 
     def test_CombustionChamberNO(self):
         """

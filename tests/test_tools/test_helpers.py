@@ -10,7 +10,10 @@ tests/test_tools/test_helpers.py
 SPDX-License-Identifier: MIT
 """
 from pytest import approx
+from pytest import mark
 
+from tespy.tools.global_vars import FLUID_ALIASES
+from tespy.tools.helpers import fluidalias_in_list
 from tespy.tools.helpers import newton_with_kwargs
 
 
@@ -67,3 +70,30 @@ def test_newton_bounds():
         "have found the upper boundary of -10.0."
     )
     assert -10.0 == approx(result), msg
+
+
+@mark.parametrize("names", [
+    ["n-Hexane", "nHexane", "Hexane"],
+    ["Methane", "CH4", "methane"],
+    ["Water", "H2O", "water"],
+    ["n-Butane", "butane", "R600"],
+])
+def test_fluid_aliases_are_the_same_for_every_name(names):
+    """The CoolProp primary name is an alias like every other name."""
+    aliases = [FLUID_ALIASES.get_fluid(name) for name in names]
+    assert all(alias == aliases[0] for alias in aliases)
+    assert set(names) <= aliases[0]
+
+
+@mark.parametrize("fluid,fluid_list", [
+    ("n-Hexane", ["n-Hexane"]),
+    ("nHexane", ["n-Hexane"]),
+    ("n-Hexane", ["nHexane"]),
+    ("Methane", ["Methane"]),
+])
+def test_fluidalias_in_list_with_primary_name(fluid, fluid_list):
+    assert fluidalias_in_list(fluid, fluid_list) == set(fluid_list)
+
+
+def test_fluid_aliases_of_unknown_fluid():
+    assert FLUID_ALIASES.get_fluid("not a CoolProp fluid") == {"not a CoolProp fluid"}

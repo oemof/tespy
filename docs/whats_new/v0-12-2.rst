@@ -1,0 +1,17 @@
+v0.12.2 - Under development
++++++++++++++++++++++++++++
+
+Bug Fixes
+#########
+- :code:`Pipe` evaluated Prandtl number and thermal conductivity of the ambient
+  air at the last state of the CoolProp backend instead of at ambient pressure
+  and temperature. The :code:`CoolPropWrapper` now provides the Prandtl number
+  from pressure and temperature
+  (`PR #1136 <https://github.com/oemof/tespy/pull/1136>`__).
+- A custom fuel registered for use in :code:`CombustionChamber` was not
+  recognized a under different alias of the same fluid.
+
+Contributors
+############
+- Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
+- Hannes Schneider (`@HaSchneider <https://github.com/HaSchneider>`__)

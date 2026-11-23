@@ -11,6 +11,14 @@ Bug Fixes
 - A custom fuel registered for use in :code:`CombustionChamber` was not
   recognized a under different alias of the same fluid.
 
+Documentation
+#############
+- The documentation on mixtures with the CoolProp :code:`HEOS` back end is
+  updated: CoolProp version 8.1 or higher is recommended for these, the
+  remaining limitations are listed and the
+  :ref:`comparison of the back ends <fluid_property_backends_label>` is
+  rerun with that version.
+
 Contributors
 ############
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)

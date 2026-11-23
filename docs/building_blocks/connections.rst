@@ -252,6 +252,13 @@ mixture of R134a and R1234yf:
 
     >>> c1.set_attr(fluid={'REFPROP::R134A[0.44]&R1234yf[0.56]|mass': 1})  # REFPROP back end
 
+Mixtures also work with the :code:`HEOS` back end. For more information on
+mixtures see the :ref:`fluid property section <fluid_properties_label>`.
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={'HEOS::R134a[0.44]&R1234yf[0.56]|mass': 1})  # HEOS back end
+
 .. note::
 
     Without further specifications CoolProp will be used as fluid property

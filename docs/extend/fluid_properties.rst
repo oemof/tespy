@@ -95,11 +95,7 @@ about it :ref:`here <mixture_routines_label>`.  Custom mixing rules can also be
 registered at runtime - see the same section for details.
 
 More accurate formulations are available directly through CoolProp, which
-provides a back end for predefined mixtures. This back end is rather instable
-when using HEOS. In general, to use the mixture feature of CoolProp we
-recommend using the REFPROP back end instead of HEOS. Also note, the CoolProp
-mixture back end is not tested thoroughly. Please reach out if you would like
-to support us in adopting the TESPy implementation.
+provides mixture models for its :code:`HEOS` and :code:`REFPROP` back ends.
 
 CoolProp/REFPROP mixtures (zeotropic fluids)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -114,21 +110,42 @@ The fluid name follows the pattern:
 where :code:`<BACKEND>` is :code:`REFPROP` or :code:`HEOS`, the fraction
 values :code:`x1`, :code:`x2`, ... sum to 1, and :code:`<fraction_type>` is
 either :code:`mass` (mass fractions) or :code:`molar` (mole fractions).
-REFPROP fluid names must match the REFPROP fluid file names exactly (e.g.
-:code:`ISOBUTAN`, not :code:`ISOBUTANE`), for example:
+The CoolProp fluid names and their aliases work with both back ends. With the
+:code:`REFPROP` back end the REFPROP fluid file names (e.g. :code:`ISOBUTAN`)
+are accepted as well, for example:
 
 .. code-block:: text
 
-    REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass
+    REFPROP::Isobutane[0.5]&Isopentane[0.5]|mass
 
 To use this in a connection, specify the full name as the fluid key:
 
 .. code-block:: python
 
-    c.set_attr(fluid={"REFPROP::ISOBUTAN[0.5]&IPENTANE[0.5]|mass": 1})
+    c.set_attr(fluid={"REFPROP::Isobutane[0.5]&Isopentane[0.5]|mass": 1})
+
+You can also use the free :code:`HEOS` back end:
+
+.. code-block:: python
+
+    c.set_attr(fluid={"HEOS::Isobutane[0.5]&Isopentane[0.5]|mass": 1})
+
+.. note::
+
+    When using mixtures with the :code:`HEOS` back end we recommend CoolProp
+    version 8.1 or higher. Earlier versions are much slower and their mixture
+    flash routines fail frequently. Compared to REFPROP there are few
+    limitations:
+
+    - Models solve several times slower than with REFPROP.
+    - Individual flash calculations can still fail, especially for near
+      azeotropic blends and at pressures towards the critical point.
+    - Interaction parameters are not available for every pair of fluids,
+      e.g. ammonia and water cannot be combined.
 
 A complete heat pump example with a zeotropic mixture is available as a
-:ref:`how-to guide <zeotropic_heat_pump_label>`.
+:ref:`how-to guide <zeotropic_heat_pump_label>`, a comparison of the engines
+for mixtures in :ref:`this notebook <fluid_property_backends_label>`.
 
 .. _incompressible_wrapper_label:
 
@@ -267,12 +284,11 @@ through the back end specification of the fluid:
 
 The fluid names must match thermopack's identifiers, e.g. :code:`C3` for
 propane. Mixtures follow the same convention as the CoolProp/REFPROP mixtures
-shown above, e.g. :code:`PR::C1[0.9]&C2[0.1]|molar`. In contrast to the
-CoolProp HEOS mixture back end, the thermopack flash routines are fast and
-converge robustly, which makes the engine especially interesting for zeotropic
-mixtures if you do not have a REFPROP license available. For a complete
-zeotropic heat pump example comparing thermopack with REFPROP see
-:ref:`this notebook <zeotropic_heat_pump_label>`.
+shown above, e.g. :code:`PR::C1[0.9]&C2[0.1]|molar`. The thermopack flash
+routines are fast and converge robustly. Compared to the CoolProp HEOS mixture
+back end models solve much faster, at the price of the lower accuracy of the
+cubic equations of state. For a complete zeotropic heat pump example comparing
+thermopack with REFPROP see :ref:`this notebook <zeotropic_heat_pump_label>`.
 
 .. code-block:: python
 

@@ -280,7 +280,8 @@ class ModelTemplate():
         for label, point in points.items():
             _ = ax.scatter(point[x_property], point[y_property], label=label, color=color, zorder=10000, marker=marker)
 
-    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
+    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, 
+                                   diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
         """Plot the process into a Ts diagram.
 
         Parameters
@@ -303,6 +304,12 @@ class ModelTemplate():
         strict : bool, optional
             Raise instead of falling back to a state point only plot, if no
             diagram is available for the fluid, default False.
+        color : str, optional
+            Color of the plot.
+        linestyle : str, optional
+            Linestyle of the plot.
+        marker : str, optional
+            Markerstyle of the plot.
 
         Returns
         -------
@@ -354,7 +361,8 @@ class ModelTemplate():
 
         return fig, ax
 
-    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
+    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, 
+                                      diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
         """Plot the process into a logph diagram.
 
         Parameters
@@ -377,6 +385,12 @@ class ModelTemplate():
         strict : bool, optional
             Raise instead of falling back to a state point only plot, if no
             diagram is available for the fluid, default False.
+        color : str, optional
+            Color of the plot.
+        linestyle : str, optional
+            Linestyle of the plot.
+        marker : str, optional
+            Markerstyle of the plot.
 
         Returns
         -------
@@ -431,6 +445,34 @@ class ModelTemplate():
         return fig, ax
 
     def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None, color_hot="red", color_cold='blue', linestyle='-', marker='o'):
+        
+        """Plot the Q-T diagram of a heat exchanger.
+
+        Parameters
+        ----------
+        heatexchanger_label : str
+            Label of any connection of the process to plot.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot into.
+        save_dir : str, optional
+            Directory to save the figure to.
+        figsize : tuple, optional
+            Figure size for a new figure.
+        color_hot : str, optional
+            Color of the hotside plot.
+        color_cold : str, optional
+            Color of the coldside plot.
+        linestyle : str, optional
+            Linestyle of the plot.
+        marker : str, optional
+            Markerstyle of the plot.
+
+        Returns
+        -------
+        tuple
+            matplotlib figure and axes.
+        """
+        
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:

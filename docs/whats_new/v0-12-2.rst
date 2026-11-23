@@ -18,6 +18,10 @@ Documentation
   remaining limitations are listed and the
   :ref:`comparison of the back ends <fluid_property_backends_label>` is
   rerun with that version.
+- The :py:class:`~tespy.components.basics.cycle_closer.CycleCloser` docs state
+  where the component belongs: in a part of the cycle carrying the total mass
+  flow, since inside a branch between a splitter and a merge the network only
+  solves if the mass flow is fixed elsewhere in the cycle (:issue:`403`).
 
 Contributors
 ############

@@ -81,6 +81,15 @@ class CycleCloser(Component):
         some point of the cycle. This component can be used instead of cutting
         the cycle.
 
+    .. note::
+
+        Mass flow is not balanced across this component. The deviation is only
+        reported after the solution. Place the component in a part of the cycle
+        carrying the total mass flow: inside a branch between a splitter and a
+        merge the mass flow balances no longer determine the branch mass flows,
+        and the network does not solve unless the mass flow is fixed elsewhere
+        in the cycle.
+
     Example
     -------
     Create a cycle containing a pump and a pipe. The pump increases pressure

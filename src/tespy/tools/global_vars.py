@@ -75,6 +75,10 @@ class FluidAliases:
                     alias.replace(" ", "")
                     for alias in CP.CoolProp.get_aliases(fluid)
                 )
+                # CoolProp does not list the primary name among the aliases
+                self.fluids[fluid].add(
+                    CP.CoolProp.get_fluid_param_string(fluid, "name")
+                )
             except (RuntimeError, ValueError):  # RuntimeError: CoolProp < 8, ValueError: CoolProp >= 8
                 self.fluids[fluid] = set([fluid])
 

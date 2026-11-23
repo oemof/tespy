@@ -1074,7 +1074,7 @@ class TestHeatExchangers:
         self.c2.set_attr(T=10)
         self.c3.set_attr(fluid={"NH3": 1}, x=1.0)
         self.c4.set_attr(td_dew=5, T=-19.597989949748744)
-        instance.set_attr(pr1=0.99, zeta2_d4=2000, Q=-1e6)
+        instance.set_attr(pr1=0.99, zeta2_d4=0.2, Q=-1e6)
 
         self.nw.solve("design")
 

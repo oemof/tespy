@@ -272,15 +272,15 @@ class ModelTemplate():
 
         return processes, points, diagram
 
-    def _plot_processes_and_states(self, ax, processes, points, x_property, y_property):
+    def _plot_processes_and_states(self, ax, processes, points, x_property, y_property, color, linestyle, marker):
 
         for label, values in processes.items():
-            _ = ax.plot(values[x_property], values[y_property], label=label, color="tab:red", zorder=10000)
+            _ = ax.plot(values[x_property], values[y_property], label=label, color=color, linestyle=linestyle, zorder=10000)
 
         for label, point in points.items():
-            _ = ax.scatter(point[x_property], point[y_property], label=label, color="tab:red", zorder=10000)
+            _ = ax.scatter(point[x_property], point[y_property], label=label, color=color, zorder=10000, marker=marker)
 
-    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False):
+    def plot_Ts_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
         """Plot the process into a Ts diagram.
 
         Parameters
@@ -347,14 +347,14 @@ class ModelTemplate():
                     "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
                 }
             )
-        self._plot_processes_and_states(ax, processes, points, "s", "T")
+        self._plot_processes_and_states(ax, processes, points, "s", "T", color, linestyle, marker)
 
         if save_dir:
             fig.savefig(f"{save_dir}/ts_diagram.svg", bbox_inches="tight")
 
         return fig, ax
 
-    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False):
+    def plot_logph_diagram_matplotlib(self, connection_label, ax=None, save_dir=None, figsize=None, xlim=None, ylim=None, diagram=None, strict=False, color="tab:red", linestyle='-', marker='o'):
         """Plot the process into a logph diagram.
 
         Parameters
@@ -423,14 +423,14 @@ class ModelTemplate():
                     "Q": {"values": np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])},
                 }
             )
-        self._plot_processes_and_states(ax, processes, points, "h", "p")
+        self._plot_processes_and_states(ax, processes, points, "h", "p",color, linestyle, marker)
 
         if save_dir:
             fig.savefig(f"{save_dir}/log_ph_diagram.svg", bbox_inches="tight")
 
         return fig, ax
 
-    def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None):
+    def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None, color_hot="red", color_cold='blue', linestyle='-', marker='o'):
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
@@ -438,8 +438,8 @@ class ModelTemplate():
 
         heatex = self.nw.get_comp(heatexchanger_label)
 
-        ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, "o-", color="red")
-        ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, "o-", color="blue")
+        ax.plot(heatex.Q_sections.val, heatex.T_hot_sections.val, marker, color=color_hot, linestyle=linestyle)
+        ax.plot(heatex.Q_sections.val, heatex.T_cold_sections.val, marker, color=color_cold, linestyle=linestyle)
         ax.set_ylabel(f"temperature in {self.nw.units.default['temperature']}")
         ax.set_xlabel(f"heat transferred in {self.nw.units.default['heat']}")
 

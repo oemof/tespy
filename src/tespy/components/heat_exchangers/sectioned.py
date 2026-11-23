@@ -851,14 +851,22 @@ class SectionedHeatExchanger(HeatExchanger):
                             0, x_gas, (h_sat_liquid - h1) / delta_h,
                             p1, h1, delta_p, delta_h, 0, fd1
                         )
-                    h_at_steps = [0, x_liq, x_gas, 1]
+                    # prevent zero-width zones: an end state on the
+                    # saturation line (x_liq = 0 or x_gas = 1) has no liquid
+                    # or gas zone, its step is left out together with the
+                    # zone so that len(h_at_steps) == len(zone_phases) + 1
+                    # holds, which _section_phases relies on
                     if x_liq_is_zero and x_gas_is_one:
+                        h_at_steps = [0, 1]
                         zone_phases = [1]
                     elif x_liq_is_zero:
+                        h_at_steps = [0, x_gas, 1]
                         zone_phases = [1, 2]
                     elif x_gas_is_one:
+                        h_at_steps = [0, x_liq, 1]
                         zone_phases = [0, 1]
                     else:
+                        h_at_steps = [0, x_liq, x_gas, 1]
                         zone_phases = [0, 1, 2]
 
             elif phase_h_high == "tp" and phase_h_low == "l":

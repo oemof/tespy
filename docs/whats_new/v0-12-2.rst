@@ -10,6 +10,11 @@ Bug Fixes
   (`PR #1136 <https://github.com/oemof/tespy/pull/1136>`__).
 - A custom fuel registered for use in :code:`CombustionChamber` was not
   recognized a under different alias of the same fluid.
+- The :code:`SectionedHeatExchanger` raised an :code:`IndexError` in the
+  :code:`area_zones` equation when a fluid side with pressure drop enters
+  exactly at saturated vapor or leaves exactly at saturated liquid, e.g.
+  during a derivative evaluation: the phase boundary steps kept the degenerate
+  boundary while the zone phases did not.
 
 Documentation
 #############

@@ -13,6 +13,18 @@ available from its original location tespy/plotting/__init__.py
 
 SPDX-License-Identifier: MIT
 """
+from tespy.plotting.analyses import component_values_data  # noqa: F401
+from tespy.plotting.analyses import convergence_data  # noqa: F401
+from tespy.plotting.analyses import operating_map_data  # noqa: F401
+from tespy.plotting.analyses import plot_component_values  # noqa: F401
+from tespy.plotting.analyses import plot_component_values_plotly  # noqa: F401
+from tespy.plotting.analyses import plot_convergence  # noqa: F401
+from tespy.plotting.analyses import plot_convergence_plotly  # noqa: F401
+from tespy.plotting.analyses import plot_operating_map  # noqa: F401
+from tespy.plotting.analyses import plot_operating_map_plotly  # noqa: F401
+from tespy.plotting.analyses import plot_sweep  # noqa: F401
+from tespy.plotting.analyses import plot_sweep_plotly  # noqa: F401
+from tespy.plotting.analyses import sweep_data  # noqa: F401
 from tespy.plotting.characteristics import characteristic_data  # noqa: F401
 from tespy.plotting.characteristics import plot_characteristic  # noqa: F401
 from tespy.plotting.characteristics import plot_characteristic_plotly  # noqa: F401

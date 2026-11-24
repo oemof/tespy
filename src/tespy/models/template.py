@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-from fluprodia import FluidPropertyDiagram
-from matplotlib import pyplot as plt
 from scipy.spatial.distance import cdist
 
 from tespy.networks import Network
@@ -164,6 +162,8 @@ class ModelTemplate():
         fluprodia.FluidPropertyDiagram
             Diagram with calculated isolines.
         """
+        from fluprodia import FluidPropertyDiagram
+
         diagram = FluidPropertyDiagram(fluid_name)
         diagram.set_unit_system(self.nw.units)
         diagram.set_isolines_subcritical(-20, 200)
@@ -309,6 +309,8 @@ class ModelTemplate():
         tuple
             matplotlib figure and axes.
         """
+        from matplotlib import pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
@@ -383,6 +385,8 @@ class ModelTemplate():
         tuple
             matplotlib figure and axes.
         """
+        from matplotlib import pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
@@ -431,6 +435,8 @@ class ModelTemplate():
         return fig, ax
 
     def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None):
+        from matplotlib import pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:

@@ -73,7 +73,7 @@ test = [
     "ht",
     "iapws",
     "pymoo",
-    "pyromat",
+    "pyromat>=3.0.0",
     "pytest",
     "pytest-cov",
     "teqp>=0.23",

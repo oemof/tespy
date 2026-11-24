@@ -34,6 +34,24 @@ ANNOTATION_KINDS = ("segment", "region", "vline", "text")
 AXIS_SCALES = ("linear", "log")
 
 
+def display_unit(units, unit):
+    """Unit as shown in labels, e.g. °C for degC.
+
+    Units with a division keep the spelling of the network, because pint
+    reorders their parts (kJ/kg/K would read kJ/K/kg).
+
+    Parameters
+    ----------
+    units : tespy.tools.units.Units
+        Unit registry of the network.
+
+    unit : str
+        Unit string.
+    """
+    pretty = f"{units.parsed_unit(unit):~P}"
+    return unit if "/" in pretty else pretty
+
+
 def _plain(value):
     """Python floats and lists instead of numpy types, None for NaN and
     infinite values."""

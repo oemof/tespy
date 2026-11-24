@@ -16,6 +16,9 @@ SPDX-License-Identifier: MIT
 from tespy.plotting.cycles import plot_property_diagram  # noqa: F401
 from tespy.plotting.cycles import plot_property_diagram_plotly  # noqa: F401
 from tespy.plotting.cycles import property_diagram_data  # noqa: F401
+from tespy.plotting.heat_exchangers import plot_QT_diagram  # noqa: F401
+from tespy.plotting.heat_exchangers import plot_QT_diagram_plotly  # noqa: F401
+from tespy.plotting.heat_exchangers import qt_diagram_data  # noqa: F401
 from tespy.plotting.render import draw_matplotlib  # noqa: F401
 from tespy.plotting.render import draw_plotly  # noqa: F401
 from tespy.plotting.settings import get_defaults  # noqa: F401

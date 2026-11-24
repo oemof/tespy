@@ -51,7 +51,7 @@ def test_state_fields_are_in_network_units(heat_pump):
     index = [r["connection"] for r in states.references].index("3")
     assert states.fields["T"][index] == pytest.approx(heat_pump.get_conn("3").T.val)
     assert states.fields["T"][index] == pytest.approx(47, abs=1e-3)
-    assert states.units["T"] == "degC"
+    assert states.units["T"] == "°C"
     assert states.units["p"] == "bar"
 
 

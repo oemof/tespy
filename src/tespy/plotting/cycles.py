@@ -21,6 +21,7 @@ from tespy.plotting.branding import logo_path
 from tespy.plotting.description import Axis
 from tespy.plotting.description import PlotDescription
 from tespy.plotting.description import Series
+from tespy.plotting.description import display_unit
 from tespy.plotting.settings import resolve
 from tespy.plotting.style import get_style
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -172,7 +173,10 @@ def property_diagram_data(nw, connection_label, diagram_type="ph", title=None, i
     fields = {
         key: [c.get_attr(key).val for c in connections] for key in _QUANTITIES
     }
-    field_units = {key: units[quantity] for key, (_, quantity) in _QUANTITIES.items()}
+    field_units = {
+        key: display_unit(nw.units, units[quantity])
+        for key, (_, quantity) in _QUANTITIES.items()
+    }
     axes = []
     for quantity in DIAGRAM_TYPES[diagram_type]:
         scale = "log" if quantity == "p" else "linear"
@@ -227,7 +231,10 @@ def _unit_system(units):
         offset = converter.convert(0, si, unit)
         scale = converter.convert(1, si, unit) - offset
         difference = units["temperature_difference"] if key == "T" else unit
-        system = system.with_unit(key, Unit(unit, scale, offset, difference))
+        system = system.with_unit(key, Unit(
+            display_unit(converter, unit), scale, offset,
+            display_unit(converter, difference)
+        ))
     return system
 
 

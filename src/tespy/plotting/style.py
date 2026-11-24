@@ -256,8 +256,15 @@ class Style:
 
     def rc_params(self):
         """matplotlib settings of the style."""
+        # matplotlib picks the first installed font of a generic family
+        # silently, while every missing font of font.family is logged
+        generic = self.font_family[-1]
+        if generic not in ("serif", "sans-serif", "monospace"):
+            generic = "sans-serif"
+        fonts = [f for f in self.font_family if f != generic]
         return {
-            "font.family": list(self.font_family),
+            "font.family": generic,
+            f"font.{generic}": fonts,
             "font.size": self.font_size,
             "axes.titlesize": self.font_size * 1.15,
             "axes.titleweight": "bold",

@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 """
 import json
 import os
+import warnings
 from typing import NamedTuple
 
 import numpy as np
@@ -263,6 +264,12 @@ class CharLine:
         return export
 
     def plot(self, path, title, xlabel, ylabel):
+        msg = (
+            "The plot method of characteristics is deprecated and will be "
+            "removed in version 0.14, use "
+            "tespy.plotting.plot_characteristic instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
 
         from matplotlib import pyplot as plt
 
@@ -608,6 +615,12 @@ class CharMap:
         return export
 
     def plot(self, path, title, xlabel, ylabel):
+        msg = (
+            "The plot method of characteristics is deprecated and will be "
+            "removed in version 0.14, use "
+            "tespy.plotting.plot_characteristic instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
 
         from matplotlib import pyplot as plt
 

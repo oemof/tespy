@@ -13,6 +13,9 @@ available from its original location tespy/plotting/__init__.py
 
 SPDX-License-Identifier: MIT
 """
+from tespy.plotting.characteristics import characteristic_data  # noqa: F401
+from tespy.plotting.characteristics import plot_characteristic  # noqa: F401
+from tespy.plotting.characteristics import plot_characteristic_plotly  # noqa: F401
 from tespy.plotting.cycles import plot_property_diagram  # noqa: F401
 from tespy.plotting.cycles import plot_property_diagram_plotly  # noqa: F401
 from tespy.plotting.cycles import property_diagram_data  # noqa: F401

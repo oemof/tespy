@@ -132,9 +132,9 @@ def style_matplotlib_axes(ax, style):
 
 
 def _draw_series_matplotlib(ax, series, label, style, description):
-    color = series_color(series, style)
     label = label or "_nolegend_"
     if series.kind == "bar":
+        color = series_color(series, style)
         categories = description.y_axis.categories or list(series.y)
         positions = [categories.index(c) for c in series.y]
         ax.barh(
@@ -164,7 +164,7 @@ def _draw_series_matplotlib(ax, series, label, style, description):
             colorbar.set_label(description.z_axis.title)
         return
     dash = DASHES[series.dash or style.dash(series.slot)]
-    kwargs = {"color": color, "label": label, "linestyle": dash}
+    kwargs = {"color": series_color(series, style), "label": label, "linestyle": dash}
     if series.kind in ("markers", "line+markers"):
         kwargs.update({
             "marker": MARKERS[style.marker(series.slot)],
@@ -364,7 +364,6 @@ def _customdata(series):
 def _plotly_trace(series, label, style, description):
     import plotly.graph_objects as go
 
-    color = series_color(series, style)
     common = {
         "name": label or series.name, "showlegend": label is not None,
         "legendgroup": series.group or series.name,
@@ -374,7 +373,7 @@ def _plotly_trace(series, label, style, description):
     if series.kind == "bar":
         return go.Bar(
             x=series.x, y=series.y, orientation="h",
-            marker={"color": color, "line": {"width": 0}},
+            marker={"color": series_color(series, style), "line": {"width": 0}},
             customdata=_customdata(series), **common
         )
     if series.kind in ("heatmap", "contour"):
@@ -388,6 +387,7 @@ def _plotly_trace(series, label, style, description):
             colorscale=style.colorscale(), colorbar=colorbar, **common, **extra
         )
     mode = {"line": "lines", "markers": "markers", "line+markers": "lines+markers"}
+    color = series_color(series, style)
     return go.Scatter(
         x=series.x, y=series.y, mode=mode[series.kind],
         line={"color": color, "width": 2.5, "dash": series.dash or style.dash(series.slot)},

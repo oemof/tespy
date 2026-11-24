@@ -1,6 +1,12 @@
 v0.12.2 - Under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- Add style options (color, lnestyle and marker) to ModelTemplate plots. For example: 
+  :code:`my_model.plot_Ts_diagram_matplotlib('c1', color='violet', marker='D', linestyle='--')`
+
+
 Bug Fixes
 #########
 - :code:`Pipe` evaluated Prandtl number and thermal conductivity of the ambient
@@ -23,6 +29,7 @@ Documentation
   remaining limitations are listed and the
   :ref:`comparison of the back ends <fluid_property_backends_label>` is
   rerun with that version.
+
 
 Contributors
 ############

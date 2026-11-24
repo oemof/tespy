@@ -57,8 +57,8 @@ Building Blocks
         .. image:: /_static/images/thumbnails/building_blocks/subsystem_darkmode.svg
            :class: only-dark
 
-    .. grid-item-card::  Fluid Property Diagrams
-        :link: fluprodia_label
+    .. grid-item-card::  Plotting and Property Diagrams
+        :link: plotting_label
         :link-type: ref
 
         .. image:: /_static/images/thumbnails/building_blocks/fluid_properties.svg
@@ -86,5 +86,6 @@ Building Blocks
     building_blocks/components
     building_blocks/connections
     building_blocks/subsystems
+    building_blocks/plotting
     building_blocks/fluprodia
     building_blocks/configuration

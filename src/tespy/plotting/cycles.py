@@ -22,6 +22,7 @@ from tespy.plotting.description import Axis
 from tespy.plotting.description import PlotDescription
 from tespy.plotting.description import Series
 from tespy.plotting.description import display_unit
+from tespy.plotting.settings import require
 from tespy.plotting.settings import resolve
 from tespy.plotting.style import get_style
 from tespy.tools.fluid_properties.helpers import single_fluid
@@ -351,6 +352,7 @@ def draw_property_diagram_matplotlib(description, ax=None, style=None, logo=None
         Called with the :code:`coolplot.PropertyDiagram` before it is drawn,
         e.g. to change isolines or limits.
     """
+    require("coolplot", "plot")
     from coolplot.render.mpl import MatplotlibRenderer
     from matplotlib import pyplot as plt
 
@@ -379,6 +381,8 @@ def draw_property_diagram_plotly(description, style=None, logo=None, logo_locati
     diagram_hook : callable, optional
         Called with the :code:`coolplot.PropertyDiagram` before it is drawn.
     """
+    require("coolplot", "plot")
+    require("plotly.graph_objects", "interactive")
     from coolplot.render.plotly import PlotlyRenderer
 
     from tespy.plotting.render import _customdata

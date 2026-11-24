@@ -3,6 +3,13 @@
 Create Fluid Property Diagrams
 ==============================
 
+.. note::
+
+    TESPy draws property diagrams with CoolPlot now, see
+    :ref:`plotting_label`. The plotting methods of the model template that use
+    fluprodia are deprecated and will be removed in version 0.14. Using
+    fluprodia directly as shown on this page keeps working.
+
 fluprodia
 ---------
 

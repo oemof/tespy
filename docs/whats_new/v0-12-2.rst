@@ -1,6 +1,41 @@
 v0.12.2 - Under development
 +++++++++++++++++++++++++++
 
+New Features
+############
+- The new :ref:`plotting module <plotting_label>` draws property diagrams
+  (with CoolPlot), Q-T diagrams, characteristics, results per component,
+  parameter sweeps, operating maps and the convergence history, each with
+  matplotlib and with Plotly. Plotly plots show the values behind every point
+  when hovered. All plots share the styles :code:`"tespy"`,
+  :code:`"tespy-dark"` and :code:`"tespy-paper"`, users can register their
+  own, and show the TESPy logo with an information block. The data of every
+  plot can be exported to JSON. Install the dependencies with
+  :code:`pip install tespy[plot]` or :code:`tespy[interactive]`
+  (`Issue #1130 <https://github.com/oemof/tespy/issues/1130>`__).
+
+Deprecations
+############
+- The fluprodia based plotting of the model template is deprecated and will
+  be removed in version 0.14
+  (`Issue #1130 <https://github.com/oemof/tespy/issues/1130>`__):
+
+  .. list-table::
+      :header-rows: 1
+
+      * - Deprecated
+        - New
+      * - :code:`plot_logph_diagram_matplotlib(label)`
+        - :code:`plot_property_diagram(label, "ph")`
+      * - :code:`plot_Ts_diagram_matplotlib(label)`
+        - :code:`plot_property_diagram(label, "Ts")`
+      * - :code:`plot_QT_diagram_matplotlib(label)`
+        - :code:`plot_QT_diagram(label)`
+      * - :code:`register_diagram(fluid, diagram)`
+        - :code:`diagram_hook` of :code:`plot_property_diagram`
+      * - :code:`CharLine.plot`, :code:`CharMap.plot`
+        - :code:`tespy.plotting.plot_characteristic`
+
 Bug Fixes
 #########
 - :code:`Pipe` evaluated Prandtl number and thermal conductivity of the ambient

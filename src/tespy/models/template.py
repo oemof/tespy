@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
@@ -184,6 +186,11 @@ class ModelTemplate():
         diagram : fluprodia.FluidPropertyDiagram
             Diagram with calculated isolines.
         """
+        msg = (
+            "register_diagram is deprecated and will be removed in version 0.14, "
+            "use the diagram_hook of plot_property_diagram instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         self._diagram_cache[fluid_name] = diagram
 
     def _get_diagram(self, fluid_name, strict=False):
@@ -309,6 +316,12 @@ class ModelTemplate():
         tuple
             matplotlib figure and axes.
         """
+        msg = (
+            "plot_Ts_diagram_matplotlib is deprecated and will be removed in version 0.14, "
+            "use plot_property_diagram(..., 'Ts') instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         from matplotlib import pyplot as plt
 
         if ax is None:
@@ -385,6 +398,12 @@ class ModelTemplate():
         tuple
             matplotlib figure and axes.
         """
+        msg = (
+            "plot_logph_diagram_matplotlib is deprecated and will be removed in version 0.14, "
+            "use plot_property_diagram(..., 'ph') instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         from matplotlib import pyplot as plt
 
         if ax is None:
@@ -435,6 +454,12 @@ class ModelTemplate():
         return fig, ax
 
     def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None):
+        msg = (
+            "plot_QT_diagram_matplotlib is deprecated and will be removed in version 0.14, "
+            "use plot_QT_diagram instead."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         from matplotlib import pyplot as plt
 
         if ax is None:
@@ -453,6 +478,85 @@ class ModelTemplate():
             fig.savefig(f"{save_dir}/qt_diagram.svg", bbox_inches="tight")
 
         return fig, ax
+
+    def plot_property_diagram(self, connection_label, diagram_type="ph", **kwargs):
+        """Plot a property diagram of a part of the model with matplotlib.
+
+        Parameters
+        ----------
+        connection_label : str
+            Label of any connection of the fluid branch to plot.
+
+        diagram_type : str
+            Type of diagram, vertical axis first, e.g. :code:`"ph"` or
+            :code:`"Ts"`.
+
+        kwargs
+            See :py:func:`tespy.plotting.plot_property_diagram`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        from tespy.plotting import plot_property_diagram
+        return plot_property_diagram(self.nw, connection_label, diagram_type, **kwargs)
+
+    def plot_property_diagram_plotly(self, connection_label, diagram_type="ph", **kwargs):
+        """Plot a property diagram of a part of the model with Plotly, see
+        :py:meth:`plot_property_diagram` and
+        :py:func:`tespy.plotting.plot_property_diagram_plotly`.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+        """
+        from tespy.plotting import plot_property_diagram_plotly
+        return plot_property_diagram_plotly(
+            self.nw, connection_label, diagram_type, **kwargs
+        )
+
+    def plot_QT_diagram(self, heatexchanger_label, **kwargs):
+        """Plot the Q-T diagram of a heat exchanger with matplotlib.
+
+        Parameters
+        ----------
+        heatexchanger_label : str, list
+            Label of the heat exchanger, or a list of labels to draw several
+            heat exchangers next to each other.
+
+        kwargs
+            See :py:func:`tespy.plotting.plot_QT_diagram`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+        from tespy.plotting import plot_QT_diagram
+
+        components = (
+            self.nw.get_comp(heatexchanger_label)
+            if isinstance(heatexchanger_label, str)
+            else [self.nw.get_comp(label) for label in heatexchanger_label]
+        )
+        return plot_QT_diagram(components, **kwargs)
+
+    def plot_QT_diagram_plotly(self, heatexchanger_label, **kwargs):
+        """Plot the Q-T diagram of a heat exchanger with Plotly, see
+        :py:meth:`plot_QT_diagram` and
+        :py:func:`tespy.plotting.plot_QT_diagram_plotly`.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+        """
+        from tespy.plotting import plot_QT_diagram_plotly
+
+        components = (
+            self.nw.get_comp(heatexchanger_label)
+            if isinstance(heatexchanger_label, str)
+            else [self.nw.get_comp(label) for label in heatexchanger_label]
+        )
+        return plot_QT_diagram_plotly(components, **kwargs)
 
     def _make_cycle_plot_limits(self, states: list, quantity: str, scale: str, padding_rel=0.1, clamp_max=None) -> tuple:
         """Automatically retrieve the limits for an axes based on the process

@@ -15,6 +15,7 @@ from tespy.plotting.branding import add_logo
 from tespy.plotting.branding import info_lines
 from tespy.plotting.branding import logo_data_uri
 from tespy.plotting.branding import logo_path
+from tespy.plotting.settings import require
 from tespy.plotting.settings import resolve
 from tespy.plotting.style import DASHES
 from tespy.plotting.style import MARKERS
@@ -305,7 +306,7 @@ def draw_plotly(description, style=None, logo=None, logo_location=None,
             width=width, height=height, **kwargs
         )
 
-    import plotly.graph_objects as go
+    go = require("plotly.graph_objects", "interactive")
 
     style = get_style(style)
     logo, location = resolve(logo, logo_location)

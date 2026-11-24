@@ -69,9 +69,11 @@ Changelog = "https://tespy.readthedocs.io/en/main/whats_new.html"
 
 [project.optional-dependencies]
 test = [
+    "coolplot[matplotlib]>=1.7.1",
     "exerpy",
     "ht",
     "iapws",
+    "plotly>=5.22",
     "pymoo",
     "pyromat>=3.0.0",
     "pytest",
@@ -80,9 +82,11 @@ test = [
     "thermopack>=2.2",
 ]
 docs = [
+    "coolplot[matplotlib]>=1.7.1",
     "exerpy",
     "furo",
     "myst-nb",
+    "plotly>=5.22",
     "pymoo",
     "sphinx>=7.2.2",
     "sphinx-copybutton",
@@ -104,6 +108,13 @@ dev = [
 ]
 opt = [
     "pymoo"
+]
+plot = [
+    "coolplot[matplotlib]>=1.7.1",
+]
+interactive = [
+    "coolplot[matplotlib]>=1.7.1",
+    "plotly>=5.22",
 ]
 
 [tool.pytest.ini_options]

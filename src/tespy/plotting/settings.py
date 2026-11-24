@@ -76,3 +76,18 @@ def resolve(logo=None, logo_location=None):
     location = _DEFAULTS["logo_location"] if logo_location is None else logo_location
     check_location(location)
     return logo, location
+
+
+def require(module, extra):
+    """Import a plotting library, name the extra that installs it if it is
+    missing."""
+    import importlib
+
+    try:
+        return importlib.import_module(module)
+    except ImportError:
+        msg = (
+            f"This plot needs {module.split('.')[0]}, install it with "
+            f"pip install tespy[{extra}]."
+        )
+        raise ImportError(msg) from None

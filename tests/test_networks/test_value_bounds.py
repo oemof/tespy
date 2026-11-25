@@ -269,6 +269,15 @@ class TestHumidAirEnthalpyBounds:
         c2.p.set_reference_val_SI(101325)
         assert c2._property_bounds("h", nw) == reference
 
+    def test_no_bound_where_limit_cannot_be_evaluated(self):
+        """At high pressure the property functions do not reach down to the
+        lower temperature limit."""
+        nw = _humid_air_heater(333.15, 523.15, p=99e5, w=0.001)
+        nw.solve("design", init_only=True)
+        lower, upper = nw.get_conn("c2")._property_bounds("h", nw)
+        assert lower is None
+        assert upper > HAPropsSI("H", "T", 615, "P", 99e5, "W", 0.001)
+
 
 def test_humidity_ratio_without_saturation_limit():
     """Above the boiling temperature of water there is no saturation limit

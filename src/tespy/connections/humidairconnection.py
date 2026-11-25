@@ -336,41 +336,15 @@ class HAConnection(Connection):
 
     def _mixture_enthalpy_bounds(self):
         r"""
-        Enthalpy of the humid air at the lowest and the highest dry bulb
-        temperature the property functions can be evaluated at for the
-        current pressure and composition, :code:`None` on both sides without
-        such temperatures.
-
-        The temperature range of the property functions shrinks at high
-        pressure, the search moves inward from its limits. Outside of that
-        range the functions do not necessarily fail, a temperature is only
-        accepted if the enthalpy rises towards the inside of the range.
+        Enthalpy of the humid air at the limits of the dry bulb temperature
+        range of the property functions for the current pressure and
+        composition, :code:`None` for a side the enthalpy cannot be
+        evaluated at.
         """
-        T_low, T_high = 130.0, 623.15
-
-        upper = None
-        T = T_high
-        while T > T_low:
-            h = self._mixture_enthalpy_at(T)
-            h_inside = self._mixture_enthalpy_at(T * 0.99)
-            if h is not None and h_inside is not None and h > h_inside:
-                upper, T_high = h, T
-                break
-            T *= 0.99
-
-        lower = None
-        T = T_low
-        while upper is not None and T < T_high:
-            h = self._mixture_enthalpy_at(T)
-            h_inside = self._mixture_enthalpy_at(T * 1.05)
-            if h is not None and h_inside is not None and h < h_inside < upper:
-                lower = h
-                break
-            T *= 1.05
-
-        if lower is None:
-            return None, None
-        return lower, upper
+        return (
+            self._mixture_enthalpy_at(130.0),
+            self._mixture_enthalpy_at(623.15)
+        )
 
     def _property_bounds(self, prop, nw):
         if prop == "p":
@@ -378,13 +352,14 @@ class HAConnection(Connection):
 
         elif prop == "h":
             hmin, hmax = self._mixture_enthalpy_bounds()
-            if hmin is None:
-                return None
             d = self.h._reference_container._d
-            delta = min(
-                max(abs(self.h.val_SI * d), d) * 5, (hmax - hmin) / 100
+            delta = max(abs(self.h.val_SI * d), d) * 5
+            if hmin is not None and hmax is not None:
+                delta = min(delta, (hmax - hmin) / 100)
+            return (
+                hmin + delta if hmin is not None else None,
+                hmax - delta if hmax is not None else None
             )
-            return hmin + delta, hmax - delta
 
         return None
 

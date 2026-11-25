@@ -468,9 +468,6 @@ update of the system variables.
   further. These boundaries apply in the first iterations of a solution
   attempt without good starting values, where a solution attempt is the
   solution of a single block or of the full system.
-* The enthalpy of humid air on a :code:`HAConnection` is kept inside the
-  temperature range of the humid air property functions (130 K to 623.15 K)
-  at the humidity ratio of the stream.
 * Mass flows are kept inside :code:`m_range` on all connections, and
   component variables are kept inside their :code:`min_val` and
   :code:`max_val` bounds.

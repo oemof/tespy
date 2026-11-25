@@ -861,17 +861,8 @@ class NTUHeatExchanger(HeatExchanger):
         """
         p1 = self.UA_char1.param
         p2 = self.UA_char2.param
-        if self.local_offdesign:
-            design_value = self._connection_offdesign[self.inl[0].label][p1]
-            actual_value = getattr(self.inl[0], p1).val_SI
-            f1 = actual_value / design_value
-
-            design_value = self._connection_offdesign[self.inl[1].label][p2]
-            actual_value = getattr(self.inl[1], p2).val_SI
-            f2 = actual_value / design_value
-        else:
-            f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
-            f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
+        f1 = self.get_char_expr(p1, **self.UA_char1.char_params)
+        f2 = self.get_char_expr(p2, **self.UA_char2.char_params)
 
         fUA1 = self.UA_char1.evaluate(f1)
         fUA2 = self.UA_char2.evaluate(f2)

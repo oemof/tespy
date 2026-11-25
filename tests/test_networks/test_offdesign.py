@@ -8,12 +8,15 @@ tests/test_networks/test_local_offdesign.py
 SPDX-License-Identifier: MIT
 """
 import numpy as np
+import pytest
 from pytest import approx
 from pytest import raises
 
 from tespy.components import Compressor
+from tespy.components import HeatExchanger
 from tespy.components import Merge
 from tespy.components import Motor
+from tespy.components import NTUHeatExchanger
 from tespy.components import PowerSink
 from tespy.components import PowerSource
 from tespy.components import Pump
@@ -401,6 +404,60 @@ def test_local_design_path_reverts_to_global_when_unset():
     # which is enough to trigger a reload on the next solve.
     nw.solve("offdesign", design_path=design1)
     assert approx(heatex.UA.design) == design1["Component"]["SectionedHeatExchanger"]["heat exchanger"]["UA"]
+
+
+@pytest.mark.parametrize("component_class", [HeatExchanger, NTUHeatExchanger])
+def test_UA_char_local_offdesign(component_class):
+    """
+    UA_char of a component with local_offdesign=True in a design mode solve
+    must evaluate the characteristics relative to the design state loaded
+    from the component's design_path.
+    """
+    nw = Network()
+    nw.units.set_defaults(
+        pressure="bar", temperature="degC", heat="kW"
+    )
+
+    so1, so2 = Source("source 1"), Source("source 2")
+    si1, si2 = Sink("sink 1"), Sink("sink 2")
+    heatex = component_class("heat exchanger")
+
+    c1 = Connection(so1, "out1", heatex, "in1", label="c1")
+    c2 = Connection(heatex, "out1", si1, "in1", label="c2")
+    c3 = Connection(so2, "out1", heatex, "in2", label="c3")
+    c4 = Connection(heatex, "out2", si2, "in1", label="c4")
+    nw.add_conns(c1, c2, c3, c4)
+
+    c1.set_attr(fluid={"water": 1}, T=80, p=2)
+    c2.set_attr(T=60)
+    c3.set_attr(fluid={"water": 1}, T=20, p=2)
+    c4.set_attr(T=40)
+    heatex.set_attr(Q=-100, pr1=1, pr2=1)
+    if component_class is NTUHeatExchanger:
+        heatex.set_attr(flow_arrangement="counterflow")
+    nw.solve("design")
+    nw.assert_convergence()
+    design_state = nw.save()
+    UA_design = heatex.UA.val_SI
+    m1_design = c1.m.val_SI
+    m2_design = c3.m.val_SI
+
+    c1.set_attr(m=0.8 * m1_design)
+    c2.set_attr(T=None)
+    c3.set_attr(m=m2_design)
+    c4.set_attr(T=None)
+    heatex.set_attr(
+        Q=None, offdesign=["UA_char"],
+        local_offdesign=True, design_path=design_state
+    )
+    nw.solve("design")
+    nw.assert_convergence()
+
+    fUA1 = heatex.UA_char1.evaluate(0.8)
+    fUA2 = heatex.UA_char2.evaluate(1.0)
+    fUA = 2 / (1 / fUA1 + 1 / fUA2)
+    assert heatex.UA.val_SI == approx(UA_design * fUA)
+    assert abs(heatex.Q.val) < 100
 
 
 def test_isolated_design_matching_labels():

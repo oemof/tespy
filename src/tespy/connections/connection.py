@@ -1196,6 +1196,7 @@ class Connection(ConnectionBase):
         return super()._serializable() + ["mixing_rule"]
 
     def _create_fluid_wrapper(self):
+        self._mixture_T_limits = None
         for fluid in self.fluid.val:
             if fluid in self.fluid.wrapper:
                 continue
@@ -2756,25 +2757,80 @@ class Connection(ConnectionBase):
                 return nw.p_range_SI
 
             elif prop == "h":
-                lower, upper = nw.h_range_SI
-                if self.T.is_set:
-                    Tmin = max(
-                        w._T_min for f, w in self.fluid.wrapper.items()
-                        if self.fluid.val[f] > ERR
-                    ) * 1.01
-                    Tmax = min(
-                        w._T_max for f, w in self.fluid.wrapper.items()
-                        if self.fluid.val[f] > ERR
-                    ) * 0.99
-                    lower = max(lower, h_mix_pT(
-                        self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule
-                    ))
-                    upper = min(upper, h_mix_pT(
-                        self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule
-                    ))
+                lower, upper = self._mixture_enthalpy_bounds()
+                if nw.h_range_SI is not None:
+                    user_lower, user_upper = nw.h_range_SI
+                    if lower is None or user_lower > lower:
+                        lower = user_lower
+                    if upper is None or user_upper < upper:
+                        upper = user_upper
+                if lower is None and upper is None:
+                    return None
                 return lower, upper
 
         return None
+
+    def _mixture_enthalpy_bounds(self):
+        r"""
+        Enthalpy of the mixture at the lowest and the highest temperature its
+        property functions can be evaluated at for the current pressure and
+        composition, :code:`None` on both sides without such temperatures.
+
+        A single component must not decide on the range of the mixture, e.g.
+        the triple point of a trace of water. The search therefore starts at
+        the widest limits of the components and moves inward. Outside of
+        their range the property functions do not necessarily fail, a
+        temperature is only accepted if the enthalpy rises towards the
+        inside of the range.
+        """
+        if self._mixture_T_limits is not None:
+            T_low, T_high = self._mixture_T_limits
+            lower = self._mixture_enthalpy_at(T_low)
+            upper = self._mixture_enthalpy_at(T_high)
+            if lower is not None and upper is not None and lower < upper:
+                return lower, upper
+        else:
+            wrappers = [
+                data["wrapper"] for data in self.fluid_data.values()
+                if data["mass_fraction"] > ERR
+            ]
+            if len(wrappers) == 0:
+                return None, None
+            T_low = min(w._T_min for w in wrappers)
+            T_high = max(w._T_max for w in wrappers)
+
+        upper = None
+        T = T_high
+        while T > T_low:
+            h = self._mixture_enthalpy_at(T)
+            h_inside = self._mixture_enthalpy_at(T * 0.99)
+            if h is not None and h_inside is not None and h > h_inside:
+                upper, T_high = h, T
+                break
+            T *= 0.99
+
+        lower = None
+        T = T_low
+        while upper is not None and T < T_high:
+            h = self._mixture_enthalpy_at(T)
+            h_inside = self._mixture_enthalpy_at(T * 1.05)
+            if h is not None and h_inside is not None and h < h_inside < upper:
+                lower, T_low = h, T
+                break
+            T *= 1.05
+
+        if lower is None:
+            return None, None
+
+        self._mixture_T_limits = T_low, T_high
+        return lower, upper
+
+    def _mixture_enthalpy_at(self, T):
+        try:
+            h = h_mix_pT(self.p.val_SI, T, self.fluid_data, self.mixing_rule)
+        except (ValueError, NotImplementedError):
+            return None
+        return h if np.isfinite(h) else None
 
     def _adjust_to_property_limits(self, nw):
         fl = fp.single_fluid(self.fluid_data)

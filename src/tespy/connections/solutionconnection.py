@@ -392,7 +392,7 @@ class SolutionConnection(Connection):
         return super()._property_bounds(prop, nw)
 
     def _adjust_to_property_limits(self, nw):
-        if self.h.is_var and single_fluid(self.fluid_data) is None and self.it < 30:
+        if self.h.is_var and single_fluid(self.fluid_data) is None and nw.problem.iter < 29:
             pair = self.pair
             w = pair.key_fraction(self.fluid_data)
             try:

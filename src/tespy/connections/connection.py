@@ -502,7 +502,6 @@ class ConnectionBase:
 
     def _prepare_for_solver(self, system_dependencies, eq_counter):
         self.num_eq = 0
-        self.it = 0
         self.equations = {}
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}
@@ -2741,7 +2740,7 @@ class Connection(ConnectionBase):
                 lower, upper = hmin + delta, hmax - delta
 
                 if (
-                        self.state.is_set and self.it < 30
+                        self.state.is_set and nw.problem.iter < 29
                         and self.p.val_SI < wrapper._p_crit
                     ):
                     if self.state.val == "g":
@@ -2752,7 +2751,7 @@ class Connection(ConnectionBase):
                 return lower, upper
 
         # mixture
-        elif self.it < 5 and not self.good_starting_values:
+        elif nw.problem.iter < 4 and not self.good_starting_values:
             if prop == "p":
                 return nw.p_range_SI
 
@@ -2782,7 +2781,7 @@ class Connection(ConnectionBase):
         if fl is None or not self.h.is_var:
             return
 
-        if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
+        if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and nw.problem.iter < 29:
             self._adjust_to_two_phase(fl)
 
     def _adjust_to_two_phase(self, fluid):

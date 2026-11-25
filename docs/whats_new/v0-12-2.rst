@@ -1,6 +1,14 @@
 v0.12.2 - Under development
 +++++++++++++++++++++++++++
 
+API Changes
+###########
+- :code:`h_range` of the :code:`Network` is not set by default anymore, its
+  value is :code:`None` instead of 1 to 7000 kJ/kg. If specified, it restricts
+  the enthalpy range of fluid mixtures further. Exported networks only contain
+  the range if it is specified
+  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+
 Bug Fixes
 #########
 - :code:`Pipe` evaluated Prandtl number and thermal conductivity of the ambient
@@ -19,6 +27,22 @@ Bug Fixes
   :code:`NTUHeatExchanger` raised an :code:`AttributeError` for components
   with :code:`local_offdesign=True`. It now uses the design state loaded from
   the :code:`design_path` of the component.
+- With the block-wise solution, the value boundaries and adjustments meant for
+  the first iterations only stayed active on connections that do not own an
+  equation of the block, e.g. the outlet of a turbine
+  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+- The enthalpy of fluid mixtures is bounded by the temperature range of the
+  mixture instead of the fixed default range of 1 to 7000 kJ/kg, which did
+  not fit e.g. hydrogen rich mixtures or other reference states
+  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+- The enthalpy boundaries of the :code:`HAConnection` consider the humidity of
+  the stream and cover the full temperature range of the humid air property
+  functions
+  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+- Entropy, specific volume and viscosity of humid air with water above
+  saturation are evaluated with the vapor content of the saturated air like the
+  enthalpy, instead of the total water content
+  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
 
 Documentation
 #############

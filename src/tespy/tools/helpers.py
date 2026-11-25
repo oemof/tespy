@@ -301,7 +301,6 @@ class UserDefinedEquation:
 
     def _prepare_for_solver(self, system_dependencies, eq_counter):
         self.num_eq = 0
-        self.it = 0
         self.equations = {}
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}

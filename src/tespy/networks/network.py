@@ -88,7 +88,10 @@ class Network:
         Print convergence progress to console.
 
     h_range : list
-        List with minimum and maximum values for enthalpy value range.
+        List with minimum and maximum values for enthalpy value range of
+        fluid mixtures, default: :code:`None`. Without a range the enthalpy
+        of a mixture is only kept inside the temperature range its property
+        functions can be evaluated in.
 
     m_range : list
         List with minimum and maximum values for mass flow value range.
@@ -178,18 +181,20 @@ class Network:
         # the ranges are interpreted in the default units at load time, so
         # they have to be exported in exactly those units independent of
         # which defaults were active when the range was assigned
-        return {
+        data = {
             "m_range": list(
                 self.m_range.m_as(self.units.default["mass_flow"])
             ),
             "p_range": list(
                 self.p_range.m_as(self.units.default["pressure"])
             ),
-            "h_range": list(
-                self.h_range.m_as(self.units.default["enthalpy"])
-            ),
             "units": self.units._serialize()
         }
+        if self.h_range is not None:
+            data["h_range"] = list(
+                self.h_range.m_as(self.units.default["enthalpy"])
+            )
+        return data
 
     def _set_defaults(self):
         """Set default network properties."""
@@ -240,11 +245,10 @@ class Network:
         # generic value range
         self.m_range_SI = [-1e12, 1e12]
         self.p_range_SI = [2e2, 300e5]
-        self.h_range_SI = [1e3, 7e6]
+        self.h_range = None
 
         self.m_range = self.m_range_SI
         self.p_range = self.p_range_SI
-        self.h_range = self.h_range_SI
 
     def _set_iterinfo(self, value):
         if not isinstance(value, bool):
@@ -292,6 +296,10 @@ class Network:
         return self._p_range
 
     def _set_h_range(self, value):
+        if value is None:
+            self._h_range = None
+            self.h_range_SI = None
+            return
         self._check_range_dtype(value, "enthalpy")
         quantity = "enthalpy"
         unit = self.units.default[quantity]
@@ -3025,6 +3033,13 @@ class Network:
         units = Units.from_json(network_data["Network"].get("units", {}))
         network_data["Network"]["units"] = units
         nw = cls(**network_data["Network"])
+        # files written before the enthalpy range became optional always
+        # carry its former default, which is not a user specification
+        if (
+                nw.h_range_SI is not None
+                and np.allclose(nw.h_range_SI, [1e3, 7e6])
+            ):
+            nw.h_range = None
 
         # load components
         comps = {}

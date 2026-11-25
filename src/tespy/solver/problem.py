@@ -1546,7 +1546,6 @@ class Problem:
                     )
                     logger.debug(msg)
                     failed.add(key)
-            self._reset_iteration_counters(objects.values())
 
             # linearized system of the rows evaluated successfully
             rows = [
@@ -1910,12 +1909,6 @@ class Problem:
             for sm_col in self.variables_dict[col]["_represents"]:
                 owners.add(self._variable_lookup[sm_col]["object"])
         return owners
-
-    def _reset_iteration_counters(self, objects=None):
-        # stabilization measures of the equations are staged on the objects'
-        # iteration counters, every solution attempt starts a fresh count
-        for obj in self._all_objects() if objects is None else objects:
-            obj.it = 0
 
     def _reset_attempt_state(self, variables=None):
         """Fresh solver state for a solution attempt of a block or the full
@@ -2496,7 +2489,6 @@ class Problem:
             objects = self._all_objects()
         start = self._variable_values()
         residual = self.residual.copy()
-        counters = [obj.it for obj in objects]
         increment = self.increment.copy()
         merit_start = self._merit(equations)
 
@@ -2533,8 +2525,6 @@ class Problem:
             self._update_variables(variables)
             modified = self._adapt_to_variable_bounds(connections, components)
 
-        for obj, it in zip(objects, counters):
-            obj.it = it
         self.residual = residual
         return modified
 
@@ -2777,7 +2767,6 @@ class Problem:
                 if len(obj.residual) > 0:
                     rows = list(obj.residual.keys())
                     self.residual[rows] = list(obj.residual.values())
-                obj.it += 1
             return
 
         for obj in to_solve:
@@ -2794,8 +2783,6 @@ class Problem:
                 columns = [k[1] for k in obj.jacobian]
                 data = list(obj.jacobian.values())
                 self.jacobian[rows, columns] = data
-
-            obj.it += 1
 
     def format_var_label(self, v_idx):
         v_data = self.variables_dict[v_idx]

@@ -334,20 +334,32 @@ class HAConnection(Connection):
         ]
         return presolved_equations
 
+    def _mixture_enthalpy_bounds(self):
+        r"""
+        Enthalpy of the humid air at the limits of the dry bulb temperature
+        range of the property functions for the current pressure and
+        composition, :code:`None` for a side the enthalpy cannot be
+        evaluated at.
+        """
+        return (
+            self._mixture_enthalpy_at(130.0),
+            self._mixture_enthalpy_at(623.15)
+        )
+
     def _property_bounds(self, prop, nw):
         if prop == "p":
             return 101, 99e5
 
         elif prop == "h":
-            # TODO: check minimum temperature how it matches minimum humidity ratio
-            hmin = HAPropsSI("H", "T", -50 + 273.15, "P", self.p.val_SI, "R", 1)
-            # TODO: where to get reasonable hmax from?!
-            hmax = HAPropsSI("H", "T", 300 + 273.15, "P", self.p.val_SI, "R", 0)
+            hmin, hmax = self._mixture_enthalpy_bounds()
             d = self.h._reference_container._d
-            delta = min(
-                max(abs(self.h.val_SI * d), d) * 5, (hmax - hmin) / 100
+            delta = max(abs(self.h.val_SI * d), d) * 5
+            if hmin is not None and hmax is not None:
+                delta = min(delta, (hmax - hmin) / 100)
+            return (
+                hmin + delta if hmin is not None else None,
+                hmax - delta if hmax is not None else None
             )
-            return hmin + delta, hmax - delta
 
         return None
 

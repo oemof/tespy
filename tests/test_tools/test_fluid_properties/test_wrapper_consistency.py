@@ -17,6 +17,7 @@ import importlib.util
 import math
 from dataclasses import dataclass
 from dataclasses import field
+from importlib.metadata import version
 
 import numpy as np
 import pytest
@@ -44,6 +45,12 @@ skipif_no_iapws = pytest.mark.skipif(
 )
 skipif_no_pyromat = pytest.mark.skipif(
     _module_missing("pyromat"), reason="This test requires pyromat."
+)
+# the saturation pressure is returned as an array from pyromat 3 on
+skipif_old_pyromat = pytest.mark.skipif(
+    _module_missing("pyromat")
+    or int(version("pyromat").split(".")[0]) < 3,
+    reason="This test requires pyromat version 3 or newer.",
 )
 
 
@@ -116,7 +123,7 @@ WRAPPER_CASES = {
     "pyromat-mp-water": Case(
         factory=lambda: _pyromat("H2O", "mp"),
         p=1e5, T=500, T_sat=350, rtol=1e-4,
-        marks=(skipif_no_pyromat,),
+        marks=(skipif_old_pyromat,),
     ),
     "pyromat-ig-air": Case(
         factory=lambda: _pyromat("air", "ig"),

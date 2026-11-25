@@ -369,7 +369,6 @@ class NewtonStrategy:
         # remainder after a failed first block
         verbose = iterinfo and len(block.equations) == problem.variable_counter
 
-        problem._reset_iteration_counters(equation_objects)
         problem._reset_attempt_state(cols)
         history = block.residual_history = []
         if verbose:

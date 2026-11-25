@@ -111,6 +111,10 @@ Other Changes
 
 Documentation
 #############
+- A :ref:`turbine model selection how-to <how_to_choose_turbine_label>`
+  notebook compares :code:`Turbine` and :code:`SteamTurbine` using tables and
+  plots of steam expansion, with convergence and energy balance checks
+  (`issue #807 <https://github.com/oemof/tespy/issues/807>`__).
 - Two new notebooks showcase the fluid property engines: a
   :ref:`comparison of the fluid property back ends <fluid_property_backends_label>`
   benchmarks CoolProp HEOS, REFPROP and thermopack, and a
@@ -125,5 +129,6 @@ Documentation
 
 Contributors
 ############
+- `the8thbit <https://github.com/the8thbit>`__
 - Francesco Witte (`@fwitte <https://github.com/fwitte>`__)
 - Chen Yi (`@chenyi6758-source <https://github.com/chenyi6758-source>`__)

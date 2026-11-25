@@ -22,6 +22,7 @@ from tespy.components import Turbine
 from tespy.connections import Connection
 from tespy.connections import HAConnection
 from tespy.networks import Network
+from tespy.tools.fluid_properties import T_mix_ph
 from tespy.tools.fluid_properties import h_mix_pT
 from tespy.tools.fluid_properties.mixtures import w_mix_pT_humidair
 
@@ -66,7 +67,6 @@ class TestIterationGate:
         assert nw.get_conn("c2").h.val_SI == pytest.approx(9.3336e6, rel=1e-4)
 
 
-
 class TestMixtureEnthalpyBounds:
 
     @pytest.mark.parametrize("block_solve", [True, False])
@@ -105,25 +105,58 @@ class TestMixtureEnthalpyBounds:
         assert failed_blocks == []
         assert nw.get_conn("c2").h.val_SI < 0
 
-    def test_bounds_follow_temperature_range_of_mixture(self):
+    @pytest.mark.parametrize("fluid, mixing_rule", [
+        ({"water": 0.01, "air": 0.99}, "ideal-cond"),
+        ({"N2": 0.72, "CO2": 0.15, "water": 0.08, "O2": 0.05}, "ideal-cond"),
+        ({"R134a": 0.5, "air": 0.5}, "ideal"),
+    ])
+    def test_temperature_can_be_recovered_at_bounds(self, fluid, mixing_rule):
         nw = _turbomachine_network(
-            {"water": 0.01, "air": 0.99}, 400, 10e5, 1e5,
-            mixing_rule="ideal-cond"
+            fluid, 400, 10e5, 1e5, mixing_rule=mixing_rule
         )
         nw.solve("design", init_only=True)
         c2 = nw.get_conn("c2")
+        p = c2.p.val_SI
         lower, upper = c2._property_bounds("h", nw)
-        T_low, T_high = c2._mixture_T_limits
-        # the triple point of the water does not limit the humid air
-        assert T_low < 273.15
-        assert T_high > 1273.15
-        assert lower < upper
+        T_lower = T_mix_ph(p, lower, c2.fluid_data, c2.mixing_rule)
+        T_upper = T_mix_ph(p, upper, c2.fluid_data, c2.mixing_rule)
+        assert T_lower < T_upper
         assert lower == pytest.approx(
-            h_mix_pT(c2.p.val_SI, T_low, c2.fluid_data, c2.mixing_rule)
+            h_mix_pT(p, T_lower, c2.fluid_data, c2.mixing_rule)
         )
         assert upper == pytest.approx(
-            h_mix_pT(c2.p.val_SI, T_high, c2.fluid_data, c2.mixing_rule)
+            h_mix_pT(p, T_upper, c2.fluid_data, c2.mixing_rule)
         )
+
+    def test_upper_bound_beyond_temperature_range_of_fuel(self):
+        """A trace of methane must not keep the flue gas below the upper
+        temperature limit of methane."""
+        fluid = {
+            "N2": 0.72, "CO2": 0.15, "water": 0.079, "O2": 0.05, "CH4": 0.001
+        }
+        nw = _turbomachine_network(
+            fluid, 400, 10e5, 1e5, mixing_rule="ideal-cond"
+        )
+        nw.solve("design", init_only=True)
+        c2 = nw.get_conn("c2")
+        _, upper = c2._property_bounds("h", nw)
+        assert c2.fluid.wrapper["CH4"]._T_max < 1000
+        assert upper > h_mix_pT(
+            c2.p.val_SI, 1773.15, c2.fluid_data, c2.mixing_rule
+        )
+
+    def test_bounds_independent_of_previous_pressure(self):
+        nw = _turbomachine_network(
+            {"N2": 0.72, "CO2": 0.15, "water": 0.08, "O2": 0.05},
+            400, 10e5, 1e5, mixing_rule="ideal-cond"
+        )
+        nw.solve("design", init_only=True)
+        c2 = nw.get_conn("c2")
+        reference = c2._property_bounds("h", nw)
+        c2.p.set_reference_val_SI(200)
+        c2._property_bounds("h", nw)
+        c2.p.set_reference_val_SI(1e5)
+        assert c2._property_bounds("h", nw) == reference
 
     def test_user_range_tightens_bounds(self):
         nw = _turbomachine_network(
@@ -225,6 +258,16 @@ class TestHumidAirEnthalpyBounds:
         p = c2.p.val_SI
         assert lower < HAPropsSI("H", "T", 135, "P", p, "W", 0)
         assert upper > HAPropsSI("H", "T", 615, "P", p, "W", 0.1)
+
+    def test_bounds_independent_of_previous_pressure(self):
+        nw = _humid_air_heater(333.15, 523.15, w=0.1)
+        nw.solve("design", init_only=True)
+        c2 = nw.get_conn("c2")
+        reference = c2._property_bounds("h", nw)
+        c2.p.set_reference_val_SI(90e5)
+        c2._property_bounds("h", nw)
+        c2.p.set_reference_val_SI(101325)
+        assert c2._property_bounds("h", nw) == reference
 
 
 def test_humidity_ratio_without_saturation_limit():

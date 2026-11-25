@@ -1196,7 +1196,6 @@ class Connection(ConnectionBase):
         return super()._serializable() + ["mixing_rule"]
 
     def _create_fluid_wrapper(self):
-        self._mixture_T_limits = None
         for fluid in self.fluid.val:
             if fluid in self.fluid.wrapper:
                 continue
@@ -2772,68 +2771,27 @@ class Connection(ConnectionBase):
 
     def _mixture_enthalpy_bounds(self):
         r"""
-        Enthalpy of the mixture at the lowest and the highest temperature its
-        property functions can be evaluated at for the current pressure and
-        composition, :code:`None` on both sides without such temperatures.
+        Enthalpy of the mixture at the limits of the temperature range, in
+        which the temperature can be recovered from the enthalpy at the
+        current pressure and composition. :code:`None` for a side the
+        enthalpy cannot be evaluated at.
 
-        A single component must not decide on the range of the mixture, e.g.
-        the triple point of a trace of water. The search therefore starts at
-        the widest limits of the components and moves inward. Outside of
-        their range the property functions do not necessarily fail, a
-        temperature is only accepted if the enthalpy rises towards the
-        inside of the range.
+        The upper limit is beyond the temperature range of the fluids: the
+        property functions extrapolate with pressure and temperature as
+        inputs, e.g. to the flame temperature of a mixture containing a fuel.
         """
-        if self._mixture_T_limits is not None:
-            T_low, T_high = self._mixture_T_limits
-            lower = self._mixture_enthalpy_at(T_low)
-            upper = self._mixture_enthalpy_at(T_high)
-            if lower is not None and upper is not None and lower < upper:
-                return lower, upper
-        else:
-            limits = self._mixture_temperature_limits()
-            if limits is None:
-                return None, None
-            T_low, T_high = limits
-
-        upper = None
-        T = T_high
-        while T > T_low:
-            h = self._mixture_enthalpy_at(T)
-            h_inside = self._mixture_enthalpy_at(T * 0.99)
-            if h is not None and h_inside is not None and h > h_inside:
-                upper, T_high = h, T
-                break
-            T *= 0.99
-
-        lower = None
-        T = T_low
-        while upper is not None and T < T_high:
-            h = self._mixture_enthalpy_at(T)
-            h_inside = self._mixture_enthalpy_at(T * 1.05)
-            if h is not None and h_inside is not None and h < h_inside < upper:
-                lower, T_low = h, T
-                break
-            T *= 1.05
-
-        if lower is None:
-            return None, None
-
-        self._mixture_T_limits = T_low, T_high
-        return lower, upper
-
-    def _mixture_temperature_limits(self):
-        wrappers = [
-            data["wrapper"] for data in self.fluid_data.values()
-            if data["mass_fraction"] > ERR
-        ]
-        if len(wrappers) == 0:
-            return None
-        return min(w._T_min for w in wrappers), max(w._T_max for w in wrappers)
+        T_low, T_high = get_mixture_temperature_range(self.fluid_data)
+        return (
+            self._mixture_enthalpy_at(T_low * 1.01),
+            self._mixture_enthalpy_at(T_high * 2)
+        )
 
     def _mixture_enthalpy_at(self, T):
         try:
             h = h_mix_pT(self.p.val_SI, T, self.fluid_data, self.mixing_rule)
-        except (ValueError, NotImplementedError):
+        except Exception:
+            # the error type depends on the back end, a temperature that
+            # cannot be evaluated provides no bound
             return None
         return h if np.isfinite(h) else None
 

@@ -334,9 +334,43 @@ class HAConnection(Connection):
         ]
         return presolved_equations
 
-    def _mixture_temperature_limits(self):
-        # dry bulb temperature range of the humid air property functions
-        return 130.0, 623.15
+    def _mixture_enthalpy_bounds(self):
+        r"""
+        Enthalpy of the humid air at the lowest and the highest dry bulb
+        temperature the property functions can be evaluated at for the
+        current pressure and composition, :code:`None` on both sides without
+        such temperatures.
+
+        The temperature range of the property functions shrinks at high
+        pressure, the search moves inward from its limits. Outside of that
+        range the functions do not necessarily fail, a temperature is only
+        accepted if the enthalpy rises towards the inside of the range.
+        """
+        T_low, T_high = 130.0, 623.15
+
+        upper = None
+        T = T_high
+        while T > T_low:
+            h = self._mixture_enthalpy_at(T)
+            h_inside = self._mixture_enthalpy_at(T * 0.99)
+            if h is not None and h_inside is not None and h > h_inside:
+                upper, T_high = h, T
+                break
+            T *= 0.99
+
+        lower = None
+        T = T_low
+        while upper is not None and T < T_high:
+            h = self._mixture_enthalpy_at(T)
+            h_inside = self._mixture_enthalpy_at(T * 1.05)
+            if h is not None and h_inside is not None and h < h_inside < upper:
+                lower = h
+                break
+            T *= 1.05
+
+        if lower is None:
+            return None, None
+        return lower, upper
 
     def _property_bounds(self, prop, nw):
         if prop == "p":

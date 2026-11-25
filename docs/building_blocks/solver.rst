@@ -460,10 +460,11 @@ update of the system variables.
   line, e.g. the outlets of a drum. A specified state keeps the enthalpy on
   the respective side of the two-phase region in the early iterations.
 * For mixtures the pressure is kept inside :code:`p_range` and the enthalpy
-  inside the temperature range the property functions of the mixture can be
-  evaluated in at the current pressure and composition. A single fluid of
-  the mixture does not decide on that range, e.g. the triple point of a
-  trace of water. If :code:`h_range` is specified, it restricts the enthalpy
+  inside the temperature range, in which the temperature of the mixture can
+  be recovered from its enthalpy at the current pressure and composition.
+  That range ends at twice the lowest maximum temperature of the fluids in
+  the mixture, as the property functions extrapolate beyond the range of a
+  single fluid. If :code:`h_range` is specified, it restricts the enthalpy
   further. These boundaries apply in the first iterations of a solution
   attempt without good starting values, where a solution attempt is the
   solution of a single block or of the full system.

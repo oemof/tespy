@@ -334,7 +334,12 @@ def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
     where :math:`w_\text{sat}(p, T) = w(p, T, \text{RH}{=}1)`.
     """
     w_def = w_mix_fluid_data(fluid_data)
-    w_max = w_mix_pTrh_humidair(p, T, 1.0)
+    try:
+        w_max = w_mix_pTrh_humidair(p, T, 1.0)
+    except ValueError:
+        # no saturated state exists if the saturation pressure of water
+        # exceeds the total pressure, e.g. above the boiling temperature
+        return w_def
     if w_def > w_max:
         _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
         return w_max

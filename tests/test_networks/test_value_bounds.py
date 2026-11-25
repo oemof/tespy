@@ -23,6 +23,7 @@ from tespy.connections import Connection
 from tespy.connections import HAConnection
 from tespy.networks import Network
 from tespy.tools.fluid_properties import h_mix_pT
+from tespy.tools.fluid_properties.mixtures import w_mix_pT_humidair
 
 HYDROGEN_RICH = {"H2": 0.9, "N2": 0.1}
 
@@ -163,3 +164,74 @@ class TestEnthalpyRangeOfNetwork:
         nw.solve("design")
         loaded = Network.from_dict(nw.export())
         assert loaded.h_range is None
+
+
+def _humid_air_heater(T_in, T_out, p=101325, **humidity):
+    """The outlet enthalpy is a variable, the heat is specified to reach
+    the outlet temperature without a change of the humidity ratio."""
+    nw = Network(iterinfo=False)
+    heater = SimpleHeatExchanger("heater")
+    c1 = HAConnection(Source("source"), "out1", heater, "in1", label="c1")
+    c2 = HAConnection(heater, "out1", Sink("sink"), "in1", label="c2")
+    nw.add_conns(c1, c2)
+    if "r" in humidity:
+        w = HAPropsSI("W", "T", T_in, "P", p, "R", humidity["r"])
+        c1.set_attr(
+            r=humidity["r"], fluid_balance=True,
+            fluid0={"air": 0.99, "water": 0.01}
+        )
+    else:
+        w = humidity["w"]
+        c1.set_attr(w=w)
+    c1.set_attr(p=p, T=T_in, m=1)
+    # water above saturation is not part of the humid air enthalpy
+    try:
+        w_out = min(w, HAPropsSI("W", "T", T_out, "P", p, "R", 1))
+    except ValueError:
+        # no saturated state above the boiling temperature
+        w_out = w
+    heater.set_attr(pr=1, Q=(
+        HAPropsSI("H", "T", T_out, "P", p, "W", w_out)
+        - HAPropsSI("H", "T", T_in, "P", p, "W", w)
+    ))
+    return nw
+
+
+class TestHumidAirEnthalpyBounds:
+
+    @pytest.mark.parametrize("T_in, T_out, humidity", [
+        (293.15, 308.15, {"r": 0.5}),
+        (318.15, 338.15, {"r": 1}),
+        # below the former lower limit of saturated air at -50 °C
+        (243.15, 213.15, {"w": 1e-5}),
+        (243.15, 153.15, {"w": 1e-5}),
+        # above the former upper limit of dry air at 300 °C
+        (333.15, 353.15, {"r": 0.9}),
+        (323.15, 453.15, {"w": 0.05}),
+        (333.15, 523.15, {"w": 0.1}),
+        (293.15, 603.15, {"w": 0.005}),
+    ])
+    def test_heating_and_cooling(self, T_in, T_out, humidity):
+        nw = _humid_air_heater(T_in, T_out, **humidity)
+        nw.solve("design")
+        assert nw.status == 0
+        assert nw.get_conn("c2").T.val_SI == pytest.approx(T_out, abs=1e-3)
+
+    def test_bounds_use_humidity_of_stream(self):
+        nw = _humid_air_heater(333.15, 523.15, w=0.1)
+        nw.solve("design", init_only=True)
+        c2 = nw.get_conn("c2")
+        lower, upper = c2._property_bounds("h", nw)
+        p = c2.p.val_SI
+        assert lower < HAPropsSI("H", "T", 135, "P", p, "W", 0)
+        assert upper > HAPropsSI("H", "T", 615, "P", p, "W", 0.1)
+
+
+def test_humidity_ratio_without_saturation_limit():
+    """Above the boiling temperature of water there is no saturation limit
+    for the humidity ratio."""
+    fluid_data = {
+        "air": {"mass_fraction": 1 / 1.05},
+        "water": {"mass_fraction": 0.05 / 1.05},
+    }
+    assert w_mix_pT_humidair(101325, 473.15, fluid_data) == pytest.approx(0.05)

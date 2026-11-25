@@ -2790,14 +2790,10 @@ class Connection(ConnectionBase):
             if lower is not None and upper is not None and lower < upper:
                 return lower, upper
         else:
-            wrappers = [
-                data["wrapper"] for data in self.fluid_data.values()
-                if data["mass_fraction"] > ERR
-            ]
-            if len(wrappers) == 0:
+            limits = self._mixture_temperature_limits()
+            if limits is None:
                 return None, None
-            T_low = min(w._T_min for w in wrappers)
-            T_high = max(w._T_max for w in wrappers)
+            T_low, T_high = limits
 
         upper = None
         T = T_high
@@ -2824,6 +2820,15 @@ class Connection(ConnectionBase):
 
         self._mixture_T_limits = T_low, T_high
         return lower, upper
+
+    def _mixture_temperature_limits(self):
+        wrappers = [
+            data["wrapper"] for data in self.fluid_data.values()
+            if data["mass_fraction"] > ERR
+        ]
+        if len(wrappers) == 0:
+            return None
+        return min(w._T_min for w in wrappers), max(w._T_max for w in wrappers)
 
     def _mixture_enthalpy_at(self, T):
         try:

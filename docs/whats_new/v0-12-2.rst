@@ -5,9 +5,9 @@ New Features
 ############
 - The new :ref:`plotting module <plotting_label>` draws property diagrams
   (with CoolPlot), Q-T diagrams, characteristics, results per component,
-  parameter sweeps, operating maps and the convergence history, each with
-  matplotlib and with Plotly. Plotly plots show the values behind every point
-  when hovered. All plots share the styles :code:`"tespy"`,
+  parameter sweeps and operating maps, each with matplotlib and with Plotly.
+  Plotly plots show the values behind every point when hovered. All plots
+  share the styles :code:`"tespy"`,
   :code:`"tespy-dark"` and :code:`"tespy-paper"`, users can register their
   own, and show the TESPy logo with an information block. The data of every
   plot can be exported to JSON. Install the dependencies with

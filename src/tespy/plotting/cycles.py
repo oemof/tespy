@@ -12,16 +12,20 @@ available from its original location tespy/plotting/cycles.py
 
 SPDX-License-Identifier: MIT
 """
+import base64
 import math
 import warnings
 
 from tespy.plotting.branding import LOGO_WIDTH_PT
 from tespy.plotting.branding import info_lines
+from tespy.plotting.branding import logo_data_uri
 from tespy.plotting.branding import logo_path
 from tespy.plotting.description import Axis
 from tespy.plotting.description import PlotDescription
 from tespy.plotting.description import Series
 from tespy.plotting.description import display_unit
+from tespy.plotting.render import PX_PER_PT
+from tespy.plotting.render import _png_aspect
 from tespy.plotting.settings import require
 from tespy.plotting.settings import resolve
 from tespy.plotting.style import get_style
@@ -101,7 +105,8 @@ def _fluid(connection):
 def _paths(connections, components):
     """Pairs of connection labels a component connects by a process."""
     paths = []
-    for component in components:
+    # a cycle closer is listed at both ends of its branch
+    for component in dict.fromkeys(components):
         pairs = []
         if component.num_i == component.num_o:
             pairs = list(zip(component.inl, component.outl))
@@ -122,6 +127,56 @@ def _state_value(connection, quantity):
     return connection.get_attr(quantity).val
 
 
+#: Margins of the calculation region around the states, the defaults of
+#: CoolPlot's TpLimits.around.
+T_MARGIN_K = 40.0
+P_FACTOR = 2.0
+#: Grid the temperature bounds of the region are widened to. Pressures are
+#: widened to 1, 2 or 5 times a power of ten.
+T_GRID_K = 50.0
+#: Most lines per family of isolines.
+MAX_LINES = 8
+
+_cache = {}
+
+
+def clear_diagram_cache():
+    """Drop the isolines kept from earlier property diagrams.
+
+    The isolines of a property diagram are kept for the session and reused
+    by later diagrams of the same fluid and region.
+    """
+    _cache.clear()
+
+
+def _curve_cache():
+    from coolplot.engine import CurveCache
+
+    if "curves" not in _cache:
+        _cache["curves"] = CurveCache()
+    return _cache["curves"]
+
+
+def _tp_limits(connections):
+    """Temperature and pressure region around the states in SI units.
+
+    The margins are widened to a coarse grid: similar cycles, e.g. the
+    points of a parameter sweep, then share the region and with it the
+    isolines kept from earlier diagrams.
+    """
+    T = [c.T.val_SI for c in connections]
+    p = [c.p.val_SI for c in connections]
+    p_low, p_high = min(p) / P_FACTOR, max(p) * P_FACTOR
+    decade_low = 10.0 ** math.floor(math.log10(p_low))
+    decade_high = 10.0 ** math.floor(math.log10(p_high))
+    return [
+        max(math.floor((min(T) - T_MARGIN_K) / T_GRID_K) * T_GRID_K, 0.0),
+        math.ceil((max(T) + T_MARGIN_K) / T_GRID_K) * T_GRID_K,
+        max(m * decade_low for m in (1, 2, 5) if m * decade_low <= p_low),
+        min(m * decade_high for m in (1, 2, 5, 10) if m * decade_high >= p_high),
+    ]
+
+
 def _axis_range(values, scale, padding=0.3):
     low, high = min(values), max(values)
     if scale == "log":
@@ -133,7 +188,8 @@ def _axis_range(values, scale, padding=0.3):
     return [low, high]
 
 
-def property_diagram_data(nw, connection_label, diagram_type="ph", title=None, info=None):
+def property_diagram_data(nw, connection_label, diagram_type="ph", title=None,
+                          info=None, tp_limits=None):
     """Collect the data of a property diagram of a part of a network.
 
     The part is the fluid branch of the connection: all connections with the
@@ -156,6 +212,12 @@ def property_diagram_data(nw, connection_label, diagram_type="ph", title=None, i
     info : list, optional
         Further lines of the information block.
 
+    tp_limits : list, optional
+        Region the isolines are computed in as :code:`[T_min, T_max, p_min,
+        p_max]` in K and Pa. By default the region follows the states with
+        a margin. A fixed region keeps the isolines identical between
+        diagrams, e.g. for all points of a parameter sweep.
+
     Returns
     -------
     tespy.plotting.description.PlotDescription
@@ -171,8 +233,10 @@ def property_diagram_data(nw, connection_label, diagram_type="ph", title=None, i
     fluid, basis = _fluid(nw.get_conn(connection_label))
     units = nw.units.default
 
+    # the specific volume of a connection is vol, v is its volumetric flow
     fields = {
-        key: [c.get_attr(key).val for c in connections] for key in _QUANTITIES
+        key: [c.get_attr("vol" if key == "v" else key).val for c in connections]
+        for key in _QUANTITIES
     }
     field_units = {
         key: display_unit(nw.units, units[quantity])
@@ -202,6 +266,10 @@ def property_diagram_data(nw, connection_label, diagram_type="ph", title=None, i
         series=[states], title=title or "", info=list(info or []),
         extra={
             "fluid": fluid, "basis": basis, "diagram_type": diagram_type,
+            "tp_limits": (
+                _tp_limits(connections) if tp_limits is None
+                else [float(v) for v in tp_limits]
+            ),
             "paths": _paths(connections, components),
             "states_SI": {
                 c.label: {"p": c.p.val_SI, "h": c.h.val_SI} for c in connections
@@ -306,10 +374,12 @@ def _diagram(description, style, branding, diagram_hook):
     fluid = FluidSpec.parse(extra["fluid"], basis=extra["basis"])
     diagram = PropertyDiagram(
         fluid, extra["diagram_type"], units=_unit_system(extra["units"]),
-        theme=_theme(style)
+        tp_limits=extra["tp_limits"], theme=_theme(style),
+        cache=_curve_cache()
     )
     diagram.settings = diagram.settings.with_(branding=branding)
-    diagram.set_default_lines(labels=True, rounding=True)
+    diagram.set_default_lines(num=MAX_LINES, labels=True, rounding=True)
+    _limit_lines(diagram)
     diagram.set_view(
         x_limits=description.x_axis.range, y_limits=description.y_axis.range
     )
@@ -326,6 +396,23 @@ def _diagram(description, style, branding, diagram_hook):
     if diagram_hook is not None:
         diagram_hook(diagram)
     return diagram
+
+
+def _limit_lines(diagram):
+    """Fewer lines in families whose round values exceed :py:data:`MAX_LINES`.
+
+    CoolPlot takes the round step closest to the span over the number of
+    lines, which can give a few lines more than asked for.
+    """
+    from coolplot.engine.planning import isoline_values_SI
+
+    domain = diagram.engine.domain(diagram.spec)
+    for key, line_set in diagram.line_sets().items():
+        num = line_set.num
+        while num > 2 and len(isoline_values_SI(diagram.spec, line_set, domain)) > MAX_LINES:
+            num -= 1
+            diagram.set_lines(key, num=num, labels=line_set.labels, rounding=True)
+            line_set = diagram.line_sets()[key]
 
 
 def _branding(style, logo, location, lines, picture):
@@ -387,7 +474,6 @@ def draw_property_diagram_plotly(description, style=None, logo=None, logo_locati
 
     from tespy.plotting.render import _customdata
     from tespy.plotting.render import _hovertemplate
-    from tespy.plotting.render import add_plotly_logo
 
     style = get_style(style)
     logo, location = resolve(logo, logo_location)
@@ -415,16 +501,62 @@ def draw_property_diagram_plotly(description, style=None, logo=None, logo_locati
         },
     )
     if logo and figure.layout.shapes:
-        box = figure.layout.shapes[0]
-        add_plotly_logo(
-            figure, style, location, [], box=(box.x0, box.y0, box.x1, box.y1)
-        )
+        _logo_into_badge(figure, style)
     return figure
+
+
+def _logo_into_badge(figure, style):
+    """Grow the badge box CoolPlot drew in a Plotly figure by the height of
+    the logo and put the logo above its lines."""
+    box = figure.layout.shapes[0]
+    margin = figure.layout.margin
+    plot_width = figure.layout.width - margin.l - margin.r
+    plot_height = figure.layout.height - margin.t - margin.b
+    pad_x, pad_y = 6 / plot_width, 5 / plot_height
+    logo_px = LOGO_WIDTH_PT * PX_PER_PT
+    size_x = logo_px / plot_width
+    size_y = logo_px / _png_aspect(logo_path(style.logo, "png")) / plot_height
+    grow = size_y + pad_y
+    lines = [
+        a for a in figure.layout.annotations
+        if a.xref == "paper" and a.yref == "paper"
+        and box.x0 <= a.x <= box.x1 and box.y0 <= a.y <= box.y1
+    ]
+    if (box.y0 + box.y1) / 2 > 0.5:
+        # a badge at the top keeps its upper edge, the lines move down
+        box.y0 -= grow
+        for line in lines:
+            line.y -= grow
+    else:
+        box.y1 += grow
+    # Plotly draws shapes above images, the fill of the box would lie on the
+    # logo: the box keeps its frame only, its fill becomes an image below
+    # the logo
+    fill, opacity = box.fillcolor or style.surface, box.opacity
+    box.fillcolor = "rgba(0,0,0,0)"
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1' "
+        "preserveAspectRatio='none'>"
+        f"<rect width='1' height='1' fill='{fill}'/></svg>"
+    )
+    figure.add_layout_image(
+        source="data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode(),
+        xref="paper", yref="paper", x=box.x0, y=box.y1,
+        sizex=box.x1 - box.x0, sizey=box.y1 - box.y0, sizing="stretch",
+        xanchor="left", yanchor="top", layer="above",
+        opacity=1 if opacity is None else opacity
+    )
+    figure.add_layout_image(
+        source=logo_data_uri(style.logo), xref="paper", yref="paper",
+        x=box.x0 + pad_x, y=box.y1 - pad_y, sizex=size_x, sizey=size_y,
+        sizing="contain", xanchor="left", yanchor="top", layer="above"
+    )
 
 
 def plot_property_diagram(nw, connection_label, diagram_type="ph", ax=None,
                           style=None, logo=None, logo_location=None,
-                          title=None, info=None, diagram_hook=None):
+                          title=None, info=None, diagram_hook=None,
+                          tp_limits=None):
     """Plot a property diagram of a part of a network with matplotlib.
 
     Parameters
@@ -460,11 +592,17 @@ def plot_property_diagram(nw, connection_label, diagram_type="ph", ax=None,
         Called with the :code:`coolplot.PropertyDiagram` before it is drawn,
         e.g. to change isolines or limits.
 
+    tp_limits : list, optional
+        Region the isolines are computed in, see
+        :py:func:`property_diagram_data`.
+
     Returns
     -------
     matplotlib.axes.Axes
     """
-    description = property_diagram_data(nw, connection_label, diagram_type, title, info)
+    description = property_diagram_data(
+        nw, connection_label, diagram_type, title, info, tp_limits
+    )
     return draw_property_diagram_matplotlib(
         description, ax=ax, style=style, logo=logo,
         logo_location=logo_location, diagram_hook=diagram_hook
@@ -474,7 +612,8 @@ def plot_property_diagram(nw, connection_label, diagram_type="ph", ax=None,
 def plot_property_diagram_plotly(nw, connection_label, diagram_type="ph",
                                  style=None, logo=None, logo_location=None,
                                  title=None, info=None, width=None,
-                                 height=None, diagram_hook=None):
+                                 height=None, diagram_hook=None,
+                                 tp_limits=None):
     """Plot a property diagram of a part of a network with Plotly.
 
     Hovering a state shows its values and the label of its connection. See
@@ -484,7 +623,9 @@ def plot_property_diagram_plotly(nw, connection_label, diagram_type="ph",
     -------
     plotly.graph_objects.Figure
     """
-    description = property_diagram_data(nw, connection_label, diagram_type, title, info)
+    description = property_diagram_data(
+        nw, connection_label, diagram_type, title, info, tp_limits
+    )
     return draw_property_diagram_plotly(
         description, style=style, logo=logo, logo_location=logo_location,
         width=width, height=height, diagram_hook=diagram_hook

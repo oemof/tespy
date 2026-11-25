@@ -4,12 +4,9 @@ import pandas as pd
 import pytest
 
 from tespy.plotting import component_values_data
-from tespy.plotting import convergence_data
 from tespy.plotting import operating_map_data
 from tespy.plotting import plot_component_values
 from tespy.plotting import plot_component_values_plotly
-from tespy.plotting import plot_convergence
-from tespy.plotting import plot_convergence_plotly
 from tespy.plotting import plot_operating_map
 from tespy.plotting import plot_operating_map_plotly
 from tespy.plotting import plot_sweep
@@ -85,17 +82,8 @@ def test_operating_map_grid():
     assert description.z_axis.label == "COP"
 
 
-def test_convergence_history(heat_pump):
-    description = convergence_data(heat_pump)
-    history = heat_pump.problem.residual_history
-    assert len(description.series[0].y) == len(history)
-    assert description.series[0].x[0] == 1
-    assert description.y_axis.scale == "log"
-
-
 @pytest.mark.parametrize("plot, args", [
     (plot_component_values, ("Q",)),
-    (plot_convergence, ()),
 ])
 def test_matplotlib_network_plots(heat_pump, plot, args):
     assert plot(heat_pump, *args).has_data()
@@ -103,7 +91,6 @@ def test_matplotlib_network_plots(heat_pump, plot, args):
 
 @pytest.mark.parametrize("plot, args", [
     (plot_component_values_plotly, ("Q",)),
-    (plot_convergence_plotly, ()),
 ])
 def test_plotly_network_plots(heat_pump, plot, args):
     assert len(plot(heat_pump, *args).data) >= 1

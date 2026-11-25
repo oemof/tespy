@@ -186,7 +186,7 @@ def test_defaults_can_be_changed_and_reset():
     assert settings.get_defaults()["logo_location"] == "upper left"
     settings.reset_defaults()
     assert settings.get_defaults() == {
-        "style": "tespy", "logo": True, "logo_location": "lower right"
+        "style": "tespy", "logo": True, "logo_location": "auto"
     }
 
 

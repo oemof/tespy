@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 
-"""Plots of results: values per component, parameter sweeps, operating maps
-and the convergence history of the solver.
+"""Plots of results: values per component, parameter sweeps and operating
+maps.
 
 This file is part of project TESPy (github.com/oemof/tespy). It's copyrighted
 by the contributors recorded in the version control history of the file,
@@ -205,41 +205,6 @@ def operating_map_data(table, x, y, z, units=None, title=None, info=None):
     )
 
 
-def convergence_data(nw, title=None, info=None):
-    """Collect the residual of every iteration of the last solve.
-
-    Parameters
-    ----------
-    nw : tespy.networks.network.Network
-        Solved network.
-
-    title : str, optional
-        Title of the plot.
-
-    info : list, optional
-        Further lines of the information block.
-
-    Returns
-    -------
-    tespy.plotting.description.PlotDescription
-    """
-    history = np.asarray(nw.problem.residual_history, dtype=float)
-    # a log axis cannot show residuals of zero
-    residuals = np.where(history > 0, history, np.nan)
-    iterations = np.arange(1, len(history) + 1)
-    return PlotDescription(
-        kind="convergence",
-        x_axis=Axis("iteration"),
-        y_axis=Axis("residual", scale="log"),
-        series=[Series(
-            "residual", x=iterations, y=residuals, kind="line+markers",
-            fields={"residual": history},
-        )],
-        title="Convergence history" if title is None else title,
-        info=list(info or []),
-    )
-
-
 def plot_component_values(nw, parameter, components=None, ax=None, style=None,
                           logo=None, logo_location=None, title=None, info=None):
     """Plot a result of all components with matplotlib, see
@@ -330,37 +295,6 @@ def plot_operating_map_plotly(table, x, y, z, units=None, style=None, logo=None,
     plotly.graph_objects.Figure
     """
     description = operating_map_data(table, x, y, z, units, title, info)
-    return draw_plotly(
-        description, style=style, logo=logo, logo_location=logo_location,
-        width=width, height=height
-    )
-
-
-def plot_convergence(nw, ax=None, style=None, logo=None, logo_location=None,
-                     title=None, info=None):
-    """Plot the convergence history of the last solve with matplotlib, see
-    :py:func:`convergence_data`.
-
-    Returns
-    -------
-    matplotlib.axes.Axes
-    """
-    description = convergence_data(nw, title, info)
-    return draw_matplotlib(
-        description, ax=ax, style=style, logo=logo, logo_location=logo_location
-    )
-
-
-def plot_convergence_plotly(nw, style=None, logo=None, logo_location=None,
-                            title=None, info=None, width=None, height=None):
-    """Plot the convergence history of the last solve with Plotly, see
-    :py:func:`convergence_data`.
-
-    Returns
-    -------
-    plotly.graph_objects.Figure
-    """
-    description = convergence_data(nw, title, info)
     return draw_plotly(
         description, style=style, logo=logo, logo_location=logo_location,
         width=width, height=height

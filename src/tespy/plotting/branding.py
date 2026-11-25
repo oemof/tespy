@@ -67,8 +67,12 @@ def info_lines(lines=None):
     return [f"TESPy {importlib.metadata.version('tespy')}"] + list(lines or [])
 
 
-def add_logo(ax, style=None, location=None, lines=None):
-    """Add the logo and the information block to matplotlib axes.
+def add_logo(ax, style=None, location=None, lines=None, logo=True, entries=(),
+             background=False):
+    """Add the block of legend, logo and information to matplotlib axes.
+
+    Legend and logo share one block, which needs a single free corner of
+    the plot.
 
     Parameters
     ----------
@@ -79,34 +83,70 @@ def add_logo(ax, style=None, location=None, lines=None):
         Style of the plot, decides the logo variant and text colors.
 
     location : str, optional
-        Corner of the axes, the default location if not given.
+        Corner of the axes, the default location if not given. The
+        automatic location is the lower right corner here, the plot
+        functions choose the corner with the least data.
 
     lines : list, optional
         Further lines of the information block, below the TESPy version.
+
+    logo : bool
+        Show the logo and the information lines.
+
+    entries : list
+        Legend entries above the logo, tuples of a label and the keywords
+        of its handle: a :code:`matplotlib.lines.Line2D` for lines and
+        markers, a :code:`matplotlib.patches.Rectangle` for keywords with
+        a :code:`facecolor`.
+
+    background : bool
+        Fill the block with the surface color, for plots with filled areas
+        such as heat maps.
 
     Returns
     -------
     matplotlib.offsetbox.AnchoredOffsetbox
     """
     from matplotlib.image import imread
+    from matplotlib.lines import Line2D
     from matplotlib.offsetbox import AnchoredOffsetbox
+    from matplotlib.offsetbox import DrawingArea
+    from matplotlib.offsetbox import HPacker
     from matplotlib.offsetbox import OffsetImage
     from matplotlib.offsetbox import TextArea
     from matplotlib.offsetbox import VPacker
+    from matplotlib.patches import Rectangle
 
     style = get_style(style)
     _, location = resolve(True, location)
-    image = imread(logo_path(style.logo, "png"))
-    zoom = LOGO_WIDTH_PT / image.shape[1] * 72 / ax.figure.dpi
-    children = [OffsetImage(image, zoom=zoom, interpolation="hanning")]
-    text = "\n".join(info_lines(lines))
-    children.append(TextArea(text, textprops={
-        "color": style.ink_secondary, "fontsize": style.font_size * 0.65
-    }))
+    if location == "auto":
+        location = "lower right"
+    children = []
+    for label, handle in entries:
+        area = DrawingArea(24, 9)
+        if "facecolor" in handle:
+            area.add_artist(Rectangle((1, 0.5), 22, 8, **handle))
+        else:
+            area.add_artist(Line2D([2, 12, 22], [4.5, 4.5, 4.5], markevery=[1], **handle))
+        text = TextArea(label, textprops={
+            "color": style.ink_secondary, "fontsize": style.font_size * 0.9
+        })
+        children.append(HPacker(children=[area, text], align="center", pad=0, sep=5))
+    if logo:
+        image = imread(logo_path(style.logo, "png"))
+        # the offset image scales with the resolution of the figure itself
+        zoom = LOGO_WIDTH_PT / image.shape[1]
+        if children:
+            children.append(DrawingArea(1, 3))
+        children.append(OffsetImage(image, zoom=zoom, interpolation="hanning"))
+        children.append(TextArea("\n".join(info_lines(lines)), textprops={
+            "color": style.ink_secondary, "fontsize": style.font_size * 0.65
+        }))
     box = AnchoredOffsetbox(
-        loc=location, frameon=False, pad=0.3, borderpad=0.4,
+        loc=location, frameon=background, pad=0.3, borderpad=0.4,
         child=VPacker(children=children, align="left", pad=0, sep=2)
     )
+    box.patch.set(facecolor=style.surface, edgecolor="none", alpha=0.85)
     box.set_zorder(5)
     ax.add_artist(box)
     return box

@@ -17,7 +17,7 @@ from tespy.networks import Network  # noqa: E402
 from tespy.plotting import settings  # noqa: E402
 
 
-def build_heat_pump():
+def build_heat_pump(T_evap=0, T_cond=50):
     """R290 heat pump with a moving boundary condenser and a plain
     evaporator, brine and water as heat source and sink."""
     nw = Network(iterinfo=False)
@@ -44,12 +44,12 @@ def build_heat_pump():
     b2 = Connection(evaporator, "out1", brine_out, "in1", label="b2")
     nw.add_conns(c1, c2, c3, c4, c0, w1, w2, b1, b2)
 
-    c1.set_attr(fluid={"R290": 1}, m=0.2, td_dew=5, T_dew=0)
-    c3.set_attr(td_bubble=3, T_bubble=50)
-    w1.set_attr(fluid={"water": 1}, p=2, T=35)
-    w2.set_attr(T=45)
-    b1.set_attr(fluid={"water": 1}, p=2, T=10)
-    b2.set_attr(T=5)
+    c1.set_attr(fluid={"R290": 1}, m=0.2, td_dew=5, T_dew=T_evap)
+    c3.set_attr(td_bubble=3, T_bubble=T_cond)
+    w1.set_attr(fluid={"water": 1}, p=2, T=T_cond - 15)
+    w2.set_attr(T=T_cond - 5)
+    b1.set_attr(fluid={"water": 1}, p=2, T=T_evap + 10)
+    b2.set_attr(T=T_evap + 5)
     compressor.set_attr(eta_s=0.75)
     condenser.set_attr(pr1=1, pr2=1)
     evaporator.set_attr(pr1=1, pr2=1)

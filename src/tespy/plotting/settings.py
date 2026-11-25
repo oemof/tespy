@@ -9,11 +9,14 @@ available from its original location tespy/plotting/settings.py
 SPDX-License-Identifier: MIT
 """
 
-#: Corners for the logo and the information block.
-LOGO_LOCATIONS = ("upper left", "upper right", "lower left", "lower right")
+#: Corners of a plot.
+CORNERS = ("upper left", "upper right", "lower left", "lower right")
+#: Locations for the logo and the information block: a corner, or
+#: :code:`"auto"` for the corner with the least data.
+LOGO_LOCATIONS = CORNERS + ("auto",)
 
 _FACTORY_DEFAULTS = {
-    "style": "tespy", "logo": True, "logo_location": "lower right"
+    "style": "tespy", "logo": True, "logo_location": "auto"
 }
 _DEFAULTS = dict(_FACTORY_DEFAULTS)
 
@@ -39,7 +42,7 @@ def set_defaults(style=None, logo=None, logo_location=None):
         Show the TESPy logo and the information block.
 
     logo_location : str, optional
-        Corner of the logo, see :py:data:`LOGO_LOCATIONS`.
+        Corner of the logo or :code:`"auto"`, see :py:data:`LOGO_LOCATIONS`.
 
     Example
     -------

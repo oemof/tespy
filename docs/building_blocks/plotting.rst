@@ -180,18 +180,15 @@ Results
 -------
 
 Further plots show a result of all components, the results of a parameter
-sweep, results on a grid of two parameters and the convergence history of the
-last solve. Sweeps and maps take a :code:`pandas.DataFrame` or a dictionary of
-lists, one row per solve.
+sweep and results on a grid of two parameters. Sweeps and maps take a
+:code:`pandas.DataFrame` or a dictionary of lists, one row per solve.
 
 .. code-block:: python
 
     >>> from tespy.plotting import (
-    ...     plot_component_values, plot_convergence, plot_operating_map,
-    ...     plot_sweep
+    ...     plot_component_values, plot_operating_map, plot_sweep
     ... )
     >>> ax = plot_component_values(nw, "Q")
-    >>> ax = plot_convergence(nw)
     >>> results = {
     ...     "T_cond": [35, 45, 55, 35, 45, 55],
     ...     "T_evap": [0, 0, 0, 10, 10, 10],
@@ -323,8 +320,10 @@ Logo and information block
 
 Every plot shows the TESPy logo and an information block with the TESPy
 version. Property diagrams add the reference of the equation of state and
-the versions of CoolProp and CoolPlot. Add your own lines with :code:`info`,
-move the block with :code:`logo_location` or switch it off with
+the versions of CoolProp and CoolPlot. In matplotlib plots the legend is
+part of the same block, which is placed in the corner with the least data.
+Add your own lines with :code:`info`, fix the corner with
+:code:`logo_location` or switch logo and information off with
 :code:`logo=False`, per plot or for the session:
 
 .. code-block:: python

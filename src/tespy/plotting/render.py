@@ -15,6 +15,7 @@ from tespy.plotting.branding import add_logo
 from tespy.plotting.branding import info_lines
 from tespy.plotting.branding import logo_data_uri
 from tespy.plotting.branding import logo_path
+from tespy.plotting.settings import CORNERS
 from tespy.plotting.settings import require
 from tespy.plotting.settings import resolve
 from tespy.plotting.style import DASHES
@@ -43,6 +44,78 @@ def _annotation_color(annotation, style):
     if annotation.role == "invalid":
         return style.invalid
     return style.ink_secondary
+
+
+def corner_loads(description):
+    """Share of the data of a plot near each corner.
+
+    Returns
+    -------
+    dict
+        Corner name and the share of the points of all lines and markers
+        that lie in the corner region, lines are sampled between their
+        points.
+    """
+    import math
+
+    points = []
+    for series in description.series:
+        if series.kind in ("heatmap", "contour"):
+            return {corner: 1.0 for corner in CORNERS}
+        x, y = list(series.x), list(series.y)
+        if series.kind == "bar":
+            categories = description.y_axis.categories or y
+            points += [
+                (value, len(categories) - 1 - categories.index(label))
+                for value, label in zip(x, y)
+            ] + [(0.0, len(categories) - 1 - categories.index(label)) for label in y]
+            continue
+        steps = 8 if "line" in series.kind else 1
+        for i in range(len(x)):
+            points.append((x[i], y[i]))
+            if i and steps > 1:
+                points += [
+                    (x[i - 1] + (x[i] - x[i - 1]) * k / steps,
+                     y[i - 1] + (y[i] - y[i - 1]) * k / steps)
+                    for k in range(1, steps)
+                ]
+    fractions = []
+    for index, axis in ((0, description.x_axis), (1, description.y_axis)):
+        values = [p[index] for p in points]
+        if axis.scale == "log":
+            values = [math.log10(v) if v and v > 0 else float("nan") for v in values]
+        finite = [v for v in values if v is not None and math.isfinite(v)]
+        low, high = (min(finite), max(finite)) if finite else (0.0, 1.0)
+        if axis.range is not None and not axis.categories:
+            low, high = axis.range
+            if axis.scale == "log":
+                low, high = math.log10(low), math.log10(high)
+        span = (high - low) or 1.0
+        fractions.append([
+            (v - low) / span if v is not None and math.isfinite(v) else float("nan")
+            for v in values
+        ])
+    loads = dict.fromkeys(CORNERS, 0.0)
+    for fx, fy in zip(*fractions):
+        if math.isnan(fx) or math.isnan(fy):
+            continue
+        vertical = "upper" if fy > 0.7 else "lower" if fy < 0.3 else None
+        horizontal = "right" if fx > 0.6 else "left" if fx < 0.4 else None
+        if vertical and horizontal:
+            loads[f"{vertical} {horizontal}"] += 1 / max(len(points), 1)
+    return loads
+
+
+def choose_corner(description, location):
+    """Corner of the block of legend, logo and information.
+
+    The automatic location is the corner with the least data, the lower
+    right one if several are empty.
+    """
+    if location != "auto":
+        return location
+    loads = corner_loads(description)
+    return min(reversed(CORNERS), key=loads.get)
 
 
 def _legend_labels(description):
@@ -110,10 +183,19 @@ def draw_matplotlib(description, ax=None, style=None, logo=None, logo_location=N
             _draw_annotation_matplotlib(ax, annotation, style)
         if description.title:
             ax.set_title(description.title)
+        entries = []
         if sum(label is not None for label in labels) > 1:
-            ax.legend()
-        if logo:
-            add_logo(ax, style, location, description.info)
+            entries = [
+                (label, _legend_handle(series, style))
+                for series, label in zip(description.series, labels)
+                if label is not None
+            ]
+        if logo or entries:
+            add_logo(
+                ax, style, choose_corner(description, location),
+                description.info, logo=logo, entries=entries,
+                background=any(s.z is not None for s in description.series)
+            )
     return ax
 
 
@@ -164,8 +246,21 @@ def _draw_series_matplotlib(ax, series, label, style, description):
         if description.z_axis is not None:
             colorbar.set_label(description.z_axis.title)
         return
-    dash = DASHES[series.dash or style.dash(series.slot)]
-    kwargs = {"color": series_color(series, style), "label": label, "linestyle": dash}
+    ax.plot(series.x, series.y, zorder=3, label=label, **_legend_handle(series, style))
+
+
+def _legend_handle(series, style):
+    """matplotlib keywords of the mark of a series, also used for its
+    legend handle."""
+    if series.kind in ("heatmap", "contour"):
+        return {"facecolor": style.colormap()(0.6), "linewidth": 0}
+    color = series_color(series, style)
+    if series.kind == "bar":
+        return {
+            "facecolor": color, "hatch": style.hatch(series.slot) or None,
+            "edgecolor": style.surface, "linewidth": 0
+        }
+    kwargs = {"color": color, "linestyle": DASHES[series.dash or style.dash(series.slot)]}
     if series.kind in ("markers", "line+markers"):
         kwargs.update({
             "marker": MARKERS[style.marker(series.slot)],
@@ -173,7 +268,7 @@ def _draw_series_matplotlib(ax, series, label, style, description):
         })
     if series.kind == "markers":
         kwargs["linestyle"] = "none"
-    ax.plot(series.x, series.y, zorder=3, **kwargs)
+    return kwargs
 
 
 def _set_axes_matplotlib(ax, description):
@@ -323,7 +418,13 @@ def draw_plotly(description, style=None, logo=None, logo_location=None,
         showlegend=sum(label is not None for label in labels) > 1,
         meta={"tespy": description.to_dict()}
     )
-    if logo:
+    if logo and location == "auto":
+        add_plotly_logo_beside_legend(
+            figure, style, info_lines(description.info),
+            [label for label in labels if label is not None],
+            colorbar=any(s.z is not None for s in description.series)
+        )
+    elif logo:
         add_plotly_logo(figure, style, location, info_lines(description.info))
     return figure
 
@@ -456,8 +557,71 @@ def _draw_annotation_plotly(figure, annotation, style):
         )
 
 
-def add_plotly_logo(figure, style, location, lines, box=None):
-    """Add the logo and the information lines to a Plotly figure.
+def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False):
+    """Add the logo and the information lines above the legend of a Plotly
+    figure, in the margin right of the plot area.
+
+    Parameters
+    ----------
+    figure : plotly.graph_objects.Figure
+        The figure.
+
+    style : Style
+        Decides the logo variant and the text colors.
+
+    lines : list
+        Lines of text, drawn below the logo and above the legend.
+
+    entries : list
+        Labels of the legend, an empty list for a figure without legend.
+
+    colorbar : bool
+        The figure has a color bar, which the block is placed next to.
+    """
+    font_px = style.font_size * PX_PER_PT
+    info_px = font_px * 0.75
+    logo_px = LOGO_WIDTH_PT * PX_PER_PT
+    shown = entries if len(entries) > 1 else []
+    # widths of text are estimated, Plotly reports none before drawing
+    block_px = max(
+        [logo_px]
+        + [len(line) * info_px * 0.55 for line in lines]
+        + [len(label) * font_px * 0.6 + 45 for label in shown]
+    )
+    offset_px = 110 if colorbar else 12
+    margin = figure.layout.margin
+    figure.update_layout(margin={"r": max(margin.r or 0, offset_px + block_px + 12)})
+    width = figure.layout.width or PLOTLY_SIZE[0]
+    height = figure.layout.height or PLOTLY_SIZE[1]
+    plot_width = width - (margin.l or 0) - figure.layout.margin.r
+    plot_height = height - (margin.t or 0) - (margin.b or 0)
+
+    # the height of the logo and its lines is known, the height of the
+    # legend is not: the legend follows below them
+    x = 1 + offset_px / plot_width
+    size_y = logo_px / _png_aspect(logo_path(style.logo, "png")) / plot_height
+    gap = 4 / plot_height
+    lines_height = len(lines) * info_px * 1.3 / plot_height
+    figure.add_layout_image(
+        source=logo_data_uri(style.logo), xref="paper", yref="paper", x=x,
+        y=1, sizex=logo_px / plot_width, sizey=size_y, sizing="contain",
+        xanchor="left", yanchor="top", layer="above"
+    )
+    figure.add_annotation(
+        x=x, y=1 - size_y - gap, xref="paper", yref="paper",
+        showarrow=False, text="<br>".join(lines), align="left",
+        xanchor="left", yanchor="top",
+        font={"color": style.ink_secondary, "size": info_px}
+    )
+    figure.update_layout(legend={
+        "x": x, "y": 1 - size_y - lines_height - 4 * gap, "xanchor": "left",
+        "yanchor": "top", "tracegroupgap": 0
+    })
+
+
+def add_plotly_logo(figure, style, location, lines):
+    """Add the logo and the information lines to a corner of the plot area
+    of a Plotly figure.
 
     Parameters
     ----------
@@ -471,11 +635,7 @@ def add_plotly_logo(figure, style, location, lines, box=None):
         Corner of the plot area.
 
     lines : list
-        Lines of text, drawn next to the logo.
-
-    box : tuple, optional
-        Paper coordinates :code:`(x0, y0, x1, y1)` of a box the logo goes
-        next to instead of drawing the lines, e.g. the badge of CoolPlot.
+        Lines of text, drawn below the logo.
     """
     width = figure.layout.width or PLOTLY_SIZE[0]
     height = figure.layout.height or PLOTLY_SIZE[1]
@@ -483,32 +643,25 @@ def add_plotly_logo(figure, style, location, lines, box=None):
     plot_width = width - (margin.l or 0) - (margin.r or 0)
     plot_height = height - (margin.t or 0) - (margin.b or 0)
     logo_px = LOGO_WIDTH_PT * PX_PER_PT
-    size_x = logo_px / plot_width
     size_y = logo_px / _png_aspect(logo_path(style.logo, "png")) / plot_height
     upper = location.startswith("upper")
     right = location.endswith("right")
     gap = 4 / plot_height
-
-    if box is None:
-        font_px = style.font_size * PX_PER_PT * 0.75
-        text_height = len(lines) * font_px * 1.3 / plot_height
-        x = 0.99 if right else 0.01
-        text_y = 0.99 - size_y - gap if upper else 0.01
-        figure.add_annotation(
-            x=x, y=text_y, xref="paper", yref="paper", showarrow=False,
-            text="<br>".join(lines), align="right" if right else "left",
-            xanchor="right" if right else "left",
-            yanchor="top" if upper else "bottom",
-            font={"color": style.ink_secondary, "size": font_px}
-        )
-        image_y = 0.99 if upper else 0.01 + text_height + gap
-    else:
-        x0, y0, x1, y1 = box
-        x = x1 if right else x0
-        image_y = y0 - gap if upper else y1 + gap
+    font_px = style.font_size * PX_PER_PT * 0.75
+    text_height = len(lines) * font_px * 1.3 / plot_height
+    x = 0.99 if right else 0.01
+    figure.add_annotation(
+        x=x, y=0.99 - size_y - gap if upper else 0.01, xref="paper",
+        yref="paper", showarrow=False, text="<br>".join(lines),
+        align="right" if right else "left",
+        xanchor="right" if right else "left",
+        yanchor="top" if upper else "bottom",
+        font={"color": style.ink_secondary, "size": font_px}
+    )
     figure.add_layout_image(
         source=logo_data_uri(style.logo), xref="paper", yref="paper", x=x,
-        y=image_y, sizex=size_x, sizey=size_y, sizing="contain",
+        y=0.99 if upper else 0.01 + text_height + gap,
+        sizex=logo_px / plot_width, sizey=size_y, sizing="contain",
         xanchor="right" if right else "left",
         yanchor="top" if upper else "bottom", layer="above"
     )

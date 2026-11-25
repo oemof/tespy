@@ -61,3 +61,15 @@ def test_add_logo_rejects_unknown_location():
     _, ax = plt.subplots()
     with pytest.raises(ValueError, match="lower right"):
         add_logo(ax, location="middle")
+
+
+@pytest.mark.parametrize("variant", ["light", "dark"])
+def test_svg_logo_scales_with_its_aspect_ratio(variant):
+    from xml.etree import ElementTree
+
+    root = ElementTree.parse(logo_path(variant, "svg")).getroot()
+    viewbox = root.get("viewBox")
+    assert viewbox is not None
+    _, _, width, height = (float(v) for v in viewbox.split())
+    png = plt.imread(logo_path(variant, "png"))
+    assert width / height == pytest.approx(png.shape[1] / png.shape[0], rel=0.01)

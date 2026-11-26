@@ -179,16 +179,13 @@ no range of their own, give it with :code:`ranges`.
 Results
 -------
 
-Further plots show a result of all components, the results of a parameter
-sweep and results on a grid of two parameters. Sweeps and maps take a
-:code:`pandas.DataFrame` or a dictionary of lists, one row per solve.
+Further plots show the results of a parameter sweep and results on a grid
+of two parameters. Both take a :code:`pandas.DataFrame` or a dictionary of
+lists, one row per solve.
 
 .. code-block:: python
 
-    >>> from tespy.plotting import (
-    ...     plot_component_values, plot_operating_map, plot_sweep
-    ... )
-    >>> ax = plot_component_values(nw, "Q")
+    >>> from tespy.plotting import plot_operating_map, plot_sweep
     >>> results = {
     ...     "T_cond": [35, 45, 55, 35, 45, 55],
     ...     "T_evap": [0, 0, 0, 10, 10, 10],

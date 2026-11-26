@@ -3,10 +3,7 @@ import math
 import pandas as pd
 import pytest
 
-from tespy.plotting import component_values_data
 from tespy.plotting import operating_map_data
-from tespy.plotting import plot_component_values
-from tespy.plotting import plot_component_values_plotly
 from tespy.plotting import plot_operating_map
 from tespy.plotting import plot_operating_map_plotly
 from tespy.plotting import plot_sweep
@@ -23,40 +20,6 @@ MAP = {
     "T_evap": [0, 0, 10, 10, 10],
     "COP": [5.0, 4.0, 6.0, 5.0, 4.0],
 }
-
-
-def test_component_values_of_heat_exchangers(heat_pump):
-    description = component_values_data(heat_pump, "Q")
-    assert description.kind == "component_values"
-    assert description.y_axis.categories == ["condenser", "evaporator"]
-    assert description.x_axis.unit == "kW"
-    series = description.series[0]
-    assert series.name == "heat_exchangers"
-    index = list(series.y).index("condenser")
-    assert series.x[index] == pytest.approx(heat_pump.get_comp("condenser").Q.val)
-    assert series.references[index] == {"component": "condenser"}
-
-
-def test_component_values_are_colored_by_family(heat_pump):
-    description = component_values_data(
-        heat_pump, "pr", components=["compressor", "valve"]
-    )
-    families = {s.name: s.slot for s in description.series}
-    assert families == {"turbomachinery": 0, "piping": 1}
-
-
-def test_component_values_sorted_by_magnitude(heat_pump):
-    description = component_values_data(heat_pump, "Q")
-    magnitudes = [
-        abs(heat_pump.get_comp(label).Q.val)
-        for label in description.y_axis.categories
-    ]
-    assert magnitudes == sorted(magnitudes, reverse=True)
-
-
-def test_unknown_component_parameter_raises(heat_pump):
-    with pytest.raises(ValueError, match="nonexistent"):
-        component_values_data(heat_pump, "nonexistent")
 
 
 def test_sweep_one_series_per_group():
@@ -80,20 +43,6 @@ def test_operating_map_grid():
     assert grid.z[1] == [6.0, 5.0, 4.0]
     assert math.isnan(grid.z[0][2])
     assert description.z_axis.label == "COP"
-
-
-@pytest.mark.parametrize("plot, args", [
-    (plot_component_values, ("Q",)),
-])
-def test_matplotlib_network_plots(heat_pump, plot, args):
-    assert plot(heat_pump, *args).has_data()
-
-
-@pytest.mark.parametrize("plot, args", [
-    (plot_component_values_plotly, ("Q",)),
-])
-def test_plotly_network_plots(heat_pump, plot, args):
-    assert len(plot(heat_pump, *args).data) >= 1
 
 
 def test_table_plots_with_both_renderers():

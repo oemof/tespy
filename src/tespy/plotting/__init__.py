@@ -13,10 +13,7 @@ available from its original location tespy/plotting/__init__.py
 
 SPDX-License-Identifier: MIT
 """
-from tespy.plotting.analyses import component_values_data  # noqa: F401
 from tespy.plotting.analyses import operating_map_data  # noqa: F401
-from tespy.plotting.analyses import plot_component_values  # noqa: F401
-from tespy.plotting.analyses import plot_component_values_plotly  # noqa: F401
 from tespy.plotting.analyses import plot_operating_map  # noqa: F401
 from tespy.plotting.analyses import plot_operating_map_plotly  # noqa: F401
 from tespy.plotting.analyses import plot_sweep  # noqa: F401

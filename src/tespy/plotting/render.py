@@ -506,7 +506,8 @@ def draw_plotly(description, style=None, logo=None, logo_location=None,
         add_plotly_logo_beside_legend(
             figure, style, info_lines(description.info),
             [label for label in labels if label is not None],
-            colorbar=any(s.kind in ("heatmap", "contour") for s in description.series)
+            colorbar=any(s.kind in ("heatmap", "contour") for s in description.series),
+            square=cells[0] if cells else None
         )
     elif logo:
         add_plotly_logo(figure, style, location, info_lines(description.info))
@@ -706,7 +707,8 @@ def _draw_annotation_plotly(figure, annotation, style):
         )
 
 
-def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False):
+def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False,
+                                  square=None):
     """Add the logo and the information lines above the legend of a Plotly
     figure, in the margin right of the plot area.
 
@@ -726,6 +728,10 @@ def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False)
 
     colorbar : bool
         The figure has a color bar, which the block is placed next to.
+
+    square : Series, optional
+        Matrix with square cells in the figure. Its axes can be smaller
+        than the plot area, the block is then placed next to the axes.
     """
     font_px = style.font_size * PX_PER_PT
     info_px = font_px * 0.75
@@ -745,6 +751,11 @@ def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False)
     plot_width = width - (margin.l or 0) - figure.layout.margin.r
     plot_height = height - (margin.t or 0) - (margin.b or 0)
 
+    if square is not None:
+        # the matrix takes the width of the plot area, its height follows
+        plot_height = plot_width * len(square.y) / len(square.x)
+    xref, yref = ("x domain", "y domain") if square is not None else ("paper", "paper")
+
     # the height of the logo and its lines is known, the height of the
     # legend is not: the legend follows below them
     x = 1 + offset_px / plot_width
@@ -752,12 +763,12 @@ def add_plotly_logo_beside_legend(figure, style, lines, entries, colorbar=False)
     gap = 4 / plot_height
     lines_height = len(lines) * info_px * 1.3 / plot_height
     figure.add_layout_image(
-        source=logo_data_uri(style.logo), xref="paper", yref="paper", x=x,
+        source=logo_data_uri(style.logo), xref=xref, yref=yref, x=x,
         y=1, sizex=logo_px / plot_width, sizey=size_y, sizing="contain",
         xanchor="left", yanchor="top", layer="above"
     )
     figure.add_annotation(
-        x=x, y=1 - size_y - gap, xref="paper", yref="paper",
+        x=x, y=1 - size_y - gap, xref=xref, yref=yref,
         showarrow=False, text="<br>".join(lines), align="left",
         xanchor="left", yanchor="top",
         font={"color": style.ink_secondary, "size": info_px}

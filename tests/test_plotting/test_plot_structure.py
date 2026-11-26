@@ -175,3 +175,15 @@ def test_plotly_block_boundary_is_a_dashed_rounded_outline(coupled):
     assert len(outlines) == 1
     assert outlines[0].type == "path" and "Q" in outlines[0].path
     assert outlines[0].fillcolor in (None, "rgba(0,0,0,0)")
+
+
+def test_plotly_logo_is_anchored_to_the_matrix(coupled):
+    """The cells are square, so the matrix can be smaller than the plot
+    area: the logo and its lines follow the matrix, not the plot area."""
+    figure = plot_incidence_matrix_plotly(coupled, block_order=True)
+    image = figure.layout.images[0]
+    assert (image.xref, image.yref) == ("x domain", "y domain")
+    assert image.x > 1 and image.y == pytest.approx(1.0)
+    info = next(a for a in figure.layout.annotations if "TESPy" in str(a.text))
+    assert (info.xref, info.yref) == ("x domain", "y domain")
+    assert info.x == pytest.approx(image.x) and info.y < image.y

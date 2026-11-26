@@ -502,7 +502,6 @@ class ConnectionBase:
 
     def _prepare_for_solver(self, system_dependencies, eq_counter):
         self.num_eq = 0
-        self.it = 0
         self.equations = {}
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}
@@ -2741,7 +2740,7 @@ class Connection(ConnectionBase):
                 lower, upper = hmin + delta, hmax - delta
 
                 if (
-                        self.state.is_set and self.it < 30
+                        self.state.is_set and nw.problem.iter < 29
                         and self.p.val_SI < wrapper._p_crit
                     ):
                     if self.state.val == "g":
@@ -2752,37 +2751,56 @@ class Connection(ConnectionBase):
                 return lower, upper
 
         # mixture
-        elif self.it < 5 and not self.good_starting_values:
+        elif nw.problem.iter < 4 and not self.good_starting_values:
             if prop == "p":
                 return nw.p_range_SI
 
             elif prop == "h":
-                lower, upper = nw.h_range_SI
-                if self.T.is_set:
-                    Tmin = max(
-                        w._T_min for f, w in self.fluid.wrapper.items()
-                        if self.fluid.val[f] > ERR
-                    ) * 1.01
-                    Tmax = min(
-                        w._T_max for f, w in self.fluid.wrapper.items()
-                        if self.fluid.val[f] > ERR
-                    ) * 0.99
-                    lower = max(lower, h_mix_pT(
-                        self.p.val_SI, Tmin, self.fluid_data, self.mixing_rule
-                    ))
-                    upper = min(upper, h_mix_pT(
-                        self.p.val_SI, Tmax, self.fluid_data, self.mixing_rule
-                    ))
+                lower, upper = self._mixture_enthalpy_bounds()
+                if nw.h_range_SI is not None:
+                    user_lower, user_upper = nw.h_range_SI
+                    if lower is None or user_lower > lower:
+                        lower = user_lower
+                    if upper is None or user_upper < upper:
+                        upper = user_upper
+                if lower is None and upper is None:
+                    return None
                 return lower, upper
 
         return None
+
+    def _mixture_enthalpy_bounds(self):
+        r"""
+        Enthalpy of the mixture at the limits of the temperature range, in
+        which the temperature can be recovered from the enthalpy at the
+        current pressure and composition. :code:`None` for a side the
+        enthalpy cannot be evaluated at.
+
+        The upper limit is beyond the temperature range of the fluids: the
+        property functions extrapolate with pressure and temperature as
+        inputs, e.g. to the flame temperature of a mixture containing a fuel.
+        """
+        T_low, T_high = get_mixture_temperature_range(self.fluid_data)
+        return (
+            self._mixture_enthalpy_at(T_low * 1.01),
+            self._mixture_enthalpy_at(T_high * 2)
+        )
+
+    def _mixture_enthalpy_at(self, T):
+        try:
+            h = h_mix_pT(self.p.val_SI, T, self.fluid_data, self.mixing_rule)
+        except Exception:
+            # the error type depends on the back end, a temperature that
+            # cannot be evaluated provides no bound
+            return None
+        return h if np.isfinite(h) else None
 
     def _adjust_to_property_limits(self, nw):
         fl = fp.single_fluid(self.fluid_data)
         if fl is None or not self.h.is_var:
             return
 
-        if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and self.it < 30:
+        if (self.state.is_set or self.x.is_set or self.td_bubble.is_set or self.td_dew.is_set) and nw.problem.iter < 29:
             self._adjust_to_two_phase(fl)
 
     def _adjust_to_two_phase(self, fluid):

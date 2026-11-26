@@ -21,7 +21,7 @@ from .base import wrapper_registry
 
 @wrapper_registry
 class IncompressibleFluidWrapper(FluidPropertyWrapper):
-    """Class to represent a fluid in TESPy using tabular data
+    r"""Class to represent a fluid in TESPy using tabular data
 
     Parameters
     ----------

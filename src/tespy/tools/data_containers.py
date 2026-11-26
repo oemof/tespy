@@ -1929,6 +1929,10 @@ def _deprecated_container(
         # now, the former flags carry no information
         kwargs.pop("is_result", None)
         kwargs.pop("result_only", None)
+        # the declaration of a parameter that can become a variable has
+        # been renamed, _potential_var is solver state now
+        if "_potential_var" in kwargs and "_allows_var" in new_cls.attr():
+            kwargs["_allows_var"] = kwargs.pop("_potential_var")
         for key, value in defaults.items():
             kwargs.setdefault(key, value)
         new_cls.__init__(self, **kwargs)

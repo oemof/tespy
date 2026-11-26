@@ -334,7 +334,12 @@ def w_mix_pT_humidair(p, T, fluid_data, **kwargs):
     where :math:`w_\text{sat}(p, T) = w(p, T, \text{RH}{=}1)`.
     """
     w_def = w_mix_fluid_data(fluid_data)
-    w_max = w_mix_pTrh_humidair(p, T, 1.0)
+    try:
+        w_max = w_mix_pTrh_humidair(p, T, 1.0)
+    except ValueError:
+        # no saturated state exists if the saturation pressure of water
+        # exceeds the total pressure, e.g. above the boiling temperature
+        return w_def
     if w_def > w_max:
         _msg = f"Humidity ratio {w_def:.4f} exceeds maximum value of {w_max:.4f} for given p and T. Check fluid composition."
         return w_max
@@ -653,7 +658,7 @@ def s_mix_pT_humidair(p, T, fluid_data, **kwargs):
     Calculate specific entropy of a humid-air mixture.
 
     Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
-    obtained from :func:`w_mix_fluid_data`.
+    obtained from :func:`w_mix_pT_humidair`.
 
     Parameters
     ----------
@@ -671,7 +676,7 @@ def s_mix_pT_humidair(p, T, fluid_data, **kwargs):
     float
         Specific entropy in J/(kg K).
     """
-    w = w_mix_fluid_data(fluid_data)
+    w = w_mix_pT_humidair(p, T, fluid_data, **kwargs)
     return HAPropsSI("S", "P", p, "T", T, "W", w)
 
 
@@ -838,7 +843,7 @@ def v_mix_pT_humidair(p, T, fluid_data, **kwargs):
     Calculate specific volume of a humid-air mixture.
 
     Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
-    obtained from :func:`w_mix_fluid_data`.
+    obtained from :func:`w_mix_pT_humidair`.
 
     Parameters
     ----------
@@ -856,7 +861,7 @@ def v_mix_pT_humidair(p, T, fluid_data, **kwargs):
     float
         Specific volume in m³/kg.
     """
-    w = w_mix_fluid_data(fluid_data)
+    w = w_mix_pT_humidair(p, T, fluid_data, **kwargs)
     return HAPropsSI("V", "P", p, "T", T, "W", w)
 
 
@@ -950,7 +955,7 @@ def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
     Calculate dynamic viscosity of a humid-air mixture.
 
     Delegates to :func:`CoolProp.CoolProp.HAPropsSI` using the humidity ratio
-    obtained from :func:`w_mix_fluid_data`.
+    obtained from :func:`w_mix_pT_humidair`.
 
     Parameters
     ----------
@@ -968,7 +973,7 @@ def viscosity_mix_pT_humidair(p, T, fluid_data, **kwargs):
     float
         Dynamic viscosity in Pa s.
     """
-    w = w_mix_fluid_data(fluid_data)
+    w = w_mix_pT_humidair(p, T, fluid_data, **kwargs)
     return HAPropsSI("Visc", "P", p, "T", T, "W", w)
 
 

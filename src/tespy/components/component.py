@@ -584,7 +584,6 @@ class Component:
             Network this component is integrated in.
         """
         self.num_eq = 0
-        self.it = 0
         self.equations = {}
         self._equation_lookup = {}
         self._equation_scalar_dependents_lookup = {}

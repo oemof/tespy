@@ -22,6 +22,7 @@ from tespy.components import Valve  # noqa: E402
 from tespy.connections import Connection  # noqa: E402
 from tespy.networks import Network  # noqa: E402
 from tespy.plotting import plot_characteristic  # noqa: E402
+from tespy.plotting import plot_incidence_matrix  # noqa: E402
 from tespy.plotting import plot_property_diagram  # noqa: E402
 from tespy.plotting import plot_QT_diagram  # noqa: E402
 from tespy.plotting import plot_sweep  # noqa: E402
@@ -89,6 +90,7 @@ def main():
             char_map, operating_points=[(0.95, 0.85)], style=style,
             title="Compressor map"
         ), "char_map", variant)
+        save(plot_incidence_matrix(nw, block_order=True, style=style), "block_form", variant)
         save(plot_sweep(
             sweep, "T_cond", "COP", group="fluid", units={"T_cond": "°C"},
             style=style

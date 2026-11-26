@@ -22,6 +22,14 @@ from tespy.plotting.style import DASHES
 from tespy.plotting.style import MARKERS
 from tespy.plotting.style import get_style
 
+#: Gap around and corner radius of the cells of a matrix plot as fractions
+#: of the cell size.
+CELL_GAP = 0.075
+CELL_RADIUS = 0.17
+#: Corner radius of the outline of a box annotation in axis units.
+BOX_RADIUS = 0.25
+#: Tick labels of matrix plots are left out beyond this number.
+MAX_TICK_LABELS = 60
 #: Size of new Plotly figures in pixels.
 PLOTLY_SIZE = (760, 520)
 PLOTLY_MARGIN = {"l": 70, "r": 30, "t": 50, "b": 60}
@@ -38,6 +46,19 @@ def series_color(series, style):
         from matplotlib.colors import to_hex
         return to_hex(style.colormap()(series.color_value))
     return getattr(style, series.role)
+
+
+def cell_colors(style):
+    """Colors of the cells of a matrix plot by their kind.
+
+    Returns
+    -------
+    list
+        Colors of an empty cell, a recessive entry, an entry and a
+        highlighted entry: the grid color, a light step of the sequential
+        colors and the first two categorical colors of the style.
+    """
+    return [style.grid, style.sequential[1], style.color(0), style.color(1)]
 
 
 def _annotation_color(annotation, style):
@@ -60,9 +81,16 @@ def corner_loads(description):
 
     points = []
     for series in description.series:
+        x, y = list(series.x), list(series.y)
         if series.kind in ("heatmap", "contour"):
             return {corner: 1.0 for corner in CORNERS}
-        x, y = list(series.x), list(series.y)
+        if series.kind == "cells":
+            # the empty triangle of a matrix is free
+            points += [
+                (x[j], y[i]) for i, row in enumerate(series.z)
+                for j, value in enumerate(row) if value
+            ]
+            continue
         if series.kind == "bar":
             categories = description.y_axis.categories or y
             points += [
@@ -178,7 +206,7 @@ def draw_matplotlib(description, ax=None, style=None, logo=None, logo_location=N
         labels = _legend_labels(description)
         for series, label in zip(description.series, labels):
             _draw_series_matplotlib(ax, series, label, style, description)
-        _set_axes_matplotlib(ax, description)
+        _set_axes_matplotlib(ax, description, style.font_size)
         for annotation in description.annotations:
             _draw_annotation_matplotlib(ax, annotation, style)
         if description.title:
@@ -226,6 +254,25 @@ def _draw_series_matplotlib(ax, series, label, style, description):
             linewidth=0
         )
         return
+    if series.kind == "cells":
+        from matplotlib.patches import FancyBboxPatch
+
+        gap, radius = CELL_GAP, CELL_RADIUS
+        colors = cell_colors(style)
+        for i, row in enumerate(series.z):
+            for j, kind in enumerate(row):
+                ax.add_patch(FancyBboxPatch(
+                    (series.x[j] - 0.5 + gap, series.y[i] - 0.5 + gap),
+                    1 - 2 * gap, 1 - 2 * gap, linewidth=0,
+                    boxstyle=f"round,pad=0,rounding_size={radius}",
+                    facecolor=colors[kind]
+                ))
+        ax.set_aspect("equal")
+        ax.grid(False)
+        ax.tick_params(length=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        return
     if series.kind in ("heatmap", "contour"):
         cmap = style.colormap()
         if series.kind == "heatmap":
@@ -271,7 +318,7 @@ def _legend_handle(series, style):
     return kwargs
 
 
-def _set_axes_matplotlib(ax, description):
+def _set_axes_matplotlib(ax, description, style_font_size):
     for axis, set_label, set_scale, set_limits in (
             (description.x_axis, ax.set_xlabel, ax.set_xscale, ax.set_xlim),
             (description.y_axis, ax.set_ylabel, ax.set_yscale, ax.set_ylim)):
@@ -279,6 +326,15 @@ def _set_axes_matplotlib(ax, description):
         set_scale(axis.scale)
         if axis.range is not None:
             set_limits(*axis.range)
+    small = style_font_size * 0.8
+    for axis, set_ticks, rotation in (
+            (description.x_axis, ax.set_xticks, 90),
+            (description.y_axis, ax.set_yticks, 0)):
+        if axis.tick_labels and len(axis.tick_labels) <= MAX_TICK_LABELS:
+            set_ticks(
+                range(len(axis.tick_labels)), axis.tick_labels,
+                rotation=rotation, fontsize=small
+            )
     categories = description.y_axis.categories
     if categories:
         ax.set_yticks(range(len(categories)), categories)
@@ -311,6 +367,14 @@ def _draw_annotation_matplotlib(ax, annotation, style):
         ax.add_patch(Rectangle(
             (x0, y0), x1 - x0, y1 - y0, transform=transform, facecolor=color,
             alpha=0.12, linewidth=0, zorder=1
+        ))
+    elif annotation.kind == "box":
+        from matplotlib.patches import FancyBboxPatch
+
+        ax.add_patch(FancyBboxPatch(
+            (x[0], y[0]), x[1] - x[0], y[1] - y[0], fill=False,
+            boxstyle=f"round,pad=0,rounding_size={BOX_RADIUS}",
+            edgecolor=style.ink, linewidth=1.0, linestyle="--", zorder=4
         ))
     elif annotation.kind == "vline":
         ax.axvline(x[0], color=color, linewidth=0.8, linestyle="--", zorder=2)
@@ -410,6 +474,26 @@ def draw_plotly(description, style=None, logo=None, logo_location=None,
     for series, label in zip(description.series, labels):
         figure.add_trace(_plotly_trace(series, label, style, description))
     _set_axes_plotly(figure, description)
+    cells = [s for s in description.series if s.kind == "cells"]
+    if cells:
+        frameless = {
+            "showgrid": False, "showline": False, "ticks": "",
+            "constrain": "domain"
+        }
+        # square cells whatever room the labels take: the axes are locked
+        # to each other. The first view is the autoscaled one, a button to
+        # restore it would only duplicate autoscale
+        figure.update_layout(
+            xaxis=frameless,
+            yaxis={**frameless, "scaleanchor": "x", "scaleratio": 1},
+            modebar={"remove": ["resetScale2d"]}
+        )
+        for series in cells:
+            for color, path in _cell_paths(series, style):
+                figure.add_shape(
+                    type="path", path=path, xref="x", yref="y",
+                    fillcolor=color, line={"width": 0}, layer="below"
+                )
     for annotation in description.annotations:
         _draw_annotation_plotly(figure, annotation, style)
     if description.title:
@@ -422,11 +506,39 @@ def draw_plotly(description, style=None, logo=None, logo_location=None,
         add_plotly_logo_beside_legend(
             figure, style, info_lines(description.info),
             [label for label in labels if label is not None],
-            colorbar=any(s.z is not None for s in description.series)
+            colorbar=any(s.kind in ("heatmap", "contour") for s in description.series)
         )
     elif logo:
         add_plotly_logo(figure, style, location, info_lines(description.info))
+    if cells:
+        # square cells: the height follows from the width of the plot area
+        margin = figure.layout.margin
+        plot_width = figure.layout.width - margin.l - margin.r
+        rows, columns = len(cells[0].y), len(cells[0].x)
+        figure.update_layout(
+            height=plot_width * rows / columns + margin.t + margin.b
+        )
     return figure
+
+
+def _cell_paths(series, style):
+    """SVG paths of the cells of a matrix in data coordinates, one path with
+    a rounded square per cell for every color in use."""
+    gap, radius = CELL_GAP, CELL_RADIUS
+    paths = {}
+    for i, row in enumerate(series.z):
+        for j, kind in enumerate(row):
+            x0, x1 = series.x[j] - 0.5 + gap, series.x[j] + 0.5 - gap
+            y0, y1 = series.y[i] - 0.5 + gap, series.y[i] + 0.5 - gap
+            paths.setdefault(kind, []).append(
+                f"M {x0 + radius},{y0} L {x1 - radius},{y0} "
+                f"Q {x1},{y0} {x1},{y0 + radius} L {x1},{y1 - radius} "
+                f"Q {x1},{y1} {x1 - radius},{y1} L {x0 + radius},{y1} "
+                f"Q {x0},{y1} {x0},{y1 - radius} L {x0},{y0 + radius} "
+                f"Q {x0},{y0} {x0 + radius},{y0} Z"
+            )
+    colors = cell_colors(style)
+    return [(colors[kind], " ".join(parts)) for kind, parts in sorted(paths.items())]
 
 
 def _hovertemplate(series, description):
@@ -437,6 +549,8 @@ def _hovertemplate(series, description):
             lines.append(f"{key} = %{{customdata[{i}]:.4g}} {unit}".rstrip())
     elif series.kind == "bar":
         lines.append(f"%{{y}}: %{{x:.4g}} {description.x_axis.unit or ''}".rstrip())
+    elif series.kind == "cells":
+        lines = ["%{text}"]
     elif series.kind in ("heatmap", "contour"):
         z_title = description.z_axis.title if description.z_axis else "value"
         lines += [
@@ -478,6 +592,16 @@ def _plotly_trace(series, label, style, description):
             marker={"color": series_color(series, style), "line": {"width": 0}},
             customdata=_customdata(series), **common
         )
+    if series.kind == "cells":
+        # the cells are drawn as rounded shapes, see _cell_paths: a heat
+        # map has no rounded cells. This invisible one shows the hover text
+        rows = description.y_axis.tick_labels or series.y
+        columns = description.x_axis.tick_labels or series.x
+        return go.Heatmap(
+            x=series.x, y=series.y, z=series.z, opacity=0, showscale=False,
+            text=[[f"<b>{row}</b><br>{column}" for column in columns] for row in rows],
+            **common
+        )
     if series.kind in ("heatmap", "contour"):
         trace = go.Heatmap if series.kind == "heatmap" else go.Contour
         colorbar = {"outlinewidth": 0}
@@ -511,6 +635,18 @@ def _set_axes_plotly(figure, description):
                 [math.log10(v) for v in axis.range] if axis.scale == "log"
                 else list(axis.range)
             )
+        if axis.tick_labels:
+            # numbered positions with labels; a reversed axis keeps its
+            # direction when the view is autoscaled
+            reverse = axis.range is not None and axis.range[0] > axis.range[1]
+            settings = {
+                "title": {"text": axis.title}, "type": "linear",
+                "autorange": "reversed" if reverse else True,
+                "tickvals": list(range(len(axis.tick_labels))),
+                "ticktext": list(axis.tick_labels),
+                "showticklabels": len(axis.tick_labels) <= MAX_TICK_LABELS,
+                "tickfont": {"size": 9},
+            }
         if axis.categories:
             settings.update({
                 "type": "category", "categoryorder": "array",
@@ -540,6 +676,19 @@ def _draw_annotation_plotly(figure, annotation, style):
             x0=0 if x_open else x[0], x1=1 if x_open else x[1],
             y0=0 if y_open else y[0], y1=1 if y_open else y[1],
             fillcolor=color, opacity=0.12, line={"width": 0}, layer="below"
+        )
+    elif annotation.kind == "box":
+        x0, x1, y0, y1, r = x[0], x[1], y[0], y[1], BOX_RADIUS
+        figure.add_shape(
+            type="path", xref="x", yref="y",
+            path=(
+                f"M {x0 + r},{y0} L {x1 - r},{y0} Q {x1},{y0} {x1},{y0 + r} "
+                f"L {x1},{y1 - r} Q {x1},{y1} {x1 - r},{y1} L {x0 + r},{y1} "
+                f"Q {x0},{y1} {x0},{y1 - r} L {x0},{y0 + r} "
+                f"Q {x0},{y0} {x0 + r},{y0} Z"
+            ),
+            line={"color": style.ink, "width": 1.2, "dash": "dash"},
+            fillcolor="rgba(0,0,0,0)"
         )
     elif annotation.kind == "vline":
         figure.add_shape(

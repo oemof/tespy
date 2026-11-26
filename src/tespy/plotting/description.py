@@ -26,11 +26,13 @@ from dataclasses import field
 FORMAT = "tespy-plot"
 FORMAT_VERSION = 0
 
-SERIES_KINDS = ("line", "markers", "line+markers", "bar", "heatmap", "contour")
+SERIES_KINDS = (
+    "line", "markers", "line+markers", "bar", "heatmap", "contour", "cells"
+)
 SERIES_ROLES = (
     "category", "hot", "cold", "cycle", "reference", "invalid", "scale"
 )
-ANNOTATION_KINDS = ("segment", "region", "vline", "text")
+ANNOTATION_KINDS = ("segment", "region", "box", "vline", "text")
 AXIS_SCALES = ("linear", "log")
 
 
@@ -93,6 +95,10 @@ class Axis:
 
     quantity : str, optional
         Short name of the quantity, e.g. :code:`"T"`.
+
+    tick_labels : list, optional
+        Labels of the positions 0, 1, 2, ... of the axis, e.g. the
+        equations of a matrix plot.
     """
 
     label: str
@@ -101,6 +107,7 @@ class Axis:
     range: list = None
     categories: list = None
     quantity: str = None
+    tick_labels: list = None
 
     def __post_init__(self):
         if self.scale not in AXIS_SCALES:
@@ -140,7 +147,9 @@ class Series:
 
     z : list, optional
         Values on the grid of :code:`x` and :code:`y` (one row per y value)
-        for heat maps and contour plots.
+        for heat maps and contour plots. For the kind :code:`"cells"` the
+        kind of every cell of a matrix, see
+        :py:data:`tespy.plotting.render.cell_colors`.
 
     fields : dict, optional
         Further values per point, shown when hovering, e.g. :code:`{"T":
@@ -210,8 +219,9 @@ class Annotation:
     ----------
     kind : str
         :code:`"segment"` (a line between two points), :code:`"region"` (a
-        rectangle, :code:`None` for an open side), :code:`"vline"` (a
-        vertical line) or :code:`"text"`.
+        filled rectangle, :code:`None` for an open side), :code:`"box"` (a
+        dashed rounded outline), :code:`"vline"` (a vertical line) or
+        :code:`"text"`.
 
     x, y : list
         Coordinates.

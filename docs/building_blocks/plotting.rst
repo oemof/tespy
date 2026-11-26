@@ -211,6 +211,38 @@ sweep and results on a grid of two parameters. Sweeps and maps take a
 
     Figure: Parameter sweep
 
+Structure of the system of equations
+------------------------------------
+
+The incidence matrix shows which equation depends on which variable, for
+the equations and variables that remain after the presolving of the network.
+With :code:`block_order=True` equations and variables are sorted by the
+blocks the solver works through: the matrix is then block lower triangular,
+every block only depends on its own variables and on those of blocks solved
+before it. Blocks of several equations that are solved together are
+highlighted and outlined, dependencies on earlier blocks are lighter. It is the plot
+counterpart of :code:`nw.print_incidence_matrix`.
+
+.. code-block:: python
+
+    >>> from tespy.plotting import plot_incidence_matrix
+    >>> ax = plot_incidence_matrix(nw)
+    >>> ax = plot_incidence_matrix(nw, block_order=True)
+
+.. figure:: /_static/images/modules/plotting/block_form_light.png
+    :align: center
+    :alt: Block lower triangular form of the incidence matrix
+    :figclass: only-light
+
+    Figure: Block lower triangular form of the incidence matrix
+
+.. figure:: /_static/images/modules/plotting/block_form_dark.png
+    :align: center
+    :alt: Block lower triangular form of the incidence matrix
+    :figclass: only-dark
+
+    Figure: Block lower triangular form of the incidence matrix
+
 Interactive plots in the browser
 --------------------------------
 

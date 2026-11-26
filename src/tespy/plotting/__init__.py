@@ -37,6 +37,9 @@ from tespy.plotting.render import draw_plotly  # noqa: F401
 from tespy.plotting.settings import get_defaults  # noqa: F401
 from tespy.plotting.settings import reset_defaults  # noqa: F401
 from tespy.plotting.settings import set_defaults  # noqa: F401
+from tespy.plotting.structure import incidence_matrix_data  # noqa: F401
+from tespy.plotting.structure import plot_incidence_matrix  # noqa: F401
+from tespy.plotting.structure import plot_incidence_matrix_plotly  # noqa: F401
 from tespy.plotting.style import Style  # noqa: F401
 from tespy.plotting.style import available_styles  # noqa: F401
 from tespy.plotting.style import get_style  # noqa: F401

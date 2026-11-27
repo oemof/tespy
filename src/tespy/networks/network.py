@@ -2440,7 +2440,7 @@ class Network:
               max_iter=50, min_iter=2, init_only=False, init_previous=True,
               use_cuda=False, print_results=True, robust_relax=False, skip_postprocess=False,
               oscillation_damping=False, block_solve=True,
-              pause_on_block_failure=False, line_search="stagnation",
+              pause_on_block_failure=False, line_search="always",
               increment_filter=INCREMENT_FILTER_RTOL,
               block_solve_fluid_composition=None, skip_fallbacks=False):
         r"""
@@ -2530,13 +2530,13 @@ class Network:
 
         line_search : str
             Globalization of the newton steps by a backtracking line search
-            on the scaled residual norm: :code:`"stagnation"` (default) runs
-            plain newton steps and, once the iteration stagnates or runs out
-            of iterations, the jacobian is singular or an equation evaluation
-            fails, returns to the state with the lowest residual and
-            continues with line search steps on a fresh budget of
-            :code:`max_iter` iterations. :code:`"always"` applies the line
-            search from the first iteration, :code:`"off"` disables it.
+            on the scaled residual norm: :code:`"always"` (default) applies
+            the line search from the first iteration. :code:`"stagnation"`
+            runs plain newton steps and, once the iteration stagnates or runs
+            out of iterations, the jacobian is singular or an equation
+            evaluation fails, returns to the state with the lowest residual
+            and continues with line search steps on a fresh budget of
+            :code:`max_iter` iterations. :code:`"off"` disables it.
 
         increment_filter : float, optional
             Derivatives of a variable are not recomputed while its last
@@ -2683,7 +2683,7 @@ class Network:
                        print_results=True, robust_relax=False,
                        skip_postprocess=False, oscillation_damping=False,
                        block_solve=True, pause_on_block_failure=None,
-                       line_search="stagnation",
+                       line_search="always",
                        increment_filter=INCREMENT_FILTER_RTOL,
                        block_solve_fluid_composition=None,
                        skip_fallbacks=None, _stacklevel=2):

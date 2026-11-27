@@ -87,7 +87,7 @@ class Problem:
 
         self.status = 99
         self.iter = 0
-        self.line_search = "stagnation"
+        self.line_search = "always"
         self._line_search_active = False
         self._best_residual = np.inf
         self._best_state = None
@@ -1767,7 +1767,7 @@ class Problem:
     def solve_loop(self, max_iter, min_iter, use_cuda, robust_relax,
                    oscillation_damping, iterinfo, print_results=True,
                    block_solve=False, pause_on_block_failure=None,
-                   line_search="stagnation",
+                   line_search="always",
                    increment_filter=INCREMENT_FILTER_RTOL,
                    block_solve_fluid_composition=False,
                    skip_fallbacks=None):

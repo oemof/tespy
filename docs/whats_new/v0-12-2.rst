@@ -20,25 +20,22 @@ Bug Fixes
   recognized a under different alias of the same fluid.
 - The :code:`SectionedHeatExchanger` raised an :code:`IndexError` in the
   :code:`area_zones` equation when a fluid side with pressure drop enters
-  exactly at saturated vapor or leaves exactly at saturated liquid, e.g.
-  during a derivative evaluation: the phase boundary steps kept the degenerate
-  boundary while the zone phases did not.
+  exactly at saturated vapor or leaves exactly at saturated liquid.
 - The :code:`UA_char` equation of :code:`HeatExchanger` and
-  :code:`NTUHeatExchanger` raised an :code:`AttributeError` for components
-  with :code:`local_offdesign=True`. It now uses the design state loaded from
-  the :code:`design_path` of the component.
+  :code:`NTUHeatExchanger` raised an :code:`AttributeError` for components with
+  :code:`local_offdesign=True`. It now uses the design state loaded from the
+  :code:`design_path` of the component.
 - With the block-wise solution, the value boundaries and adjustments meant for
   the first iterations only stayed active on connections that do not own an
   equation of the block, e.g. the outlet of a turbine
   (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
 - The enthalpy of fluid mixtures is bounded by the temperature range of the
-  mixture instead of the fixed default range of 1 to 7000 kJ/kg, which did
-  not fit e.g. hydrogen rich mixtures or other reference states
+  mixture instead of the fixed default range of 1 to 7000 kJ/kg, which did not
+  fit e.g. hydrogen rich mixtures or other reference states
   (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
 - The enthalpy boundaries of the :code:`HAConnection` consider the humidity of
   the stream and cover the full temperature range of the humid air property
-  functions
-  (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+  functions (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
 - Entropy, specific volume and viscosity of humid air with water above
   saturation are evaluated with the vapor content of the saturated air like the
   enthalpy, instead of the total water content
@@ -49,8 +46,8 @@ Documentation
 - The documentation on mixtures with the CoolProp :code:`HEOS` back end is
   updated: CoolProp version 8.1 or higher is recommended for these, the
   remaining limitations are listed and the
-  :ref:`comparison of the back ends <fluid_property_backends_label>` is
-  rerun with that version.
+  :ref:`comparison of the back ends <fluid_property_backends_label>` is rerun
+  with that version.
 
 Contributors
 ############

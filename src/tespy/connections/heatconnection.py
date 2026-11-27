@@ -26,6 +26,9 @@ class HeatConnection(PowerConnection):
     E : float, Ref
         Heat flow (system variable).
 
+    inlet_id : str
+        The inlet of the target component, e.g. :code:`"in1"`.
+
     label : str
         The label of the connection.
 
@@ -38,8 +41,17 @@ class HeatConnection(PowerConnection):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    outlet_id : str
+        The outlet of the source component, e.g. :code:`"out1"`.
+
     printout : bool
         Include this connection in the network's results printout.
+
+    source : tespy.components.component.Component
+        The component the connection starts from.
+
+    target : tespy.components.component.Component
+        The component the connection ends at.
     """
 
     def _source_outlets(self, source):

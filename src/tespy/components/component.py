@@ -177,8 +177,24 @@ class Component:
         offdesign : list
             List containing offdesign parameters (stated as String).
 
-        design_path: str
+        design_path : str
             Path to the components design case.
+
+        local_design : boolean
+            Treat this component in design mode in an offdesign calculation.
+
+        local_offdesign : boolean
+            Treat this component in offdesign mode in a design calculation.
+
+        printout : boolean
+            Include this component in the network's results printout.
+
+        char_warnings : boolean
+            Ignore warnings on default characteristics usage for this
+            component.
+
+        bypass : boolean
+            Bypass the component, i.e. pass the inlet states to the outlets.
 
         **kwargs :
             See the class documentation of desired component for available
@@ -1404,8 +1420,9 @@ class Component:
         k : int
             equation number in systems of equations
 
-        variable : str
-            Connection variable name, e.g. :code:`h`.
+        **kwargs :
+            :code:`variable` (str) is the connection variable name, e.g.
+            :code:`h`.
         """
         variable = kwargs.get("variable")
         for count, (i, o) in enumerate(zip(self.inl, self.outl)):

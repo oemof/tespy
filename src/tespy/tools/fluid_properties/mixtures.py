@@ -871,12 +871,15 @@ def viscosity_mix_pT_ideal(p=None, T=None, fluid_data=None, **kwargs):
 
     Parameters
     ----------
-    flow : list
-        Fluid property vector containing mass flow, pressure, enthalpy and
-        fluid composition.
+    p : float
+        Pressure p / Pa.
 
     T : float
         Temperature T / K.
+
+    fluid_data : dict
+        Fluid property wrappers and mass fractions of the mixture's
+        components.
 
     Returns
     -------

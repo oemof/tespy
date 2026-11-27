@@ -12,6 +12,12 @@ from tespy.tools.fluid_properties import single_fluid
 
 
 class ModelTemplate():
+    """Base class for reusable models with a flat parameter interface.
+
+    Subclasses build the network in :code:`_create_network` and map
+    parameter names to connection or component attributes in
+    :code:`_parameter_lookup`. The network is available as :code:`nw`.
+    """
 
     def __init__(self) -> None:
         self._diagram_cache = {}
@@ -57,6 +63,18 @@ class ModelTemplate():
         return {}
 
     def get_results(self, labels):
+        """Get the values of several parameters.
+
+        Parameters
+        ----------
+        labels : list
+            Names of the parameters as defined in the parameter lookup.
+
+        Returns
+        -------
+        dict
+            Value per parameter name.
+        """
         return {label: self.get_parameter(label) for label in labels}
 
     def _map_parameter(self, parameter: str) -> list:
@@ -69,6 +87,18 @@ class ModelTemplate():
         return mapped
 
     def get_parameter(self, parameter: str) -> float:
+        """Get the value of a parameter.
+
+        Parameters
+        ----------
+        parameter : str
+            Name of the parameter as defined in the parameter lookup.
+
+        Returns
+        -------
+        float
+            Value of the parameter.
+        """
         if parameter not in self.parameter_lookup:
             raise KeyError(f"'{parameter}' is not in parameter_lookup.")
         mapped = self.parameter_lookup[parameter]
@@ -82,6 +112,15 @@ class ModelTemplate():
             return self.nw.get_comp(mapped[1]).get_attr(mapped[2]).val
 
     def set_parameters(self, **kwargs) -> None:
+        """Set the values of parameters.
+
+        Parameters
+        ----------
+        **kwargs :
+            Values by parameter name as defined in the parameter lookup,
+            pass a dictionary for names with spaces:
+            :code:`set_parameters(**{"evaporator pinch": 5})`.
+        """
         conn_params = {}
         comp_params = {}
         for param, value in kwargs.items():
@@ -108,6 +147,13 @@ class ModelTemplate():
             self.nw.get_comp(label).set_attr(**params)
 
     def solve_model_design(self, **kwargs) -> None:
+        """Set parameters and solve the model in design mode.
+
+        Parameters
+        ----------
+        **kwargs :
+            Values by parameter name, see :py:meth:`set_parameters`.
+        """
         self.set_parameters(**kwargs)
 
         self._solved = False
@@ -130,6 +176,15 @@ class ModelTemplate():
             self.nw.solve("design", init_only=True, init_path=self._stable_solution)
 
     def solve_model_offdesign(self, **kwargs) -> None:
+        """Set parameters and solve the model in offdesign mode.
+
+        The design case must be saved with :py:meth:`save_design` before.
+
+        Parameters
+        ----------
+        **kwargs :
+            Values by parameter name, see :py:meth:`set_parameters`.
+        """
         self.set_parameters(**kwargs)
 
         self._solved = False
@@ -431,6 +486,24 @@ class ModelTemplate():
         return fig, ax
 
     def plot_QT_diagram_matplotlib(self, heatexchanger_label, ax=None, save_dir=None, figsize=None):
+        """Plot the Q-T diagram of a heat exchanger with sections.
+
+        Parameters
+        ----------
+        heatexchanger_label : str
+            Label of the heat exchanger.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot into.
+        save_dir : str, optional
+            Directory to save the figure to.
+        figsize : tuple, optional
+            Figure size for a new figure.
+
+        Returns
+        -------
+        tuple
+            matplotlib figure and axes.
+        """
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize or (10, 6))
         else:
@@ -491,7 +564,14 @@ class ModelTemplate():
         return ax_min_val, ax_max_val
 
     def save_design(self, path=None) -> None:
-        """Save current network state as the design reference."""
+        """Save current network state as the design reference.
+
+        Parameters
+        ----------
+        path : str, optional
+            File to save the state to, default: :code:`None`, which keeps
+            the state in memory.
+        """
         if path is not None:
             self.nw.save(path)
             self._design_path = path
@@ -681,6 +761,14 @@ class ModelTemplate():
     #         raise Exception("Simulation failed. Max iteration reached for intermediate simulation step increase.")
 
     def solve_model(self, **kwargs) -> None:
+        """Solve the model in an optimization, to be implemented by the
+        subclass.
+
+        Parameters
+        ----------
+        **kwargs :
+            Values by parameter name, see :py:meth:`set_parameters`.
+        """
         msg = (
             "For the usage of the optimization please implement a concrete "
             "method called 'solve_model' in your class. For example, you "
@@ -689,6 +777,18 @@ class ModelTemplate():
         raise NotImplementedError(msg)
 
     def get_objectives(self, objective_list: list) -> list:
+        """Get the values of the objectives of an optimization.
+
+        Parameters
+        ----------
+        objective_list : list
+            Names of the parameters as defined in the parameter lookup.
+
+        Returns
+        -------
+        list
+            Values of the parameters.
+        """
         return [self.get_parameter(obj) for obj in objective_list]
 
     def optimize(self, algorithm, termination, variables: dict, constraints: dict = None, objective: list = None, minimize_flags: list = None, kpi: list = None) -> tuple:

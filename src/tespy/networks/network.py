@@ -87,6 +87,9 @@ class Network:
     iterinfo : boolean
         Print convergence progress to console.
 
+    units : tespy.tools.units.Units
+        Default units of the network, default: SI units.
+
     h_range : list
         List with minimum and maximum values for enthalpy value range of
         fluid mixtures, default: :code:`None`. Without a range the enthalpy
@@ -105,8 +108,11 @@ class Network:
     The specification is optional and will use SI units by default.
 
     Range specification is optional, too. The value range is used to stabilize
-    the newton algorithm. For more information see the "getting started"
-    section in the online-documentation.
+    the newton algorithm.
+
+    After a solve call the attribute :code:`status` holds the outcome, see
+    :py:attr:`~tespy.networks.network.Network.converged` and the
+    :ref:`solver documentation <modules_solver_label>`.
 
     Example
     -------
@@ -333,9 +339,8 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.components.subsystem.Subsystem
-            The subsystem to be added to the network, subsystem objects si
-            :code:`network.add_subsystems(s1, s2, s3, ...)`.
+        *args : tespy.components.subsystem.Subsystem
+            The subsystems to add, :code:`add_subsystems(s1, s2, ...)`.
         """
         for subsystem in args:
             if subsystem.label in self.subsystems:
@@ -357,9 +362,8 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.components.subsystem.Subsystem
-            The subsystem to be deleted from the network, subsystem objects si
-            :code:`network.del_subsystems(s1, s2, s3, ...)`.
+        *args : tespy.components.subsystem.Subsystem
+            The subsystems to delete, :code:`del_subsystems(s1, s2, ...)`.
         """
         for subsystem in args:
             if subsystem.label in self.subsystems:
@@ -436,9 +440,8 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection.Connection
-            The connection to be added to the network, connections objects ci
-            :code:`add_conns(c1, c2, c3, ...)`.
+        *args : tespy.connections.connection.ConnectionBase
+            The connections to add, :code:`add_conns(c1, c2, ...)`.
         """
         for c in args:
             if not isinstance(c, ConnectionBase):
@@ -481,9 +484,8 @@ class Network:
 
         Parameters
         ----------
-        c : tespy.connections.connection.Connection
-            The connection to be removed from the network, connections objects
-            ci :code:`del_conns(c1, c2, c3, ...)`.
+        *args : tespy.connections.connection.ConnectionBase
+            The connections to remove, :code:`del_conns(c1, c2, ...)`.
         """
         comps = list({cp for c in args for cp in [c.source, c.target]})
         for c in args:
@@ -568,13 +570,12 @@ class Network:
 
     def add_ude(self, *args):
         r"""
-        Add a user defined function to the network.
+        Add one or more user defined equations to the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedEquation
-            The objects to be added to the network, UserDefinedEquation objects
-            ci :code:`add_ude(c1, c2, c3, ...)`.
+        *args : tespy.tools.helpers.UserDefinedEquation
+            The equations to add, :code:`add_ude(ude1, ude2, ...)`.
         """
         for c in args:
             if not isinstance(c, hlp.UserDefinedEquation):
@@ -602,13 +603,12 @@ class Network:
 
     def del_ude(self, *args):
         """
-        Remove a user defined function from the network.
+        Remove one or more user defined equations from the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedEquation
-            The objects to be deleted from the network,
-            UserDefinedEquation objects ci :code:`del_ude(c1, c2, c3, ...)`.
+        *args : tespy.tools.helpers.UserDefinedEquation
+            The equations to remove, :code:`del_ude(ude1, ude2, ...)`.
         """
         for c in args:
             del self.user_defined_eq[c.label]
@@ -639,13 +639,12 @@ class Network:
 
     def add_udv(self, *args):
         r"""
-        Add a user defined variable to the network.
+        Add one or more user defined variables to the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedVariable
-            The objects to be added to the network, UserDefinedVariable
-            objects ci :code:`add_udv(c1, c2, c3, ...)`.
+        *args : tespy.tools.helpers.UserDefinedVariable
+            The variables to add, :code:`add_udv(udv1, udv2, ...)`.
         """
         for c in args:
             if not isinstance(c, hlp.UserDefinedVariable):
@@ -673,13 +672,12 @@ class Network:
 
     def del_udv(self, *args):
         """
-        Remove a user defined variable from the network.
+        Remove one or more user defined variables from the network.
 
         Parameters
         ----------
-        c : tespy.tools.helpers.UserDefinedVariable
-            The objects to be deleted from the network,
-            UserDefinedVariable objects ci :code:`del_udv(c1, c2, c3, ...)`.
+        *args : tespy.tools.helpers.UserDefinedVariable
+            The variables to remove, :code:`del_udv(udv1, udv2, ...)`.
         """
         for c in args:
             del self.user_defined_var[c.label]
@@ -710,6 +708,17 @@ class Network:
 
     @property
     def converged(self):
+        """Solution found in the last solve call.
+
+        Returns
+        -------
+        bool
+            :code:`True` if :code:`status` is 0 (converged) or 1 (converged,
+            but some results violate physical limits). The other values are
+            2 (no convergence), 3 (linear dependency in the jacobian), 11
+            and 12 (too few or too many specifications), 20 (paused at a
+            failed block) and 99 (calculation crashed).
+        """
         if hasattr(self, "status"):
             return self.status == 0 or self.status == 1
         else:
@@ -1908,8 +1917,14 @@ class Network:
         return self.problem.get_variable_values(block=block)
 
     def print_variable_values(self, block=None):
-        """Print a formatted table of the current variable values,
-        optionally restricted to the variables of a single block."""
+        """Print a formatted table of the current variable values.
+
+        Parameters
+        ----------
+        block : int
+            Restrict the table to the variables of the block with this id,
+            default: :code:`None` (all variables).
+        """
         variables = self.get_variable_values(block=block)
         if block is not None:
             print(
@@ -2294,6 +2309,11 @@ class Network:
         Entries the incidence matrix does not declare are left blank, a
         derivative that evaluated to zero although its dependency is
         declared is marked as :code:`missing`.
+
+        Parameters
+        ----------
+        block : int
+            Id of the block of the block decomposition.
         """
         data = self.get_block_jacobian(block)
         print(f"Jacobian of block {block} at the state of failure:")
@@ -2350,9 +2370,18 @@ class Network:
         return self.problem.get_block_states(block, at=at)
 
     def print_block_states(self, block, at="current"):
-        """Print the states of the connections a block touches, either at
-        the current variable values or as recorded in the failing
-        iteration (:code:`at="failure"`)."""
+        """Print the states of the connections a block touches.
+
+        Parameters
+        ----------
+        block : int
+            Id of the block of the block decomposition.
+
+        at : str
+            :code:`"current"` (default) for the current variable values,
+            :code:`"failure"` for the states recorded in the failing
+            iteration of the block.
+        """
         states = self.get_block_states(block, at=at)
         props = []
         for state in states:
@@ -2452,7 +2481,7 @@ class Network:
         - Postprocessing.
 
         It is possible to check programmatically, if a network was solved
-        successfully with the `.converged` attribute.
+        successfully with the :code:`.converged` attribute.
 
         Parameters
         ----------
@@ -2492,11 +2521,20 @@ class Network:
             Use cuda instead of numpy for matrix inversion, default:
             :code:`False`.
 
+        print_results : boolean
+            Print the convergence progress to the console if
+            :code:`iterinfo` is active, default: :code:`True`. It is logged
+            in any case.
+
         robust_relax : boolean
             Apply a ramped relaxation factor that starts near zero and grows to
             1 over the first quarter of :code:`max_iter` iterations. Helps
             avoid divergence from poor starting values, at the cost of slower
             early convergence. Default: :code:`False`.
+
+        skip_postprocess : boolean
+            Skip the calculation of the connection and component results
+            after the solver finished, default: :code:`False`.
 
         oscillation_damping : boolean
             Detect Newton oscillations caused by non-smooth residuals (e.g.
@@ -2568,8 +2606,8 @@ class Network:
 
         Note
         ----
-        For more information on the solution process have a look at the online
-        documentation at tespy.readthedocs.io in the section "TESPy modules".
+        For more information on the solution process have a look at the
+        :ref:`solver documentation <modules_solver_label>`.
         """
         self.presolve(
             mode, init_path=init_path, design_path=design_path,
@@ -2692,17 +2730,30 @@ class Network:
 
         Continues after :py:meth:`~tespy.networks.network.Network.presolve`
         or :code:`solve(mode, init_only=True)`, taking into account any
-        modification of variable values made in between. The solver
-        parameters correspond to the ones of
-        :py:meth:`~tespy.networks.network.Network.solve`.
+        modification of variable values made in between. When the solution
+        process is paused at a failed block, the block is retried with the
+        current variable values and the solution process continues from
+        there.
 
-        When the solution process is paused at a failed block, the block is
-        retried with the current variable values and the solution process
-        continues from there. :code:`pause_on_block_failure` defaults to
-        keeping the value of the initiating solve call, passing
-        :code:`False` explicitly hands a still failing block over to the
-        standard escalation stages instead. :code:`skip_fallbacks` keeps the
-        value of the initiating solve call by default as well.
+        Parameters
+        ----------
+        max_iter, min_iter, use_cuda, print_results, robust_relax
+            See :py:meth:`~tespy.networks.network.Network.solve`.
+
+        skip_postprocess, oscillation_damping, block_solve, line_search
+            See :py:meth:`~tespy.networks.network.Network.solve`.
+
+        increment_filter, block_solve_fluid_composition
+            See :py:meth:`~tespy.networks.network.Network.solve`.
+
+        pause_on_block_failure : boolean
+            Default: :code:`None`, which keeps the value of the initiating
+            solve call. :code:`False` hands a still failing block over to
+            the standard escalation stages.
+
+        skip_fallbacks : boolean
+            Default: :code:`None`, which keeps the value of the initiating
+            solve call.
         """
         if self._problem is None or not (
                 self._presolve_pending or self._problem.paused):
@@ -2832,6 +2883,14 @@ class Network:
 
     @property
     def results(self):
+        """Results of the last solve call.
+
+        Returns
+        -------
+        dict
+            One :code:`pandas.DataFrame` per connection and component class
+            name, indexed by the labels of the objects.
+        """
         optional_changed = any(
             c._optional_results_stale for c in self.conns["object"]
         )
@@ -2874,7 +2933,27 @@ class Network:
             self._results[key] = pd.DataFrame(rows, index=labels, columns=cols)
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
-        r"""Print the calculations results to prompt."""
+        r"""
+        Print the calculations results to prompt.
+
+        Parameters
+        ----------
+        colored : boolean
+            Highlight specified values, variables and values out of their
+            bounds with colors, default: :code:`True`.
+
+        colors : dict
+            ANSI color codes replacing the defaults of the keys
+            :code:`"set"`, :code:`"var"`, :code:`"err"` and :code:`"end"`.
+
+        print_results : boolean
+            Print the tables to the console, default: :code:`True`. They are
+            logged in any case.
+
+        subsystem : tespy.components.subsystem.Subsystem
+            Restrict the tables to the components and connections of this
+            subsystem, default: :code:`None`.
+        """
         # Define colors for highlighting values in result table
         if colors is None:
             colors = {}
@@ -3027,6 +3106,20 @@ class Network:
 
     @classmethod
     def from_dict(cls, network_data):
+        r"""
+        Load a network from the data of an export.
+
+        Parameters
+        ----------
+        network_data : dict
+            The data as returned by
+            :py:meth:`~tespy.networks.network.Network.export`.
+
+        Returns
+        -------
+        nw : tespy.networks.network.Network
+            TESPy networks object.
+        """
         _check_meta(network_data, "network")
         # create network
         # get method to ensure compatibility with old style export
@@ -3107,31 +3200,18 @@ class Network:
     @classmethod
     def from_json(cls, json_file_path):
         r"""
-        Load a network from a base path.
+        Load a network from a json file.
 
         Parameters
         ----------
-        path : str
-            The path to the network data.
+        json_file_path : str
+            Path of the file written by
+            :py:meth:`~tespy.networks.network.Network.export`.
 
         Returns
         -------
         nw : tespy.networks.network.Network
             TESPy networks object.
-
-        Note
-        ----
-        If you export the network structure of an existing TESPy network, it
-        will be saved to the path you specified. The structure of the saved
-        data in that path is the structure you need to provide in the path for
-        loading the network.
-
-        The structure of the path must be as follows:
-
-        - Folder: path (e.g. 'mynetwork')
-        - Component.json
-        - Connection.json
-        - Network.json
 
         Example
         -------

@@ -1,5 +1,4 @@
 .. _roadmap_label:
-.. _roadmap_timeline_label:
 
 ###################
 Development roadmap

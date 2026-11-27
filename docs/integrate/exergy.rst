@@ -6,8 +6,8 @@ Exergy analysis
 
 Performing thermodynamic cycle analyses making use of the second law of
 thermodynamics provides further process information and uncovers potentials for
-improvement in power plant engineering. Therefore, this feature provides you
-with an inbuilt and fully automatic exergy analysis.
+improvement in power plant engineering. TESPy models can be passed to exerpy
+for a fully automatic exergy analysis.
 
 We have published a paper with the features described in this section. The
 publication is licensed under an open-access license, download the pdf
@@ -60,10 +60,9 @@ Terminology
 -----------
 The definitions and nomenclature of the exergy analysis in TESPy are based on
 :cite:`Tsatsaronis2007`. The exergy destruction ratios are described in more
-detail in :cite:`Bejan1996`. Since the current version of the exergy analysis
-in TESPy only focuses on physical exergy and does not include reaction
-processes yet, chemical exergy is not considered. Changes in kinetic and
-potential exergy are neglected and therefore not considered as well.
+detail in :cite:`Bejan1996`. TESPy itself only provides the physical exergy
+of its connections. Chemical exergy and exergoeconomic methods are available
+in exerpy. Changes in kinetic and potential exergy are neglected.
 
 The physical exergy of a connection is available in the parameters
 :code:`e_T`, :code:`e_M` and :code:`e_PH` (specific exergy) and :code:`E_T`,
@@ -107,11 +106,8 @@ the network like any other quantity, see :ref:`units_label`:
     * - :code:`e_CH`, :code:`E_CH`
       - (specific) chemical exergy
       - :math:`e^\text{CH}`, :math:`E^\text{CH}`
-      - based on standard chemical exergy in ambient model, the `tespy.data`
-        module provides three different datasets for standard exergy based on
-        various sources, i.e. `Ahrendts`
-        :cite:`Ahrendts1980,Ahrendts1977,Ahrendts1974`, `Szargut1988`
-        :cite:`Szargut1988` and `Szargut2007` :cite:`Szargut2007,Bakshi2011`.
+      - based on the standard chemical exergy of an ambient model, not
+        calculated by TESPy, see the exerpy documentation
     * - :code:`E_P`
       - product exergy
       - :math:`\dot{E}_\text{P}`

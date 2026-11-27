@@ -13,7 +13,7 @@ Extend existing components
 --------------------------
 
 You can easily add custom equations to the existing components. In order to do
-this, you need to implement four changes to the desired component class:
+this, you need to implement three changes to the desired component class:
 
 - modify the :code:`get_parameters(self)` method.
 - add a method, that returns the result of your equation.
@@ -61,9 +61,7 @@ parameters it reads.
 applied for the corresponding purpose. For more information on defining the
 equations and dependents see the next section on custom components. When
 defining the dependents in a standalone way, the partial derivatives are
-calculated automatically. If you want to insert the partial derivatives
-manually, you can define another function and pass with the :code:`deriv`
-keyword.
+calculated automatically, which is the recommended way.
 
 Create own components
 ---------------------
@@ -75,12 +73,13 @@ python file in your working directory and import the base class for your
 custom component. Now create a class for your component and at least add the
 following methods.
 
-- :code:`component(self)`,
 - :code:`get_parameters(self)`,
 - :code:`get_mandatory_constraints(self)`,
-- :code:`inlets(self)`,
-- :code:`outlets(self)` and
-- :code:`calc_parameters(self)`.
+- :code:`inlets(self)` and
+- :code:`outlets(self)`.
+
+Results are calculated through the :code:`calc` callables of the parameters,
+see the section on postprocessing below.
 
 Optionally, you can add
 
@@ -190,13 +189,9 @@ calculate the residual value of your equation and automatically calculates its
 partial derivatives towards all variables specified in the :code:`dependents`
 list.
 
-Finally, sometimes it is reasonable to not let tespy automatically calculate
-all partial derivatives, because the calculation can be computationally
-expensive. Instead you can additionally provide the following keyword:
-
-- :code:`deriv`: A method that calculate the partial derivatives.
-
-You will find more information and examples on this in the next sections.
+In rare cases you can additionally provide a :code:`deriv` method that
+calculates the partial derivatives, see the section on analytical derivatives
+below.
 
 You can also define mandatory constraints that are conditional, e.g. in context
 of :code:`PowerConnections`. For example, the connection between the material
@@ -406,12 +401,11 @@ evaluate fluid properties then has to list its mass fractions in the
     equations with
     :py:meth:`~tespy.networks.network.Network.print_dependents_check`.
 
-Define the derivatives
-^^^^^^^^^^^^^^^^^^^^^^
-The downside of the simple to use approach of defining the equation together
-with its dependents is, that it can be computationally expensive to calculate
-the partial derivatives. In this case, it may be reasonable to implement a
-method specifically for the calculation of the partial derivatives.
+Analytical derivatives (optional)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Declaring the dependents is the recommended way, the partial derivatives are
+then calculated numerically. A :code:`deriv` method is only worth it, if a
+derivative is known analytically and the equation is expensive to evaluate.
 
 For example, consider the isentropic efficiency equation of a :code:`Turbine`:
 

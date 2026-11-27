@@ -4,11 +4,22 @@ Characteristics
 ===============
 
 In this part we give an introduction on the TESPy characteristics
-implementation. There two different types of characteristics available in
-TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`)
-and maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`).
+implementation. There are four types of characteristics available in
+TESPy: lines (:py:class:`CharLine <tespy.tools.characteristics.CharLine>`),
+maps (:py:class:`CharMap <tespy.tools.characteristics.CharMap>`) and
+polynomials
+(:py:class:`Polynomial <tespy.tools.characteristics.Polynomial>` and
+:py:class:`EN12900Polynomial <tespy.tools.characteristics.EN12900Polynomial>`).
 The default characteristics available are to be found in the
 :ref:`data_label` documentation.
+
+Units
+-----
+
+The data of a characteristic carry the units of their axes, e.g.
+:code:`CharLine(x, y, x_unit="m3/s", y_unit="Pa")`, or you pass
+:code:`pint` quantity arrays. Dimensioned data without units are read in the
+default units of the network. Relative characteristics are dimensionless.
 
 Characteristic lines
 --------------------
@@ -55,12 +66,12 @@ calculated, again using linear interpolation.
 
 .. note::
 
-    Using compressors map functions :math:`\vec{y}` and :math:`\vec{z}` are
-    manipulated with by the value of the inlet guide vane angle. Also see the
-    corresponding methods
-    :py:class:`tespy.components.turbomachinery.compressor.Compressor.char_map_eta_s_func`
+    In the map functions of the :code:`TurboCompressor` :math:`\vec{y}` and
+    :math:`\vec{z}` are manipulated by the value of the inlet guide vane
+    angle. Also see the corresponding methods
+    :py:meth:`tespy.components.turbomachinery.turbocompressor.TurboCompressor.char_map_eta_s_func`
     and
-    :py:class:`tespy.components.turbomachinery.compressor.Compressor.char_map_pr_func`
+    :py:meth:`tespy.components.turbomachinery.turbocompressor.TurboCompressor.char_map_pr_func`
     in the API documentation.
 
 Range of the characteristic data

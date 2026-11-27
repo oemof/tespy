@@ -239,7 +239,8 @@ or via subsystems using the corresponding methods:
     via the added connections. After having set up your network and added all
     required elements, you can start the calculation.
 
-There are two types of connections, you can learn about them more in
+There are different types of connections, e.g. for fluids, humid air, power
+and heat, you can learn about them more in
 :ref:`these sections <modules_connections_label>`.
 
 Start calculation
@@ -251,8 +252,8 @@ You can start the solution process with the following line:
     nw.solve(mode='design')
 
 This starts the initialisation of your network and proceeds to its calculation.
-The specification of the **calculation mode is mandatory**, This is the list of
-available keywords:
+The specification of the **calculation mode is mandatory**. The most important
+keywords are:
 
 - :code:`mode` is the calculation mode (:code:`'design'`-calculation or
   :code:`'offdesign'`-calculation).
@@ -274,6 +275,11 @@ available keywords:
   more information please visit the
   `cupy documentation <https://docs.cupy.dev/en/stable/index.html>`_.
 
+The remaining keywords control the solver, e.g. :code:`block_solve`,
+:code:`line_search`, :code:`increment_filter` or :code:`robust_relax`, see the
+API documentation of :py:meth:`~tespy.networks.network.Network.solve` and the
+:ref:`solver section <modules_solver_label>`.
+
 There are two calculation modes available (:code:`'design'` and
 :code:`'offdesign'`), which are explained in the subsections below. If you
 choose :code:`offdesign` as calculation mode the specification of a
@@ -283,9 +289,9 @@ The usage of an initialisation path is always optional but highly recommended,
 as the convergence of the solution process will be improved, if you provide
 good starting values. If you do not specify an :code:`init_path`, the
 initialisation from saved results will be skipped.
-:code:`init_only=True` usually is used for debugging. Or, you could use this
-feature to export a not solved network, if you want to do the parametrisation
-in .csv-files rather than your python script.
+:code:`init_only=True` usually is used for debugging, e.g. to inspect the
+presolved problem and the starting values before continuing with
+:py:meth:`~tespy.networks.network.Network.solve_continue`.
 
 The :code:`init_previous` parameter can be used in design and offdesign
 calculations and works very similar to specifying an :code:`init_path`.

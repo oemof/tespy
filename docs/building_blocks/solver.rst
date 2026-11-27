@@ -263,8 +263,7 @@ taken:
   then it is solved with all remaining blocks as one coupled system, keeping
   the progress of the already solved blocks.
 - If this fails as well, the solver restarts with the simultaneous solution of
-  the full system from its initial state, which reproduces the behavior of a
-  plain simultaneous Newton solver exactly.
+  the full system from its initial state.
 
 .. tip::
 
@@ -301,14 +300,8 @@ of a connection in its dependents is assumed to depend on all variable mass
 fractions of that connection as well. The block decomposition and the
 structural analysis always use this complete incidence.
 
-By default, networks with variable fluid composition are still solved
-simultaneously. The block-wise solution is available as an option:
-
-.. code-block:: python
-
-    nw.solve("design", block_solve_fluid_composition=True)
-
-With this option the derivatives to the inferred mass fractions enter the
+The block-wise solution applies to networks with variable fluid composition
+as well. The derivatives to the inferred mass fractions enter the
 Jacobian and the composition is solved in the blocks it belongs to. Every
 subsequent block treats it as a constant, e.g. the water steam cycle of a heat
 recovery steam generator only depends on the flue gas composition through the
@@ -316,13 +309,11 @@ heat exchangers. Should the inference miss a dependence, e.g. of a custom
 equation, the verification of the full residual vector after the block phase
 detects it and the simultaneous solution takes over.
 
-.. note::
+To solve the composition simultaneously with the full system instead, pass
 
-    From version 0.13 on the block-wise solution becomes the default for
-    networks with variable fluid composition as well. Until then a
-    :code:`FutureWarning` is raised if the option is not passed. Pass
-    :code:`block_solve_fluid_composition=False` to keep the simultaneous
-    solution.
+.. code-block:: python
+
+    nw.solve("design", block_solve_fluid_composition=False)
 
 The inference is conservative: equations that list pressure or enthalpy without
 evaluating a fluid property, like energy balances written in mass flow and
@@ -444,6 +435,11 @@ update of the system variables.
   therefore never be the result of a single large step.
 * Fluid mass fractions smaller than 0 and larger than 1 are cut off and the
   fractions of a vector are renormalized in the first iterations.
+* Every Newton step is checked by a backtracking line search on the scaled
+  residual norm: if the full step does not reduce the residual, it is
+  shortened. With :code:`nw.solve(mode, line_search="stagnation")` the line
+  search only starts once plain Newton steps fail or stagnate,
+  :code:`"off"` disables it.
 * With :code:`nw.solve(mode, robust_relax=True)` all increments are
   additionally relaxed globally, starting at 5 % of the full step and ramping
   up to the full step over the first quarter of the iterations. This can help
@@ -707,9 +703,11 @@ walks through this workflow on a concrete model.
 
 Calculation speed improvement
 -----------------------------
-For improvement of calculation speed, the calculation of specific derivatives
-is skipped, if the change of the corresponding variable was below a
-threshold of :code:`1e-12` in the iteration before.
+To improve the calculation speed, the derivatives to a variable are not
+recomputed while its last increment relative to its magnitude stays below
+:code:`1e-6` and the iteration contracts. Change the threshold with
+:code:`nw.solve(mode, increment_filter=...)`, :code:`None` recomputes all
+derivatives in every iteration.
 
 As a user you can take two more measures to improve calculation speed:
 Specify primary variables whenever possible/reasonable. This will not only

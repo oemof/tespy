@@ -140,6 +140,11 @@ You can do this for the following properties:
 - mass flow :code:`m0`
 - pressure :code:`p0`
 - enthalpy :code:`h0`
+- temperature :code:`T0`
+- vapor mass fraction :code:`x0`
+
+See the :ref:`starting value section <solver_starting_values_label>` for how
+they are used.
 
 These specifications are optional!
 

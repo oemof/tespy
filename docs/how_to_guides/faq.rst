@@ -174,7 +174,8 @@ Instability, Errors and Debugging
 
             .. code-block:: bash
 
-                TESPyNetworkError: You specified more than one variable of the linear dependent variables: (e1: E), (e2: E).
+                TESPyNetworkError: You specified more than one variable within a set of linearly dependent variables.
+                  Variables:  e1 (E), e2 (E)
 
         there is something wrong with the variables you specified in your
         model. The specific error above is caused by setting two individual
@@ -194,7 +195,8 @@ Instability, Errors and Debugging
             .. code-block:: bash
 
                 Detected singularity in Jacobian matrix. This singularity is most likely caused by the parametrization of your problem and NOT a numerical issue. Double check your setup.
-                The following variables of your problem are not in connection with any equation: (2, 'p')
+                The following variables are not associated with any equation:
+                  2 (p)
 
         there is something wrong with the variables you specified in your
         model or a numerical problem with the partial derivatives of the
@@ -393,16 +395,14 @@ Visualization, post-processing and cycle analysis
 
     .. dropdown:: How can I apply Second Law of thermodynamics analysis methods?
 
-        TESPy has an integrated exergy analysis feature. This was developed
-        originally in two publications: :cite:`Witte2022,Hofmann2022`. The
-        feature automatically calculates the exergy of all streams in your
-        model and applies the exergy balance equations for all components to
-        make the analysis of the complete model. Recently, a new project to
-        extend this work has started. For this, the feature is extracted from
-        tespy and implemented in an own library:
-        `exerpy <https://exerpy.readthedocs.io/en/latest/>`__. exerpy is
-        compatible with TESPy and you can seamlessly pass your TESPy model to
-        the exergy analysis methods.
+        Exergy analysis of TESPy models is done with
+        `exerpy <https://exerpy.readthedocs.io/en/latest/>`__, a dedicated
+        library that grew out of the exergy analysis originally developed in
+        TESPy :cite:`Witte2022,Hofmann2022`. You pass the streams crossing
+        the system boundary of your solved model to exerpy, or use the
+        :code:`run_exergy_analysis` method of the
+        :ref:`model class <integration_model_class_template_label>`. See the
+        :ref:`exergy analysis section <advanced_exergy_label>`.
 
     .. dropdown:: Is it possible to create an optimization problem with my model?
 

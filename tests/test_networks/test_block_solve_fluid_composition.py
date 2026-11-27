@@ -16,7 +16,6 @@ from pytest import approx
 from pytest import fixture
 from pytest import mark
 from pytest import raises
-from pytest import warns
 
 from tespy.components import Compressor
 from tespy.components import DiabaticCombustionChamber
@@ -530,11 +529,13 @@ def test_inferred_composition_dependence():
             assert block.id >= composition_blocks[0].id
 
 
-def test_default_announces_block_solve_fluid_composition():
+def test_default_is_block_solve_fluid_composition():
     nw = gas_turbine()
-    with warns(FutureWarning, match="block_solve_fluid_composition"):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
         nw.solve("design")
     nw.assert_convergence()
+    assert nw.problem._composition_derivatives
 
 
 @mark.parametrize("kwargs", [

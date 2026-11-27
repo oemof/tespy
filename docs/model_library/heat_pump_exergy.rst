@@ -91,7 +91,7 @@ The heating system and the geothermal heat collector can be modeled as sources
 and sinks, which represent the feed and the return flow in both cases.
 The condenser is modeled as :code:`MovingBoundaryHeatExchanger` instance, while
 the evaporator is modeled using a :code:`HeatExchanger` instance. In total, the
-TESPy model consists of 11 components.
+TESPy model consists of 16 components.
 
 The model is encapsulated in a :code:`HeatPumpModel` class that inherits from
 :code:`ModelTemplate`. This design allows the same network to be instantiated
@@ -229,9 +229,8 @@ by the material connections :code:`'c11'` (inlet from ground) and
 :code:`'c13'` (outlet to ground). The heating system boundary is represented
 by :code:`'c23'` (feed flow to house) and :code:`'c21'` (return flow from
 house). In the example of the GCHP, only :code:`E_F` and :code:`E_P` are
-defined. Ambient temperature and pressure are passed in the network units
-(°C and bar); the method converts them to SI units (K, Pa) before calling
-exerpy:
+defined. Ambient temperature and pressure are passed in °C and bar, the
+method converts them to K and Pa before calling exerpy:
 
 .. literalinclude:: /../tutorial/heat_pump_exergy/NH3_example.py
    :language: python

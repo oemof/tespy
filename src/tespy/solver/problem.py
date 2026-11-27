@@ -1769,7 +1769,7 @@ class Problem:
                    block_solve=False, pause_on_block_failure=None,
                    line_search="always",
                    increment_filter=INCREMENT_FILTER_RTOL,
-                   block_solve_fluid_composition=False,
+                   block_solve_fluid_composition=True,
                    skip_fallbacks=None):
         r"""Loop of the newton algorithm."""
         if line_search not in ("off", "stagnation", "always"):
@@ -1817,9 +1817,7 @@ class Problem:
             ):
             msg = (
                 "The fluid composition is part of the variable space, "
-                "solving the full system simultaneously. Block-wise solving "
-                "with variable composition is available with "
-                "block_solve_fluid_composition=True."
+                "solving the full system simultaneously."
             )
             logger.info(msg)
             block_solve = False
@@ -2441,8 +2439,9 @@ class Problem:
                     data["obj"].val_SI = data["obj"].max_val
 
     def _restore_variables(self, values):
+        # the snapshots are numpy arrays, the containers hold plain floats
         for col, data in self.variables_dict.items():
-            hlp.set_variable_value(data, values[col])
+            hlp.set_variable_value(data, float(values[col]))
 
     def _record_best_state(self, equations=None):
         """Keep the variable values with the lowest scaled residual so far."""
@@ -2604,7 +2603,9 @@ class Problem:
         # the mass fractions of solved blocks keep their variable status,
         # so the heuristics above do not skip them as they skip the scalars
         for col in self._frozen_columns:
-            hlp.set_variable_value(self.variables_dict[col], values_before[col])
+            hlp.set_variable_value(
+                self.variables_dict[col], float(values_before[col])
+            )
 
         # detect if any heuristic modifications were applied. Changes
         # below the solver's resolution do not count: e.g. the mass

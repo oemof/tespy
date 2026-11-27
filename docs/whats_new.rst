@@ -10,11 +10,6 @@ changelogs of the earlier series are linked at the bottom of this page.
 .. include::  whats_new/v0-12-2.rst
 .. include::  whats_new/v0-12-1.rst
 .. include::  whats_new/v0-12-0.rst
-.. include::  whats_new/v0-11-4.rst
-.. include::  whats_new/v0-11-3.rst
-.. include::  whats_new/v0-11-2.rst
-.. include::  whats_new/v0-11-1.rst
-.. include::  whats_new/v0-11-0.rst
 
 Earlier releases
 ++++++++++++++++
@@ -22,6 +17,7 @@ Earlier releases
 .. toctree::
     :maxdepth: 1
 
+    whats_new/v0-11
     whats_new/v0-10
     whats_new/v0-9
     whats_new/v0-8

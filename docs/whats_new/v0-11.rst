@@ -1,0 +1,13 @@
+.. _whats_new_v0_11_label:
+
+#####
+v0.11
+#####
+
+Changelog of the v0.11 release series.
+
+.. include::  /whats_new/v0-11-4.rst
+.. include::  /whats_new/v0-11-3.rst
+.. include::  /whats_new/v0-11-2.rst
+.. include::  /whats_new/v0-11-1.rst
+.. include::  /whats_new/v0-11-0.rst

@@ -67,6 +67,12 @@ _BASE_PARAMETERS = [
 # ---------------------------------------------------------------------------
 
 _CONNECTION_BASE_PARAMETERS = [
+    ("source", "tespy.components.component.Component",
+     "The component the connection starts from."),
+    ("outlet_id", "str", "The outlet of the source component, e.g. :code:`\"out1\"`."),
+    ("target", "tespy.components.component.Component",
+     "The component the connection ends at."),
+    ("inlet_id", "str", "The inlet of the target component, e.g. :code:`\"in1\"`."),
     ("label", "str", "The label of the connection."),
     ("design", "list", "List containing design parameters (stated as String)."),
     ("offdesign", "list", "List containing offdesign parameters (stated as String)."),

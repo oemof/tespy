@@ -29,38 +29,56 @@ class Absorber(SorptionBase):
     plain :class:`.Connection`, for NH3-water it is a
     :class:`.SolutionConnection` of the same pair.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - mass balance :py:meth:`mass_flow_func`
-    - key component balance :py:meth:`key_balance_func`
-    - pressure equality :py:meth:`pressure_structure_matrix`
-    - solution outlet at the bubble point :py:meth:`saturation_func`
-    - fluid closure of the solution outlet :py:meth:`fluid_balance_func`
+    - Fluid inlets: in1, in2
+    - Fluid outlets: out1
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - heat flow :py:meth:`heat_func`
-    - approach to the bubble point :code:`td_eq` replacing the bubble point
-      equation, :py:meth:`saturation_func`
-
-    Inlets/Outlets
-
-    - in1: refrigerant-poor solution
-    - in2: refrigerant vapor
-    - out1: refrigerant-rich solution
+    - mass balance: :py:meth:`mass_flow_func <tespy.components.sorption.base.SorptionBase.mass_flow_func>`
+    - pressure equality: :py:meth:`pressure_structure_matrix <tespy.components.sorption.base.SorptionBase.pressure_structure_matrix>`
+    - key component mass balance: :py:meth:`key_balance_func <tespy.components.sorption.base.SorptionBase.key_balance_func>`
+    - solution outlet at the bubble point: :py:meth:`saturation_func <tespy.components.sorption.base.SorptionBase.saturation_func>`
+    - fluid closure of the solution outlet: :py:meth:`fluid_balance_func <tespy.components.sorption.base.SorptionBase.fluid_balance_func>`
 
     Parameters
     ----------
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
     label : str
         The label of the component.
 
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
+
     Q : float, dict
-        Heat transferred into the absorber :math:`\dot Q`/W, negative for
-        the heat of absorption that is removed.
+        Heat transferred into the component. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.sorption.base.SorptionBase.heat_func>`.
 
     td_eq : float, dict
-        Temperature difference of the solution outlet below its bubble point
-        :math:`\Delta T_\text{eq}`/K.
+        Temperature difference of the solution outlet to its bubble point.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`saturation_func <tespy.components.sorption.base.SorptionBase.saturation_func>`.
 
     Example
     -------
@@ -144,31 +162,82 @@ class CooledAbsorber(TwoSidedSorptionBase):
     The heat of absorption is transferred to a cooling fluid (:code:`in2` to
     :code:`out2`) through the energy balance of both sides.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - sorption side mass balance :py:meth:`mass_flow_func`
-    - cooling fluid mass flow and composition equality
-    - key component balance :py:meth:`key_balance_func`
-    - sorption side pressure equality :py:meth:`pressure_structure_matrix`
-    - solution outlet at the bubble point :py:meth:`saturation_func`
-    - fluid closure of the solution outlet :py:meth:`fluid_balance_func`
-    - energy balance :py:meth:`energy_balance_func`
+    - Fluid inlets: in1, in2, in3
+    - Fluid outlets: out1, out2
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - heat flow :py:meth:`heat_func`
-    - terminal temperature differences :py:meth:`ttd_u_func`,
-      :py:meth:`ttd_l_func`
-    - cooling fluid side pressure ratio or pressure drop
-    - approach to the bubble point :code:`td_eq`
+    - sorption side mass balance: :py:meth:`mass_flow_func <tespy.components.sorption.base.SorptionBase.mass_flow_func>`
+    - sorption side pressure equality: :py:meth:`pressure_structure_matrix <tespy.components.sorption.base.SorptionBase.pressure_structure_matrix>`
+    - key component mass balance: :py:meth:`key_balance_func <tespy.components.sorption.base.SorptionBase.key_balance_func>`
+    - solution outlet at the bubble point: :py:meth:`saturation_func <tespy.components.sorption.base.SorptionBase.saturation_func>`
+    - fluid closure of the solution outlet: :py:meth:`fluid_balance_func <tespy.components.sorption.base.SorptionBase.fluid_balance_func>`
+    - heat transfer fluid side mass flow equality: :py:meth:`htf_variable_equality_structure_matrix <tespy.components.sorption.base.TwoSidedSorptionBase.htf_variable_equality_structure_matrix>`
+    - heat transfer fluid side fluid composition equality: :py:meth:`htf_variable_equality_structure_matrix <tespy.components.sorption.base.TwoSidedSorptionBase.htf_variable_equality_structure_matrix>`
+    - energy balance between both sides: :py:meth:`energy_balance_func <tespy.components.sorption.base.TwoSidedSorptionBase.energy_balance_func>`
 
-    Inlets/Outlets
+    Parameters
+    ----------
 
-    - in1: refrigerant-poor solution
-    - in2: cooling fluid
-    - in3: refrigerant vapor
-    - out1: refrigerant-rich solution
-    - out2: cooling fluid
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
+    dp2 : float, dict
+        Heat transfer fluid side inlet to outlet absolute pressure change.
+        Quantity: :code:`pressure_difference`.
+        Equation: :py:meth:`dp_structure_matrix <tespy.components.component.Component.dp_structure_matrix>`.
+
+    label : str
+        The label of the component.
+
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    pr2 : float, dict
+        Heat transfer fluid side outlet to inlet pressure ratio. Quantity:
+        :code:`ratio`.
+        Equation: :py:meth:`pr_structure_matrix <tespy.components.component.Component.pr_structure_matrix>`.
+
+    printout : bool
+        Include this component in the network's results printout.
+
+    Q : float, dict
+        Heat transferred from the hot side. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.sorption.base.SorptionBase.heat_func>`.
+
+    td_eq : float, dict
+        Temperature difference of the solution outlet to its bubble point.
+        Quantity: :code:`temperature_difference`.
+        Equation: :py:meth:`saturation_func <tespy.components.sorption.base.SorptionBase.saturation_func>`.
+
+    ttd_l : float, dict
+        Lower terminal temperature difference. Quantity:
+        :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_l_func <tespy.components.sorption.absorber.CooledAbsorber.ttd_l_func>`.
+
+    ttd_u : float, dict
+        Upper terminal temperature difference. Quantity:
+        :code:`temperature_difference`.
+        Equation: :py:meth:`ttd_u_func <tespy.components.sorption.absorber.CooledAbsorber.ttd_u_func>`.
+
+    Notes
+    -----
 
     .. note::
 

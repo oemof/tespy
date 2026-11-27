@@ -36,36 +36,54 @@ class Rectifier(SorptionBase):
     reflux pressure follows from the component it enters, e.g. a
     :class:`.Merge` in front of the desorber, or from a specification.
 
-    **Mandatory Equations**
+    Ports
+    -----
 
-    - mass balance :py:meth:`mass_flow_func`
-    - key component balance :py:meth:`key_balance_func`
-    - pressure equality of the vapor ports
-      :py:meth:`pressure_structure_matrix`
-    - purified vapor at its dew point :py:meth:`saturation_func`
-    - reflux composition in equilibrium with the entering vapor
-      :py:meth:`reflux_composition_func`
-    - reflux at its bubble point :py:meth:`reflux_state_func`
-    - fluid closure of both outlets :py:meth:`fluid_balance_func`,
-      :py:meth:`reflux_fluid_balance_func`
+    - Fluid inlets: in1
+    - Fluid outlets: out1, out2
 
-    **Optional Equations**
+    Mandatory Equations
+    -------------------
 
-    - heat flow :py:meth:`heat_func`
-
-    Inlets/Outlets
-
-    - in1: vapor from the desorber
-    - out1: purified vapor
-    - out2: reflux
+    - mass balance: :py:meth:`mass_flow_func <tespy.components.sorption.base.SorptionBase.mass_flow_func>`
+    - pressure equality of the vapor ports: :py:meth:`pressure_structure_matrix <tespy.components.sorption.rectifier.Rectifier.pressure_structure_matrix>`
+    - key component mass balance: :py:meth:`key_balance_func <tespy.components.sorption.base.SorptionBase.key_balance_func>`
+    - purified vapor at its dew point: :py:meth:`saturation_func <tespy.components.sorption.rectifier.Rectifier.saturation_func>`
+    - reflux in equilibrium with the entering vapor: :py:meth:`reflux_composition_func <tespy.components.sorption.rectifier.Rectifier.reflux_composition_func>`
+    - reflux at its bubble point: :py:meth:`reflux_state_func <tespy.components.sorption.rectifier.Rectifier.reflux_state_func>`
+    - fluid closure of the purified vapor: :py:meth:`fluid_balance_func <tespy.components.sorption.base.SorptionBase.fluid_balance_func>`
+    - fluid closure of the reflux: :py:meth:`reflux_fluid_balance_func <tespy.components.sorption.rectifier.Rectifier.reflux_fluid_balance_func>`
 
     Parameters
     ----------
+
+    char_warnings : bool
+        Ignore warnings on default characteristics usage for this component.
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the components design case.
+
     label : str
         The label of the component.
 
+    local_design : bool
+        Treat this component in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this component in offdesign mode in a design calculation.
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    printout : bool
+        Include this component in the network's results printout.
+
     Q : float, dict
-        Heat transferred into the rectifier :math:`\dot Q`/W, negative.
+        Heat transferred into the component. Quantity: :code:`heat`.
+        Equation: :py:meth:`heat_func <tespy.components.sorption.base.SorptionBase.heat_func>`.
     """
 
     def get_parameters(self):

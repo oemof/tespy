@@ -17,12 +17,8 @@ FluProDia is a library to create fluid property diagrams based on CoolProp.
 CoolProp has an inbuilt feature for creating such diagrams, unfortunately, the
 handling is not very convenient. We recommend using fluprodia (Fluid Property
 Diagram) instead. You can create and customize different types of diagrams for
-all pure and pseudo-pure fluids available in CoolProp. You install fluprodia
-with pip:
-
-.. code-block:: bash
-
-    pip install fluprodia
+all pure and pseudo-pure fluids available in CoolProp. fluprodia is installed
+together with TESPy.
 
 The `documentation <https://fluprodia.readthedocs.io>`__ provides more detailed
 information about the capabilities and usage.

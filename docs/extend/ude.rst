@@ -102,10 +102,11 @@ the equation to the system's variables.
     ...     c1, c2 = ude.conns
     ...     return [c1.m, c2.m]
 
-This is already sufficient information to use the equation in your model.
-However, it is possible to additionally provide a function specifying the
-derivatives manually. This can be useful if the derivatives can be calculated
-analytically. In order to do this, we create a function that updates the values
+This is already sufficient information to use the equation in your model and
+the recommended way. Optionally, it is possible to additionally provide a
+function specifying the derivatives manually. This is only worth it, if the
+derivatives are known analytically and the equation is expensive to evaluate.
+In order to do this, we create a function that updates the values
 inside the Jacobian of the :code:`UserDefinedEquation`. We can use the
 high-level method :code:`partial_derivative` for this. In this case the partial
 derivatives are easy to find:

@@ -127,9 +127,26 @@ def _is_compatible(ureg, quantity, unit):
 
 
 class Units:
+    """Default units of a network and conversion from and to SI units.
+
+    The defaults are SI units, change them with
+    :py:meth:`~tespy.tools.units.Units.set_defaults`.
+    """
 
     @classmethod
     def from_json(cls, default_units):
+        """Create an instance from a dictionary of default units.
+
+        Parameters
+        ----------
+        default_units : dict
+            Unit per quantity, e.g. :code:`{"pressure": "bar"}`.
+
+        Returns
+        -------
+        tespy.tools.units.Units
+            Instance with the given defaults.
+        """
         instance = cls()
         instance.set_defaults(**default_units)
         return instance
@@ -197,6 +214,24 @@ class Units:
         return self.convert(value, unit, SI_UNITS[quantity])
 
     def quantity_from_SI(self, value_SI, base_unit, target_unit):
+        """Convert a value in SI units to a quantity in the target unit.
+
+        Parameters
+        ----------
+        value_SI : float
+            Value in the SI unit.
+
+        base_unit : str
+            The SI unit of the value.
+
+        target_unit : str
+            Unit to convert to.
+
+        Returns
+        -------
+        pint.Quantity
+            The value in the target unit.
+        """
         return self.ureg.Quantity(
             self.value_from_SI(value_SI, base_unit, target_unit), target_unit
         )
@@ -280,6 +315,18 @@ class Units:
         return _is_compatible(self.ureg, quantity, unit)
 
     def get_default(self, quantity):
+        """Get the default unit of a quantity.
+
+        Parameters
+        ----------
+        quantity : str
+            Name of the quantity, e.g. :code:`"pressure"`.
+
+        Returns
+        -------
+        str
+            The default unit.
+        """
         self._check_quantity_exists(quantity)
         return self.default[quantity]
 
@@ -309,6 +356,7 @@ class Units:
         self._canonical = {}
 
     def get_ureg(self):
+        """Get the :code:`pint.UnitRegistry` in use."""
         return self._ureg
 
     def _serialize(self):

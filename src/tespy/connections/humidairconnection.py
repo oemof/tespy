@@ -80,6 +80,9 @@ class HAConnection(Connection):
     h : float
         Dry air mass specific enthalpy (system variable).
 
+    inlet_id : str
+        The inlet of the target component, e.g. :code:`"in1"`.
+
     label : str
         The label of the connection.
 
@@ -102,6 +105,9 @@ class HAConnection(Connection):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    outlet_id : str
+        The outlet of the source component, e.g. :code:`"out1"`.
+
     p : float
         Absolute pressure of the fluid (system variable).
 
@@ -116,9 +122,15 @@ class HAConnection(Connection):
         Specific entropy of the fluid. Result only - calculated after each
         solve.
 
+    source : tespy.components.component.Component
+        The component the connection starts from.
+
     T : float
         Temperature of the fluid.
         Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    target : tespy.components.component.Component
+        The component the connection ends at.
 
     v : float
         Volumetric flow of the fluid.

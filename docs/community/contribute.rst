@@ -270,8 +270,8 @@ So far we adhere mostly to the git branching model by
 Differences are:
 
 * instead of the name :code:`origin/develop` we call the branch :code:`origin/dev`.
-* feature branches are named like :code:`features/*`
-* release branches are named like :code:`releases/*`
+* feature branches are named like :code:`feature/#<issue>-<slug>`
+* fix branches are named like :code:`fix/#<issue>-<slug>`
 
 Commit message
 ++++++++++++++

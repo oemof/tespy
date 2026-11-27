@@ -87,22 +87,16 @@ where the heat demand and the mass flow is set simultaneously.
 
     .. code-block:: bash
 
-        ERROR:root:You have provided too many parameters: 20 required, 21 supplied. Aborting calculation!
-        Traceback (most recent call last):
-        File ".\tutorial\basics\heat_pump.py", line 59, in <module>
-            my_plant.solve('design')
-        File "c:\users\user\documents\github\tespy\src\tespy\networks\network.py", line 1623, in solve
-            self.solve_determination()
-        File "c:\users\user\documents\github\tespy\src\tespy\networks\network.py", line 1749, in solve_determination
-            raise hlp.TESPyNetworkError(msg)
-        tespy.tools.helpers.TESPyNetworkError: You have provided too many parameters: 20 required, 21 supplied. Aborting calculation!
+        TESPyNetworkError: You have provided too many parameters: 1 required, 2 supplied. Aborting calculation!
+        The original problem holds 20 variables, 2 directly specified, and 19 equations. Presolving consumed 17 equations and reduced the problem to 1 variables and 2 equations.
 
-If you make a specification that leads to the correct amount of parameters but
-causes a linear dependency in the system of equations, the error message cannot
-be that clear to you. To make an easy example, we can set mass flow on the
-connections 1 and 2 with the heat demand and the evaporation temperature unset.
-In this case the number of equations will be correct, but the specification
-obviously does not make any sense.
+The numbers of required and supplied parameters refer to the problem that
+remains after presolving. If the number of parameters is correct but two of
+them specify linearly dependent variables, the presolver names these
+variables. To make an easy example, we can set mass flow on the connections 1
+and 2 with the heat demand and the evaporation temperature unset. In this case
+the number of equations will be correct, but the specification obviously does
+not make any sense.
 
 .. code-block:: python
 
@@ -111,6 +105,13 @@ obviously does not make any sense.
     c2.set_attr(m=5, T=None)
 
     my_plant.solve('design')
+
+.. error::
+
+    .. code-block:: bash
+
+        TESPyNetworkError: You specified more than one variable within a set of linearly dependent variables.
+          Variables:  2 (m), 3 (m), 1 (m), 4 (m), 0 (m)
 
 .. seealso::
 

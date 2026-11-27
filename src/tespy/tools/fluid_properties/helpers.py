@@ -281,7 +281,7 @@ def prandtl_karman(reynolds, darcy_friction_factor, **kwargs):
 
     Parameters
     ----------
-    re : float
+    reynolds : float
         Reynolds number.
 
     darcy_friction_factor : float
@@ -314,13 +314,13 @@ def colebrook(reynolds, ks, diameter, darcy_friction_factor, **kwargs):
 
     Parameters
     ----------
-    re : float
+    reynolds : float
         Reynolds number.
 
     ks : float
         Equivalent sand roughness.
 
-    d : float
+    diameter : float
         Pipe's diameter.
 
     darcy_friction_factor : float

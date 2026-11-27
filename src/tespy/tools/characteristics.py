@@ -264,6 +264,22 @@ class CharLine:
         return export
 
     def plot(self, path, title, xlabel, ylabel):
+        """Plot the data points of the line and save the figure.
+
+        Parameters
+        ----------
+        path : str
+            File path to save the figure to.
+
+        title : str
+            Title of the plot.
+
+        xlabel : str
+            Label of the x-axis.
+
+        ylabel : str
+            Label of the y-axis.
+        """
         msg = (
             "The plot method of characteristics is deprecated and will be "
             "removed in version 0.14, use "
@@ -302,6 +318,10 @@ class CharMap:
 
     z : ndarray, pint.Quantity
         A two-dimensional array of the output of the map.
+
+    extrapolate : boolean
+        If :code:`True` linear extrapolation is performed when an input is
+        out of the defined value range.
 
     x_unit, y_unit, z_unit : str
         Units of the x-, y- and z-values, default: :code:`None`. Quantity
@@ -615,6 +635,22 @@ class CharMap:
         return export
 
     def plot(self, path, title, xlabel, ylabel):
+        """Plot z over y for every x value and save the figure.
+
+        Parameters
+        ----------
+        path : str
+            File path to save the figure to.
+
+        title : str
+            Title of the plot.
+
+        xlabel : str
+            Label of the x-axis.
+
+        ylabel : str
+            Label of the y-axis.
+        """
         msg = (
             "The plot method of characteristics is deprecated and will be "
             "removed in version 0.14, use "
@@ -748,6 +784,10 @@ class EN12900Polynomial(Polynomial):
     coefficients : list
         The ten coefficients :math:`c_0` to :math:`c_9`, a :code:`pint`
         quantity array carries the unit of the value.
+
+    exponents : list
+        Only accepted for compatibility with
+        :py:class:`Polynomial`, the exponents are fixed by the standard.
 
     value_unit : str
         Unit of the polynomial value, e.g. :code:`"kW"`, default:

@@ -171,35 +171,7 @@ As in the first step, it is recommended to test the new code in between.
 
         .. code-block:: bash
 
-            You have provided too many parameters: 0 required, 1 supplied. Aborting calculation!
-
-            TESPyNetworkError                                 Traceback (most recent call last):
-
-            Cell In[6], line 8
-             5 b2.set_attr(T=25, p=1)
-             6 compressor.set_attr(dissipation_ratio=0.1)
-             8 nw.solve("design")
-
-            File ~/gitprojects/tespy/src/tespy/networks/network.py:2486, in Network.solve(self, mode, init_path,
-            design_path, max_iter, min_iter, init_only, init_previous, use_cuda, print_results, robust_relax)
-            2483 msg = 'Starting solver.'
-            2484 logger.info(msg)
-            2486 self.solve_determination()
-            2488 try:
-            2489     self.solve_loop(print_results=print_results)
-
-            File ~/gitprojects/tespy/src/tespy/networks/network.py:2603, in Network.solve_determination(self)
-            2601     logger.error(msg)
-            2602     self.status = 12
-            2603     raise hlp.TESPyNetworkError(msg)
-            2604 elif n  self.variable_counter:
-            2605     msg = (
-            2606         f"You have not provided enough parameters: {self.variable_counter} "
-            2607         f"required, {n} supplied. Aborting calculation!"
-            2608     )
-
-            TESPyNetworkError: You have provided too many parameters: 0
-            required, 1 supplied. Aborting calculation!
+            TESPyNetworkError: You have provided too many parameters: 0 required, 1 supplied. Aborting calculation!
 
     With no changes in our original specifications, the model results in an
     error. Since we now have an additional equation, this means that we have to

@@ -439,6 +439,13 @@ class UserDefinedVariable:
         return {}
 
     def get_attr(self, key):
+        """Get the value of an attribute.
+
+        Parameters
+        ----------
+        key : str
+            Name of the attribute.
+        """
         if key in self.__dict__:
             return self.__dict__[key]
         msg = f"UserDefinedVariable has no attribute {key}."
@@ -446,6 +453,22 @@ class UserDefinedVariable:
         raise KeyError(msg)
 
     def set_attr(self, val=None, is_var=None, min_val=None, max_val=None):
+        """Change the value, the variable state or the limits.
+
+        Parameters
+        ----------
+        val : float, optional
+            Value in SI units, the starting value if it is a variable.
+
+        is_var : bool, optional
+            :code:`False` turns the variable into a constant.
+
+        min_val : float, optional
+            Lower limit for the value during solving.
+
+        max_val : float, optional
+            Upper limit for the value during solving.
+        """
         if val is not None:
             self.variable.val_SI = val
         if is_var is not None:
@@ -736,7 +759,41 @@ def newton_with_kwargs(
         derivative, target_value, val0=300, valmin=70, valmax=3000, max_iter=10,
         tol_rel=ERR, tol_abs=ERR ** 0.5, tol_mode="rel", **function_kwargs
     ):
+    """Find the value of a parameter at which a function meets a target.
 
+    Parameters
+    ----------
+    derivative : callable
+        Derivative of the function to the parameter, called with
+        :code:`function_kwargs`.
+
+    target_value : float
+        Value the function should return.
+
+    val0 : float
+        Starting value of the parameter.
+
+    valmin, valmax : float
+        Lower and upper limit of the parameter.
+
+    max_iter : int
+        Maximum number of iterations.
+
+    tol_rel, tol_abs : float
+        Relative and absolute tolerance of the residual.
+
+    tol_mode : str
+        Tolerance to apply, :code:`"rel"` or :code:`"abs"`.
+
+    **function_kwargs :
+        :code:`function` (callable), :code:`parameter` (name of the keyword
+        to vary) and all other keywords passed to the function.
+
+    Returns
+    -------
+    float
+        Value of the parameter.
+    """
     iteration = 0
     expr = True
     x = val0
@@ -791,6 +848,27 @@ def newton_with_kwargs(
 
 
 def central_difference(function=None, parameter=None, delta=None, **kwargs):
+    """Calculate the derivative of a function by central differences.
+
+    Parameters
+    ----------
+    function : callable
+        Function to derive.
+
+    parameter : str
+        Name of the keyword to derive to.
+
+    delta : float
+        Relative increment of the parameter, absolute if larger.
+
+    **kwargs :
+        Keywords passed to the function, including the parameter.
+
+    Returns
+    -------
+    float
+        Derivative of the function to the parameter.
+    """
     delta = abs(max(kwargs[parameter] * delta, delta))
     upper = kwargs.copy()
     upper[parameter] += delta

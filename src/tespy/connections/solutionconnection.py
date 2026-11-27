@@ -65,6 +65,120 @@ class SolutionConnection(Connection):
         :code:`fluid_balance=True` on the connection leaving the cycle
         closer.
 
+    Parameters
+    ----------
+
+    design : list
+        List containing design parameters (stated as String).
+
+    design_path : str
+        Path to the individual design case for this connection.
+
+    e_M : float
+        Specific mechanical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_M : float
+        Mechanical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_PH : float
+        Specific physical exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_PH : float
+        Physical exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    e_T : float
+        Specific thermal exergy. Quantity: :code:`specific_energy`. Optional
+        result - calculated on request only, e.g. by an exergy evaluation.
+
+    E_T : float
+        Thermal exergy flow. Quantity: :code:`power`. Optional result -
+        calculated on request only, e.g. by an exergy evaluation.
+
+    fluid : dict
+        Mass fractions of the fluid composition (system variable).
+
+    fluid_balance : bool
+        Apply an equation which closes the fluid balance with at least two
+        unknown fluid mass fractions.
+        Equation: :py:meth:`fluid_balance_func <tespy.connections.connection.Connection.fluid_balance_func>`.
+
+    h : float, Ref
+        Mass specific enthalpy of the fluid (system variable).
+
+    inlet_id : str
+        The inlet of the target component, e.g. :code:`"in1"`.
+
+    label : str
+        The label of the connection.
+
+    local_design : bool
+        Treat this connection in design mode in an offdesign calculation.
+
+    local_offdesign : bool
+        Treat this connection in offdesign mode in a design calculation.
+
+    m : float, Ref
+        Mass flow of the fluid (system variable).
+
+    offdesign : list
+        List containing offdesign parameters (stated as String).
+
+    outlet_id : str
+        The outlet of the source component, e.g. :code:`"out1"`.
+
+    p : float, Ref
+        Absolute pressure of the fluid (system variable).
+
+    printout : bool
+        Include this connection in the network's results printout.
+
+    s : float
+        Specific entropy of the fluid. Result only - calculated after each
+        solve.
+
+    source : tespy.components.component.Component
+        The component the connection starts from.
+
+    T : float, Ref
+        Temperature of the fluid.
+        Equation: :py:meth:`T_func <tespy.connections.connection.Connection.T_func>`.
+
+    T_bubble : float
+        Bubble point temperature of the solution.
+
+    T_dew : float
+        Dew point temperature of the solution.
+
+    target : tespy.components.component.Component
+        The component the connection ends at.
+
+    td_bubble : float
+        Subcooling temperature difference to the bubble point.
+        Equation: :py:meth:`td_bubble_func <tespy.connections.connection.Connection.td_bubble_func>`.
+
+    td_dew : float
+        Superheating temperature difference to the dew point.
+        Equation: :py:meth:`td_dew_func <tespy.connections.connection.Connection.td_dew_func>`.
+
+    v : float, Ref
+        Volumetric flow of the fluid.
+        Equation: :py:meth:`v_func <tespy.connections.connection.Connection.v_func>`.
+
+    vol : float
+        Specific volume of the fluid. Result only - calculated after each solve.
+
+    x : float
+        Vapor mass fraction of the two-phase solution.
+        Equation: :py:meth:`x_func <tespy.connections.connection.Connection.x_func>`.
+
+    xi : float
+        Mass fraction of the key component of the working pair. Result only -
+        calculated after each solve.
+
     Example
     -------
     >>> from tespy.components import Sink, Source

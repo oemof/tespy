@@ -19,8 +19,7 @@ District Heating Network
 
 The model used in this example is shown the figure. It consists of a central
 heating plant and a consumer, represented by a heat exchanger with a control
-valve. A much more complex district heating system is included in the
-advanced tutorials section.
+valve.
 
 Download the full script here:
 :download:`district_heating.py </../tutorial/basics/district_heating.py>`

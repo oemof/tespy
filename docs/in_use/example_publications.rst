@@ -13,8 +13,9 @@ your project.
 
 .. card::
 
-    **Dashboard for the exploration of various heat pump designs**
-    ^^^
+    .. card-header::
+
+        **Dashboard for the exploration of various heat pump designs**
 
     .. image:: /_static/images/examples/heatpumps.png
       :align: center
@@ -40,19 +41,21 @@ your project.
     `GitHub repository <https://github.com/jfreissmann/heatpumps>`_ if you
     would like to contribute.
 
-    +++
-    Title: heatpumps
+    .. card-footer::
 
-    Authors: Jonas Freißmann, Malte Fritz
+        Title: heatpumps
 
-    URL: https://heatpumps.streamlit.app/
+        Authors: Jonas Freißmann, Malte Fritz
 
-    Reference: :cite:`Fritz2025`
+        URL: https://heatpumps.streamlit.app/
+
+        Reference: :cite:`Fritz2025`
 
 .. card::
 
-    **Steam distribution model for Life cylcle inventory data.**
-    ^^^
+    .. card-header::
+
+        **Steam distribution model for Life cylcle inventory data.**
 
     .. image:: /_static/images/examples/steam_LCI.svg
       :align: center
@@ -73,17 +76,19 @@ your project.
     Additionally, the influence of substituted electricity generated in back-pressure turbines is analyzed, 
     and its implications for the overall environmental performance of steam supply systems are discussed.
     
-    +++
-    Title: Generic model for determining the environmental impact of process steam supply
+    .. card-footer::
 
-    Authors: Hannes Schneider, Stephan Scholl, Mandy Paschetag
+        Title: Generic model for determining the environmental impact of process steam supply
 
-    Reference: :cite:`Schneider2026`
+        Authors: Hannes Schneider, Stephan Scholl, Mandy Paschetag
+
+        Reference: :cite:`Schneider2026`
 
 .. card::
 
-    **Coupled Porous Media Storage and Power Plant Simulation**
-    ^^^
+    .. card-header::
+
+        **Coupled Porous Media Storage and Power Plant Simulation**
 
     .. image:: /_static/images/examples/PM_CAES_graphical-abstract.svg
       :align: center
@@ -104,18 +109,20 @@ your project.
     The optimized storage dispatch is then passed to the coupled simulation to
     find actual mass flow rates as well as pressure subsurface distribution.
 
-    +++
-    Title: Integration of geological compressed air energy storage into future energy supply systems dominated by renewable power sources
+    .. card-footer::
 
-    Authors: Firdovsi Gasanzade, Francesco Witte, Ilja Tuschy, Sebastian Bauer
+        Title: Integration of geological compressed air energy storage into future energy supply systems dominated by renewable power sources
 
-    Reference: :cite:`Gasanzade2023`
+        Authors: Firdovsi Gasanzade, Francesco Witte, Ilja Tuschy, Sebastian Bauer
+
+        Reference: :cite:`Gasanzade2023`
 
 
 .. card::
 
-    **Parametric Optimization of an Organic Rankine Cycle**
-    ^^^
+    .. card-header::
+
+        **Parametric Optimization of an Organic Rankine Cycle**
 
     .. image:: /_static/images/examples/ORC_parametric_flowsheet.svg
       :align: center
@@ -136,20 +143,22 @@ your project.
     with TESPy for the first time, setting the foundation for the optimization
     API of TESPy (:py:class:`tespy.tools.optimization.OptimizationProblem`).
 
-    +++
-    Title: Parametric optimization and comparative study of an organic Rankine
-    cycle power plant for two-phase geothermal sources
+    .. card-footer::
 
-    Authors: Chaofan Chen, Francesco Witte, Ilja Tuschy, Olaf Kolditz, Haibing
-    Shao
+        Title: Parametric optimization and comparative study of an organic Rankine
+        cycle power plant for two-phase geothermal sources
 
-    Reference: :cite:`Chen2022`
+        Authors: Chaofan Chen, Francesco Witte, Ilja Tuschy, Olaf Kolditz, Haibing
+        Shao
+
+        Reference: :cite:`Chen2022`
 
 
 .. card::
 
-    **Combined Heat and Power Organic Rankine Cycle**
-    ^^^
+    .. card-header::
+
+        **Combined Heat and Power Organic Rankine Cycle**
 
     .. image:: /_static/images/examples/GRC_flowsheet.svg
       :align: center
@@ -169,11 +178,12 @@ your project.
     geothermal heat source is exploited to provide heat to a district heating
     system and the residual heat is used to operate the orc cycle.
 
-    +++
-    Title: Computational Modeling of Organic Rankine Cycle Combined Heat and
-    Power for Sedimentary Geothermal Exploitation
+    .. card-footer::
 
-    Authors: Nicholas Fry, Jessica Eagle-Bluestone, Francesco Witte
+        Title: Computational Modeling of Organic Rankine Cycle Combined Heat and
+        Power for Sedimentary Geothermal Exploitation
 
-    Reference: :cite:`Fry2022`
+        Authors: Nicholas Fry, Jessica Eagle-Bluestone, Francesco Witte
+
+        Reference: :cite:`Fry2022`
 

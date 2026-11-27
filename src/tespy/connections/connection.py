@@ -805,6 +805,9 @@ class Connection(ConnectionBase):
     h : float, Ref
         Mass specific enthalpy of the fluid (system variable).
 
+    inlet_id : str
+        The inlet of the target component, e.g. :code:`"in1"`.
+
     label : str
         The label of the connection.
 
@@ -820,6 +823,9 @@ class Connection(ConnectionBase):
     offdesign : list
         List containing offdesign parameters (stated as String).
 
+    outlet_id : str
+        The outlet of the source component, e.g. :code:`"out1"`.
+
     p : float, Ref
         Absolute pressure of the fluid (system variable).
 
@@ -829,6 +835,9 @@ class Connection(ConnectionBase):
     s : float
         Specific entropy of the fluid. Result only - calculated after each
         solve.
+
+    source : tespy.components.component.Component
+        The component the connection starts from.
 
     T : float, Ref
         Temperature of the fluid.
@@ -840,6 +849,9 @@ class Connection(ConnectionBase):
 
     T_dew : float
         Determine pressure based on the provided dew temperature of the fluid.
+
+    target : tespy.components.component.Component
+        The component the connection ends at.
 
     td_bubble : float
         Subcooling temperature difference to bubble line temperature.
@@ -1045,13 +1057,26 @@ class Connection(ConnectionBase):
             Fluid balance equation specification.
 
         x : float
-            Gas phase mass fraction specification.
+            Vapor mass fraction specification.
 
         T : float, tespy.connections.connection.Ref
             Temperature specification.
 
-        v : float
+        T0 : float
+            Starting value specification for temperature.
+
+        v : float, tespy.connections.connection.Ref
             Volumetric flow specification.
+
+        td_bubble : float
+            Subcooling to the bubble line temperature.
+
+        td_dew : float
+            Superheating to the dew line temperature.
+
+        **kwargs :
+            Further parameters of the respective connection class, see its
+            class documentation.
 
         state : str
             State of the pure fluid on this connection: liquid ('l') or gaseous
@@ -2968,7 +2993,7 @@ class Ref:
 
     Parameters
     ----------
-    obj : tespy.connections.connection.Connection
+    ref_obj : tespy.connections.connection.Connection
         Connection to be referenced.
 
     factor : float

@@ -1,5 +1,4 @@
 .. _roadmap_label:
-.. _roadmap_timeline_label:
 
 ###################
 Development roadmap
@@ -20,27 +19,6 @@ and collected in the **Under discussion** section.
 
 .. rst-class:: roadmap-timeline
 
-- .. rubric:: v0.12
-     :class: roadmap-release
-
-  .. rubric:: Framework & API
-
-  - Backtracking line search solver strategy :issue:`986`
-  - Refactoring of the data containers with clearly separated responsibilities
-    and documented attributes for connections and components :issue:`1019`
-    :issue:`383`
-  - Version stamp and metadata block in all files tespy saves and exports
-    :issue:`1069`
-  - Some smaller fixes, e.g. silently ignored specifications of non-input
-    properties :issue:`1070`
-  - Deprecations of renamed parameters (:issue:`972`) and unit specification
-    through the :code:`Network` :issue:`750`
-  - Unified unit handling with a single source of truth per network
-    :issue:`1071`
-  - Thermopack as alternative property back end :issue:`624`
-  - Unit agnostic polynomial coefficients and reference states for the
-    :code:`PolynomialCompressor` :issue:`1017`
-
 - .. rubric:: v0.13
      :class: roadmap-release
 
@@ -53,12 +31,8 @@ and collected in the **Under discussion** section.
     deactivate a branch :issue:`600`
   - Retrieve mass flow and fluid branches from the structure matrix
     :issue:`845`
-  - Application of Dulmage-Mendelsohn deconmposition also for variable fluid
-    problems :issue:`1075`
   - Incremental re-solve: only recalculate the equations affected by changed
     specifications :issue:`667` :issue:`1076`
-  - Testable characteristic function evaluation limits, e.g. for :code:`Motor`
-    and :code:`Generator` :issue:`700`
   - Well defined specification of fluid composition with partially unknown
     species :issue:`464`
   - Custom per variable bounds :issue:`1072`
@@ -71,8 +45,6 @@ and collected in the **Under discussion** section.
      .. rubric:: New features & components
 
      - Humidity separation for humid air connections :issue:`1077`
-     - Absorber and desorber components for absorption heat pumps and
-       refrigeration machines :issue:`1016`
      - Variable frequency operation for the :code:`TurboCompressor` and
        :code:`PolynomialCompressor` :issue:`1078`
      - Allow entering the envelope space of the :code:`PolynomialCompressor`
@@ -119,3 +91,50 @@ and collected in the **Under discussion** section.
   - Internal and public API is stable, all deprecations are executed and
     migration scripts/guides are available
   - The model serialization schema is declared stable
+
+Already implemented
+===================
+
+The following items of the roadmap are implemented already: v0.12 lists
+everything up to the release of version 0.12, v0.13 everything since then. See
+:ref:`whats_new_label` for the details.
+
+.. rst-class:: roadmap-timeline
+
+- .. rubric:: v0.13
+     :class: roadmap-release
+
+  .. rubric:: Framework & API
+
+  - Application of Dulmage-Mendelsohn decomposition also for variable fluid
+    problems :issue:`1075`
+  - Testable characteristic function evaluation limits, e.g. for :code:`Motor`
+    and :code:`Generator` :issue:`700`
+
+  .. container:: roadmap-additions
+
+     .. rubric:: New features & components
+
+     - Absorber and desorber components for absorption heat pumps and
+       refrigeration machines (experimental) :issue:`1016`
+
+- .. rubric:: v0.12
+     :class: roadmap-release
+
+  .. rubric:: Framework & API
+
+  - Backtracking line search solver strategy :issue:`986`
+  - Refactoring of the data containers with clearly separated responsibilities
+    and documented attributes for connections and components :issue:`1019`
+    :issue:`383`
+  - Version stamp and metadata block in all files tespy saves and exports
+    :issue:`1069`
+  - Some smaller fixes, e.g. silently ignored specifications of non-input
+    properties :issue:`1070`
+  - Deprecations of renamed parameters (:issue:`972`) and unit specification
+    through the :code:`Network` :issue:`750`
+  - Unified unit handling with a single source of truth per network
+    :issue:`1071`
+  - Thermopack as alternative property back end :issue:`624`
+  - Unit agnostic polynomial coefficients and reference states for the
+    :code:`PolynomialCompressor` :issue:`1017`

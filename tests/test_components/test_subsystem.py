@@ -4,6 +4,7 @@ from pytest import mark
 from pytest import raises
 
 from tespy.components import Compressor
+from tespy.components import HeatExchanger
 from tespy.components import HeatSink
 from tespy.components import HeatSource
 from tespy.components import PowerSource
@@ -12,6 +13,7 @@ from tespy.components import Sink
 from tespy.components import Source
 from tespy.components import Splitter
 from tespy.components import Subsystem
+from tespy.components import SubsystemInterface
 from tespy.connections import Connection
 from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
@@ -576,3 +578,39 @@ def test_print_results_subsystem_with_mixed_connection_types():
     nw.assert_convergence()
 
     nw.print_results(subsystem=sub, print_results=False)
+
+
+def test_starting_temperature_field_passes_interface_with_several_pairs():
+    """A temperature known behind a subsystem interface with two pairs
+    reaches the connections in front of it, as in the network without the
+    interface."""
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(temperature="degC", pressure="bar", enthalpy="kJ/kg")
+    hot_in = Source("hot in")
+    cold_in = Source("cold in")
+    hot_out = Sink("hot out")
+    cold_out = Sink("cold out")
+    pipe = SimpleHeatExchanger("pipe")
+    interface = SubsystemInterface("interface", num_inter=2)
+    hx = HeatExchanger("hx")
+
+    c0 = Connection(cold_in, "out1", pipe, "in1")
+    c1 = Connection(hot_in, "out1", interface, "in1")
+    c2 = Connection(pipe, "out1", interface, "in2")
+    c3 = Connection(interface, "out1", hx, "in1")
+    c4 = Connection(interface, "out2", hx, "in2")
+    c5 = Connection(hx, "out1", hot_out, "in1")
+    c6 = Connection(hx, "out2", cold_out, "in1")
+    nw.add_conns(c0, c1, c2, c3, c4, c5, c6)
+
+    c1.set_attr(fluid={"water": 1}, T=90, p=5, m=1)
+    c0.set_attr(fluid={"water": 1}, p=10)
+    c6.set_attr(T=60)
+    pipe.set_attr(pr=1, Q=0)
+    hx.set_attr(pr1=1, pr2=1, ttd_u=10, ttd_l=10)
+    nw.solve("design", init_only=True)
+
+    field = nw._problem.starting_temperature_field()
+    assert c2 in field
+    assert field[c2] == approx(field[c4])
+    assert field[c0] == approx(field[c4])

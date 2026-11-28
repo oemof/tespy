@@ -239,12 +239,12 @@ class Subsystem:
             return self.conns[label]
         except KeyError:
             msg = (
-                f"Connection with label {label} not found. Note: The label "
-                "should not include the Subsystem label when retrieving the "
-                "connection from the subsystem."
+                f"Connection with label {label} not found in subsystem "
+                f"{self.label}. Use the label without the prefix of the "
+                "subsystem."
             )
-            logger.warning(msg)
-            return None
+            logger.error(msg)
+            raise KeyError(msg)
 
     def get_comp(self, label):
 
@@ -252,12 +252,12 @@ class Subsystem:
             return self.comps[label]
         except KeyError:
             msg = (
-                f"Component with label {label} not found. Note: The label "
-                "should not include the Subsystem label when retrieving the "
-                "component from the subsystem."
+                f"Component with label {label} not found in subsystem "
+                f"{self.label}. Use the label without the prefix of the "
+                "subsystem."
             )
-            logger.warning(msg)
-            return None
+            logger.error(msg)
+            raise KeyError(msg)
 
     def create_network(self):
         """Create the subsystem's network."""

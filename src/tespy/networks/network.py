@@ -356,19 +356,35 @@ class Network:
             for c in subsystem.conns.values():
                 self.add_conns(c)
 
-    def del_subsystems(self, *args):
+    def del_subsystems(self, *args, with_boundary=False):
         r"""
         Delete one or more subsystems from the network.
+
+        The connections inside of the subsystems are removed. The connections
+        attached to a subsystem from outside stay in the network by default
+        and have to be removed separately, as they are attached to a
+        component, which is not part of the network anymore.
 
         Parameters
         ----------
         *args : tespy.components.subsystem.Subsystem
             The subsystems to delete, :code:`del_subsystems(s1, s2, ...)`.
+
+        with_boundary : boolean
+            Also remove the connections attached to the subsystems from
+            outside, default: :code:`False`.
         """
         for subsystem in args:
             if subsystem.label in self.subsystems:
+                members = set(subsystem.comps.values())
+                boundary = [
+                    c for c in self.conns["object"]
+                    if (c.source in members) != (c.target in members)
+                ]
                 for c in subsystem.conns.values():
                     self.del_conns(c)
+                if with_boundary:
+                    self.del_conns(*boundary)
                 del self.subsystems[subsystem.label]
 
     def get_subsystem(self, label):

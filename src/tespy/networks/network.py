@@ -60,6 +60,10 @@ except ModuleNotFoundError:
 _network_ownership = weakref.WeakKeyDictionary()
 
 
+def _local_key(members, obj, default=None):
+    return next((key for key, member in members.items() if member is obj), default)
+
+
 def _claim_ownership(obj, network):
     owner = _network_ownership.get(obj)
     owner = owner() if owner is not None else None
@@ -397,12 +401,14 @@ class Network:
                     if c.source in members and c.target in members
                 ]
                 boundary = subsystem.boundary_connections
-                self.del_conns(*inner)
-                if with_boundary:
-                    self.del_conns(*boundary)
+                # released first, so the deleted subsystem keeps its members
+                # and can be added again
                 for sub in subsystem._walk():
                     _network_ownership.pop(sub, None)
                 del self.subsystems[subsystem.label]
+                self.del_conns(*inner)
+                if with_boundary:
+                    self.del_conns(*boundary)
 
     def get_subsystem(self, label):
         r"""
@@ -523,10 +529,13 @@ class Network:
         group.parent = parent
         _claim_ownership(group, self)
         siblings[label] = group
+        # a group adds no prefix, so its members keep their local labels
         for comp in components:
+            local = comp.label if parent is None else _local_key(parent.comps, comp)
             if parent is not None:
-                del parent.comps[comp.label]
-            group._add_member(comp)
+                del parent.comps[local]
+            group.comps[local] = comp
+            _subsystem_membership[comp] = weakref.ref(group)
         for sub in subsystems:
             del siblings[sub.label]
             group.subsystems[sub.label] = sub
@@ -537,9 +546,11 @@ class Network:
             if (
                     conn.source in members and conn.target in members
                     and self.subsystem_of(conn) is group):
+                local = conn.label
                 if parent is not None:
-                    parent.conns.pop(conn.label, None)
-                group.conns[conn.label] = conn
+                    local = _local_key(parent.conns, conn, conn.label)
+                    parent.conns.pop(local, None)
+                group.conns[local] = conn
         self._update_subsystem_column()
         return group
 
@@ -573,11 +584,12 @@ class Network:
 
         del siblings[group.label]
         _network_ownership.pop(group, None)
-        for label, comp in group.comps.items():
+        for local, comp in group.comps.items():
             if parent is None:
                 _subsystem_membership.pop(comp, None)
             else:
-                parent._add_member(comp)
+                parent.comps[local] = comp
+                _subsystem_membership[comp] = weakref.ref(parent)
         for label, sub in group.subsystems.items():
             siblings[label] = sub
             sub.parent = parent
@@ -757,7 +769,14 @@ class Network:
             The connections to remove, :code:`del_conns(c1, c2, ...)`.
         """
         comps = list({cp for c in args for cp in [c.source, c.target]})
+        subsystems = [
+            s for sub in self.subsystems.values() for s in sub._walk()
+        ]
         for c in args:
+            for sub in subsystems:
+                local = _local_key(sub.conns, c)
+                if local is not None:
+                    del sub.conns[local]
             self.conns = self.conns.drop(c.label)
             _network_ownership.pop(c, None)
             if c.__class__.__name__ in self._results:
@@ -827,6 +846,15 @@ class Network:
                 comp not in self.conns["source"].values and
                 comp not in self.conns["target"].values
             ):
+                owner = self.subsystem_of(comp)
+                if owner is not None:
+                    del owner.comps[_local_key(owner.comps, comp)]
+                    _subsystem_membership.pop(comp, None)
+                    for sub in owner._lineage():
+                        sub.ports = {
+                            key: port for key, port in sub.ports.items()
+                            if port[0] is not comp
+                        }
                 self.comps = self.comps.drop(comp.label)
                 _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__

@@ -779,10 +779,10 @@ class Subsystem:
         for local, conn in sub.conns.items():
             owner = _innermost_common(_owner(conn.source), _owner(conn.target))
             if owner is not sub:
+                level = f"in {owner.path}" if owner else "on the network level"
                 msg = (
                     f"The connection {conn.label} is listed in the subsystem "
-                    f"{path}, but the components at its ends place it "
-                    f"{'in ' + owner.path if owner else 'on the network level'}."
+                    f"{path}, but the components at its ends place it {level}."
                 )
                 logger.error(msg)
                 raise TESPyNetworkError(msg)

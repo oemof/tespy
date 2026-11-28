@@ -702,3 +702,71 @@ def test_print_results_of_nested_subsystem():
     nw = _network_with(station, solve=True)
     nw.print_results(subsystem=station, print_results=False)
     nw.print_results(subsystem=station.get_subsystem("drive"), print_results=False)
+
+
+def _line_subsystem_network():
+    inner = _line_network()
+    sub = Subsystem.from_network("plant", inner)
+    nw = Network(iterinfo=False)
+    nw.add_subsystems(sub)
+    nw.add_conns(
+        Connection(Source("source"), "out1", sub, "in1", label="in"),
+        Connection(sub, "out1", Sink("sink"), "in1", label="out"),
+    )
+    return nw, sub
+
+
+def test_export_after_deleting_subsystem_connection():
+    nw, sub = _line_subsystem_network()
+    conn = sub.get_conn("2")
+    nw.del_conns(conn)
+    assert conn not in sub.conns.values()
+    assert "plant_2" not in json.dumps(nw.export()["Subsystem"])
+    nw.add_conns(
+        Connection(nw.get_comp("plant_pipe 1"), "out1", nw.get_comp("plant_pipe 2"), "in1", label="new")
+    )
+    loaded = _round_trip(nw)
+    assert loaded.subsystem_of(loaded.get_conn("new")).path == "plant"
+
+
+def test_export_after_deleting_group_connection_and_component():
+    nw = _line_network()
+    pipe1 = nw.get_comp("pipe 1")
+    group = nw.group("line", pipe1, nw.get_comp("pipe 2"))
+    group.add_port("entry", pipe1, "in1")
+    nw.del_conns(nw.get_conn("2"))
+    assert list(group.conns) == []
+    assert json.loads(json.dumps(nw.export()))["Subsystem"]["line"]["connections"] == {}
+
+    nw.del_conns(nw.get_conn("1"))
+    assert pipe1 not in group.get_components()
+    assert group.ports == {}
+    assert nw.subsystem_of(pipe1) is None
+    data = json.loads(json.dumps(nw.export()))
+    assert data["Subsystem"]["line"]["components"] == {"pipe 2": "pipe 2"}
+
+
+def test_group_inside_prefixing_subsystem():
+    inner = _line_network()
+    inner.group("line", *[inner.get_comp(f"pipe {i}") for i in [1, 2]])
+    sub = Subsystem.from_network("plant", inner)
+    nw = Network(iterinfo=False)
+    nw.add_subsystems(sub)
+    nw.add_conns(
+        Connection(Source("source"), "out1", sub, "in1", label="in"),
+        Connection(sub, "out1", Sink("sink"), "in1", label="out"),
+    )
+    line = nw.get_subsystem("plant/line")
+    pipe1 = nw.get_comp("plant_pipe 1")
+
+    first = nw.group("first", pipe1, parent=line)
+    assert first.comps == {"pipe 1": pipe1}
+    assert pipe1.label == "plant_pipe 1"
+
+    nw.ungroup(first)
+    nw.ungroup(line)
+    assert pipe1.label == "plant_pipe 1"
+    assert nw.get_comp("plant_pipe 1") is pipe1
+    assert sub.get_comp("pipe 1") is pipe1
+    assert sub.get_conn("2").label == "plant_2"
+    _round_trip(nw)

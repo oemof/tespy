@@ -94,16 +94,15 @@ class ConnectionBase:
     def __init__(self):
         pass
 
-    def _remap_if_subsystem(self, source, target):
-        # If the connected source or target is a subsystem we must
-        # remap the source and target to its outlet/inlet
+    def _remap_if_subsystem(self, source, outlet_id, target, inlet_id):
+        # a subsystem is connected through the component behind its port
         if isinstance(source, Subsystem):
-            source = source.outlet
+            source, outlet_id = source._resolve_port(outlet_id)
 
         if isinstance(target, Subsystem):
-            target = target.inlet
+            target, inlet_id = target._resolve_port(inlet_id)
 
-        return source, target
+        return source, outlet_id, target, inlet_id
 
     def _check_types(self, source, target):
         # check input parameters
@@ -1004,7 +1003,9 @@ class Connection(ConnectionBase):
     def __init__(self, source, outlet_id, target, inlet_id,
                  label=None, **kwargs):
 
-        source, target = self._remap_if_subsystem(source, target)
+        source, outlet_id, target, inlet_id = self._remap_if_subsystem(
+            source, outlet_id, target, inlet_id
+        )
         self._check_types(source, target)
         self._check_self_connect(source, target)
         self._check_connector_id(source, outlet_id, source.outlets())

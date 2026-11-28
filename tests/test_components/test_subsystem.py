@@ -19,7 +19,6 @@ from tespy.connections import HeatConnection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools.helpers import TESPyComponentError
-from tespy.tools.helpers import TESPyNetworkError
 
 
 class MySubsystem(Subsystem):
@@ -530,11 +529,6 @@ class OuterSubsystem(Subsystem):
         self.add_conns(c1, c2)
 
 
-@mark.xfail(
-    reason="nested subsystems are part of the refactoring in #1079",
-    raises=TESPyNetworkError,
-    strict=True
-)
 def test_nested_subsystem_check_topology():
     """A subsystem containing another subsystem is a valid topology."""
     nw = Network(iterinfo=False)

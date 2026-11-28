@@ -315,3 +315,148 @@ The subsystem can be integrated into another network now.
 
     >>> sub.get_conn("4").T.val < sub.get_conn("2").T.val
     True
+
+.. _subsystems_nesting_label:
+
+Nested subsystems
+-----------------
+
+A subsystem can contain other subsystems. Connect to the interfaces of the
+inner subsystem inside of :code:`create_network` and it is added as a child
+automatically, or add it explicitly with
+:py:meth:`~tespy.components.subsystem.Subsystem.add_subsystems`. The labels of
+all members are prefixed with the labels of the subsystems on their path, and
+nested subsystems are found by their path, with :code:`/` separating the
+levels. For this reason the label of a subsystem must not contain :code:`/`.
+
+.. code-block:: python
+
+    >>> from tespy.components import Pipe, Pump, Sink, Source, Subsystem
+    >>> from tespy.connections import Connection
+    >>> from tespy.networks import Network
+
+    >>> class PumpStage(Subsystem):
+    ...     def __init__(self, label):
+    ...         self.num_in = 1
+    ...         self.num_out = 1
+    ...         super().__init__(label)
+    ...
+    ...     def create_network(self):
+    ...         pump = Pump("pump")
+    ...         self.add_conns(
+    ...             Connection(self.inlet, "out1", pump, "in1", label="suction"),
+    ...             Connection(pump, "out1", self.outlet, "in1", label="discharge"),
+    ...         )
+
+    >>> class Station(Subsystem):
+    ...     def __init__(self, label):
+    ...         self.num_in = 1
+    ...         self.num_out = 1
+    ...         super().__init__(label)
+    ...
+    ...     def create_network(self):
+    ...         stage = PumpStage("stage")
+    ...         pipe = Pipe("pipe")
+    ...         self.add_conns(
+    ...             Connection(self.inlet, "out1", stage, "in1", label="feed"),
+    ...             Connection(stage, "out1", pipe, "in1", label="pressurized"),
+    ...             Connection(pipe, "out1", self.outlet, "in1", label="product"),
+    ...         )
+
+    >>> station = Station("station")
+    >>> nw = Network(iterinfo=False)
+    >>> nw.units.set_defaults(
+    ...     temperature="degC", pressure="bar", pressure_difference="bar"
+    ... )
+    >>> c1 = Connection(Source("feed"), "out1", station, "in1", label="1")
+    >>> c2 = Connection(station, "out1", Sink("product"), "in1", label="2")
+    >>> nw.add_subsystems(station)
+    >>> nw.add_conns(c1, c2)
+
+    >>> stage = nw.get_subsystem("station/stage")
+    >>> stage.get_comp("pump").label
+    'station_stage_pump'
+
+The network knows which subsystem every object belongs to. A connection
+belongs to the deepest subsystem that contains the components at both of its
+ends, and it is a boundary connection of every subsystem that contains only
+one of them.
+
+.. code-block:: python
+
+    >>> nw.subsystem_of(nw.get_comp("station_stage_pump")).path
+    'station/stage'
+    >>> nw.subsystem_of(nw.get_conn("station_feed")).path
+    'station'
+    >>> sorted(c.label for c in stage.boundary_connections)
+    ['station_feed', 'station_pressurized']
+    >>> len(station.get_components(recursive=True))
+    6
+
+Groups
+------
+
+A group adds a level to the structure of a network without changing it. It is
+made from components and subsystems that are in the network already, with
+:py:meth:`~tespy.networks.network.Network.group`. The members keep their
+labels and the group has no interface components, so a connection through its
+border stays a single connection. Ports make a group connectable by name, see
+:py:meth:`~tespy.components.subsystem.Subsystem.add_port`.
+
+.. code-block:: python
+
+    >>> supply = nw.group("supply", nw.get_comp("feed"), station)
+    >>> nw.get_subsystem("supply/station/stage").path
+    'supply/station/stage'
+    >>> nw.subsystem_of(c1).path
+    'supply'
+    >>> nw.get_comp("station_stage_pump").label
+    'station_stage_pump'
+    >>> nw.ungroup(supply)
+
+Results per subsystem
+---------------------
+
+The results tables have a column :code:`subsystem` with the path of the
+innermost subsystem of every object. Use
+:py:meth:`~tespy.networks.network.Network.get_results` to get the results of
+the objects of a subsystem only, or pass the subsystem to
+:py:meth:`~tespy.networks.network.Network.print_results`.
+
+.. code-block:: python
+
+    >>> c1.set_attr(fluid={"water": 1}, T=20, p=1, m=1)
+    >>> c2.set_attr(p=4)
+    >>> stage.get_comp("pump").set_attr(eta_s=0.8)
+    >>> station.get_comp("pipe").set_attr(dp=0.5, Q=0)
+    >>> nw.solve("design")
+    >>> nw.assert_convergence()
+    >>> nw.results["Connection"].loc["station_stage_suction", "subsystem"]
+    'station/stage'
+    >>> list(nw.get_results(stage)["Connection"].index)
+    ['station_stage_discharge', 'station_stage_suction']
+
+Saving and loading
+------------------
+
+:py:meth:`~tespy.networks.network.Network.export` writes the subsystem tree
+into the section :code:`Subsystem`, and
+:py:meth:`~tespy.networks.network.Network.from_json` rebuilds it as
+:code:`Subsystem` objects. :code:`create_network` is not run again, the class
+name is kept for information only. Every entry maps the local labels of the
+members to their labels in the network and lists the ports.
+
+.. code-block:: python
+
+    >>> data = nw.export()
+    >>> data["Subsystem"]["station"]["class"]
+    'Station'
+    >>> data["Subsystem"]["station"]["subsystems"]["stage"]["components"]["pump"]
+    'station_stage_pump'
+    >>> loaded = Network.from_dict(data)
+    >>> loaded.get_subsystem("station/stage").get_comp("pump").label
+    'station_stage_pump'
+
+:py:meth:`~tespy.components.subsystem.Subsystem.from_network` keeps the
+subsystems of the network, so a network containing subsystems can be turned
+into a subsystem and placed several times.

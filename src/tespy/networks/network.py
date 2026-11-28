@@ -27,6 +27,10 @@ import pandas as pd
 from tabulate import tabulate
 
 from tespy.components.component import component_registry
+from tespy.components.subsystem import PATH_SEPARATOR
+from tespy.components.subsystem import _innermost_common
+from tespy.components.subsystem import _owner
+from tespy.components.subsystem import _subsystem_membership
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
@@ -54,6 +58,10 @@ except ModuleNotFoundError:
 # state to the objects themselves, keeping them picklable and making
 # (deep)copies of a network independent of the original
 _network_ownership = weakref.WeakKeyDictionary()
+
+
+def _local_key(members, obj, default=None):
+    return next((key for key, member in members.items() if member is obj), default)
 
 
 def _claim_ownership(obj, network):
@@ -340,9 +348,17 @@ class Network:
         Parameters
         ----------
         *args : tespy.components.subsystem.Subsystem
-            The subsystems to add, :code:`add_subsystems(s1, s2, ...)`.
+            The subsystems to add, :code:`add_subsystems(s1, s2, ...)`. The
+            nested subsystems are added with them.
         """
         for subsystem in args:
+            if subsystem.parent is not None:
+                msg = (
+                    f"The subsystem {subsystem.path} is part of another "
+                    "subsystem, add the top level subsystem to the network."
+                )
+                logger.error(msg)
+                raise ValueError(msg)
             if subsystem.label in self.subsystems:
                 msg = (
                     'There is already a subsystem with the label '
@@ -351,25 +367,48 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            for sub in subsystem._walk():
+                _claim_ownership(sub, self)
             self.subsystems[subsystem.label] = subsystem
 
-            for c in subsystem.conns.values():
-                self.add_conns(c)
+            for sub in subsystem._walk():
+                for c in sub.conns.values():
+                    self.add_conns(c)
 
-    def del_subsystems(self, *args):
+    def del_subsystems(self, *args, with_boundary=False):
         r"""
         Delete one or more subsystems from the network.
+
+        The connections inside of the subsystems are removed. The connections
+        attached to a subsystem from outside stay in the network by default
+        and have to be removed separately, as they are attached to a
+        component, which is not part of the network anymore.
 
         Parameters
         ----------
         *args : tespy.components.subsystem.Subsystem
             The subsystems to delete, :code:`del_subsystems(s1, s2, ...)`.
+
+        with_boundary : boolean
+            Also remove the connections attached to the subsystems from
+            outside, default: :code:`False`.
         """
         for subsystem in args:
-            if subsystem.label in self.subsystems:
-                for c in subsystem.conns.values():
-                    self.del_conns(c)
+            if self.subsystems.get(subsystem.label) is subsystem:
+                members = set(subsystem.get_components(recursive=True))
+                inner = [
+                    c for c in self.conns["object"]
+                    if c.source in members and c.target in members
+                ]
+                boundary = subsystem.boundary_connections
+                # released first, so the deleted subsystem keeps its members
+                # and can be added again
+                for sub in subsystem._walk():
+                    _network_ownership.pop(sub, None)
                 del self.subsystems[subsystem.label]
+                self.del_conns(*inner)
+                if with_boundary:
+                    self.del_conns(*boundary)
 
     def get_subsystem(self, label):
         r"""
@@ -378,19 +417,261 @@ class Network:
         Parameters
         ----------
         label : str
-            Label of the Subsystem object.
+            Label of a top level subsystem or path of a nested one, e.g.
+            :code:`"plant/drive"`.
 
         Returns
         -------
         tespy.components.subsystem.Subsystem
             Subsystem object with specified label.
         """
+        top, _, rest = label.partition(PATH_SEPARATOR)
         try:
-            return self.subsystems[label]
+            subsystem = self.subsystems[top]
+            return subsystem.get_subsystem(rest) if rest else subsystem
         except KeyError:
             msg = f"Subsystem with label {label} not found."
             logger.error(msg)
             raise KeyError(msg)
+
+    def group(self, label, *members, parent=None):
+        r"""
+        Group components and subsystems of the network into a subsystem.
+
+        The members keep their labels and the network does not change, the
+        group only adds a level to the structure of the network. Connections
+        through the border of the group stay single connections, the group has
+        no interface components. Use
+        :py:meth:`~tespy.components.subsystem.Subsystem.add_port` to make the
+        group connectable by port name.
+
+        Parameters
+        ----------
+        label : str
+            Label of the group, unique on its level.
+
+        *members : tespy.components.component.Component, tespy.components.subsystem.Subsystem
+            Components and subsystems on the level of :code:`parent`.
+
+        parent : tespy.components.subsystem.Subsystem
+            Group to create the new group in, default: :code:`None` for the
+            network level.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            The group.
+
+        Example
+        -------
+        >>> from tespy.components import Pipe, Sink, Source
+        >>> from tespy.connections import Connection
+        >>> from tespy.networks import Network
+        >>> nw = Network()
+        >>> so = Source("source")
+        >>> pipe1 = Pipe("pipe 1")
+        >>> pipe2 = Pipe("pipe 2")
+        >>> si = Sink("sink")
+        >>> nw.add_conns(
+        ...     Connection(so, "out1", pipe1, "in1", label="1"),
+        ...     Connection(pipe1, "out1", pipe2, "in1", label="2"),
+        ...     Connection(pipe2, "out1", si, "in1", label="3"),
+        ... )
+        >>> line = nw.group("line", pipe1, pipe2)
+        >>> nw.subsystem_of(pipe1).path
+        'line'
+        >>> [c.label for c in line.get_connections()]
+        ['2']
+        >>> sorted(c.label for c in line.boundary_connections)
+        ['1', '3']
+        >>> pipe1.label
+        'pipe 1'
+        """
+        from tespy.components.subsystem import Subsystem
+
+        if parent is not None and (
+                parent._network() is not self or not parent.is_group):
+            msg = (
+                "The parent of a group must be a group of the same network."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        siblings = self.subsystems if parent is None else parent.subsystems
+        if label in siblings:
+            msg = f"There is already a subsystem with the label {label}."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        level = parent.path if parent is not None else "the network level"
+        components = [m for m in members if not isinstance(m, Subsystem)]
+        subsystems = [m for m in members if isinstance(m, Subsystem)]
+        for comp in components:
+            if (
+                    comp.label not in self.comps.index
+                    or self.comps.loc[comp.label, "object"] is not comp):
+                msg = f"The component {comp.label} is not part of the network."
+            elif self.subsystem_of(comp) is not parent:
+                msg = (
+                    f"The component {comp.label} is not on {level}, group its "
+                    "subsystem instead."
+                )
+            else:
+                continue
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        for sub in subsystems:
+            if siblings.get(sub.label) is not sub:
+                msg = f"The subsystem {sub.label} is not on {level}."
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+        group = Subsystem._create_group(label)
+        group.parent = parent
+        _claim_ownership(group, self)
+        siblings[label] = group
+        # a group adds no prefix, so its members keep their local labels
+        for comp in components:
+            local = comp.label if parent is None else _local_key(parent.comps, comp)
+            if parent is not None:
+                del parent.comps[local]
+            group.comps[local] = comp
+            _subsystem_membership[comp] = weakref.ref(group)
+        for sub in subsystems:
+            del siblings[sub.label]
+            group.subsystems[sub.label] = sub
+            sub.parent = group
+
+        members = set(group.get_components(recursive=True))
+        for conn in self.conns["object"]:
+            if (
+                    conn.source in members and conn.target in members
+                    and self.subsystem_of(conn) is group):
+                local = conn.label
+                if parent is not None:
+                    local = _local_key(parent.conns, conn, conn.label)
+                    parent.conns.pop(local, None)
+                group.conns[local] = conn
+        self._update_subsystem_column()
+        return group
+
+    def ungroup(self, group):
+        r"""
+        Remove a group created with :py:meth:`group`.
+
+        The members of the group move to the level of the group, their labels
+        and the network stay the same.
+
+        Parameters
+        ----------
+        group : tespy.components.subsystem.Subsystem
+            The group to remove.
+        """
+        if group._network() is not self or not group.is_group:
+            msg = "Only groups of this network can be ungrouped."
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        parent = group.parent
+        siblings = self.subsystems if parent is None else parent.subsystems
+        clashes = [label for label in group.subsystems if label in siblings]
+        if clashes:
+            msg = (
+                f"The subsystems {', '.join(clashes)} of the group "
+                f"{group.path} have the same label as a subsystem on the level "
+                "of the group."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        del siblings[group.label]
+        _network_ownership.pop(group, None)
+        for local, comp in group.comps.items():
+            if parent is None:
+                _subsystem_membership.pop(comp, None)
+            else:
+                parent.comps[local] = comp
+                _subsystem_membership[comp] = weakref.ref(parent)
+        for label, sub in group.subsystems.items():
+            siblings[label] = sub
+            sub.parent = parent
+        if parent is not None:
+            parent.conns.update(group.conns)
+        group.parent = None
+        group.comps = {}
+        group.conns = {}
+        group.subsystems = {}
+        group.ports = {}
+        self._update_subsystem_column()
+
+    def _update_subsystem_column(self):
+        connection_types = set(self.conns["conn_type"])
+        for key, frame in self._results.items():
+            objects = self.conns if key in connection_types else self.comps
+            frame["subsystem"] = [
+                self._subsystem_path(objects.loc[label, "object"])
+                for label in frame.index
+            ]
+
+    def get_results(self, subsystem=None, recursive=True):
+        r"""
+        Get the results, optionally restricted to the objects of a subsystem.
+
+        Parameters
+        ----------
+        subsystem : tespy.components.subsystem.Subsystem
+            Subsystem to restrict the results to, default: :code:`None` for
+            all results.
+
+        recursive : boolean
+            Include the objects of the nested subsystems, default:
+            :code:`True`.
+
+        Returns
+        -------
+        dict
+            One :code:`pandas.DataFrame` per connection and component class
+            name, like :py:attr:`results`. The column :code:`subsystem` holds
+            the path of the innermost subsystem of every object.
+        """
+        if subsystem is None:
+            return {key: frame.copy() for key, frame in self.results.items()}
+        components = {c.label for c in subsystem.get_components(recursive)}
+        connections = {c.label for c in subsystem.get_connections(recursive)}
+        connection_types = set(self.conns["conn_type"])
+        results = {}
+        for key, frame in self.results.items():
+            labels = connections if key in connection_types else components
+            results[key] = frame.loc[[c for c in frame.index if c in labels]]
+        return results
+
+    def _subsystem_path(self, obj):
+        sub = self.subsystem_of(obj)
+        return sub.path if sub is not None else ""
+
+    def subsystem_of(self, obj):
+        r"""
+        Get the innermost subsystem a component or connection belongs to.
+
+        A connection belongs to the deepest subsystem that contains the
+        components at both of its ends.
+
+        Parameters
+        ----------
+        obj : tespy.components.component.Component, tespy.connections.connection.ConnectionBase
+            The component or connection.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            The subsystem, :code:`None` if the object is on the network level.
+        """
+        if isinstance(obj, ConnectionBase):
+            return _innermost_common(
+                self.subsystem_of(obj.source), self.subsystem_of(obj.target)
+            )
+        owner = _owner(obj)
+        if owner is None or owner._network() is not self:
+            return None
+        return owner
 
     def get_conn(self, label):
         r"""
@@ -488,7 +769,14 @@ class Network:
             The connections to remove, :code:`del_conns(c1, c2, ...)`.
         """
         comps = list({cp for c in args for cp in [c.source, c.target]})
+        subsystems = [
+            s for sub in self.subsystems.values() for s in sub._walk()
+        ]
         for c in args:
+            for sub in subsystems:
+                local = _local_key(sub.conns, c)
+                if local is not None:
+                    del sub.conns[local]
             self.conns = self.conns.drop(c.label)
             _network_ownership.pop(c, None)
             if c.__class__.__name__ in self._results:
@@ -558,6 +846,15 @@ class Network:
                 comp not in self.conns["source"].values and
                 comp not in self.conns["target"].values
             ):
+                owner = self.subsystem_of(comp)
+                if owner is not None:
+                    del owner.comps[_local_key(owner.comps, comp)]
+                    _subsystem_membership.pop(comp, None)
+                    for sub in owner._lineage():
+                        sub.ports = {
+                            key: port for key, port in sub.ports.items()
+                            if port[0] is not comp
+                        }
                 self.comps = self.comps.drop(comp.label)
                 _network_ownership.pop(comp, None)
                 comp_type = comp.__class__.__name__
@@ -862,7 +1159,7 @@ class Network:
                 cols = conn._get_result_cols(set(self.all_fluids))
                 self._results[conn_type] = pd.DataFrame(
                     columns=cols, dtype="float64"
-                )
+                ).assign(subsystem=pd.Series(dtype=str))
 
         for comp in self.comps["object"]:
             comp_type = comp.__class__.__name__
@@ -874,7 +1171,7 @@ class Network:
                 ]
                 self._results[comp_type] = pd.DataFrame(
                     columns=cols, dtype="float64"
-                )
+                ).assign(subsystem=pd.Series(dtype=str))
 
     def _check_components(self):
         for comp in self.comps['object']:
@@ -2891,13 +3188,15 @@ class Network:
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
             if conn_type not in buckets:
-                buckets[conn_type] = ([], [], [], c._get_result_cols(set(self.all_fluids)))
+                buckets[conn_type] = ([], [], [], [], c._get_result_cols(set(self.all_fluids)))
             buckets[conn_type][0].append(c.label)
             buckets[conn_type][1].append(c.collect_results(self.all_fluids))
             buckets[conn_type][2].append(c.collect_optional_results())
-        for conn_type, (labels, rows, optional, cols) in buckets.items():
+            buckets[conn_type][3].append(self._subsystem_path(c))
+        for conn_type, (labels, rows, optional, paths, cols) in buckets.items():
             frame = pd.DataFrame(rows, index=labels, columns=cols)
             optional = pd.DataFrame(optional, index=labels)
+            frame["subsystem"] = paths
             if not optional.empty:
                 frame = frame.join(optional)
             self._results[conn_type] = frame
@@ -2909,12 +3208,15 @@ class Network:
                 continue
             key = cp.__class__.__name__
             if key not in buckets:
-                buckets[key] = ([], [])
+                buckets[key] = ([], [], [])
             buckets[key][0].append(cp.label)
             buckets[key][1].append(result)
-        for key, (labels, rows) in buckets.items():
-            cols = self._results[key].columns
-            self._results[key] = pd.DataFrame(rows, index=labels, columns=cols)
+            buckets[key][2].append(self._subsystem_path(cp))
+        for key, (labels, rows, paths) in buckets.items():
+            cols = [c for c in self._results[key].columns if c != "subsystem"]
+            frame = pd.DataFrame(rows, index=labels, columns=cols)
+            frame["subsystem"] = paths
+            self._results[key] = frame
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""
@@ -2978,7 +3280,7 @@ class Network:
             if df.size > 0:
                 if subsystem is not None:
                     component_labels = [
-                        c.label for c in subsystem.comps.values()
+                        c.label for c in subsystem.get_components(recursive=True)
                         if c.label in df.index
                     ]
                     df = df.loc[component_labels]
@@ -3018,7 +3320,7 @@ class Network:
 
             if subsystem is not None:
                 connection_labels = [
-                    c.label for c in subsystem.conns.values()
+                    c.label for c in subsystem.get_connections(recursive=True)
                     if c.label in df.index
                 ]
                 df = df.loc[connection_labels]
@@ -3173,6 +3475,14 @@ class Network:
 
         msg = 'Created connections.'
         logger.info(msg)
+
+        from tespy.components.subsystem import Subsystem
+
+        for label, data in network_data.get("Subsystem", {}).items():
+            sub = Subsystem._from_structure(label, data, comps, conns)
+            for s in sub._walk():
+                _claim_ownership(s, nw)
+            nw.subsystems[label] = sub
 
         msg = 'Created network.'
         logger.info(msg)
@@ -3354,6 +3664,11 @@ class Network:
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
+        if self.subsystems:
+            export["Subsystem"] = {
+                label: sub._serialize_structure()
+                for label, sub in self.subsystems.items()
+            }
 
         if json_file_path:
             os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)

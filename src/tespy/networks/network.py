@@ -540,6 +540,7 @@ class Network:
                 if parent is not None:
                     parent.conns.pop(conn.label, None)
                 group.conns[conn.label] = conn
+        self._update_subsystem_column()
         return group
 
     def ungroup(self, group):
@@ -587,6 +588,52 @@ class Network:
         group.conns = {}
         group.subsystems = {}
         group.ports = {}
+        self._update_subsystem_column()
+
+    def _update_subsystem_column(self):
+        connection_types = set(self.conns["conn_type"])
+        for key, frame in self._results.items():
+            objects = self.conns if key in connection_types else self.comps
+            frame["subsystem"] = [
+                self._subsystem_path(objects.loc[label, "object"])
+                for label in frame.index
+            ]
+
+    def get_results(self, subsystem=None, recursive=True):
+        r"""
+        Get the results, optionally restricted to the objects of a subsystem.
+
+        Parameters
+        ----------
+        subsystem : tespy.components.subsystem.Subsystem
+            Subsystem to restrict the results to, default: :code:`None` for
+            all results.
+
+        recursive : boolean
+            Include the objects of the nested subsystems, default:
+            :code:`True`.
+
+        Returns
+        -------
+        dict
+            One :code:`pandas.DataFrame` per connection and component class
+            name, like :py:attr:`results`. The column :code:`subsystem` holds
+            the path of the innermost subsystem of every object.
+        """
+        if subsystem is None:
+            return {key: frame.copy() for key, frame in self.results.items()}
+        components = {c.label for c in subsystem.get_components(recursive)}
+        connections = {c.label for c in subsystem.get_connections(recursive)}
+        connection_types = set(self.conns["conn_type"])
+        results = {}
+        for key, frame in self.results.items():
+            labels = connections if key in connection_types else components
+            results[key] = frame.loc[[c for c in frame.index if c in labels]]
+        return results
+
+    def _subsystem_path(self, obj):
+        sub = self.subsystem_of(obj)
+        return sub.path if sub is not None else ""
 
     def subsystem_of(self, obj):
         r"""
@@ -1084,7 +1131,7 @@ class Network:
                 cols = conn._get_result_cols(set(self.all_fluids))
                 self._results[conn_type] = pd.DataFrame(
                     columns=cols, dtype="float64"
-                )
+                ).assign(subsystem=pd.Series(dtype=str))
 
         for comp in self.comps["object"]:
             comp_type = comp.__class__.__name__
@@ -1096,7 +1143,7 @@ class Network:
                 ]
                 self._results[comp_type] = pd.DataFrame(
                     columns=cols, dtype="float64"
-                )
+                ).assign(subsystem=pd.Series(dtype=str))
 
     def _check_components(self):
         for comp in self.comps['object']:
@@ -3113,13 +3160,15 @@ class Network:
         for c in self.conns['object']:
             conn_type = c.__class__.__name__
             if conn_type not in buckets:
-                buckets[conn_type] = ([], [], [], c._get_result_cols(set(self.all_fluids)))
+                buckets[conn_type] = ([], [], [], [], c._get_result_cols(set(self.all_fluids)))
             buckets[conn_type][0].append(c.label)
             buckets[conn_type][1].append(c.collect_results(self.all_fluids))
             buckets[conn_type][2].append(c.collect_optional_results())
-        for conn_type, (labels, rows, optional, cols) in buckets.items():
+            buckets[conn_type][3].append(self._subsystem_path(c))
+        for conn_type, (labels, rows, optional, paths, cols) in buckets.items():
             frame = pd.DataFrame(rows, index=labels, columns=cols)
             optional = pd.DataFrame(optional, index=labels)
+            frame["subsystem"] = paths
             if not optional.empty:
                 frame = frame.join(optional)
             self._results[conn_type] = frame
@@ -3131,12 +3180,15 @@ class Network:
                 continue
             key = cp.__class__.__name__
             if key not in buckets:
-                buckets[key] = ([], [])
+                buckets[key] = ([], [], [])
             buckets[key][0].append(cp.label)
             buckets[key][1].append(result)
-        for key, (labels, rows) in buckets.items():
-            cols = self._results[key].columns
-            self._results[key] = pd.DataFrame(rows, index=labels, columns=cols)
+            buckets[key][2].append(self._subsystem_path(cp))
+        for key, (labels, rows, paths) in buckets.items():
+            cols = [c for c in self._results[key].columns if c != "subsystem"]
+            frame = pd.DataFrame(rows, index=labels, columns=cols)
+            frame["subsystem"] = paths
+            self._results[key] = frame
 
     def print_results(self, colored=True, colors=None, print_results=True, subsystem=None):
         r"""
@@ -3200,7 +3252,7 @@ class Network:
             if df.size > 0:
                 if subsystem is not None:
                     component_labels = [
-                        c.label for c in subsystem.comps.values()
+                        c.label for c in subsystem.get_components(recursive=True)
                         if c.label in df.index
                     ]
                     df = df.loc[component_labels]
@@ -3240,7 +3292,7 @@ class Network:
 
             if subsystem is not None:
                 connection_labels = [
-                    c.label for c in subsystem.conns.values()
+                    c.label for c in subsystem.get_connections(recursive=True)
                     if c.label in df.index
                 ]
                 df = df.loc[connection_labels]

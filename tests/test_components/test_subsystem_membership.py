@@ -643,3 +643,62 @@ def test_from_network_drops_boundary_members_of_groups():
     assert [c.label for c in supply.get_components()] == ["line_pipe 1"]
     assert supply.ports == {}
     assert supply.is_group
+
+
+def test_results_path_column():
+    nw = _network_with(Station("station"), solve=True)
+    connections = nw.results["Connection"]["subsystem"]
+    assert connections["1"] == ""
+    assert connections["station_feed"] == "station"
+    assert connections["station_drive_suction"] == "station/drive"
+    assert nw.results["PowerConnection"].loc["station_drive_shaft", "subsystem"] == "station/drive"
+    assert nw.results["Pump"].loc["station_drive_pump", "subsystem"] == "station/drive"
+    assert nw.results["Valve"].loc["station_valve", "subsystem"] == "station"
+
+
+def test_results_path_column_without_subsystems():
+    nw = _line_network()
+    nw.solve("design")
+    assert (nw.results["Connection"]["subsystem"] == "").all()
+    assert (nw.results["Pipe"]["subsystem"] == "").all()
+
+
+def test_get_results_of_nested_subsystem_and_group():
+    station = Station("station")
+    nw = _network_with(station, solve=True)
+    drive = station.get_subsystem("drive")
+
+    results = nw.get_results(station, recursive=False)
+    assert list(results["Connection"].index) == [
+        "station_discharge", "station_feed", "station_throttled"
+    ]
+    assert list(results["Pump"].index) == []
+    assert list(results["Valve"].index) == ["station_valve"]
+
+    results = nw.get_results(station)
+    assert len(results["Connection"]) == 5
+    assert list(results["Pump"].index) == ["station_drive_pump"]
+
+    results = nw.get_results(drive)
+    assert list(results["PowerConnection"].index) == [
+        "station_drive_electric", "station_drive_shaft"
+    ]
+    assert list(results["Pump"].index) == ["station_drive_pump"]
+    assert list(results["Valve"].index) == []
+
+    group = nw.group("supply", nw.get_comp("feed"), nw.get_comp("grid"), station)
+    results = nw.get_results(group, recursive=False)
+    assert list(results["Connection"].index) == ["1"]
+    assert nw.results["Connection"].loc["1", "subsystem"] == "supply"
+    assert nw.results["Pump"].loc["station_drive_pump", "subsystem"] == "supply/station/drive"
+    nw.ungroup(group)
+    assert nw.results["Connection"].loc["1", "subsystem"] == ""
+
+    assert len(nw.get_results()["Connection"]) == len(nw.results["Connection"])
+
+
+def test_print_results_of_nested_subsystem():
+    station = Station("station")
+    nw = _network_with(station, solve=True)
+    nw.print_results(subsystem=station, print_results=False)
+    nw.print_results(subsystem=station.get_subsystem("drive"), print_results=False)

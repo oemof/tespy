@@ -27,6 +27,8 @@ import pandas as pd
 from tabulate import tabulate
 
 from tespy.components.component import component_registry
+from tespy.components.subsystem import PATH_SEPARATOR
+from tespy.components.subsystem import _owner
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
@@ -340,9 +342,17 @@ class Network:
         Parameters
         ----------
         *args : tespy.components.subsystem.Subsystem
-            The subsystems to add, :code:`add_subsystems(s1, s2, ...)`.
+            The subsystems to add, :code:`add_subsystems(s1, s2, ...)`. The
+            nested subsystems are added with them.
         """
         for subsystem in args:
+            if subsystem.parent is not None:
+                msg = (
+                    f"The subsystem {subsystem.path} is part of another "
+                    "subsystem, add the top level subsystem to the network."
+                )
+                logger.error(msg)
+                raise ValueError(msg)
             if subsystem.label in self.subsystems:
                 msg = (
                     'There is already a subsystem with the label '
@@ -351,10 +361,13 @@ class Network:
                 logger.error(msg)
                 raise ValueError(msg)
 
+            for sub in subsystem._walk():
+                _claim_ownership(sub, self)
             self.subsystems[subsystem.label] = subsystem
 
-            for c in subsystem.conns.values():
-                self.add_conns(c)
+            for sub in subsystem._walk():
+                for c in sub.conns.values():
+                    self.add_conns(c)
 
     def del_subsystems(self, *args, with_boundary=False):
         r"""
@@ -375,16 +388,18 @@ class Network:
             outside, default: :code:`False`.
         """
         for subsystem in args:
-            if subsystem.label in self.subsystems:
-                members = set(subsystem.comps.values())
-                boundary = [
+            if self.subsystems.get(subsystem.label) is subsystem:
+                members = set(subsystem.get_components(recursive=True))
+                inner = [
                     c for c in self.conns["object"]
-                    if (c.source in members) != (c.target in members)
+                    if c.source in members and c.target in members
                 ]
-                for c in subsystem.conns.values():
-                    self.del_conns(c)
+                boundary = subsystem.boundary_connections
+                self.del_conns(*inner)
                 if with_boundary:
                     self.del_conns(*boundary)
+                for sub in subsystem._walk():
+                    _network_ownership.pop(sub, None)
                 del self.subsystems[subsystem.label]
 
     def get_subsystem(self, label):
@@ -394,19 +409,55 @@ class Network:
         Parameters
         ----------
         label : str
-            Label of the Subsystem object.
+            Label of a top level subsystem or path of a nested one, e.g.
+            :code:`"plant/drive"`.
 
         Returns
         -------
         tespy.components.subsystem.Subsystem
             Subsystem object with specified label.
         """
+        top, _, rest = label.partition(PATH_SEPARATOR)
         try:
-            return self.subsystems[label]
+            subsystem = self.subsystems[top]
+            return subsystem.get_subsystem(rest) if rest else subsystem
         except KeyError:
             msg = f"Subsystem with label {label} not found."
             logger.error(msg)
             raise KeyError(msg)
+
+    def subsystem_of(self, obj):
+        r"""
+        Get the innermost subsystem a component or connection belongs to.
+
+        A connection belongs to the deepest subsystem that contains the
+        components at both of its ends.
+
+        Parameters
+        ----------
+        obj : tespy.components.component.Component, tespy.connections.connection.ConnectionBase
+            The component or connection.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            The subsystem, :code:`None` if the object is on the network level.
+        """
+        if isinstance(obj, ConnectionBase):
+            source = self.subsystem_of(obj.source)
+            target = self.subsystem_of(obj.target)
+            if source is None or target is None:
+                return None
+            common = None
+            for a, b in zip(source._lineage(), target._lineage()):
+                if a is not b:
+                    break
+                common = a
+            return common
+        owner = _owner(obj)
+        if owner is None or owner._network() is not self:
+            return None
+        return owner
 
     def get_conn(self, label):
         r"""

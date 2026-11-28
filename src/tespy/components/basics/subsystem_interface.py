@@ -171,6 +171,11 @@ class SubsystemInterface(Component):
             })
         return constraints
 
+    def _initial_temperature_edges(self):
+        # every pair passes its state unchanged, not only a single pair as
+        # in the default of the base class
+        return [(i, o, 0.0, 1.0) for i, o in zip(self.inl, self.outl)]
+
     def power_equality_structure_matrix(self, k, **kwargs):
         for count, (i, o) in enumerate(zip(self.power_inl, self.power_outl)):
             self._structure_matrix[k + count, i.E.sm_col] = 1

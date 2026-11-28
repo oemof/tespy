@@ -40,6 +40,9 @@ Bug Fixes
   saturation are evaluated with the vapor content of the saturated air like the
   enthalpy, instead of the total water content
   (`PR #1139 <https://github.com/oemof/tespy/pull/1139>`__).
+- Setting a starting value (e.g. :code:`T0`) to :code:`None` unsets it.
+- Starting temperatures pass through :code:`SubsystemInterface` with more than
+  a single interface.
 
 Documentation
 #############

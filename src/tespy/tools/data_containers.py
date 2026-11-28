@@ -652,7 +652,7 @@ class ScalarParameter(_EquationMixin, DataContainer):
             self._val0 = value.magnitude
             self._val0_unit = str(value.units)
         else:
-            self._val0 = value
+            self._val0 = np.nan if value is None else value
             self._val0_unit = None
 
     def get_val0_unit(self):

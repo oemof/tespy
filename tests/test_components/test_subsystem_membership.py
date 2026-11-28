@@ -1,6 +1,8 @@
+from pytest import approx
 from pytest import raises
 
 from tespy.components import Motor
+from tespy.components import Pipe
 from tespy.components import PowerSource
 from tespy.components import Pump
 from tespy.components import Sink
@@ -12,6 +14,7 @@ from tespy.connections import Connection
 from tespy.connections import PowerConnection
 from tespy.networks import Network
 from tespy.tools.helpers import TESPyComponentError
+from tespy.tools.helpers import TESPyNetworkError
 
 
 class SplitterSubsystem(Subsystem):
@@ -328,3 +331,144 @@ def test_del_nested_subsystem():
     assert station._network() is None
     nw2 = _network_with(station)
     nw2.check_topology()
+
+
+def _line_network():
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(temperature="degC", pressure="bar", pressure_difference="bar")
+    so = Source("source")
+    pipe1 = Pipe("pipe 1")
+    pipe2 = Pipe("pipe 2")
+    pipe3 = Pipe("pipe 3")
+    si = Sink("sink")
+    c1 = Connection(so, "out1", pipe1, "in1", label="1")
+    nw.add_conns(
+        c1,
+        Connection(pipe1, "out1", pipe2, "in1", label="2"),
+        Connection(pipe2, "out1", pipe3, "in1", label="3"),
+        Connection(pipe3, "out1", si, "in1", label="4"),
+    )
+    c1.set_attr(fluid={"water": 1}, m=1, p=5, T=20)
+    for pipe in [pipe1, pipe2, pipe3]:
+        pipe.set_attr(dp=0.5, Q=1000)
+    return nw
+
+
+def test_group_keeps_labels_and_results():
+    nw = _line_network()
+    nw.solve("design")
+    before = nw.results["Connection"].copy()
+
+    pipes = [nw.get_comp(f"pipe {i}") for i in [1, 2, 3]]
+    line = nw.group("line", *pipes[:2])
+    assert [c.label for c in line.get_components()] == ["pipe 1", "pipe 2"]
+    assert nw.subsystem_of(nw.get_conn("2")) is line
+    assert nw.subsystem_of(nw.get_conn("3")) is None
+    assert sorted(c.label for c in line.boundary_connections) == ["1", "3"]
+    assert list(line.conns) == ["2"]
+
+    nw.solve("design")
+    nw.assert_convergence()
+    after = nw.results["Connection"]
+    assert list(after.index) == list(before.index)
+    columns = before.select_dtypes("number").columns
+    assert after[columns].to_numpy() == approx(before[columns].to_numpy(), rel=1e-6)
+
+
+def test_nested_groups_and_ungroup():
+    nw = _line_network()
+    pipes = [nw.get_comp(f"pipe {i}") for i in [1, 2, 3]]
+    line = nw.group("line", *pipes)
+    first = nw.group("first", pipes[0], pipes[1], parent=line)
+    assert first.path == "line/first"
+    assert nw.get_subsystem("line/first") is first
+    assert nw.subsystem_of(nw.get_conn("2")) is first
+    assert nw.subsystem_of(nw.get_conn("3")) is line
+    assert list(first.conns) == ["2"]
+    assert list(line.conns) == ["3"]
+
+    nw.ungroup(line)
+    assert list(nw.subsystems) == ["first"]
+    assert first.parent is None
+    assert nw.subsystem_of(pipes[2]) is None
+
+    nw.ungroup(first)
+    assert nw.subsystems == {}
+    assert all(nw.subsystem_of(pipe) is None for pipe in pipes)
+
+
+def test_group_of_subsystem_keeps_labels():
+    station = Station("station")
+    nw = _network_with(station)
+    feed = nw.get_comp("feed")
+    group = nw.group("supply", feed, station)
+    assert station.path == "supply/station"
+    assert station.get_comp("valve").label == "station_valve"
+    assert nw.get_subsystem("supply/station/drive") is station.get_subsystem("drive")
+    assert nw.subsystem_of(nw.get_conn("1")) is group
+    assert sorted(c.label for c in group.boundary_connections) == ["2", "e1"]
+
+
+def test_group_rules():
+    nw = _line_network()
+    pipe1 = nw.get_comp("pipe 1")
+    line = nw.group("line", pipe1)
+    with raises(TESPyNetworkError, match="not on the network level"):
+        nw.group("other", pipe1)
+    with raises(TESPyNetworkError, match="not part of the network"):
+        nw.group("other", Pipe("pipe 1"))
+    with raises(ValueError, match="already a subsystem"):
+        nw.group("line", nw.get_comp("pipe 2"))
+
+    station = Station("station")
+    nw2 = _network_with(station)
+    with raises(TESPyNetworkError, match="must be a group"):
+        nw2.group("inner", parent=station)
+    with raises(TESPyNetworkError, match="not on the network level"):
+        nw2.group("inner", station.get_comp("valve"))
+    with raises(TESPyNetworkError, match="Only groups"):
+        nw2.ungroup(station)
+    with raises(TESPyNetworkError, match="Only groups"):
+        nw2.ungroup(line)
+
+
+def test_group_ports():
+    nw = Network(iterinfo=False)
+    pump = Pump("pump")
+    motor = Motor("motor")
+    nw.add_conns(PowerConnection(motor, "power_out", pump, "power", label="shaft"))
+    drive = nw.group("drive", pump, motor)
+    drive.add_port("suction", pump, "in1")
+    drive.add_port("discharge", pump, "out1")
+    drive.add_port("electric", motor, "power_in")
+
+    c1 = Connection(Source("feed"), "out1", drive, "suction", label="1")
+    c2 = Connection(drive, "discharge", Sink("product"), "in1", label="2")
+    e1 = PowerConnection(PowerSource("grid"), "power", drive, "electric", label="e1")
+    assert (c1.target, c1.target_id) == (pump, "in1")
+    assert (c2.source, c2.source_id) == (pump, "out1")
+    assert (e1.target, e1.target_id) == (motor, "power_in")
+    nw.add_conns(c1, c2, e1)
+    nw.check_topology()
+
+    with raises(ValueError, match="has no port inlet"):
+        Connection(Source("other"), "out1", drive, "inlet")
+    with raises(TESPyComponentError, match="already has a port"):
+        drive.add_port("suction", pump, "in1")
+    with raises(TESPyComponentError, match="has no port"):
+        drive.add_port("other", pump, "in2")
+    with raises(TESPyComponentError, match="not part of the group"):
+        drive.add_port("other", Pump("pump 2"), "in1")
+    with raises(TESPyComponentError, match="given by its interfaces"):
+        Station("station").add_port("other", pump, "in1")
+
+
+def test_interface_ports():
+    station = Station("station")
+    assert {key: (comp.label, port) for key, (comp, port) in station.ports.items()} == {
+        "in1": ("station_inlet", "in1"),
+        "power_in1": ("station_inlet", "power_in1"),
+        "out1": ("station_outlet", "out1"),
+    }
+    with raises(ValueError, match="has no port in2"):
+        Connection(Source("source"), "out1", station, "in2")

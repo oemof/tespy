@@ -210,6 +210,8 @@ class Subsystem:
             num_heat_inter=self.num_heat_out,
         )
 
+        self._add_interface_ports()
+
         self.create_network()
 
     def _init_structure(self, label):
@@ -217,8 +219,86 @@ class Subsystem:
         self.subsystems = {}
         self.comps = {}
         self.conns = {}
+        self.ports = {}
         self.interface_map = {}
         self.label = label
+
+    @classmethod
+    def _create_group(cls, label):
+        group = cls.__new__(cls)
+        group._prefix_members = False
+        group._init_structure(label)
+        return group
+
+    @property
+    def is_group(self):
+        """The subsystem is a group of existing components without interfaces."""
+        return not self._prefix_members
+
+    def _add_interface_ports(self):
+        inlet, outlet = self.inlet, self.outlet
+        for interface, ports in [
+                (inlet, inlet.inlets() + inlet.powerinlets() + inlet.heatinlets()),
+                (outlet, outlet.outlets() + outlet.poweroutlets() + outlet.heatoutlets())]:
+            for port in ports:
+                self.ports[port] = (interface, port)
+
+    def add_port(self, key, component, port):
+        r"""
+        Make a port of a component available as port of the group.
+
+        Connections to the group through this port are connected to the
+        component, e.g. :code:`Connection(source, "out1", group, key)`.
+
+        Parameters
+        ----------
+        key : str
+            Name of the port of the group.
+
+        component : tespy.components.component.Component
+            A component of the group or of one of its nested subsystems.
+
+        port : str
+            Port id of the component, e.g. :code:`"in1"`.
+        """
+        if not self.is_group:
+            msg = (
+                f"The ports of the subsystem {self.path} are given by its "
+                "interfaces. Ports can only be added to groups."
+            )
+        elif component not in self.get_components(recursive=True):
+            msg = (
+                f"The component {component.label} is not part of the group "
+                f"{self.path}."
+            )
+        elif port not in [
+                p for ports in [
+                    component.inlets(), component.outlets(),
+                    component.powerinlets(), component.poweroutlets(),
+                    component.heatinlets(), component.heatoutlets()]
+                for p in ports]:
+            msg = (
+                f"The component {component.label} has no port {port}."
+            )
+        elif key in self.ports:
+            msg = f"The group {self.path} already has a port {key}."
+        else:
+            self.ports[key] = (component, port)
+            return
+        logger.error(msg)
+        raise TESPyComponentError(msg)
+
+    def _resolve_port(self, key):
+        try:
+            return self.ports[key]
+        except KeyError:
+            msg = (
+                f"Error creating connection. The subsystem {self.path} has no "
+                f"port {key}. Select one of the following ports "
+                f"{', '.join(self.ports)}."
+            )
+            logger.error(msg)
+            raise ValueError(msg)
 
     @property
     def label(self):
@@ -299,10 +379,12 @@ class Subsystem:
             child._relabel()
 
     def _check_unique_labels(self):
-        for kind, attribute in [("component", "comps"), ("connection", "conns")]:
+        for kind, members in [
+                ("component", lambda sub: sub.comps),
+                ("connection", lambda sub: sub.conns)]:
             seen = {}
             for sub in self._walk():
-                for local in getattr(sub, attribute):
+                for local in members(sub):
                     label = sub._global_label(local)
                     if label in seen:
                         other_path, other_local = seen[label]
@@ -662,6 +744,7 @@ class Subsystem:
         try:
             sub.inlet = comps["inlet"]
             sub.outlet = comps["outlet"]
+            sub._add_interface_ports()
         except KeyError:
             msg = (
                 "The data must contain SubsystemInterface components with "

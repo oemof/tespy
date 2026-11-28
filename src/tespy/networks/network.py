@@ -29,6 +29,7 @@ from tabulate import tabulate
 from tespy.components.component import component_registry
 from tespy.components.subsystem import PATH_SEPARATOR
 from tespy.components.subsystem import _owner
+from tespy.components.subsystem import _subsystem_membership
 from tespy.connections.connection import ConnectionBase
 from tespy.connections.connection import connection_registry
 from tespy.solver import Problem
@@ -425,6 +426,166 @@ class Network:
             msg = f"Subsystem with label {label} not found."
             logger.error(msg)
             raise KeyError(msg)
+
+    def group(self, label, *members, parent=None):
+        r"""
+        Group components and subsystems of the network into a subsystem.
+
+        The members keep their labels and the network does not change, the
+        group only adds a level to the structure of the network. Connections
+        through the border of the group stay single connections, the group has
+        no interface components. Use
+        :py:meth:`~tespy.components.subsystem.Subsystem.add_port` to make the
+        group connectable by port name.
+
+        Parameters
+        ----------
+        label : str
+            Label of the group, unique on its level.
+
+        *members : tespy.components.component.Component, tespy.components.subsystem.Subsystem
+            Components and subsystems on the level of :code:`parent`.
+
+        parent : tespy.components.subsystem.Subsystem
+            Group to create the new group in, default: :code:`None` for the
+            network level.
+
+        Returns
+        -------
+        tespy.components.subsystem.Subsystem
+            The group.
+
+        Example
+        -------
+        >>> from tespy.components import Pipe, Sink, Source
+        >>> from tespy.connections import Connection
+        >>> from tespy.networks import Network
+        >>> nw = Network()
+        >>> so = Source("source")
+        >>> pipe1 = Pipe("pipe 1")
+        >>> pipe2 = Pipe("pipe 2")
+        >>> si = Sink("sink")
+        >>> nw.add_conns(
+        ...     Connection(so, "out1", pipe1, "in1", label="1"),
+        ...     Connection(pipe1, "out1", pipe2, "in1", label="2"),
+        ...     Connection(pipe2, "out1", si, "in1", label="3"),
+        ... )
+        >>> line = nw.group("line", pipe1, pipe2)
+        >>> nw.subsystem_of(pipe1).path
+        'line'
+        >>> [c.label for c in line.get_connections()]
+        ['2']
+        >>> sorted(c.label for c in line.boundary_connections)
+        ['1', '3']
+        >>> pipe1.label
+        'pipe 1'
+        """
+        from tespy.components.subsystem import Subsystem
+
+        if parent is not None and (
+                parent._network() is not self or not parent.is_group):
+            msg = (
+                "The parent of a group must be a group of the same network."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        siblings = self.subsystems if parent is None else parent.subsystems
+        if label in siblings:
+            msg = f"There is already a subsystem with the label {label}."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        level = parent.path if parent is not None else "the network level"
+        components = [m for m in members if not isinstance(m, Subsystem)]
+        subsystems = [m for m in members if isinstance(m, Subsystem)]
+        for comp in components:
+            if (
+                    comp.label not in self.comps.index
+                    or self.comps.loc[comp.label, "object"] is not comp):
+                msg = f"The component {comp.label} is not part of the network."
+            elif self.subsystem_of(comp) is not parent:
+                msg = (
+                    f"The component {comp.label} is not on {level}, group its "
+                    "subsystem instead."
+                )
+            else:
+                continue
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        for sub in subsystems:
+            if siblings.get(sub.label) is not sub:
+                msg = f"The subsystem {sub.label} is not on {level}."
+                logger.error(msg)
+                raise hlp.TESPyNetworkError(msg)
+
+        group = Subsystem._create_group(label)
+        group.parent = parent
+        _claim_ownership(group, self)
+        siblings[label] = group
+        for comp in components:
+            if parent is not None:
+                del parent.comps[comp.label]
+            group._add_member(comp)
+        for sub in subsystems:
+            del siblings[sub.label]
+            group.subsystems[sub.label] = sub
+            sub.parent = group
+
+        members = set(group.get_components(recursive=True))
+        for conn in self.conns["object"]:
+            if (
+                    conn.source in members and conn.target in members
+                    and self.subsystem_of(conn) is group):
+                if parent is not None:
+                    parent.conns.pop(conn.label, None)
+                group.conns[conn.label] = conn
+        return group
+
+    def ungroup(self, group):
+        r"""
+        Remove a group created with :py:meth:`group`.
+
+        The members of the group move to the level of the group, their labels
+        and the network stay the same.
+
+        Parameters
+        ----------
+        group : tespy.components.subsystem.Subsystem
+            The group to remove.
+        """
+        if group._network() is not self or not group.is_group:
+            msg = "Only groups of this network can be ungrouped."
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+        parent = group.parent
+        siblings = self.subsystems if parent is None else parent.subsystems
+        clashes = [label for label in group.subsystems if label in siblings]
+        if clashes:
+            msg = (
+                f"The subsystems {', '.join(clashes)} of the group "
+                f"{group.path} have the same label as a subsystem on the level "
+                "of the group."
+            )
+            logger.error(msg)
+            raise hlp.TESPyNetworkError(msg)
+
+        del siblings[group.label]
+        _network_ownership.pop(group, None)
+        for label, comp in group.comps.items():
+            if parent is None:
+                _subsystem_membership.pop(comp, None)
+            else:
+                parent._add_member(comp)
+        for label, sub in group.subsystems.items():
+            siblings[label] = sub
+            sub.parent = parent
+        if parent is not None:
+            parent.conns.update(group.conns)
+        group.parent = None
+        group.comps = {}
+        group.conns = {}
+        group.subsystems = {}
+        group.ports = {}
 
     def subsystem_of(self, obj):
         r"""

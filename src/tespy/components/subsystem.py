@@ -33,6 +33,32 @@ def _owner(component):
     return reference() if reference is not None else None
 
 
+def _drop_members(data, components, connections):
+    for kind, labels in [
+            ("components", components), ("connections", connections)]:
+        data[kind] = {
+            local: name for local, name in data.get(kind, {}).items()
+            if name not in labels
+        }
+    data["ports"] = {
+        key: port for key, port in data.get("ports", {}).items()
+        if port["component"] not in components
+    }
+    for child in data.get("subsystems", {}).values():
+        _drop_members(child, components, connections)
+
+
+def _innermost_common(first, second):
+    if first is None or second is None:
+        return None
+    common = None
+    for a, b in zip(first._lineage(), second._lineage()):
+        if a is not b:
+            break
+        common = a
+    return common
+
+
 # connection classes with the boundary component name and port prefix used to
 # rewire them in Subsystem.from_network
 _BOUNDARY_REWIRING = [
@@ -151,8 +177,8 @@ class Subsystem:
     <class 'tespy.components.basics.subsystem_interface.SubsystemInterface'>
     """
 
-    # members of a group keep their labels, the members of other subsystems
-    # are prefixed with the labels of the subsystem path
+    # the labels of members are prefixed with the labels of the subsystems on
+    # their path, a group does not add its own label
     _prefix_members = True
 
     def __init__(self, label):
@@ -221,6 +247,7 @@ class Subsystem:
         self.conns = {}
         self.ports = {}
         self.interface_map = {}
+        self._class_name = type(self).__name__
         self.label = label
 
     @classmethod
@@ -361,8 +388,6 @@ class Subsystem:
         ]
 
     def _global_label(self, local):
-        if not self._prefix_members:
-            return local
         prefix = "".join(
             f"{sub.label}_" for sub in self._lineage() if sub._prefix_members
         )
@@ -637,6 +662,132 @@ class Subsystem:
             if (conn.source in members) != (conn.target in members)
         ]
 
+    def _serialize_structure(self):
+        data = {
+            "class": self._class_name,
+            "components": {
+                local: comp.label for local, comp in self.comps.items()
+            },
+            "connections": {
+                local: conn.label for local, conn in self.conns.items()
+            },
+            "ports": {
+                key: {"component": comp.label, "port": port}
+                for key, (comp, port) in self.ports.items()
+            },
+        }
+        if self.interface_map:
+            data["interface_map"] = self.interface_map
+        if self.subsystems:
+            data["subsystems"] = {
+                label: child._serialize_structure()
+                for label, child in self.subsystems.items()
+            }
+        return data
+
+    @classmethod
+    def _from_structure(cls, label, data, components, connections, parent=None,
+                        level_prefix=""):
+        """Rebuild a subsystem tree on objects that exist already.
+
+        :code:`components` and :code:`connections` map the labels used in
+        the data to the objects. :code:`level_prefix` is the prefix the
+        labels of the members of a group on this level carry in the data.
+        """
+        def lookup(objects, name, kind):
+            try:
+                return objects[name]
+            except KeyError:
+                msg = (
+                    f"The {kind} {name} of the subsystem {path} does not "
+                    "exist."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
+
+        path = PATH_SEPARATOR.join(
+            [parent.path, label] if parent is not None else [label]
+        )
+        members = data.get("components", {})
+        prefixed = f"{level_prefix}{label}_"
+        if all(name == f"{level_prefix}{local}" for local, name in members.items()):
+            prefix_members = False
+        elif all(name == f"{prefixed}{local}" for local, name in members.items()):
+            prefix_members = True
+        else:
+            msg = (
+                f"The labels of the components of the subsystem {path} do "
+                "not follow from their local labels and the subsystem path."
+            )
+            logger.error(msg)
+            raise TESPyNetworkError(msg)
+
+        sub = cls.__new__(cls)
+        sub._prefix_members = prefix_members
+        sub._init_structure(label)
+        sub._class_name = data.get("class", cls.__name__)
+        sub.interface_map = data.get("interface_map", {})
+        if parent is not None:
+            if label in parent.subsystems:
+                msg = (
+                    f"The subsystem {parent.path} contains two subsystems "
+                    f"with the label {label}."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
+            parent.subsystems[label] = sub
+            sub.parent = parent
+
+        for local, name in members.items():
+            comp = lookup(components, name, "component")
+            owner = _owner(comp)
+            if owner is not None:
+                msg = (
+                    f"The component {name} is a member of the subsystems "
+                    f"{owner.path} and {path}."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
+            sub.comps[local] = comp
+            _subsystem_membership[comp] = weakref.ref(sub)
+        for local, name in data.get("connections", {}).items():
+            sub.conns[local] = lookup(connections, name, "connection")
+        for local in ["inlet", "outlet"]:
+            if isinstance(sub.comps.get(local), SubsystemInterface):
+                setattr(sub, local, sub.comps[local])
+
+        child_prefix = prefixed if prefix_members else level_prefix
+        for child_label, child_data in data.get("subsystems", {}).items():
+            cls._from_structure(
+                child_label, child_data, components, connections, sub,
+                child_prefix
+            )
+
+        inside = set(sub.get_components(recursive=True))
+        for key, port in data.get("ports", {}).items():
+            comp = lookup(components, port["component"], "component")
+            if comp not in inside:
+                msg = (
+                    f"The port {key} of the subsystem {path} points to the "
+                    f"component {port['component']}, which is not part of "
+                    "the subsystem."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
+            sub.ports[key] = (comp, port["port"])
+
+        for local, conn in sub.conns.items():
+            owner = _innermost_common(_owner(conn.source), _owner(conn.target))
+            if owner is not sub:
+                msg = (
+                    f"The connection {conn.label} is listed in the subsystem "
+                    f"{path}, but the components at its ends place it "
+                    f"{'in ' + owner.path if owner else 'on the network level'}."
+                )
+                logger.error(msg)
+                raise TESPyNetworkError(msg)
+        return sub
+
     def get_conn(self, label):
 
         try:
@@ -768,8 +919,17 @@ class Subsystem:
             target_class = connection_registry.items[connection]
             conns.update(_construct_connections(target_class, data, comps))
 
+        for child_label, child_data in subsystem_data["Subsystem"].get(
+                "subsystems", {}).items():
+            Subsystem._from_structure(child_label, child_data, comps, conns, sub)
+        nested = {
+            conn for child in sub._walk() if child is not sub
+            for conn in child.conns.values()
+        }
         for c in conns.values():
-            sub.add_conns(c)
+            if c not in nested:
+                sub.add_conns(c)
+        sub._relabel()
 
         msg = f"Created subsystem {label} from data."
         logger.info(msg)
@@ -886,6 +1046,7 @@ class Subsystem:
             raise ValueError(msg)
 
         nw_dict = nw.export()
+        subsystems = nw_dict.pop("Subsystem", {})
 
         if keep != "specifications":
             for section in ("Connection", "Component"):
@@ -934,10 +1095,12 @@ class Subsystem:
             nw_dict["Subsystem"][attr] = 0
 
         interface_map = {}
+        removed_components = set()
+        rewired_connections = set()
 
         for conn_keys, comp_name, prefix in _BOUNDARY_REWIRING:
             for conn_key in conn_keys:
-                for con in nw_dict["Connection"].get(conn_key, {}).values():
+                for con_label, con in nw_dict["Connection"].get(conn_key, {}).items():
                     for end, interface, comp_class, count_key, port in [
                             ("source", "inlet", f"{comp_name}Source",
                              f"num_{prefix}in", f"{prefix}out"),
@@ -948,6 +1111,8 @@ class Subsystem:
                                 or comp in interface_exceptions):
                             continue
                         del nw_dict["Component"][comp_class][comp]
+                        removed_components.add(comp)
+                        rewired_connections.add(con_label)
                         nw_dict["Subsystem"][count_key] += 1
                         num = nw_dict["Subsystem"][count_key]
                         con[end] = interface
@@ -972,5 +1137,9 @@ class Subsystem:
             }
 
         nw_dict["Subsystem"]["interface_map"] = interface_map
+        if subsystems:
+            for data in subsystems.values():
+                _drop_members(data, removed_components, rewired_connections)
+            nw_dict["Subsystem"]["subsystems"] = subsystems
 
         return cls.from_dict(nw_dict)

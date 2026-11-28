@@ -1,3 +1,5 @@
+import json
+
 from pytest import approx
 from pytest import raises
 
@@ -472,3 +474,172 @@ def test_interface_ports():
     }
     with raises(ValueError, match="has no port in2"):
         Connection(Source("source"), "out1", station, "in2")
+
+
+def _round_trip(nw):
+    data = json.loads(json.dumps(nw.export()))
+    return Network.from_dict(data)
+
+
+def _membership(nw):
+    def path(obj):
+        sub = nw.subsystem_of(obj)
+        return sub.path if sub is not None else ""
+
+    return (
+        {label: path(comp) for label, comp in nw.comps["object"].items()},
+        {label: path(conn) for label, conn in nw.conns["object"].items()},
+    )
+
+
+def test_export_contains_tree():
+    station = Station("station")
+    nw = _network_with(station)
+    data = nw.export()["Subsystem"]
+    assert list(data) == ["station"]
+    assert data["station"]["class"] == "Station"
+    assert data["station"]["components"] == {
+        "inlet": "station_inlet", "valve": "station_valve", "outlet": "station_outlet"
+    }
+    assert data["station"]["ports"]["power_in1"] == {
+        "component": "station_inlet", "port": "power_in1"
+    }
+    drive = data["station"]["subsystems"]["drive"]
+    assert drive["components"]["pump"] == "station_drive_pump"
+    assert drive["connections"]["shaft"] == "station_drive_shaft"
+    assert "subsystems" not in drive
+
+
+def test_round_trip_keeps_tree_membership_and_results():
+    nw = _network_with(Plant("plant"), solve=True)
+    loaded = _round_trip(nw)
+    assert _membership(loaded) == _membership(nw)
+    assert loaded.export()["Subsystem"] == nw.export()["Subsystem"]
+
+    drive = loaded.get_subsystem("plant/station/drive")
+    assert drive.get_comp("pump") is loaded.get_comp("plant_station_drive_pump")
+    assert drive.get_conn("shaft") is loaded.get_conn("plant_station_drive_shaft")
+    assert type(drive) is Subsystem
+    assert not drive.is_group
+
+    loaded.solve("design")
+    loaded.assert_convergence()
+    columns = ["m", "p", "h", "T"]
+    assert loaded.results["Connection"].loc[:, columns].to_numpy() == approx(
+        nw.results["Connection"].loc[:, columns].to_numpy(), rel=1e-6
+    )
+
+
+def test_class_name_survives_two_round_trips():
+    nw = _network_with(Station("station"))
+    twice = _round_trip(_round_trip(nw))
+    data = twice.export()["Subsystem"]["station"]
+    assert data["class"] == "Station"
+    assert data["subsystems"]["drive"]["class"] == "Drive"
+
+
+def test_round_trip_of_groups_with_ports():
+    nw = _line_network()
+    pipes = [nw.get_comp(f"pipe {i}") for i in [1, 2, 3]]
+    line = nw.group("line", *pipes)
+    first = nw.group("first", pipes[0], pipes[1], parent=line)
+    line.add_port("entry", pipes[0], "in1")
+
+    loaded = _round_trip(nw)
+    assert _membership(loaded) == _membership(nw)
+    group = loaded.get_subsystem("line")
+    assert group.is_group
+    assert loaded.get_subsystem("line/first").is_group
+    assert loaded.get_comp("pipe 1").label == "pipe 1"
+    conn = Connection(Source("other"), "out1", group, "entry")
+    assert conn.target is loaded.get_comp("pipe 1")
+    assert list(first.conns) == ["2"]
+
+
+def test_file_without_subsystem_section_loads():
+    nw = _network_with(Station("station"))
+    data = json.loads(json.dumps(nw.export()))
+    del data["Subsystem"]
+    loaded = Network.from_dict(data)
+    assert loaded.subsystems == {}
+    assert len(loaded.conns) == len(nw.conns)
+
+
+def _tampered(change):
+    nw = _network_with(Station("station"))
+    data = json.loads(json.dumps(nw.export()))
+    change(data["Subsystem"]["station"])
+    return data
+
+
+def test_reading_checks():
+    def missing_member(sub):
+        sub["components"]["other"] = "station_other"
+
+    def two_subsystems(sub):
+        sub["subsystems"]["drive"]["components"]["valve"] = "station_drive_valve"
+        sub["components"]["drive_valve"] = "station_drive_valve"
+
+    def wrong_level(sub):
+        sub["connections"]["shaft"] = "station_drive_shaft"
+
+    def port_outside(sub):
+        sub["ports"]["other"] = {"component": "feed", "port": "out1"}
+
+    def inconsistent_labels(sub):
+        sub["components"]["valve"] = "valve"
+
+    cases = [
+        (missing_member, "component station_other of the subsystem station does not exist"),
+        (wrong_level, "connection station_drive_shaft is listed in the subsystem station"),
+        (port_outside, "port other of the subsystem station points to the component feed"),
+        (inconsistent_labels, "do not follow from their local labels"),
+    ]
+    for change, message in cases:
+        with raises(TESPyNetworkError, match=message):
+            Network.from_dict(_tampered(change))
+
+
+def test_reading_check_member_of_two_subsystems():
+    nw = _line_network()
+    nw.group("a", nw.get_comp("pipe 1"))
+    nw.group("b", nw.get_comp("pipe 2"))
+    data = json.loads(json.dumps(nw.export()))
+    data["Subsystem"]["b"]["components"]["pipe 1"] = "pipe 1"
+    with raises(TESPyNetworkError, match="member of the subsystems a and b"):
+        Network.from_dict(data)
+
+
+def test_from_network_keeps_nesting_and_places_twice():
+    inner = _network_with(Station("station"))
+    first = Subsystem.from_network("a", inner)
+    second = Subsystem.from_network("b", inner)
+    assert first.get_subsystem("station/drive").get_comp("pump").label == "a_station_drive_pump"
+
+    nw = Network(iterinfo=False)
+    nw.units.set_defaults(temperature="degC", pressure="bar")
+    c1 = Connection(Source("feed"), "out1", first, "in1", label="1")
+    c2 = Connection(first, "out1", second, "in1", label="2")
+    c3 = Connection(second, "out1", Sink("product"), "in1", label="3")
+    nw.add_subsystems(first, second)
+    nw.add_conns(
+        c1, c2, c3,
+        PowerConnection(PowerSource("grid 1"), "power", first, "power_in1", label="e1"),
+        PowerConnection(PowerSource("grid 2"), "power", second, "power_in1", label="e2"),
+    )
+    nw.check_topology()
+    assert nw.subsystem_of(nw.get_comp("b_station_drive_pump")) is second.get_subsystem(
+        "station/drive"
+    )
+    assert nw.subsystem_of(nw.get_conn("a_station_drive_shaft")).path == "a/station/drive"
+
+
+def test_from_network_drops_boundary_members_of_groups():
+    nw = _line_network()
+    group = nw.group("supply", nw.get_comp("source"), nw.get_comp("pipe 1"))
+    group.add_port("entry", nw.get_comp("source"), "out1")
+    sub = Subsystem.from_network("line", nw)
+    supply = sub.get_subsystem("supply")
+    assert [c.label for c in supply.get_components()] == ["line_pipe 1"]
+    assert supply.ports == {}
+    assert supply.is_group

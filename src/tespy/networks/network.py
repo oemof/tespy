@@ -28,6 +28,7 @@ from tabulate import tabulate
 
 from tespy.components.component import component_registry
 from tespy.components.subsystem import PATH_SEPARATOR
+from tespy.components.subsystem import _innermost_common
 from tespy.components.subsystem import _owner
 from tespy.components.subsystem import _subsystem_membership
 from tespy.connections.connection import ConnectionBase
@@ -605,16 +606,9 @@ class Network:
             The subsystem, :code:`None` if the object is on the network level.
         """
         if isinstance(obj, ConnectionBase):
-            source = self.subsystem_of(obj.source)
-            target = self.subsystem_of(obj.target)
-            if source is None or target is None:
-                return None
-            common = None
-            for a, b in zip(source._lineage(), target._lineage()):
-                if a is not b:
-                    break
-                common = a
-            return common
+            return _innermost_common(
+                self.subsystem_of(obj.source), self.subsystem_of(obj.target)
+            )
         owner = _owner(obj)
         if owner is None or owner._network() is not self:
             return None
@@ -3402,6 +3396,14 @@ class Network:
         msg = 'Created connections.'
         logger.info(msg)
 
+        from tespy.components.subsystem import Subsystem
+
+        for label, data in network_data.get("Subsystem", {}).items():
+            sub = Subsystem._from_structure(label, data, comps, conns)
+            for s in sub._walk():
+                _claim_ownership(s, nw)
+            nw.subsystems[label] = sub
+
         msg = 'Created network.'
         logger.info(msg)
 
@@ -3582,6 +3584,11 @@ class Network:
         export["Network"] = self._export_network()
         export["Connection"] = self._export_connections()
         export["Component"] = self._export_components()
+        if self.subsystems:
+            export["Subsystem"] = {
+                label: sub._serialize_structure()
+                for label, sub in self.subsystems.items()
+            }
 
         if json_file_path:
             os.makedirs(os.path.dirname(os.path.abspath(json_file_path)), exist_ok=True)
